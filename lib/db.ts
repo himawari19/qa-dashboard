@@ -7,13 +7,7 @@ import fs from "node:fs";
 const isPostgres = !!process.env.POSTGRES_URL || !!process.env.DATABASE_URL?.startsWith("postgres");
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 
-// Ensure directory exists for SQLite
-const databasePath = path.join(process.cwd(), "prisma", "dev.db");
-if (!isPostgres && !fs.existsSync(path.dirname(databasePath))) {
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-}
-
-// Unified Tables Definition to avoid duplication
+// Unified Tables Definition
 const tables = [
   {
     name: "Sprint",
@@ -321,19 +315,29 @@ function generateSchemaSql(postgres: boolean) {
 const schemaSql = generateSchemaSql(isPostgres);
 
 const globalForDb = globalThis as unknown as {
-  sqliteDb?: DatabaseSync;
+  sqliteDb?: any;
   neonSql?: any;
 };
 
-function getNeon() {
+async function getNeon() {
+  const { neon } = await import("@neondatabase/serverless");
   if (!globalForDb.neonSql) {
     globalForDb.neonSql = neon(databaseUrl);
   }
   return globalForDb.neonSql;
 }
 
-function getSqlite() {
+async function getSqlite() {
   if (!globalForDb.sqliteDb) {
+    const { DatabaseSync } = await import("node:sqlite");
+    const path = await import("node:path");
+    const fs = await import("node:fs");
+    const databasePath = path.join(process.cwd(), "prisma", "dev.db");
+    
+    if (!fs.existsSync(path.dirname(databasePath))) {
+      fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+    }
+    
     globalForDb.sqliteDb = new DatabaseSync(databasePath);
     globalForDb.sqliteDb.exec(schemaSql);
   }
@@ -343,8 +347,7 @@ function getSqlite() {
 export const db = {
   async query<T>(queryStr: string, params: any[] = []): Promise<T[]> {
     if (isPostgres) {
-      const sqlClient = getNeon();
-      // Neon/Postgres uses $1, $2. Helper to replace ? if needed
+      const sqlClient = await getNeon();
       let pgQuery = queryStr;
       if (queryStr.includes('?')) {
         let count = 0;
@@ -352,7 +355,7 @@ export const db = {
       }
       return await sqlClient(pgQuery, params) as T[];
     } else {
-      const sqlite = getSqlite();
+      const sqlite = await getSqlite();
       return sqlite.prepare(queryStr).all(...params) as T[];
     }
   },
@@ -366,34 +369,46 @@ export const db = {
     if (isPostgres) {
       await this.query(queryStr, params);
     } else {
-      const sqlite = getSqlite();
+      const sqlite = await getSqlite();
       sqlite.prepare(queryStr).run(...params);
     }
   },
 
   async exec(queryStr: string): Promise<void> {
     if (isPostgres) {
-      const sqlClient = getNeon();
+      const sqlClient = await getNeon();
       const statements = queryStr.split(';').filter(s => s.trim());
       for (const s of statements) {
         await sqlClient(s);
       }
     } else {
-      const sqlite = getSqlite();
+      const sqlite = await getSqlite();
       sqlite.exec(queryStr);
     }
   }
 };
 
-// Auto-init schema if on server
-if (typeof window === 'undefined') {
+// Auto-init schema if on server AND not in build process
+if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
   db.exec(schemaSql).catch(err => {
     if (!databaseUrl && isPostgres) {
-      console.warn("Postgres URL not found, skipping schema init");
+      // Quietly skip if no URL
     } else {
       console.error("Schema init error:", err);
     }
   });
+}
+
+export async function resetTables() {
+  const tableNames = tables.map(t => `"${t.name}"`);
+  if (isPostgres) {
+    await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY;`);
+  } else {
+    for (const name of tableNames) {
+      await db.run(`DELETE FROM ${name}`);
+      await db.run(`DELETE FROM sqlite_sequence WHERE name = ${name.replace(/"/g, "'")}`);
+    }
+  }
 }
 
 export async function resetTables() {
