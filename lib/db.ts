@@ -1,6 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
-import { neon } from "@neondatabase/serverless";
 import fs from "node:fs";
 
 // Detect environment
@@ -389,8 +388,8 @@ export const db = {
   }
 };
 
-// Auto-init schema if on server AND not in build process
-if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
+// Auto-init schema if on server
+if (typeof window === 'undefined') {
   db.exec(schemaSql).catch(err => {
     if (!databaseUrl && isPostgres) {
       // Quietly skip if no URL
