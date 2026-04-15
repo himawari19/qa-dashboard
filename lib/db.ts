@@ -36,7 +36,7 @@ const tables = [
     name: "Task",
     schema: `
       id SERIAL_OR_PK,
-      sprintId INTEGER REFERENCES_SPRINT,
+      sprintId FK_INT_SPRINT,
       title TEXT NOT NULL,
       project TEXT NOT NULL,
       relatedFeature TEXT NOT NULL,
@@ -56,7 +56,7 @@ const tables = [
     name: "Bug",
     schema: `
       id SERIAL_OR_PK,
-      sprintId INTEGER REFERENCES_SPRINT,
+      sprintId FK_INT_SPRINT,
       project TEXT NOT NULL,
       module TEXT NOT NULL,
       bugType TEXT NOT NULL,
@@ -79,7 +79,7 @@ const tables = [
     name: "TestCaseScenario",
     schema: `
       id TEXT NOT NULL PRIMARY KEY,
-      requirementId TEXT REFERENCES_REQ,
+      requirementId FK_TEXT_REQ,
       projectName TEXT NOT NULL,
       moduleName TEXT NOT NULL,
       referenceDocument TEXT NOT NULL,
@@ -303,8 +303,8 @@ function generateSchemaSql(postgres: boolean) {
     let s = table.schema
       .replace(/SERIAL_OR_PK/g, postgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT")
       .replace(/DATE_TYPE/g, postgres ? "TIMESTAMP" : "TEXT")
-      .replace(/REFERENCES_SPRINT/g, postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)')
-      .replace(/REFERENCES_REQ/g, postgres ? "TEXT" : 'TEXT REFERENCES "Requirement"(id)');
+      .replace(/FK_INT_SPRINT/g, postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)')
+      .replace(/FK_TEXT_REQ/g, postgres ? "TEXT" : 'TEXT REFERENCES "Requirement"(id)');
     
     sqlRows += `CREATE TABLE IF NOT EXISTS "${table.name}" (${s});\n`;
   }
