@@ -410,15 +410,3 @@ export async function resetTables() {
     }
   }
 }
-
-export async function resetTables() {
-  const tableNames = tables.map(t => `"${t.name}"`);
-  if (isPostgres) {
-    await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY;`);
-  } else {
-    for (const name of tableNames) {
-      await db.run(`DELETE FROM ${name}`);
-      await db.run(`DELETE FROM sqlite_sequence WHERE name = ${name.replace(/"/g, "'")}`);
-    }
-  }
-}
