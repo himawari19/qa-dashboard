@@ -343,8 +343,24 @@ async function getSqlite() {
   return globalForDb.sqliteDb;
 }
 
+let schemaInitPromise: Promise<void> | null = null;
+
+async function ensureSchema() {
+  if (typeof window !== 'undefined') return;
+  if (!schemaInitPromise) {
+    schemaInitPromise = db.exec(schemaSql).catch(err => {
+      schemaInitPromise = null; // Retry on next call if failed
+      if (databaseUrl || !isPostgres) {
+         console.error("Schema init error:", err);
+      }
+    });
+  }
+  return schemaInitPromise;
+}
+
 export const db = {
   async query<T>(queryStr: string, params: any[] = []): Promise<T[]> {
+    await ensureSchema();
     if (isPostgres) {
       const pool = await getPostgresPool();
       let pgQuery = queryStr;
@@ -366,8 +382,15 @@ export const db = {
   },
 
   async run(queryStr: string, params: any[] = []): Promise<void> {
+    await ensureSchema();
     if (isPostgres) {
-      await this.query(queryStr, params);
+      const pool = await getPostgresPool();
+      let pgQuery = queryStr;
+      if (queryStr.includes('?')) {
+        let count = 0;
+        pgQuery = queryStr.replace(/\?/g, () => `$${++count}`);
+      }
+      await pool.query(pgQuery, params);
     } else {
       const sqlite = await getSqlite();
       sqlite.prepare(queryStr).run(...params);
@@ -379,7 +402,12 @@ export const db = {
       const pool = await getPostgresPool();
       const statements = queryStr.split(';').filter(s => s.trim());
       for (const s of statements) {
-        await pool.query(s);
+        try {
+          await pool.query(s);
+        } catch (err: any) {
+          if (err.code === '42P07' || err.code === '23505') continue;
+          throw err;
+        }
       }
     } else {
       const sqlite = await getSqlite();
@@ -387,17 +415,6 @@ export const db = {
     }
   }
 };
-
-// Auto-init schema if on server
-if (typeof window === 'undefined') {
-  db.exec(schemaSql).catch(err => {
-    if (!databaseUrl && isPostgres) {
-      // Quietly skip if no URL
-    } else {
-      console.error("Schema init error:", err);
-    }
-  });
-}
 
 export async function resetTables() {
   const tableNames = tables.map(t => `"${t.name}"`);
