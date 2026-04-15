@@ -9,6 +9,7 @@ export default async function TestRunnerPage({ params }: { params: Promise<{ id:
   
   if (!scenario) notFound();
 
+  if (!scenario) return <div>Scenario not found</div>;
   const testCases = await db.query('SELECT * FROM "TestCase" WHERE scenarioId = ? ORDER BY id ASC', [id]);
 
   return (
