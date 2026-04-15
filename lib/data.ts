@@ -268,6 +268,12 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?)`,
         [data.title, data.type, data.items, data.notes]
       );
+    case "api-inventory":
+      return await runInsert(
+        `INSERT INTO "ApiEndpoint" (title, method, endpoint, payload, response, notes)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [data.title, data.method, data.endpoint, data.payload, data.response, data.notes]
+      );
     case "test-suites":
       return await runInsert(
         `INSERT INTO "TestSuite" (title, project, "caseIds", status, notes)
@@ -291,6 +297,76 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
 
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
   switch (module) {
+    case "workload":
+      return await db.run(
+        `UPDATE "WorkloadAssignment"
+         SET qaName = ?, project = ?, sprint = ?, tasks = ?, status = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.qaName, data.project, data.sprint, data.tasks, data.status, id]
+      );
+    case "performance":
+      return await db.run(
+        `UPDATE "PerformanceBenchmark"
+         SET date = ?, title = ?, targetUrl = ?, loadTime = ?, score = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.date, data.title, data.targetUrl, data.loadTime, data.score, data.notes, id]
+      );
+    case "env-config":
+      return await db.run(
+        `UPDATE "EnvConfig"
+         SET envName = ?, label = ?, url = ?, username = ?, password = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.envName, data.label, data.url, data.username, data.password, data.notes, id]
+      );
+    case "test-plans":
+      return await db.run(
+        `UPDATE "TestPlan"
+         SET title = ?, project = ?, sprint = ?, scope = ?, startDate = ?, endDate = ?, assignee = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.assignee, data.status, data.notes, id]
+      );
+    case "test-sessions":
+      return await db.run(
+        `UPDATE "TestSession"
+         SET date = ?, project = ?, sprint = ?, tester = ?, scope = ?, totalCases = ?, passed = ?, failed = ?, blocked = ?, result = ?, notes = ?, evidence = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id]
+      );
+    case "checklists":
+      return await db.run(
+        `UPDATE "Checklist"
+         SET title = ?, type = ?, items = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.title, data.type, data.items, data.notes, id]
+      );
+    case "api-inventory":
+      return await db.run(
+        `UPDATE "ApiEndpoint"
+         SET title = ?, method = ?, endpoint = ?, payload = ?, response = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.title, data.method, data.endpoint, data.payload, data.response, data.notes, id]
+      );
+    case "bugs":
+      return await db.run(
+        `UPDATE "Bug"
+         SET project = ?, module = ?, "bugType" = ?, title = ?, preconditions = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, severity = ?, priority = ?, status = ?, evidence = ?, "relatedItems" = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, id]
+      );
+    case "tasks":
+      return await db.run(
+        `UPDATE "Task"
+         SET title = ?, project = ?, "relatedFeature" = ?, category = ?, status = ?, priority = ?, "dueDate" = ?, description = ?, notes = ?, evidence = ?, "relatedItems" = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, id]
+      );
+    case "test-suites":
+      return await db.run(
+        `UPDATE "TestSuite"
+         SET title = ?, project = ?, "caseIds" = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.title, data.project, data.caseIds, data.status, data.notes, id]
+      );
      case "sql-snippets":
       return await db.run(
         `UPDATE "SqlSnippet"
@@ -298,7 +374,27 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = ?`,
         [data.title, data.project, data.query, data.notes, id]
       );
-      // ... other modules simplified for now
+    case "testing-assets":
+      return await db.run(
+        `UPDATE "TestingAsset"
+         SET title = ?, project = ?, url = ?, type = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.title, data.project, data.url, data.type, data.notes, id]
+      );
+    case "meeting-notes":
+      return await db.run(
+        `UPDATE "MeetingNote"
+         SET date = ?, title = ?, project = ?, participants = ?, summary = ?, decisions = ?, actionItems = ?, notes = ?, evidence = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.date, data.title, data.project, data.participants, data.summary, data.decisions, data.actionItems, data.notes, data.evidence, id]
+      );
+    case "daily-logs":
+      return await db.run(
+        `UPDATE "DailyLog"
+         SET date = ?, project = ?, whatTested = ?, issuesFound = ?, progressSummary = ?, blockers = ?, nextPlan = ?, notes = ?, evidence = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.date, data.project, data.whatTested, data.issuesFound, data.progressSummary, data.blockers, data.nextPlan, data.notes, data.evidence, id]
+      );
   }
 }
 
