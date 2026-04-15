@@ -15,6 +15,7 @@ type DashboardProps = {
   personalSuccessRate: number;
   spotlight?: {
     projectName: string;
+    projectDescription?: string;
     totalScenarios: number;
     totalBugs: number;
     completionRate: number;
