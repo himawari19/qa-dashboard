@@ -42,6 +42,7 @@ type DashboardProps = {
     progress: number;
     taskTotal: number;
     taskDone: number;
+    goal?: string;
   } | null;
 };
 
