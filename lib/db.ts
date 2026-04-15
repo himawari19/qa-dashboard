@@ -348,12 +348,34 @@ let schemaInitPromise: Promise<void> | null = null;
 async function ensureSchema() {
   if (typeof window !== 'undefined') return;
   if (!schemaInitPromise) {
-    schemaInitPromise = db.exec(schemaSql).catch(err => {
-      schemaInitPromise = null; // Retry on next call if failed
-      if (databaseUrl || !isPostgres) {
-         console.error("Schema init error:", err);
+    schemaInitPromise = (async () => {
+      try {
+        await db.exec(schemaSql);
+        
+        // Auto-migration: Check for missing columns
+        if (isPostgres) {
+          const pool = await getPostgresPool();
+          for (const table of tables) {
+             const columns = table.schema.split(',').map(c => c.trim().split(' ')[0]);
+             for (const col of columns) {
+               if (!col || col === 'id' || col.startsWith('PRIMARY') || col.startsWith('FOREIGN')) continue;
+               try {
+                 // Postgres doesn't have ADD COLUMN IF NOT EXISTS in all versions, 
+                 // so we wrap in try-catch
+                 await pool.query(`ALTER TABLE "${table.name}" ADD COLUMN "${col}" TEXT`);
+               } catch (e) {
+                 // Ignore if already exists
+               }
+             }
+          }
+        }
+      } catch (err) {
+        schemaInitPromise = null;
+        if (databaseUrl || !isPostgres) {
+          console.error("Schema init error:", err);
+        }
       }
-    });
+    })();
   }
   return schemaInitPromise;
 }
