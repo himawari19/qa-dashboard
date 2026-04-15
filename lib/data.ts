@@ -90,10 +90,10 @@ export async function getDashboardData() {
       })),
     },
     spotlight: {
-       projectName: "SauceDemo - Swag Labs",
-       totalScenarios: 0,
-       totalBugs: 0,
-       completionRate: 92,
+       projectName: taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project",
+       totalScenarios: caseCount,
+       totalBugs: bugCount,
+       completionRate: successRate,
        criticalBugs: [],
        priorityTasks: []
     },
@@ -155,7 +155,8 @@ export async function getExecutiveData() {
   const totalSuccess = fixedBugs + completedTasks;
   const personalSuccessRate = totalActions > 0 ? Math.round((totalSuccess / totalActions) * 100) : 100;
 
-  const isHealthy = readiness > 80 && criticalBugs === 0;
+  const isHealthy = (readiness >= 80 || testCaseTotal === 0) && criticalBugs === 0;
+  const hasData = totalBugs > 0 || totalTasks > 0 || testCaseTotal > 0;
 
   return {
     metrics,
@@ -163,10 +164,12 @@ export async function getExecutiveData() {
     releaseNotes: notes,
     personalSuccessRate,
     summary: {
-      health: isHealthy ? "Healthy" : "Needs Attention",
-      message: isHealthy 
-        ? "The project is currently in a stable state with a high pass rate and manageable defect count." 
-        : "Action required: Several high-severity defects are pending. Regression testing is recommended.",
+      health: !hasData ? "N/A" : (isHealthy ? "Healthy" : "Needs Attention"),
+      message: !hasData 
+        ? "No data recorded yet. Start by adding tasks or test cases to see the health assessment."
+        : (isHealthy 
+           ? "The project is currently in a stable state with a high pass rate." 
+           : "Action required: Several high-severity defects are pending or pass rate is low."),
     }
   };
 }
