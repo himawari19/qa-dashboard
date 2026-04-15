@@ -319,10 +319,10 @@ const globalForDb = globalThis as unknown as {
   neonSql?: any;
 };
 
-async function getNeon() {
-  const { neon } = await import("@neondatabase/serverless");
+async function getPostgresPool() {
+  const { Pool } = await import("@neondatabase/serverless");
   if (!globalForDb.neonSql) {
-    globalForDb.neonSql = neon(databaseUrl);
+    globalForDb.neonSql = new Pool({ connectionString: databaseUrl });
   }
   return globalForDb.neonSql;
 }
@@ -347,13 +347,14 @@ async function getSqlite() {
 export const db = {
   async query<T>(queryStr: string, params: any[] = []): Promise<T[]> {
     if (isPostgres) {
-      const sqlClient = await getNeon();
+      const pool = await getPostgresPool();
       let pgQuery = queryStr;
       if (queryStr.includes('?')) {
         let count = 0;
         pgQuery = queryStr.replace(/\?/g, () => `$${++count}`);
       }
-      return await sqlClient(pgQuery, params) as T[];
+      const { rows } = await pool.query(pgQuery, params);
+      return rows as T[];
     } else {
       const sqlite = await getSqlite();
       return sqlite.prepare(queryStr).all(...params) as T[];
@@ -376,10 +377,10 @@ export const db = {
 
   async exec(queryStr: string): Promise<void> {
     if (isPostgres) {
-      const sqlClient = await getNeon();
+      const pool = await getPostgresPool();
       const statements = queryStr.split(';').filter(s => s.trim());
       for (const s of statements) {
-        await sqlClient(s);
+        await pool.query(s);
       }
     } else {
       const sqlite = await getSqlite();
