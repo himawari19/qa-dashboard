@@ -33,7 +33,6 @@ function checkRateLimit(ip: string) {
   return true;
 }
 
-import { schemas } from "@/lib/schemas";
 import { logError } from "@/lib/logger";
 
 function getValidationMessage(module: ModuleKey, error: z.ZodError) {
@@ -55,7 +54,7 @@ export async function POST(
   try {
     const formData = await request.formData();
     const entry = formDataToEntry(formData);
-    const schema = schemas[moduleKey as keyof typeof schemas];
+    const schema = moduleConfigs[moduleKey].schema;
     const parsed = schema.safeParse(entry);
 
     if (!parsed.success) {
@@ -149,7 +148,7 @@ export async function PATCH(
       const sanitizedEntry = Object.fromEntries(
         Object.entries(entry as Record<string, unknown>).map(([key, value]) => [key, String(value ?? "")]),
       );
-      const schema = schemas[moduleKey as keyof typeof schemas];
+      const schema = moduleConfigs[moduleKey].schema;
       const parsed = schema.safeParse(sanitizedEntry);
 
       if (!parsed.success) {
