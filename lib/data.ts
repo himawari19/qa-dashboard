@@ -39,7 +39,7 @@ export async function getDashboardData() {
   const totalT = await db.get('SELECT COUNT(*) as count FROM "Task"') as any;
   const totalActions = Number(totalB.count) + Number(totalT.count);
   const totalSuccess = Number(bugFixed.count) + Number(taskCompleted.count);
-  const successRate = totalActions > 0 ? Math.round((totalSuccess / totalActions) * 100) : 100;
+  const successRate = totalActions > 0 ? Math.round((totalSuccess / totalActions) * 100) : 0;
 
   return {
     metrics: [
