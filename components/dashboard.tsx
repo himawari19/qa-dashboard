@@ -178,7 +178,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           <div className="rounded-[32px] border border-sky-100 bg-sky-50 p-6 flex flex-col justify-center">
              <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">Sprint Goal</p>
              <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-700 italic">
-               "{sprintInfo.goal || 'Deliver quality outcomes for this sprint cycle.'}"
+               {sprintInfo?.goal || "Deliver quality outcomes for this sprint cycle."}
              </p>
           </div>
         </section>
