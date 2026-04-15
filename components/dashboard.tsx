@@ -82,8 +82,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               </div>
               
               <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-600/90 font-medium">
-                Comprehensive testing of the <span className="text-sky-700 font-bold underline decoration-sky-200 decoration-4 underline-offset-4">Swag Labs</span> platform. 
-                Focusing on end-to-end reliability, high-fidelity defect tracking, and requirement-aligned test scenarios.
+                {spotlight.projectDescription || "Tracking QA activities, defects, and test scenarios for this project."}
               </p>
 
               <div className="mt-10 grid grid-cols-3 gap-6">
@@ -177,7 +176,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           <div className="rounded-[32px] border border-sky-100 bg-sky-50 p-6 flex flex-col justify-center">
              <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">Sprint Goal</p>
              <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-700 italic">
-               "Finalize core sauce-demo modules and ensure 100% test coverage for the payment gateway before next release."
+               "{sprintInfo.goal || 'Deliver quality outcomes for this sprint cycle.'}"
              </p>
           </div>
         </section>
