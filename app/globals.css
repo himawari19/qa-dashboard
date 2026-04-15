@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-lato);
+  --font-mono: var(--font-lato);
+  --font-serif: var(--font-lato);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #eef4f8;
+  color: var(--foreground);
+  font-family: var(--font-lato), sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-lato), sans-serif;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide navigation, sidebar, and buttons during print */
+  nav, 
+  aside, 
+  button, 
+  .no-print,
+  [aria-label="Export Excel"],
+  [aria-label="Download Template"],
+  [aria-label="Import Excel"],
+  .sidebar-toggle {
+    display: none !important;
+  }
+
+  /* Ensure main content takes full width */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Force background colors in print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Prevent cards from breaking across pages */
+  section, .rounded-\[28px\], .rounded-3xl {
+    break-inside: avoid;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

@@ -1,0 +1,11 @@
+
+> qa-daily@0.1.0 dev D:\Kerjaan\qa-daily
+> next dev
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.31.118:3001
+- Environments: .env
+✓ Ready in 1963ms
+[?25h
+ ELIFECYCLE  Command failed with exit code 1.

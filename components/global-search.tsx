@@ -1,0 +1,150 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
+import { MagnifyingGlass, X, ArrowRight } from "@phosphor-icons/react";
+import { cn } from "@/lib/utils";
+
+type Result = { id: string; code: string; label: string; sublabel: string; href: string; type: string };
+
+const typeColors: Record<string, string> = {
+  Task: "bg-amber-100 text-amber-700",
+  Bug: "bg-rose-100 text-rose-700",
+  "Test Case": "bg-sky-100 text-sky-700",
+  Meeting: "bg-violet-100 text-violet-700",
+  API: "bg-teal-100 text-teal-700",
+  "Daily Log": "bg-slate-100 text-slate-600",
+};
+
+export function GlobalSearch() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Result[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  useEffect(() => { setMounted(true); }, []);
+
+  // Keyboard shortcut Ctrl+K
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setOpen(true);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    if (query.length < 2) { setResults([]); return; }
+    const timeout = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setResults(data.results || []);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [query]);
+
+  const handleSelect = (href: string) => {
+    setOpen(false);
+    setQuery("");
+    setResults([]);
+    router.push(href);
+  };
+
+  const modal = (
+    <div
+      className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/50 pt-20 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+    >
+      <div className="w-full max-w-xl mx-4 rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+        {/* Search Input */}
+        <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+          <MagnifyingGlass size={18} className="text-slate-400 shrink-0" weight="bold" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search tasks, bugs, test cases..."
+            className="flex-1 bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
+            autoFocus
+          />
+          {loading && (
+            <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
+          )}
+          <button onClick={() => setOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+            <X size={16} weight="bold" />
+          </button>
+        </div>
+
+        {/* Results */}
+        <div className="max-h-[400px] overflow-y-auto py-2">
+          {results.length === 0 && query.length >= 2 && !loading && (
+            <p className="px-5 py-8 text-center text-sm text-slate-400 font-medium">
+              No results found for &ldquo;{query}&rdquo;
+            </p>
+          )}
+          {results.length === 0 && query.length < 2 && (
+            <p className="px-5 py-6 text-center text-sm text-slate-400">
+              Type at least 2 characters to search across all modules.
+            </p>
+          )}
+          {results.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => handleSelect(r.href)}
+              className="flex w-full items-center gap-4 px-5 py-3 text-left transition hover:bg-slate-50 group"
+            >
+              <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", typeColors[r.type] || "bg-slate-100 text-slate-600")}>
+                {r.type}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">{r.label}</p>
+                <p className="truncate text-xs text-slate-400">{r.sublabel}</p>
+              </div>
+              <span className="shrink-0 text-xs font-bold text-slate-300 group-hover:text-sky-500">{r.code}</span>
+              <ArrowRight size={14} className="shrink-0 text-slate-200 group-hover:text-sky-500 transition" weight="bold" />
+            </button>
+          ))}
+        </div>
+
+        {results.length > 0 && (
+          <div className="border-t border-slate-100 px-5 py-2.5">
+            <p className="text-[11px] text-slate-400 font-medium">{results.length} result{results.length !== 1 ? "s" : ""} found · Press <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-bold">Esc</kbd> to close</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Trigger button */}
+      <button
+        onClick={() => { setOpen(true); }}
+        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm transition hover:border-sky-300 hover:shadow-md"
+      >
+        <MagnifyingGlass size={15} weight="bold" />
+        <span className="hidden sm:inline">Search anything...</span>
+        <kbd className="hidden rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 sm:inline">⌘K</kbd>
+      </button>
+
+      {/* Modal rendered via Portal at document.body — bypasses stacking context */}
+      {mounted && open && createPortal(modal, document.body)}
+    </>
+  );
+}
+
