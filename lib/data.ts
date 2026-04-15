@@ -90,14 +90,18 @@ export async function getDashboardData() {
       })),
     },
     spotlight: {
-       projectName: taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project",
+       projectName: taskCount > 0 || bugCount > 0 ? (process.env.NEXT_PUBLIC_PROJECT_NAME || "Active Project") : "No active project",
+       projectDescription: process.env.NEXT_PUBLIC_PROJECT_DESC || "Track and monitor QA progress across modules.",
        totalScenarios: caseCount,
        totalBugs: bugCount,
        completionRate: successRate,
        criticalBugs: [],
        priorityTasks: []
     },
-    sprintInfo,
+    sprintInfo: sprintInfo ? {
+       ...sprintInfo,
+       goal: process.env.NEXT_PUBLIC_SPRINT_GOAL || "Complete all planned tasks for the current cycle."
+    } : null,
     personalSuccessRate: successRate
   };
 }
