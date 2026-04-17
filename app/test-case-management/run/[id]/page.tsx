@@ -3,14 +3,24 @@ import { db } from "@/lib/db";
 import { TestRunnerUI } from "@/components/test-runner-ui";
 import { notFound } from "next/navigation";
 
+type ScenarioRow = {
+  id: string;
+  title: string;
+};
+
+type TestCaseRow = {
+  id: number;
+  scenarioId: string;
+};
+
 export default async function TestRunnerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const scenario = await db.get('SELECT * FROM "TestCaseScenario" WHERE id = ?', [id]);
+  const scenario = await db.get<ScenarioRow>('SELECT * FROM "TestCaseScenario" WHERE id = ?', [id]);
   
   if (!scenario) notFound();
 
   if (!scenario) return <div>Scenario not found</div>;
-  const testCases = await db.query('SELECT * FROM "TestCase" WHERE scenarioId = ? ORDER BY id ASC', [id]);
+  const testCases = await db.query<TestCaseRow>('SELECT * FROM "TestCase" WHERE scenarioId = ? ORDER BY id ASC', [id]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

@@ -3,13 +3,8 @@ import fs from "node:fs";
 
 const dbProvider = (process.env.DB_PROVIDER || "").toLowerCase();
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
-const isProduction = process.env.NODE_ENV === "production";
 const isPostgres = dbProvider === "postgres" || dbProvider === "neon" || dbProvider === "postgresql" || !!databaseUrl.startsWith("postgres");
-const useSqlite = dbProvider === "sqlite" || (!isProduction && !isPostgres);
-
-if (isProduction && !isPostgres) {
-  throw new Error("Production requires DATABASE_URL or POSTGRES_URL pointing to Neon/Postgres.");
-}
+const useSqlite = dbProvider === "sqlite" || (!isPostgres && !databaseUrl);
 
 // Unified Tables Definition
 const tables = [
