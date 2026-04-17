@@ -1,10 +1,15 @@
-import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 import fs from "node:fs";
 
-// Detect environment
-const isPostgres = !!process.env.POSTGRES_URL || !!process.env.DATABASE_URL?.startsWith("postgres");
+const dbProvider = (process.env.DB_PROVIDER || "").toLowerCase();
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+const isProduction = process.env.NODE_ENV === "production";
+const isPostgres = dbProvider === "postgres" || dbProvider === "neon" || dbProvider === "postgresql" || !!databaseUrl.startsWith("postgres");
+const useSqlite = dbProvider === "sqlite" || (!isProduction && !isPostgres);
+
+if (isProduction && !isPostgres) {
+  throw new Error("Production requires DATABASE_URL or POSTGRES_URL pointing to Neon/Postgres.");
+}
 
 // Unified Tables Definition
 const tables = [
@@ -350,7 +355,11 @@ async function ensureSchema() {
   if (!schemaInitPromise) {
     schemaInitPromise = (async () => {
       try {
-        await db.exec(schemaSql);
+        if (useSqlite) {
+          await getSqlite();
+        } else {
+          await db.exec(schemaSql);
+        }
         
         // Auto-migration: Check for missing columns
         if (isPostgres) {
@@ -371,7 +380,7 @@ async function ensureSchema() {
         }
       } catch (err) {
         schemaInitPromise = null;
-        if (databaseUrl || !isPostgres) {
+        if (databaseUrl || useSqlite) {
           console.error("Schema init error:", err);
         }
       }
@@ -383,7 +392,10 @@ async function ensureSchema() {
 export const db = {
   async query<T>(queryStr: string, params: any[] = []): Promise<T[]> {
     await ensureSchema();
-    if (isPostgres) {
+    if (useSqlite) {
+      const sqlite = await getSqlite();
+      return sqlite.prepare(queryStr).all(...params) as T[];
+    } else {
       const pool = await getPostgresPool();
       let pgQuery = queryStr;
       if (queryStr.includes('?')) {
@@ -392,9 +404,6 @@ export const db = {
       }
       const { rows } = await pool.query(pgQuery, params);
       return rows as T[];
-    } else {
-      const sqlite = await getSqlite();
-      return sqlite.prepare(queryStr).all(...params) as T[];
     }
   },
 
@@ -405,7 +414,10 @@ export const db = {
 
   async run(queryStr: string, params: any[] = []): Promise<void> {
     await ensureSchema();
-    if (isPostgres) {
+    if (useSqlite) {
+      const sqlite = await getSqlite();
+      sqlite.prepare(queryStr).run(...params);
+    } else {
       const pool = await getPostgresPool();
       let pgQuery = queryStr;
       if (queryStr.includes('?')) {
@@ -413,14 +425,14 @@ export const db = {
         pgQuery = queryStr.replace(/\?/g, () => `$${++count}`);
       }
       await pool.query(pgQuery, params);
-    } else {
-      const sqlite = await getSqlite();
-      sqlite.prepare(queryStr).run(...params);
     }
   },
 
   async exec(queryStr: string): Promise<void> {
-    if (isPostgres) {
+    if (useSqlite) {
+      const sqlite = await getSqlite();
+      sqlite.exec(queryStr);
+    } else {
       const pool = await getPostgresPool();
       const statements = queryStr.split(';').filter(s => s.trim());
       for (const s of statements) {
@@ -431,21 +443,18 @@ export const db = {
           throw err;
         }
       }
-    } else {
-      const sqlite = await getSqlite();
-      sqlite.exec(queryStr);
     }
   }
 };
 
 export async function resetTables() {
   const tableNames = tables.map(t => `"${t.name}"`);
-  if (isPostgres) {
-    await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY;`);
-  } else {
+  if (useSqlite) {
     for (const name of tableNames) {
       await db.run(`DELETE FROM ${name}`);
       await db.run(`DELETE FROM sqlite_sequence WHERE name = ${name.replace(/"/g, "'")}`);
     }
+  } else {
+    await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY;`);
   }
 }

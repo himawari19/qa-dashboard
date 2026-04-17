@@ -3,26 +3,47 @@ import { codeFromId } from "@/lib/utils";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 
 export async function getDashboardData() {
-  const tasks = await selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5');
-  const bugs = await selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5');
-  const testCases = await selectAll('SELECT * FROM "TestCaseScenario" ORDER BY "updatedAt" DESC LIMIT 5');
-  const meetings = await selectAll('SELECT * FROM "MeetingNote" ORDER BY "date" DESC LIMIT 3');
-  const logs = await selectAll('SELECT * FROM "DailyLog" ORDER BY "date" DESC LIMIT 3');
+  const [
+    tasks, 
+    bugs, 
+    testCases, 
+    meetings, 
+    logs,
+    taskCount,
+    bugCount,
+    caseCount,
+    meetingCount,
+    logCount,
+    taskStatus,
+    bugSeverity,
+    sprint,
+    bugFixed,
+    taskCompleted
+  ] = await Promise.all([
+    selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5'),
+    selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5'),
+    selectAll('SELECT * FROM "TestCaseScenario" ORDER BY "updatedAt" DESC LIMIT 5'),
+    selectAll('SELECT * FROM "MeetingNote" ORDER BY "date" DESC LIMIT 3'),
+    selectAll('SELECT * FROM "DailyLog" ORDER BY "date" DESC LIMIT 3'),
+    countRows("Task"),
+    countRows("Bug"),
+    countRows("TestCaseScenario"),
+    countRows("MeetingNote"),
+    countRows("DailyLog"),
+    selectAll('SELECT status, COUNT(*) as count FROM "Task" GROUP BY status'),
+    selectAll('SELECT severity, COUNT(*) as count FROM "Bug" GROUP BY severity'),
+    db.get("SELECT * FROM \"Sprint\" WHERE status = 'active' LIMIT 1") as Promise<any>,
+    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE status IN ('fixed', 'closed')") as Promise<any>,
+    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'") as Promise<any>
+  ]);
 
-  const taskCount = await countRows("Task");
-  const bugCount = await countRows("Bug");
-  const caseCount = await countRows("TestCaseScenario");
-  const meetingCount = await countRows("MeetingNote");
-  const logCount = await countRows("DailyLog");
-
-  const taskStatus = await selectAll('SELECT status, COUNT(*) as count FROM "Task" GROUP BY status');
-  const bugSeverity = await selectAll('SELECT severity, COUNT(*) as count FROM "Bug" GROUP BY severity');
-
-  const sprint = await db.get("SELECT * FROM \"Sprint\" WHERE status = 'active' LIMIT 1") as any;
   let sprintInfo = null;
   if (sprint) {
-    const tTotal = await db.get('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?', [sprint.id]) as any;
-    const tDone = await db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'", [sprint.id]) as any;
+    const [tTotal, tDone] = await Promise.all([
+      db.get('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?', [sprint.id]) as Promise<any>,
+      db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'", [sprint.id]) as Promise<any>
+    ]);
+    
     sprintInfo = {
       name: String(sprint.name),
       startDate: String(sprint.startDate),
@@ -33,13 +54,7 @@ export async function getDashboardData() {
     };
   }
 
-  const bugFixed = await db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE status IN ('fixed', 'closed')") as any;
-  const taskCompleted = await db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'") as any;
-  const totalB = await db.get('SELECT COUNT(*) as count FROM "Bug"') as any;
-  const totalT = await db.get('SELECT COUNT(*) as count FROM "Task"') as any;
-  const totalActions = Number(totalB.count) + Number(totalT.count);
-  const totalSuccess = Number(bugFixed.count) + Number(taskCompleted.count);
-  const successRate = totalActions > 0 ? Math.round((totalSuccess / totalActions) * 100) : 0;
+  const successRate = (bugCount + taskCount) > 0 ? Math.round(((Number(bugFixed.count) + Number(taskCompleted.count)) / (bugCount + taskCount)) * 100) : 0;
 
   return {
     metrics: [
