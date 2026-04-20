@@ -1,10 +1,9 @@
 import path from "node:path";
 import fs from "node:fs";
 
-const dbProvider = (process.env.DB_PROVIDER || "").toLowerCase();
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
-const isPostgres = dbProvider === "postgres" || dbProvider === "neon" || dbProvider === "postgresql" || !!databaseUrl.startsWith("postgres");
-const useSqlite = dbProvider === "sqlite" || (!isPostgres && !databaseUrl);
+const isPostgres = !!databaseUrl.startsWith("postgres");
+const useSqlite = !isPostgres;
 
 // Unified Tables Definition
 const tables = [
@@ -291,6 +290,17 @@ const tables = [
       id SERIAL_OR_PK,
       date DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       content TEXT NOT NULL,
+      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "ActivityLog",
+    schema: `
+      id SERIAL_OR_PK,
+      entityType TEXT NOT NULL,
+      entityId TEXT NOT NULL,
+      action TEXT NOT NULL,
+      summary TEXT NOT NULL,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   }

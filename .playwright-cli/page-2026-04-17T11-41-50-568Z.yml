@@ -1,0 +1,173 @@
+- generic [ref=e1]:
+  - generic [ref=e47]:
+    - complementary [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e51]:
+          - paragraph [ref=e52]: QA DAILY
+          - paragraph [ref=e53]: QA Hub
+        - navigation [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]: Quick Access
+            - generic [ref=e58]:
+              - link "Dashboard" [ref=e59] [cursor=pointer]:
+                - /url: /
+                - img [ref=e60]
+                - generic [ref=e62]: Dashboard
+              - link "Activity Log" [ref=e63] [cursor=pointer]:
+                - /url: /activity-log
+                - img [ref=e64]
+                - generic [ref=e66]: Activity Log
+              - link "Bug Register" [ref=e67] [cursor=pointer]:
+                - /url: /bugs
+                - img [ref=e68]
+                - generic [ref=e70]: Bug Register
+          - generic [ref=e71]:
+            - generic [ref=e72]: Work
+            - generic [ref=e73]:
+              - link "Workload" [ref=e74] [cursor=pointer]:
+                - /url: /workload
+                - img [ref=e75]
+                - generic [ref=e77]: Workload
+              - link "QA Tasks" [ref=e78] [cursor=pointer]:
+                - /url: /tasks
+                - img [ref=e79]
+                - generic [ref=e81]: QA Tasks
+              - link "Daily Logs" [ref=e82] [cursor=pointer]:
+                - /url: /daily-logs
+                - img [ref=e83]
+                - generic [ref=e85]: Daily Logs
+              - link "Meeting Notes" [ref=e86] [cursor=pointer]:
+                - /url: /meeting-notes
+                - img [ref=e87]
+                - generic [ref=e89]: Meeting Notes
+          - generic [ref=e90]:
+            - generic [ref=e91]: Testing
+            - generic [ref=e92]:
+              - link "Test Plans" [ref=e93] [cursor=pointer]:
+                - /url: /test-plans
+                - img [ref=e94]
+                - generic [ref=e96]: Test Plans
+              - link "Test Suites" [ref=e97] [cursor=pointer]:
+                - /url: /test-suites
+                - img [ref=e98]
+                - generic [ref=e100]: Test Suites
+              - link "Exec Sessions" [ref=e101] [cursor=pointer]:
+                - /url: /test-sessions
+                - img [ref=e102]
+                - generic [ref=e104]: Exec Sessions
+              - link "Test Cases" [ref=e105] [cursor=pointer]:
+                - /url: /test-case-management
+                - img [ref=e106]
+                - generic [ref=e108]: Test Cases
+              - link "Checklists" [ref=e109] [cursor=pointer]:
+                - /url: /checklists
+                - img [ref=e110]
+                - generic [ref=e112]: Checklists
+              - link "Executive Summary" [ref=e113] [cursor=pointer]:
+                - /url: /reports/executive
+                - img [ref=e114]
+                - generic [ref=e116]: Executive Summary
+          - generic [ref=e117]:
+            - generic [ref=e118]: Assets
+            - generic [ref=e119]:
+              - link "Visual Reports" [ref=e120] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e121]
+                - generic [ref=e123]: Visual Reports
+              - link "API Inventory" [ref=e124] [cursor=pointer]:
+                - /url: /api-inventory
+                - img [ref=e125]
+                - generic [ref=e127]: API Inventory
+              - link "Env Config" [ref=e128] [cursor=pointer]:
+                - /url: /env-config
+                - img [ref=e129]
+                - generic [ref=e131]: Env Config
+          - generic [ref=e132]:
+            - generic [ref=e133]: Analysis
+            - generic [ref=e134]:
+              - link "RTM Matrix" [active] [ref=e135] [cursor=pointer]:
+                - /url: /reports/rtm
+                - img [ref=e136]
+                - generic [ref=e138]: RTM Matrix
+              - link "Performance" [ref=e139] [cursor=pointer]:
+                - /url: /performance
+                - img [ref=e140]
+                - generic [ref=e142]: Performance
+              - link "QA Toolbox" [ref=e143] [cursor=pointer]:
+                - /url: /tools
+                - img [ref=e144]
+                - generic [ref=e146]: QA Toolbox
+        - button "Hide Menu" [ref=e148]:
+          - img [ref=e149]
+          - generic [ref=e151]: Hide Menu
+    - generic [ref=e152]:
+      - banner [ref=e153]:
+        - button "Search anything... ⌘K" [ref=e154]:
+          - img [ref=e155]
+          - generic [ref=e157]: Search anything...
+          - generic [ref=e158]: ⌘K
+      - main [ref=e159]:
+        - generic [ref=e301]:
+          - generic [ref=e303]:
+            - generic [ref=e304]:
+              - paragraph [ref=e305]: QA Toolbox
+              - heading "Quick Utilities" [level=1] [ref=e306]
+              - paragraph [ref=e307]: "Fast helpers for repetitive QA work: standup formatting, fake data generation, and testing links."
+            - button "Generate Standup" [ref=e309]:
+              - img [ref=e310]
+              - text: Generate Standup
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - generic [ref=e314]:
+                - generic [ref=e315]:
+                  - generic [ref=e316]:
+                    - img [ref=e318]
+                    - generic [ref=e320]:
+                      - heading "Standup Generator" [level=2] [ref=e321]
+                      - paragraph [ref=e322]: Summarize work for Slack or Teams
+                  - button "Refresh" [ref=e323]:
+                    - img [ref=e324]
+                    - text: Refresh
+                - textbox "Generate a standup summary from current work." [ref=e327]
+              - generic [ref=e328]:
+                - generic [ref=e329]:
+                  - generic [ref=e330]:
+                    - img [ref=e332]
+                    - generic [ref=e334]:
+                      - heading "Fake Data" [level=2] [ref=e335]
+                      - paragraph [ref=e336]: Generate simple test identities quickly
+                  - button "Generate" [ref=e337]:
+                    - img [ref=e338]
+                    - text: Generate
+                - generic [ref=e341]:
+                  - paragraph [ref=e342]: No Fake Data
+                  - paragraph [ref=e343]: Generate dummy QA data for test flows and screenshots.
+            - generic [ref=e344]:
+              - generic [ref=e345]:
+                - paragraph [ref=e346]: Quick Assets
+                - heading "Testing Links" [level=2] [ref=e347]
+              - generic [ref=e348]:
+                - link "Placeholder Images" [ref=e349] [cursor=pointer]:
+                  - /url: https://via.placeholder.com
+                  - img [ref=e351]
+                  - generic [ref=e353]: Placeholder Images
+                - link "Dummy JSON API" [ref=e354] [cursor=pointer]:
+                  - /url: https://dummyjson.com
+                  - img [ref=e356]
+                  - generic [ref=e358]: Dummy JSON API
+                - link "RegEx Tester" [ref=e359] [cursor=pointer]:
+                  - /url: https://regex101.com
+                  - img [ref=e361]
+                  - generic [ref=e363]: RegEx Tester
+                - link "Speed Test" [ref=e364] [cursor=pointer]:
+                  - /url: https://fast.com
+                  - img [ref=e366]
+                  - generic [ref=e368]: Speed Test
+  - button "Open Next.js Dev Tools" [ref=e369] [cursor=pointer]:
+    - generic [ref=e372]:
+      - text: Compiling
+      - generic [ref=e373]:
+        - generic [ref=e374]: .
+        - generic [ref=e375]: .
+        - generic [ref=e376]: .
+  - alert [ref=e46]

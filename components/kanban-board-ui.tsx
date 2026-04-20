@@ -23,9 +23,9 @@ export function KanbanBoardUI({ initialItems }: { initialItems: KanbanItem[] }) 
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 overflow-x-auto pb-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {columns.map((col) => (
-        <div key={col.status} className={cn("rounded-[32px] border p-5 flex flex-col h-[70vh]", col.border, col.color)}>
+        <div key={col.status} className={cn("min-h-[520px] rounded-[32px] border p-5 flex flex-col", col.border, col.color)}>
            <div className="mb-4 flex items-center justify-between px-2">
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">{col.title}</h3>
               <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500 shadow-sm ring-1 ring-slate-200">

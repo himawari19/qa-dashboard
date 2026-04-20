@@ -1,30 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Coffee, 
-  Copy, 
-  DownloadSimple, 
-  ArrowsClockwise, 
-  Terminal, 
-  Fingerprint, 
-  Envelope, 
-  User, 
+import {
+  Coffee,
+  Copy,
+  ArrowsClockwise,
+  Fingerprint,
+  Envelope,
+  User,
   PhoneCall,
-  LinkSimple
+  LinkSimple,
 } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
+import { PageShell, ActionButton } from "@/components/page-shell";
+import { EmptyState } from "@/components/skeleton";
 
 export default function QAToolboxPage() {
-  const [standup, setStandup] = useState<string>("");
+  const [standup, setStandup] = useState("");
   const [loadingStandup, setLoadingStandup] = useState(false);
-
-  // Data Faker State
-  const [fakeData, setFakeData] = useState<{
-    label: string,
-    value: string
-  }[]>([]);
+  const [fakeData, setFakeData] = useState<{ label: string; value: string }[]>([]);
 
   const generateStandup = async () => {
     setLoadingStandup(true);
@@ -32,7 +26,7 @@ export default function QAToolboxPage() {
       const res = await fetch("/api/tools/standup");
       const data = await res.json();
       setStandup(data.formatted);
-    } catch (err) {
+    } catch {
       toast("Could not generate standup update.", "error");
     } finally {
       setLoadingStandup(false);
@@ -51,7 +45,7 @@ export default function QAToolboxPage() {
     const email = name.toLowerCase().replace(" ", ".") + Math.floor(Math.random() * 100) + "@qa.test";
     const phone = "08" + Math.floor(1000000000 + Math.random() * 9000000000);
     const nik = "32" + Math.floor(10000000000000 + Math.random() * 90000000000000);
-    
+
     setFakeData([
       { label: "Random Name", value: name },
       { label: "Random Email", value: email },
@@ -62,130 +56,132 @@ export default function QAToolboxPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-              QA Toolbox
-            </h1>
-            <p className="mt-2 text-slate-500 font-medium">
-              Daily productivity tools to automate the repetitive parts of QA work.
-            </p>
-          </div>
-        </header>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Standup Generator */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-50 rounded-xl text-amber-600">
-                  <Coffee size={24} weight="bold" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-slate-800">Standup Generator</h2>
-                  <p className="text-xs text-slate-400">Summarize your work for Slack/Teams</p>
-                </div>
+    <PageShell
+      eyebrow="QA Toolbox"
+      title="Quick Utilities"
+      description="Fast helpers for repetitive QA work: standup formatting, fake data generation, and testing links."
+      actions={
+        <ActionButton type="button" onClick={generateStandup} disabled={loadingStandup}>
+          <Coffee size={16} weight="bold" />
+          {loadingStandup ? "Generating..." : "Generate Standup"}
+        </ActionButton>
+      }
+    >
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-amber-50 p-2 text-amber-600">
+                <Coffee size={22} weight="bold" />
               </div>
-              <button 
-                onClick={generateStandup}
-                disabled={loadingStandup}
-                className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-700 active:scale-95 disabled:opacity-50"
-              >
-                {loadingStandup ? "..." : <ArrowsClockwise size={16} weight="bold" />}
-                Generate
-              </button>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Standup Generator</h2>
+                <p className="text-xs text-slate-400">Summarize work for Slack or Teams</p>
+              </div>
             </div>
-
-            <div className="relative group">
-              <textarea 
-                readOnly
-                value={standup}
-                placeholder="Click generate to pull data from tasks and logs..."
-                className="w-full min-h-[180px] rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs font-mono text-slate-600 outline-none resize-none"
-              />
-              {standup && (
-                <button 
-                  onClick={() => copyToClipboard(standup)}
-                  className="absolute bottom-4 right-4 p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-500 hover:text-sky-600 transition"
-                >
-                  <Copy size={18} weight="bold" />
-                </button>
-              )}
-            </div>
+            <button
+              onClick={generateStandup}
+              disabled={loadingStandup}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-900 px-4 text-xs font-bold text-white transition hover:bg-slate-700 disabled:opacity-50"
+            >
+              <ArrowsClockwise size={14} weight="bold" />
+              Refresh
+            </button>
           </div>
 
-          {/* Test Data Faker */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-sky-50 rounded-xl text-sky-600">
-                  <Terminal size={24} weight="bold" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-slate-800">Test Data Faker</h2>
-                  <p className="text-xs text-slate-400">Generate dummy values for forms</p>
-                </div>
-              </div>
-              <button 
-                onClick={generateFakeData}
-                className="flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-sky-500 active:scale-95"
+          <div className="relative">
+            <textarea
+              readOnly
+              value={standup}
+              placeholder="Generate a standup summary from current work."
+              className="min-h-[220px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 outline-none resize-none"
+            />
+            {standup ? (
+              <button
+                onClick={() => copyToClipboard(standup)}
+                className="absolute bottom-4 right-4 rounded-xl border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition hover:text-sky-600"
               >
-                <ArrowsClockwise size={16} weight="bold" />
-                New Data
+                <Copy size={18} weight="bold" />
               </button>
-            </div>
+            ) : null}
+          </div>
+        </section>
 
-            <div className="space-y-3">
-              {fakeData.length === 0 ? (
-                <div className="py-12 flex flex-col items-center justify-center text-slate-300">
-                  <Fingerprint size={48} weight="light" />
-                  <p className="text-sm">Click generate for new values</p>
-                </div>
-              ) : (
-                fakeData.map((data, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 group">
-                    <div>
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-sky-50 p-2 text-sky-600">
+                <Fingerprint size={22} weight="bold" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Fake Data</h2>
+                <p className="text-xs text-slate-400">Generate simple test identities quickly</p>
+              </div>
+            </div>
+            <button
+              onClick={generateFakeData}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-sky-200 bg-white px-4 text-xs font-bold text-sky-700 transition hover:bg-sky-600 hover:text-white"
+            >
+              <User size={14} weight="bold" />
+              Generate
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {fakeData.length === 0 ? (
+              <EmptyState title="No Fake Data" description="Generate dummy QA data for test flows and screenshots." />
+            ) : (
+              fakeData.map((data) => (
+                <div key={data.label} className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {data.label.includes("Email") ? <Envelope size={16} className="text-sky-600" /> : null}
+                    {data.label.includes("Phone") ? <PhoneCall size={16} className="text-emerald-600" /> : null}
+                    {!data.label.includes("Email") && !data.label.includes("Phone") ? <Fingerprint size={16} className="text-slate-500" /> : null}
+                    <div className="min-w-0">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{data.label}</p>
-                      <p className="text-sm font-semibold text-slate-700">{data.value}</p>
+                      <p className="truncate text-sm font-semibold text-slate-700">{data.value}</p>
                     </div>
-                    <button 
-                      onClick={() => copyToClipboard(data.value)}
-                      className="p-1.5 opacity-0 group-hover:opacity-100 transition text-slate-400 hover:text-sky-600"
-                    >
-                      <Copy size={16} weight="bold" />
-                    </button>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Useful Quick Links */}
-        <section className="mt-8">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Quick Testing Assets</h3>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { name: "Placeholder Images", url: "https://via.placeholder.com", icon: <LinkSimple /> },
-              { name: "Dummy JSON API", url: "https://dummyjson.com", icon: <LinkSimple /> },
-              { name: "RegEx Tester", url: "https://regex101.com", icon: <LinkSimple /> },
-              { name: "Speed Test", url: "https://fast.com", icon: <LinkSimple /> }
-            ].map(link => (
-              <a 
-                key={link.name}
-                href={link.url} 
-                target="_blank" 
-                className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm transition hover:scale-[1.02] hover:shadow-md group"
-              >
-                <div className="text-slate-300 group-hover:text-amber-500 transition">{link.icon}</div>
-                <span className="text-sm font-bold text-slate-600">{link.name}</span>
-              </a>
-            ))}
+                  <button
+                    onClick={() => copyToClipboard(data.value)}
+                    className="rounded-xl p-2 text-slate-400 transition hover:bg-white hover:text-sky-600"
+                  >
+                    <Copy size={16} weight="bold" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </div>
-    </div>
+
+      <section className="mt-8">
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Quick Assets</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">Testing Links</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { name: "Placeholder Images", url: "https://via.placeholder.com" },
+            { name: "Dummy JSON API", url: "https://dummyjson.com" },
+            { name: "RegEx Tester", url: "https://regex101.com" },
+            { name: "Speed Test", url: "https://fast.com" },
+          ].map((link) => (
+            <a
+              key={link.name}
+              href={link.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="rounded-xl bg-slate-50 p-2 text-sky-600">
+                <LinkSimple size={16} weight="bold" />
+              </div>
+              <span className="text-sm font-bold text-slate-700">{link.name}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    </PageShell>
   );
 }

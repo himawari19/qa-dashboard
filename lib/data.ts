@@ -18,7 +18,8 @@ export async function getDashboardData() {
     bugSeverity,
     sprint,
     bugFixed,
-    taskCompleted
+    taskCompleted,
+    activity
   ] = await Promise.all([
     selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5'),
     selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5'),
@@ -34,7 +35,8 @@ export async function getDashboardData() {
     selectAll('SELECT severity, COUNT(*) as count FROM "Bug" GROUP BY severity'),
     db.get("SELECT * FROM \"Sprint\" WHERE status = 'active' LIMIT 1") as Promise<any>,
     db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE status IN ('fixed', 'closed')") as Promise<any>,
-    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'") as Promise<any>
+    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'") as Promise<any>,
+    getRecentActivity(6)
   ]);
 
   let sprintInfo = null;
@@ -105,8 +107,8 @@ export async function getDashboardData() {
       })),
     },
     spotlight: {
-       projectName: taskCount > 0 || bugCount > 0 ? (process.env.NEXT_PUBLIC_PROJECT_NAME || "Active Project") : "No active project",
-       projectDescription: process.env.NEXT_PUBLIC_PROJECT_DESC || "Track and monitor QA progress across modules.",
+       projectName: taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project",
+       projectDescription: "Track and monitor QA progress across modules.",
        totalScenarios: caseCount,
        totalBugs: bugCount,
        completionRate: successRate,
@@ -115,9 +117,18 @@ export async function getDashboardData() {
     },
     sprintInfo: sprintInfo ? {
        ...sprintInfo,
-       goal: process.env.NEXT_PUBLIC_SPRINT_GOAL || "Complete all planned tasks for the current cycle."
+       goal: "Complete all planned tasks for the current cycle."
     } : null,
     personalSuccessRate: successRate
+    ,
+    activity: (activity as Array<Record<string, unknown>>).map((item) => ({
+      id: Number(item.id),
+      entityType: String(item.entityType ?? ""),
+      entityId: String(item.entityId ?? ""),
+      action: String(item.action ?? ""),
+      summary: String(item.summary ?? ""),
+      createdAt: String(item.createdAt ?? ""),
+    }))
   };
 }
 
@@ -474,6 +485,20 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
   if(module === 'testing-assets') tableName = 'TestingAsset';
 
   return await db.run(`DELETE FROM "${tableName}" WHERE id = ?`, [id]);
+}
+
+export async function logActivity(entityType: string, entityId: string | number, action: string, summary: string) {
+  await db.run(
+    'INSERT INTO "ActivityLog" (entityType, entityId, action, summary) VALUES (?, ?, ?, ?)',
+    [entityType, String(entityId), action, summary],
+  );
+}
+
+export async function getRecentActivity(limit = 10) {
+  return await db.query(
+    'SELECT * FROM "ActivityLog" ORDER BY "createdAt" DESC, id DESC LIMIT ?',
+    [limit],
+  );
 }
 
 export async function getReleaseNotes() {

@@ -14,7 +14,7 @@ type Row = Record<string, string | number>;
 
 function linkifyToMarkdown(text: string) {
   if (!text) return "-";
-  const regex = /(?<!\[.*?)((?:TASK|BUG|TC|MTG|LOG)-\d+)(?!.*?\])/g;
+  const regex = /\b((?:TASK|BUG|TC|MTG|LOG)-\d+)\b/g;
   return text.replace(regex, (match) => {
     let href = "/";
     if (match.startsWith("TASK")) href = "/tasks";

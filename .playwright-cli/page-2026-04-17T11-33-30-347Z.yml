@@ -1,0 +1,152 @@
+- generic [ref=e1]:
+  - generic [ref=e47]:
+    - complementary [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e51]:
+          - paragraph [ref=e52]: QA DAILY
+          - paragraph [ref=e53]: QA Hub
+        - navigation [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]: Quick Access
+            - generic [ref=e58]:
+              - link "Dashboard" [ref=e59] [cursor=pointer]:
+                - /url: /
+                - img [ref=e60]
+                - generic [ref=e62]: Dashboard
+              - link "Activity Log" [ref=e63] [cursor=pointer]:
+                - /url: /activity-log
+                - img [ref=e64]
+                - generic [ref=e66]: Activity Log
+              - link "Bug Register" [active] [ref=e67] [cursor=pointer]:
+                - /url: /bugs
+                - img [ref=e68]
+                - generic [ref=e70]: Bug Register
+          - generic [ref=e71]:
+            - generic [ref=e72]: Work
+            - generic [ref=e73]:
+              - link "Workload" [ref=e74] [cursor=pointer]:
+                - /url: /workload
+                - img [ref=e75]
+                - generic [ref=e77]: Workload
+              - link "QA Tasks" [ref=e78] [cursor=pointer]:
+                - /url: /tasks
+                - img [ref=e79]
+                - generic [ref=e81]: QA Tasks
+              - link "Daily Logs" [ref=e82] [cursor=pointer]:
+                - /url: /daily-logs
+                - img [ref=e83]
+                - generic [ref=e85]: Daily Logs
+              - link "Meeting Notes" [ref=e86] [cursor=pointer]:
+                - /url: /meeting-notes
+                - img [ref=e87]
+                - generic [ref=e89]: Meeting Notes
+          - generic [ref=e90]:
+            - generic [ref=e91]: Testing
+            - generic [ref=e92]:
+              - link "Test Plans" [ref=e93] [cursor=pointer]:
+                - /url: /test-plans
+                - img [ref=e94]
+                - generic [ref=e96]: Test Plans
+              - link "Test Suites" [ref=e97] [cursor=pointer]:
+                - /url: /test-suites
+                - img [ref=e98]
+                - generic [ref=e100]: Test Suites
+              - link "Exec Sessions" [ref=e101] [cursor=pointer]:
+                - /url: /test-sessions
+                - img [ref=e102]
+                - generic [ref=e104]: Exec Sessions
+              - link "Test Cases" [ref=e105] [cursor=pointer]:
+                - /url: /test-case-management
+                - img [ref=e106]
+                - generic [ref=e108]: Test Cases
+              - link "Checklists" [ref=e109] [cursor=pointer]:
+                - /url: /checklists
+                - img [ref=e110]
+                - generic [ref=e112]: Checklists
+              - link "Executive Summary" [ref=e113] [cursor=pointer]:
+                - /url: /reports/executive
+                - img [ref=e114]
+                - generic [ref=e116]: Executive Summary
+          - generic [ref=e117]:
+            - generic [ref=e118]: Assets
+            - generic [ref=e119]:
+              - link "Visual Reports" [ref=e120] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e121]
+                - generic [ref=e123]: Visual Reports
+              - link "API Inventory" [ref=e124] [cursor=pointer]:
+                - /url: /api-inventory
+                - img [ref=e125]
+                - generic [ref=e127]: API Inventory
+              - link "Env Config" [ref=e128] [cursor=pointer]:
+                - /url: /env-config
+                - img [ref=e129]
+                - generic [ref=e131]: Env Config
+          - generic [ref=e132]:
+            - generic [ref=e133]: Analysis
+            - generic [ref=e134]:
+              - link "RTM Matrix" [ref=e135] [cursor=pointer]:
+                - /url: /reports/rtm
+                - img [ref=e136]
+                - generic [ref=e138]: RTM Matrix
+              - link "Performance" [ref=e139] [cursor=pointer]:
+                - /url: /performance
+                - img [ref=e140]
+                - generic [ref=e142]: Performance
+              - link "QA Toolbox" [ref=e143] [cursor=pointer]:
+                - /url: /tools
+                - img [ref=e144]
+                - generic [ref=e146]: QA Toolbox
+        - button "Hide Menu" [ref=e148]:
+          - img [ref=e149]
+          - generic [ref=e151]: Hide Menu
+    - generic [ref=e152]:
+      - banner [ref=e153]:
+        - button "Search anything... ⌘K" [ref=e154]:
+          - img [ref=e155]
+          - generic [ref=e157]: Search anything...
+          - generic [ref=e158]: ⌘K
+      - main [ref=e159]:
+        - generic [ref=e314]:
+          - generic [ref=e316]:
+            - generic [ref=e317]:
+              - paragraph [ref=e318]: Bugs
+              - heading "Bug Register" [level=2] [ref=e319]
+              - paragraph [ref=e320]: Keep a complete register of defects with steps, results, and evidence.
+            - generic [ref=e321]:
+              - button "Add Bugs" [ref=e322]:
+                - img [ref=e323]
+                - text: Add Bugs
+              - link "Export Excel" [ref=e325] [cursor=pointer]:
+                - /url: /api/export/bugs
+                - img [ref=e326]
+              - link "Download Template" [ref=e328] [cursor=pointer]:
+                - /url: /api/export/bugs?template=1
+                - img [ref=e329]
+              - generic "Import Excel" [ref=e331] [cursor=pointer]:
+                - img [ref=e332]
+          - generic [ref=e335]:
+            - generic [ref=e337]:
+              - button "Table" [ref=e338]
+              - button "Kanban" [ref=e339]
+            - textbox "Filter data..." [ref=e341]
+          - table [ref=e343]:
+            - rowgroup [ref=e344]:
+              - row "No. ID Title Project Module Status Priority Severity Action" [ref=e345]:
+                - columnheader [ref=e346]:
+                  - checkbox [ref=e347]
+                - columnheader "No." [ref=e348]
+                - columnheader "ID" [ref=e349]
+                - columnheader "Title" [ref=e350]
+                - columnheader "Project" [ref=e351]
+                - columnheader "Module" [ref=e352]
+                - columnheader "Status" [ref=e353]
+                - columnheader "Priority" [ref=e354]
+                - columnheader "Severity" [ref=e355]
+                - columnheader "Action" [ref=e356]
+            - rowgroup [ref=e357]:
+              - row "No data found." [ref=e358]:
+                - cell "No data found." [ref=e359]
+  - button "Open Next.js Dev Tools" [ref=e42] [cursor=pointer]:
+    - img [ref=e43]
+  - alert [ref=e46]

@@ -2,6 +2,8 @@ import React from "react";
 import { db } from "@/lib/db";
 import { KanbanBoardUI } from "@/components/kanban-board-ui";
 
+export const dynamic = "force-dynamic";
+
 export default async function KanbanPage() {
   const tasks = await db.query('SELECT * FROM "Task"');
   const bugs = await db.query('SELECT * FROM "Bug"');

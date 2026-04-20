@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createModuleRecord, deleteModuleRecord } from "@/lib/data";
+import { createModuleRecord, deleteModuleRecord, logActivity } from "@/lib/data";
 import {
   formDataToEntry,
   moduleConfigs,
@@ -67,6 +67,7 @@ export async function POST(
     const data = moduleConfigs[moduleKey].coerce(parsed.data as Record<string, string>);
 
     await createModuleRecord(moduleKey, data);
+    await logActivity(moduleKey, String((data as Record<string, unknown>).id ?? ""), "create", `${moduleConfigs[moduleKey].shortTitle} created`);
     revalidatePath("/");
     revalidatePath(`/${moduleKey}`);
 
@@ -98,6 +99,7 @@ export async function DELETE(
       const idList = ids.split(",");
       for (const singleId of idList) {
         await deleteModuleRecord(moduleKey, singleId);
+        await logActivity(moduleKey, String(singleId), "delete", `${moduleConfigs[moduleKey].shortTitle} deleted`);
       }
       
       revalidatePath("/");
@@ -138,7 +140,22 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { id, status, entry } = body;
+    const { id, status, entry, ids } = body;
+
+    if (Array.isArray(ids) && ids.length > 0 && status) {
+      const { updateModuleStatus } = await import("@/lib/data");
+      for (const itemId of ids) {
+        await updateModuleStatus(moduleKey, itemId, status);
+        await logActivity(moduleKey, String(itemId), "bulk_update", `Status changed to ${status}`);
+      }
+
+      revalidatePath("/");
+      revalidatePath(`/${moduleKey}`);
+
+      return NextResponse.json({
+        message: `${ids.length} items updated successfully.`,
+      });
+    }
 
     if (!id) {
       return NextResponse.json({ error: "ID tidak valid." }, { status: 400 });
@@ -161,6 +178,7 @@ export async function PATCH(
       const { updateModuleRecord } = await import("@/lib/data");
       const data = moduleConfigs[moduleKey].coerce(parsed.data as Record<string, string>);
       await updateModuleRecord(moduleKey, id, data);
+      await logActivity(moduleKey, String(id), "update", `${moduleConfigs[moduleKey].shortTitle} updated`);
 
       revalidatePath("/");
       revalidatePath(`/${moduleKey}`);
@@ -176,6 +194,7 @@ export async function PATCH(
 
     const { updateModuleStatus } = await import("@/lib/data");
     await updateModuleStatus(moduleKey, id, status);
+    await logActivity(moduleKey, String(id), "status", `Status changed to ${status}`);
     
     revalidatePath("/");
     revalidatePath(`/${moduleKey}`);

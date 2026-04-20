@@ -21,17 +21,17 @@ const COLORS = ["#0284c7", "#16a34a", "#eab308", "#dc2626", "#9333ea", "#f97316"
 import { useEffect, useState } from "react";
 
 type ChartDataProps = {
-  bugSeverityData: { name: string; value: number }[];
-  bugStatusData: { name: string; value: number }[];
-  testCaseStatusData: { name: string; value: number }[];
-  bugTrendData: { date: string; count: number }[];
+  bugSeverityData?: { name: string; value: number }[];
+  bugStatusData?: { name: string; value: number }[];
+  testCaseStatusData?: { name: string; value: number }[];
+  bugTrendData?: { date: string; count: number }[];
 };
 
 export function ReportsCharts({
-  bugSeverityData,
-  bugStatusData,
-  testCaseStatusData,
-  bugTrendData,
+  bugSeverityData = [],
+  bugStatusData = [],
+  testCaseStatusData = [],
+  bugTrendData = [],
 }: ChartDataProps) {
   const [isClient, setIsClient] = useState(false);
 

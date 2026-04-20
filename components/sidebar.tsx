@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   Bug,
   CaretLeft,
@@ -21,21 +22,22 @@ import {
   ClipboardText,
   PlayCircle,
   ListChecks,
+  SignOut,
   Wrench
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 const groups = [
   {
-    title: "Dashboard",
+    title: "Quick Access",
     items: [
-      { href: "/", label: "Main Dashboard", icon: SquaresFour },
-      { href: "/reports/executive", label: "Executive Summary", icon: ShieldCheck },
-      { href: "/reports", label: "Visual Reports", icon: ChartLineUp },
+      { href: "/", label: "Dashboard", icon: SquaresFour },
+      { href: "/activity-log", label: "Activity Log", icon: ClipboardText },
+      { href: "/bugs", label: "Bug Register", icon: Bug },
     ],
   },
   {
-    title: "Team & Ops",
+    title: "Work",
     items: [
       { href: "/workload", label: "Workload", icon: Users },
       { href: "/tasks", label: "QA Tasks", icon: Kanban },
@@ -51,12 +53,13 @@ const groups = [
       { href: "/test-sessions", label: "Exec Sessions", icon: PlayCircle },
       { href: "/test-case-management", label: "Test Cases", icon: Checks },
       { href: "/checklists", label: "Checklists", icon: ListChecks },
+      { href: "/reports/executive", label: "Executive Summary", icon: ShieldCheck },
     ],
   },
   {
-    title: "QA Assets",
+    title: "Assets",
     items: [
-      { href: "/bugs", label: "Bug Register", icon: Bug },
+      { href: "/reports", label: "Visual Reports", icon: ChartLineUp },
       { href: "/api-inventory", label: "API Inventory", icon: GlobeSimple },
       { href: "/env-config", label: "Env Config", icon: Lock },
     ],
@@ -79,6 +82,21 @@ export function Sidebar({
   onToggle: () => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.replace("/login");
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <aside
@@ -88,20 +106,33 @@ export function Sidebar({
       )}
     >
       <div className="flex w-full flex-col">
-        <div className="flex h-12 items-center border-b border-slate-300 px-4">
-          <div
+        <div className="border-b border-slate-300 p-2">
+          <button
+            type="button"
+            onClick={onToggle}
             className={cn(
-              "overflow-hidden transition-all duration-200",
-              collapsed ? "w-0 opacity-0" : "w-auto opacity-100",
+              "flex h-9 w-full items-center rounded text-sm font-semibold text-[#304b63] transition hover:bg-[#e6eef5] hover:text-slate-900",
+              collapsed ? "justify-center px-0" : "gap-3 px-3",
             )}
           >
-            <p className="text-[10px] font-bold uppercase tracking-[0.34em] text-sky-700">QA DAILY</p>
-            <p className="text-sm font-bold text-slate-900">QA Hub</p>
-          </div>
+            {collapsed ? (
+              <CaretRight size={18} weight="bold" className="shrink-0" />
+            ) : (
+              <CaretLeft size={18} weight="bold" className="shrink-0" />
+            )}
+            <span
+              className={cn(
+                "overflow-hidden whitespace-nowrap transition-all duration-200",
+                collapsed ? "w-0 opacity-0" : "w-auto opacity-100",
+              )}
+            >
+              {collapsed ? "" : "Hide Menu"}
+            </span>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-3">
-          <nav className="space-y-4">
+          <nav className="space-y-3">
             {groups.map((group) => (
               <div key={group.title}>
                 <div
@@ -152,24 +183,22 @@ export function Sidebar({
         <div className="border-t border-slate-300 p-2">
           <button
             type="button"
-            onClick={onToggle}
+            onClick={handleLogout}
+            disabled={loggingOut}
             className={cn(
-              "flex h-9 w-full items-center rounded text-sm font-semibold text-[#304b63] transition hover:bg-[#e6eef5] hover:text-slate-900",
+              "flex h-9 w-full items-center rounded text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60",
+              "bg-red-600 shadow-sm",
               collapsed ? "justify-center px-0" : "gap-3 px-3",
             )}
           >
-            {collapsed ? (
-              <CaretRight size={18} weight="bold" className="shrink-0" />
-            ) : (
-              <CaretLeft size={18} weight="bold" className="shrink-0" />
-            )}
+            <SignOut size={18} weight="bold" className="shrink-0" />
             <span
               className={cn(
                 "overflow-hidden whitespace-nowrap transition-all duration-200",
                 collapsed ? "w-0 opacity-0" : "w-auto opacity-100",
               )}
             >
-              {collapsed ? "" : "Hide Menu"}
+              {collapsed ? "" : loggingOut ? "Logging out..." : "Logout"}
             </span>
           </button>
         </div>

@@ -1,0 +1,38 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - text: QA Daily Hub
+      - heading "Login cepat untuk kerja harian QA." [level=1] [ref=e8]
+      - paragraph [ref=e9]: Satu akses untuk bug, task, test case, reports, dan tools. Tidak ada hardcode. Semua kredensial dibaca dari env.
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - img [ref=e12]
+          - paragraph [ref=e14]: SQLite lokal
+          - paragraph [ref=e15]: "Pakai saat `DATABASE_URL` kosong."
+        - generic [ref=e16]:
+          - img [ref=e17]
+          - paragraph [ref=e19]: Neon prod
+          - paragraph [ref=e20]: "Isi `DATABASE_URL` postgres saat deploy."
+        - generic [ref=e21]:
+          - img [ref=e22]
+          - paragraph [ref=e24]: Akses aman
+          - paragraph [ref=e25]: Session cookie signed, bukan hardcode.
+    - generic [ref=e26]:
+      - paragraph [ref=e27]: Sign In
+      - heading "Access dashboard" [level=2] [ref=e28]
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: Username
+          - textbox "Username" [ref=e32]:
+            - /placeholder: Enter username
+            - text: admin
+        - generic [ref=e33]:
+          - generic [ref=e34]: Password
+          - textbox "Password" [active] [ref=e35]:
+            - /placeholder: Enter password
+        - button "Login" [ref=e36]
+  - button "Open Next.js Dev Tools" [ref=e42] [cursor=pointer]:
+    - img [ref=e43]
+  - alert [ref=e46]

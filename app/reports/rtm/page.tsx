@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
 import { Badge } from "@/components/badge";
+import { PageShell } from "@/components/page-shell";
+
+export const dynamic = "force-dynamic";
 
 type ScenarioRow = {
   id: string;
@@ -13,27 +16,51 @@ type BugRow = {
 };
 
 export default async function RtmPage() {
-  const scenarios = await db.query<ScenarioRow>('SELECT * FROM "TestCaseScenario"');
-  const bugs = await db.query<BugRow>('SELECT * FROM "Bug"');
+  let scenarios: ScenarioRow[] = [];
+  let bugs: BugRow[] = [];
+
+  try {
+    scenarios = await db.query<ScenarioRow>('SELECT * FROM "TestCaseScenario"');
+  } catch (error) {
+    console.error("Failed to load RTM scenarios:", error);
+  }
+
+  try {
+    bugs = await db.query<BugRow>('SELECT * FROM "Bug"');
+  } catch (error) {
+    console.error("Failed to load RTM bugs:", error);
+  }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Traceability Matrix</h1>
-      <p className="text-sm text-slate-500 mb-6">Mapping Scenarios to Defects.</p>
-      
+    <PageShell
+      eyebrow="Reports"
+      title="Traceability Matrix"
+      description="Mapping scenarios to defects."
+    >
       <div className="space-y-4">
-        {scenarios.map((s) => (
-          <div key={s.id} className="p-4 border rounded-xl bg-white shadow-sm">
-            <h3 className="font-bold">{s.moduleName}</h3>
-            <p className="text-xs text-slate-400 mb-2">{s.projectName}</p>
-            <div className="flex gap-2">
-               {bugs.filter((b) => b.title.includes(s.moduleName)).map((b) => (
-                 <Badge key={b.id} value={b.title} />
-               ))}
-            </div>
+        {scenarios.length > 0 ? (
+          scenarios.map((scenario) => {
+            const linkedBugs = bugs.filter((bug) => bug.title.includes(scenario.moduleName));
+            return (
+              <div key={scenario.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="font-bold text-slate-900">{scenario.moduleName}</h3>
+                <p className="mb-3 text-xs text-slate-400">{scenario.projectName}</p>
+                <div className="flex flex-wrap gap-2">
+                  {linkedBugs.length > 0 ? (
+                    linkedBugs.map((bug) => <Badge key={bug.id} value={bug.title} />)
+                  ) : (
+                    <span className="text-sm text-slate-500">No linked bugs.</span>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+            No scenarios found.
           </div>
-        ))}
+        )}
       </div>
-    </div>
+    </PageShell>
   );
 }

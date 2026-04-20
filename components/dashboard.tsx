@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/badge";
 import { formatDate, cn } from "@/lib/utils";
 import { Printer, FileXls, ChartPieSlice, ChartLineUp, Checks } from "@phosphor-icons/react";
+import { EmptyState } from "@/components/skeleton";
 
 type DashboardProps = {
   metrics: { label: string; value: number; caption: string }[];
@@ -45,9 +46,17 @@ type DashboardProps = {
     taskDone: number;
     goal?: string;
   } | null;
+  activity?: {
+    id: number;
+    entityType: string;
+    entityId: string;
+    action: string;
+    summary: string;
+    createdAt: string;
+  }[];
 };
 
-export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo, personalSuccessRate }: DashboardProps) {
+export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo, personalSuccessRate, activity = [] }: DashboardProps) {
   const [mounted, setMounted] = React.useState(false);
   const handlePrint = () => {
     window.print();
@@ -59,6 +68,24 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
 
   return (
     <div className="space-y-6 pb-12">
+      <section className="grid gap-4 md:grid-cols-3">
+        <Link href="/bugs" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">Open Bug Register</h3>
+          <p className="mt-2 text-sm text-slate-500">Log or review defects fast.</p>
+        </Link>
+        <Link href="/test-case-management" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">Manage Test Cases</h3>
+          <p className="mt-2 text-sm text-slate-500">Create, review, or execute cases.</p>
+        </Link>
+        <Link href="/activity-log" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">View Activity Log</h3>
+          <p className="mt-2 text-sm text-slate-500">Track recent changes in one place.</p>
+        </Link>
+      </section>
+
       {/* SPOTLIGHT SECTION */}
       {spotlight && (
         <section className="relative overflow-hidden rounded-[40px] border border-white/40 bg-white/40 p-10 shadow-2xl backdrop-blur-xl group">
@@ -386,6 +413,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               <Badge value={item.status} />
             </ListCard>
           ))}
+          {recent.tasks.length === 0 && <EmptyState title="No Tasks" description="Create a task to start tracking work." />}
         </Panel>
 
         <Panel title="Recent Bugs" href="/bugs">
@@ -396,6 +424,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               <Badge value={item.status} />
             </ListCard>
           ))}
+          {recent.bugs.length === 0 && <EmptyState title="No Bugs" description="Register defects to see them here." />}
         </Panel>
 
         <Panel title="Recent Scenarios" href="/test-case-management">
@@ -406,6 +435,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               </div>
             </ListCard>
           ))}
+          {recent.testCases.length === 0 && <EmptyState title="No Scenarios" description="Add test case scenarios to continue." />}
         </Panel>
 
         <Panel title="Meetings & Logs" href="/meeting-notes">
@@ -415,6 +445,18 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           {recent.logs.map((item) => (
             <ListCard key={item.id} code={item.code} title={item.project} date={item.date} dashed />
           ))}
+          {recent.meetings.length === 0 && recent.logs.length === 0 && <EmptyState title="No Activity" description="Meeting notes and daily logs will appear here." />}
+        </Panel>
+      </section>
+
+      <section>
+        <Panel title="Activity Feed" href="/activity-log">
+          {activity.length > 0 ? activity.map((item) => (
+            <ListCard key={item.id} code={`${item.action.toUpperCase()}`} title={item.summary} date={item.createdAt} dashed>
+              <Badge value={item.entityType} />
+              <Badge value={item.entityId} />
+            </ListCard>
+          )) : <p className="text-sm text-slate-400 italic">No recent activity</p>}
         </Panel>
       </section>
     </div>
@@ -476,4 +518,3 @@ function ListCard({
     </div>
   );
 }
-

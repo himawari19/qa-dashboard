@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:init": "tsx prisma/init-db.ts",
-    "db:seed": "node scripts/seed-dummy.js",
+    "db:seed": "tsx scripts/seed-saucedemo.ts",
     "db:backup": "node scripts/backup-db.js"
   },
   "dependencies": {
