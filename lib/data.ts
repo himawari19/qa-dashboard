@@ -2,6 +2,43 @@ import { db } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 
+export function getTableName(module: ModuleKey) {
+  switch (module) {
+    case "tasks":
+      return "Task";
+    case "bugs":
+      return "Bug";
+    case "test-cases":
+      return "TestCaseScenario";
+    case "test-plans":
+      return "TestPlan";
+    case "test-sessions":
+      return "TestSession";
+    case "test-suites":
+      return "TestSuite";
+    case "api-testing":
+      return "ApiEndpoint";
+    case "env-config":
+      return "EnvConfig";
+    case "workload":
+      return "WorkloadAssignment";
+    case "performance":
+      return "PerformanceBenchmark";
+    case "meeting-notes":
+      return "MeetingNote";
+    case "daily-logs":
+      return "DailyLog";
+    case "sql-snippets":
+      return "SqlSnippet";
+    case "testing-assets":
+      return "TestingAsset";
+    default:
+      // This should never happen — all ModuleKey values are handled above
+      console.warn(`getTableName: unhandled module key`);
+      return "";
+  }
+}
+
 export async function getDashboardData() {
   const [
     tasks, 
@@ -19,7 +56,9 @@ export async function getDashboardData() {
     sprint,
     bugFixed,
     taskCompleted,
-    activity
+    activity,
+    bugTrend,
+    allSprints
   ] = await Promise.all([
     selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5'),
     selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5'),
@@ -36,7 +75,9 @@ export async function getDashboardData() {
     db.get("SELECT * FROM \"Sprint\" WHERE status = 'active' LIMIT 1") as Promise<any>,
     db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE status IN ('fixed', 'closed')") as Promise<any>,
     db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'") as Promise<any>,
-    getRecentActivity(6)
+    getRecentActivity(6),
+    selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') GROUP BY DATE("createdAt") ORDER BY date ASC`),
+    selectAll('SELECT id, name, startDate, endDate, status FROM "Sprint" ORDER BY startDate DESC LIMIT 20'),
   ]);
 
   let sprintInfo = null;
@@ -128,7 +169,15 @@ export async function getDashboardData() {
       action: String(item.action ?? ""),
       summary: String(item.summary ?? ""),
       createdAt: String(item.createdAt ?? ""),
-    }))
+    })),
+    bugTrendData: bugTrend.map((r) => ({ date: String(r.date), count: Number(r.count) })),
+    sprints: allSprints.map((s) => ({
+      id: Number(s.id),
+      name: String(s.name),
+      startDate: String(s.startDate),
+      endDate: String(s.endDate),
+      status: String(s.status),
+    })),
   };
 }
 
@@ -211,7 +260,10 @@ export async function getModuleRows(module: ModuleKey) {
     case "test-sessions":
       return await selectAll('SELECT * FROM "TestSession" ORDER BY "updatedAt" DESC');
     case "test-cases":
-      return await selectAll('SELECT * FROM "TestCaseScenario" ORDER BY "updatedAt" DESC');
+      return (await selectAll('SELECT * FROM "TestCaseScenario" ORDER BY "updatedAt" DESC')).map((item) => ({
+        ...item,
+        code: `${String(item.projectName || "").slice(0, 8)} / ${String(item.moduleName || "")}`,
+      }));
     case "bugs":
       return await selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC');
     case "tasks":
@@ -220,7 +272,7 @@ export async function getModuleRows(module: ModuleKey) {
       return await selectAll('SELECT * FROM "MeetingNote" ORDER BY "updatedAt" DESC');
     case "daily-logs":
       return await selectAll('SELECT * FROM "DailyLog" ORDER BY "updatedAt" DESC');
-    case "api-inventory":
+    case "api-testing":
       return await selectAll('SELECT * FROM "ApiEndpoint" ORDER BY "updatedAt" DESC');
     case "workload":
       return await selectAll('SELECT * FROM "WorkloadAssignment" ORDER BY "updatedAt" DESC');
@@ -248,6 +300,18 @@ export async function getModuleRows(module: ModuleKey) {
 
 export async function createModuleRecord(module: ModuleKey, data: any) {
   switch (module) {
+    case "test-cases":
+      return await runInsert(
+        `INSERT INTO "TestCaseScenario" (id, projectName, moduleName, referenceDocument, createdBy)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          `TCS-${Date.now()}`,
+          data.projectName,
+          data.moduleName,
+          data.referenceDocument,
+          data.createdBy,
+        ]
+      );
     case "bugs":
       const lastDev = await db.get('SELECT suggestedDev FROM "Bug" WHERE module = ? ORDER BY id DESC LIMIT 1', [data.module]) as any;
       const suggestedDev = lastDev?.suggestedDev || "";
@@ -292,13 +356,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
-    case "checklists":
-      return await runInsert(
-        `INSERT INTO "Checklist" (title, type, items, notes)
-         VALUES (?, ?, ?, ?)`,
-        [data.title, data.type, data.items, data.notes]
-      );
-    case "api-inventory":
+    case "api-testing":
       return await runInsert(
         `INSERT INTO "ApiEndpoint" (title, method, endpoint, payload, response, notes)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -362,14 +420,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE id = ?`,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id]
       );
-    case "checklists":
-      return await db.run(
-        `UPDATE "Checklist"
-         SET title = ?, type = ?, items = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
-        [data.title, data.type, data.items, data.notes, id]
-      );
-    case "api-inventory":
+    case "api-testing":
       return await db.run(
         `UPDATE "ApiEndpoint"
          SET title = ?, method = ?, endpoint = ?, payload = ?, response = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
@@ -429,25 +480,12 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
 }
 
 export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string) {
-  let tableName = module.charAt(0).toUpperCase() + module.slice(1).replace(/-/g, '');
-  if(module === 'tasks') tableName = 'Task';
-  if(module === 'bugs') tableName = 'Bug';
-  if(module === 'test-cases') tableName = 'TestCaseScenario';
-  
+  const tableName = getTableName(module);
   return await db.run(`UPDATE "${tableName}" SET status = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`, [status, id]);
 }
 
 export async function clearModuleRecords(module: ModuleKey) {
-  const table = module.charAt(0).toUpperCase() + module.slice(1).replace(/-/g, '');
-  let tableName = table;
-  if(module === 'test-cases') tableName = 'TestCaseScenario';
-  if(module === 'api-inventory') tableName = 'ApiEndpoint';
-  if(module === 'env-config') tableName = 'EnvConfig';
-  if(module === 'test-suites') tableName = 'TestSuite';
-  if(module === 'sql-snippets') tableName = 'SqlSnippet';
-  if(module === 'testing-assets') tableName = 'TestingAsset';
-
-  return await db.run(`DELETE FROM "${tableName}"`);
+  return await db.run(`DELETE FROM "${getTableName(module)}"`);
 }
 
 export async function replaceModuleRecords(module: ModuleKey, rows: any[]) {
@@ -474,17 +512,7 @@ export async function updateTestCase(id: number, data: any) {
 }
 
 export async function deleteModuleRecord(module: ModuleKey, id: string | number) {
-  const table = module.charAt(0).toUpperCase() + module.slice(1).replace(/-/g, '');
-  // Manual mapping for special tables
-  let tableName = table;
-  if(module === 'test-cases') tableName = 'TestCaseScenario';
-  if(module === 'api-inventory') tableName = 'ApiEndpoint';
-  if(module === 'env-config') tableName = 'EnvConfig';
-  if(module === 'test-suites') tableName = 'TestSuite';
-  if(module === 'sql-snippets') tableName = 'SqlSnippet';
-  if(module === 'testing-assets') tableName = 'TestingAsset';
-
-  return await db.run(`DELETE FROM "${tableName}" WHERE id = ?`, [id]);
+  return await db.run(`DELETE FROM "${getTableName(module)}" WHERE id = ?`, [id]);
 }
 
 export async function logActivity(entityType: string, entityId: string | number, action: string, summary: string) {
@@ -545,10 +573,11 @@ export async function getTestSuite(id: string | number) {
 }
 
 export async function getTestCasesByIdStrings(idStrings: string) {
-  const ids = idStrings.split(/[\\s,]+/).map(s => s.trim().replace(/^TC-/, "")).filter(s => s !== "");
+  const ids = idStrings.split(/[\\s,]+/).map((s) => s.trim()).filter((s) => s !== "");
   if (ids.length === 0) return [];
-  const query = `SELECT * FROM "TestCase" WHERE "id" IN (${ids.map(() => "?").join(",")}) ORDER BY "id" ASC`;
-  const rows = await selectAll(query, ids);
+  const placeholders = ids.map(() => "?").join(",");
+  const query = `SELECT * FROM "TestCase" WHERE "tcId" IN (${placeholders}) OR CAST("id" AS TEXT) IN (${placeholders}) ORDER BY "id" ASC`;
+  const rows = await selectAll(query, [...ids, ...ids]);
   return rows.map(r => ({ ...r, code: codeFromId("TC", Number(r.id)) }));
 }
 

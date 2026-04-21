@@ -1,6 +1,3 @@
-import path from "node:path";
-import fs from "node:fs";
-
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const isPostgres = !!databaseUrl.startsWith("postgres");
 const useSqlite = !isPostgres;
@@ -152,6 +149,22 @@ const tables = [
       payload TEXT,
       response TEXT,
       notes TEXT,
+      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "ApiTestRun",
+    schema: `
+      id SERIAL_OR_PK,
+      apiEndpointId INTEGER,
+      title TEXT NOT NULL,
+      method TEXT NOT NULL,
+      endpoint TEXT NOT NULL,
+      requestBody TEXT,
+      responseStatus TEXT NOT NULL,
+      responseBody TEXT,
+      error TEXT,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -310,7 +323,7 @@ function generateSchemaSql(postgres: boolean) {
   let sqlRows = postgres ? "" : "PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;\n";
   
   for (const table of tables) {
-    let s = table.schema
+    const s = table.schema
       .replace(/SERIAL_OR_PK/g, postgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT")
       .replace(/DATE_TYPE/g, postgres ? "TIMESTAMP" : "TEXT")
       .replace(/FK_INT_SPRINT/g, postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)')
@@ -323,9 +336,36 @@ function generateSchemaSql(postgres: boolean) {
 
 const schemaSql = generateSchemaSql(isPostgres);
 
+type PostgresPool = {
+  query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+};
+
+type SqliteDatabase = {
+  exec: (queryText: string) => void;
+  prepare: (queryText: string) => {
+    all: (...params: unknown[]) => unknown[];
+    run: (...params: unknown[]) => unknown;
+  };
+};
+
+function normalizePostgresQuery(queryStr: string) {
+  // Keep quoted PascalCase table names (e.g. "Task"), normalize quoted
+  // camelCase column identifiers (e.g. "updatedAt") to postgres-safe lowercase.
+  return queryStr.replace(/"([a-z][a-zA-Z0-9_]*)"/g, (_, identifier: string) => identifier.toLowerCase());
+}
+
+function toPostgresQuery(queryStr: string) {
+  let pgQuery = normalizePostgresQuery(queryStr);
+  if (pgQuery.includes("?")) {
+    let count = 0;
+    pgQuery = pgQuery.replace(/\?/g, () => `$${++count}`);
+  }
+  return pgQuery;
+}
+
 const globalForDb = globalThis as unknown as {
-  sqliteDb?: any;
-  neonSql?: any;
+  sqliteDb?: unknown;
+  neonSql?: unknown;
 };
 
 async function getPostgresPool() {
@@ -333,7 +373,7 @@ async function getPostgresPool() {
   if (!globalForDb.neonSql) {
     globalForDb.neonSql = new Pool({ connectionString: databaseUrl });
   }
-  return globalForDb.neonSql;
+  return globalForDb.neonSql as PostgresPool;
 }
 
 async function getSqlite() {
@@ -347,10 +387,11 @@ async function getSqlite() {
       fs.mkdirSync(path.dirname(databasePath), { recursive: true });
     }
     
-    globalForDb.sqliteDb = new DatabaseSync(databasePath);
-    globalForDb.sqliteDb.exec(schemaSql);
+    const sqliteDb = new DatabaseSync(databasePath);
+    sqliteDb.exec(schemaSql);
+    globalForDb.sqliteDb = sqliteDb;
   }
-  return globalForDb.sqliteDb;
+  return globalForDb.sqliteDb as SqliteDatabase;
 }
 
 let schemaInitPromise: Promise<void> | null = null;
@@ -370,17 +411,33 @@ async function ensureSchema() {
         if (isPostgres) {
           const pool = await getPostgresPool();
           for (const table of tables) {
-             const columns = table.schema.split(',').map(c => c.trim().split(' ')[0]);
-             for (const col of columns) {
-               if (!col || col === 'id' || col.startsWith('PRIMARY') || col.startsWith('FOREIGN')) continue;
-               try {
-                 // Postgres doesn't have ADD COLUMN IF NOT EXISTS in all versions, 
-                 // so we wrap in try-catch
-                 await pool.query(`ALTER TABLE "${table.name}" ADD COLUMN "${col}" TEXT`);
-               } catch (e) {
-                 // Ignore if already exists
-               }
-             }
+            const columnDefs = table.schema
+              .split("\n")
+              .map((line) => line.trim().replace(/,$/, ""))
+              .filter(Boolean);
+            for (const def of columnDefs) {
+              if (
+                def.startsWith("PRIMARY") ||
+                def.startsWith("FOREIGN") ||
+                def.startsWith("id ")
+              ) {
+                continue;
+              }
+
+              const firstSpace = def.indexOf(" ");
+              if (firstSpace <= 0) continue;
+              const rawColumn = def.slice(0, firstSpace).trim();
+              const restDef = def.slice(firstSpace + 1).trim();
+              const columnName = rawColumn.toLowerCase();
+              const columnType = restDef.split(/\s+/)[0] || "TEXT";
+              try {
+                await pool.query(
+                  `ALTER TABLE "${table.name}" ADD COLUMN IF NOT EXISTS ${columnName} ${columnType}`,
+                );
+              } catch {
+                // Ignore migration errors to keep startup resilient.
+              }
+            }
           }
         }
       } catch (err) {
@@ -395,40 +452,32 @@ async function ensureSchema() {
 }
 
 export const db = {
-  async query<T>(queryStr: string, params: any[] = []): Promise<T[]> {
+  async query<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
     await ensureSchema();
     if (useSqlite) {
       const sqlite = await getSqlite();
       return sqlite.prepare(queryStr).all(...params) as T[];
     } else {
       const pool = await getPostgresPool();
-      let pgQuery = queryStr;
-      if (queryStr.includes('?')) {
-        let count = 0;
-        pgQuery = queryStr.replace(/\?/g, () => `$${++count}`);
-      }
+      const pgQuery = toPostgresQuery(queryStr);
       const { rows } = await pool.query(pgQuery, params);
       return rows as T[];
     }
   },
 
-  async get<T>(queryStr: string, params: any[] = []): Promise<T | undefined> {
+  async get<T>(queryStr: string, params: unknown[] = []): Promise<T | undefined> {
     const rows = await this.query<T>(queryStr, params);
     return rows[0];
   },
 
-  async run(queryStr: string, params: any[] = []): Promise<void> {
+  async run(queryStr: string, params: unknown[] = []): Promise<void> {
     await ensureSchema();
     if (useSqlite) {
       const sqlite = await getSqlite();
       sqlite.prepare(queryStr).run(...params);
     } else {
       const pool = await getPostgresPool();
-      let pgQuery = queryStr;
-      if (queryStr.includes('?')) {
-        let count = 0;
-        pgQuery = queryStr.replace(/\?/g, () => `$${++count}`);
-      }
+      const pgQuery = toPostgresQuery(queryStr);
       await pool.query(pgQuery, params);
     }
   },
@@ -443,8 +492,15 @@ export const db = {
       for (const s of statements) {
         try {
           await pool.query(s);
-        } catch (err: any) {
-          if (err.code === '42P07' || err.code === '23505') continue;
+        } catch (err: unknown) {
+          if (
+            typeof err === "object" &&
+            err !== null &&
+            "code" in err &&
+            (err.code === "42P07" || err.code === "23505")
+          ) {
+            continue;
+          }
           throw err;
         }
       }

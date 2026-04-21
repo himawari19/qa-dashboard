@@ -7,7 +7,7 @@ export type ModuleKey =
   | "test-cases"
   | "meeting-notes"
   | "daily-logs"
-  | "api-inventory"
+  | "api-testing"
   | "workload"
   | "performance"
   | "env-config"
@@ -15,8 +15,7 @@ export type ModuleKey =
   | "test-sessions"
   | "test-suites"
   | "sql-snippets"
-  | "testing-assets"
-  | "checklists";
+  | "testing-assets";
 
 type Option = {
   label: string;
@@ -284,22 +283,6 @@ const testSessionSchema = z.object({
   evidence: urlField,
 });
 
-const checklistTypeOptions: Option[] = [
-  ["Functional", "functional"],
-  ["UI/UX", "uiux"],
-  ["Regression", "regression"],
-  ["Smoke", "smoke"],
-  ["Security", "security"],
-  ["Accessibility", "accessibility"],
-].map(([label, value]) => ({ label, value }));
-
-const checklistSchema = z.object({
-  title: requiredText("Checklist Title"),
-  type: z.enum(["functional", "uiux", "regression", "smoke", "security", "accessibility"]),
-  items: requiredText("Checklist Items"),
-  notes: optionalText,
-});
-
 const suiteSchema = z.object({
   title: requiredText("Suite Title"),
   project: requiredText("Project"),
@@ -448,7 +431,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   "test-cases": {
     title: "Test Case Management",
     shortTitle: "Test Cases",
-    description: "Fill in the project identity and testing module details below.",
+    description: "Register scenario groups with project, module, reference document, and ownership details.",
     prefix: "TC",
     sheetName: "Test Cases",
     schema: testCaseSchema,
@@ -483,7 +466,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   "meeting-notes": {
     title: "Meeting Notes",
     shortTitle: "Meetings",
-    description: "Record decisions, action items, and meeting follow-ups in a structured format.",
+    description: "Capture meeting decisions, actions, and owners in one place.",
     prefix: "MTG",
     sheetName: "Meeting Notes",
     schema: meetingSchema,
@@ -533,7 +516,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   "daily-logs": {
     title: "Daily Log",
     shortTitle: "Daily Log",
-    description: "Daily summary of testing activity, blockers, and upcoming plans.",
+    description: "Daily testing summary, blockers, and next steps.",
     prefix: "LOG",
     sheetName: "Daily Log",
     schema: dailyLogSchema,
@@ -580,12 +563,12 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "evidence", label: "Evidence", link: true },
     ],
   },
-  "api-inventory": {
-    title: "API Snapshot Repository",
-    shortTitle: "API Inventory",
-    description: "Centrally store API endpoints, payloads, and response examples for easy testing.",
+  "api-testing": {
+    title: "API Testing Hub",
+    shortTitle: "API Testing",
+    description: "Store API requests, payloads, and response examples for testing and validation.",
     prefix: "API",
-    sheetName: "API Inventory",
+    sheetName: "API Testing",
     schema: apiInventorySchema,
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
@@ -720,7 +703,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   "test-plans": {
     title: "Test Plan Manager",
     shortTitle: "Test Plans",
-    description: "Define testing scope, sprint assignments, and release plan for each testing cycle.",
+    description: "Define the testing scope, timeline, and ownership for each cycle before execution starts.",
     prefix: "PLAN",
     sheetName: "Test Plans",
     schema: testPlanSchema,
@@ -750,9 +733,9 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "code", label: "ID" },
       { key: "title", label: "Plan Title" },
+      { key: "status", label: "Status", tone: "status" },
       { key: "project", label: "Project" },
       { key: "sprint", label: "Sprint" },
-      { key: "status", label: "Status", tone: "status" },
       { key: "startDate", label: "Start" },
       { key: "endDate", label: "End" },
       { key: "assignee", label: "Assignee" },
@@ -761,7 +744,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   "test-sessions": {
     title: "Test Execution Sessions",
     shortTitle: "Exec Sessions",
-    description: "Log daily test execution sessions with pass/fail counts per sprint.",
+    description: "Record daily execution sessions, totals, and final outcome in one place.",
     prefix: "SES",
     sheetName: "Test Sessions",
     schema: testSessionSchema,
@@ -783,13 +766,13 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "date", label: "Session Date", kind: "date", required: true },
       { name: "project", label: "Project", kind: "text", required: true },
       { name: "sprint", label: "Sprint", kind: "text", required: true },
-      { name: "tester", label: "Tester Name", kind: "text", required: true },
+      { name: "tester", label: "Tester", kind: "text", required: true },
       { name: "scope", label: "Modules Tested", kind: "textarea", rows: 3, required: true },
+      { name: "result", label: "Overall Result", kind: "select", options: sessionResultOptions, required: true },
       { name: "totalCases", label: "Total Cases", kind: "text", placeholder: "e.g. 45" },
       { name: "passed", label: "Passed", kind: "text", placeholder: "e.g. 40" },
       { name: "failed", label: "Failed", kind: "text", placeholder: "e.g. 3" },
       { name: "blocked", label: "Blocked", kind: "text", placeholder: "e.g. 2" },
-      { name: "result", label: "Overall Result", kind: "select", options: sessionResultOptions, required: true },
       { name: "notes", label: "Notes / Issues", kind: "textarea", rows: 3 },
       { name: "evidence", label: "Evidence", kind: "url" },
     ],
@@ -799,46 +782,17 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "project", label: "Project" },
       { key: "sprint", label: "Sprint" },
       { key: "tester", label: "Tester" },
+      { key: "result", label: "Result", tone: "status" },
       { key: "totalCases", label: "Total" },
       { key: "passed", label: "Pass" },
       { key: "failed", label: "Fail" },
       { key: "blocked", label: "Blocked" },
-      { key: "result", label: "Result", tone: "status" },
-    ],
-  },
-  checklists: {
-    title: "QA Checklist Templates",
-    shortTitle: "Checklists",
-    description: "Store reusable checklists for smoke, regression, UI/UX, and security testing.",
-    prefix: "CL",
-    sheetName: "Checklists",
-    schema: checklistSchema,
-    coerce: (entry) => normalizeEntry(entry),
-    toRow: (item) => ({
-      ID: codeFromId("CL", Number(item.id)),
-      Title: String(item.title),
-      Type: String(item.type),
-      Items: String(item.items),
-      Notes: String(item.notes),
-    }),
-    fields: [
-      { name: "title", label: "Checklist Title", kind: "text", placeholder: "e.g. Standard Login Smoke Check", required: true },
-      { name: "type", label: "Type", kind: "select", options: checklistTypeOptions, required: true },
-      { name: "items", label: "Checklist Items (one per line)", kind: "textarea", rows: 8, required: true },
-      { name: "notes", label: "When to Use / Context", kind: "textarea", rows: 3 },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "title", label: "Title" },
-      { key: "type", label: "Type" },
-      { key: "items", label: "Items", multiline: true },
-      { key: "notes", label: "Notes", multiline: true },
     ],
   },
   "test-suites": {
     title: "Test Suite Library",
     shortTitle: "Suites",
-    description: "Group test cases into logical suites (e.g. Smoke, Regression, Sanity) for bulk execution.",
+    description: "Group related test cases into reusable suites for planning and execution.",
     prefix: "SUITE",
     sheetName: "Suites",
     schema: suiteSchema,
@@ -853,20 +807,20 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     fields: [
       { name: "title", label: "Suite Title", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
       { name: "project", label: "Project", kind: "text", required: true },
-      { name: "caseIds", label: "Test Case IDs (one per line or comma)", kind: "textarea", rows: 5, placeholder: "TC-001\nTC-002", required: true },
+      { name: "caseIds", label: "Test Case IDs", kind: "textarea", rows: 4, placeholder: "TC-001, TC-002", required: true },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Draft", value: "draft" },
         { label: "Active", value: "active" },
         { label: "Archived", value: "archived" },
       ], required: true },
-      { name: "notes", label: "Description / Goal", kind: "textarea", rows: 3 },
+      { name: "notes", label: "Goal / Notes", kind: "textarea", rows: 3 },
     ],
     columns: [
       { key: "code", label: "ID" },
       { key: "title", label: "Suite Title" },
       { key: "project", label: "Project" },
-      { key: "caseIds", label: "Cases", multiline: true },
       { key: "status", label: "Status", tone: "status" },
+      { key: "caseIds", label: "Cases", multiline: true },
     ],
   },
   "sql-snippets": {
@@ -942,9 +896,8 @@ export const moduleOrder: ModuleKey[] = [
   "test-plans",
   "test-sessions",
   "test-suites",
-  "api-inventory",
+  "api-testing",
   "env-config",
-  "checklists",
   "workload",
   "performance",
   "meeting-notes",

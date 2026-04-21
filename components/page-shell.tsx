@@ -22,19 +22,23 @@ export function PageShell({
 }) {
   return (
     <section className={cn("space-y-6", className)}>
-      <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-[#f4f8fb] px-6 py-6">
+      <div className="overflow-hidden rounded-[30px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="border-b border-slate-200 dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">{eyebrow}</p>
-              <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900">{title}</h1>
-              {description ? <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p> : null}
+            <div className="min-w-0 max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700 dark:text-sky-400">{eyebrow}</p>
+              <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{title}</h1>
+              {description ? <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">{description}</p> : null}
             </div>
-            {actions ? <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">{actions}</div> : null}
+            {actions ? (
+              <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 overflow-x-auto xl:w-auto xl:justify-end">
+                {actions}
+              </div>
+            ) : null}
           </div>
         </div>
-        {controls ? <div className="border-b border-slate-200 bg-white px-6 py-5 text-sm text-slate-600">{controls}</div> : null}
-        <div className="px-6 py-6">{children}</div>
+        {controls ? <div className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-5 text-sm text-slate-600 dark:text-slate-400">{controls}</div> : null}
+        <div className="min-w-0 px-6 py-6">{children}</div>
       </div>
     </section>
   );

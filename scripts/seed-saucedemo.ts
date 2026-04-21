@@ -18,7 +18,6 @@ const tables = [
   "TestSuite",
   "SqlSnippet",
   "TestingAsset",
-  "Checklist",
   "Sprint",
 ];
 
@@ -294,7 +293,7 @@ async function seed() {
     evidence: "https://www.saucedemo.com/",
   });
 
-  await createModuleRecord("api-inventory", {
+  await createModuleRecord("api-testing", {
     title: "SauceDemo product catalog API",
     method: "GET",
     endpoint: "https://www.saucedemo.com/",
@@ -302,7 +301,7 @@ async function seed() {
     response: "Inventory page data for products and prices.",
     notes: "Reference endpoint used by UI smoke checks.",
   });
-  await createModuleRecord("api-inventory", {
+  await createModuleRecord("api-testing", {
     title: "SauceDemo cart session endpoint",
     method: "GET",
     endpoint: "https://www.saucedemo.com/cart.html",
@@ -433,19 +432,6 @@ async function seed() {
     caseIds: "TC-1\nTC-2\nTC-3\nTC-4",
     status: "active",
     notes: "Covers happy and negative paths.",
-  });
-
-  await createModuleRecord("checklists", {
-    title: "SauceDemo Checkout Checklist",
-    type: "smoke",
-    items: "Login\nAdd item to cart\nOpen cart\nCheckout\nVerify confirmation",
-    notes: "Use before every release candidate.",
-  });
-  await createModuleRecord("checklists", {
-    title: "SauceDemo Negative Check",
-    type: "regression",
-    items: "Login with locked user\nVerify checkout validation\nCheck mobile sort visibility",
-    notes: "Use on every regression cycle.",
   });
 
   await createModuleRecord("sql-snippets", {

@@ -1,5 +1,6 @@
 import { PageShell } from "@/components/page-shell";
 import { authEnabled } from "@/lib/auth";
+import Link from "next/link";
 
 const dbMode = process.env.DATABASE_URL?.startsWith("postgres") ? "Neon/Postgres" : "SQLite local";
 const dbHint = process.env.DATABASE_URL?.startsWith("postgres")
@@ -31,6 +32,19 @@ export default function SettingsPage() {
           <p className="mt-2 text-sm text-slate-500">
             Use `AUTH_USERNAME`, `AUTH_PASSWORD`, and `AUTH_SECRET`. If any are missing, login is disabled.
           </p>
+        </div>
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">Export</p>
+          <h3 className="mt-2 text-xl font-bold text-slate-900">Export All Data</h3>
+          <p className="mt-2 text-sm text-slate-500">Download all modules as a single Excel workbook.</p>
+          <div className="mt-4">
+            <Link
+              href="/api/export/all"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-5 text-sm font-semibold text-sky-700 transition hover:bg-sky-600 hover:text-white hover:shadow-md"
+            >
+              Export All Data
+            </Link>
+          </div>
         </div>
       </div>
     </PageShell>

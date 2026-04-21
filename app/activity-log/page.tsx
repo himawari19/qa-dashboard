@@ -28,7 +28,7 @@ export default async function ActivityLogPage({
     <PageShell
       eyebrow="Activity Log"
       title="Recent Changes"
-      description="Create, update, status changes, and deletes across modules."
+      description="Track create, update, status, bulk, and delete actions across modules."
       controls={
         <div className="flex flex-wrap gap-2">
           <Link href="/activity-log" className={`rounded-full border px-4 py-2 text-xs font-bold ${!action ? "border-sky-600 bg-sky-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>All</Link>
@@ -44,9 +44,9 @@ export default async function ActivityLogPage({
         </div>
       }
       actions={
-        <Link href="/" className="inline-flex h-11 items-center rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
-          Back to dashboard
-        </Link>
+          <Link href="/" className="inline-flex h-11 items-center rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+            Back to dashboard
+          </Link>
       }
     >
       <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">

@@ -23,7 +23,9 @@ export function GlobalSearch() {
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => { setMounted(true); }, []);
@@ -43,13 +45,14 @@ export function GlobalSearch() {
   }, []);
 
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
+    if (query.length < 2) { setResults([]); setActiveIndex(-1); return; }
     const timeout = setTimeout(async () => {
       setLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
         setResults(data.results || []);
+        setActiveIndex(-1);
       } finally {
         setLoading(false);
       }
@@ -57,41 +60,72 @@ export function GlobalSearch() {
     return () => clearTimeout(timeout);
   }, [query]);
 
+  // Scroll active item into view
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    const el = listRef.current?.querySelector(`[data-idx="${activeIndex}"]`) as HTMLElement | null;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
   const handleSelect = (href: string) => {
     setOpen(false);
     setQuery("");
     setResults([]);
+    setActiveIndex(-1);
     router.push(href);
   };
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (results.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      handleSelect(results[activeIndex].href);
+    }
+  }
+
+  // Group results by type
+  const grouped = results.reduce<Record<string, Result[]>>((acc, r) => {
+    (acc[r.type] ??= []).push(r);
+    return acc;
+  }, {});
+  // Flat list for keyboard nav index mapping
+  const flatResults = Object.values(grouped).flat();
 
   const modal = (
     <div
       className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/50 pt-20 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
     >
-      <div className="w-full max-w-xl mx-4 rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+      <div className="w-full max-w-xl mx-4 rounded-3xl bg-white dark:bg-slate-800 shadow-2xl ring-1 ring-slate-200 dark:ring-slate-700">
         {/* Search Input */}
-        <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 px-5 py-4">
           <MagnifyingGlass size={18} className="text-slate-400 shrink-0" weight="bold" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Search tasks, bugs, test cases..."
-            className="flex-1 bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
+            className="flex-1 bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
             autoFocus
           />
           {loading && (
-            <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
+            <div role="status" aria-label="Searching" className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
           )}
-          <button onClick={() => setOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+          <button onClick={() => setOpen(false)} aria-label="Close search" className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300">
             <X size={16} weight="bold" />
           </button>
         </div>
 
         {/* Results */}
-        <div className="max-h-[400px] overflow-y-auto py-2">
+        <div ref={listRef} className="max-h-[400px] overflow-y-auto py-2">
           {results.length === 0 && query.length >= 2 && !loading && (
             <p className="px-5 py-8 text-center text-sm text-slate-400 font-medium">
               No results found for &ldquo;{query}&rdquo;
@@ -102,28 +136,43 @@ export function GlobalSearch() {
               Type at least 2 characters to search across all modules.
             </p>
           )}
-          {results.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => handleSelect(r.href)}
-              className="flex w-full items-center gap-4 px-5 py-3 text-left transition hover:bg-slate-50 group"
-            >
-              <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", typeColors[r.type] || "bg-slate-100 text-slate-600")}>
-                {r.type}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-800">{r.label}</p>
-                <p className="truncate text-xs text-slate-400">{r.sublabel}</p>
-              </div>
-              <span className="shrink-0 text-xs font-bold text-slate-300 group-hover:text-sky-500">{r.code}</span>
-              <ArrowRight size={14} className="shrink-0 text-slate-200 group-hover:text-sky-500 transition" weight="bold" />
-            </button>
+          {Object.entries(grouped).map(([type, items]) => (
+            <div key={type}>
+              <p className="px-5 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">{type}</p>
+              {items.map((r) => {
+                const idx = flatResults.indexOf(r);
+                const isActive = idx === activeIndex;
+                return (
+                  <button
+                    key={r.id}
+                    data-idx={idx}
+                    onClick={() => handleSelect(r.href)}
+                    className={cn(
+                      "flex w-full items-center gap-4 px-5 py-3 text-left transition group",
+                      isActive ? "bg-sky-50 dark:bg-sky-950/40" : "hover:bg-slate-50 dark:hover:bg-slate-700/50",
+                    )}
+                  >
+                    <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", typeColors[r.type] || "bg-slate-100 text-slate-600")}>
+                      {r.type}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-200">{r.label}</p>
+                      <p className="truncate text-xs text-slate-400 dark:text-slate-500">{r.sublabel}</p>
+                    </div>
+                    <span className={cn("shrink-0 text-xs font-bold", isActive ? "text-sky-500" : "text-slate-300 group-hover:text-sky-500")}>{r.code}</span>
+                    <ArrowRight size={14} className={cn("shrink-0 transition", isActive ? "text-sky-500" : "text-slate-200 group-hover:text-sky-500")} weight="bold" />
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </div>
 
         {results.length > 0 && (
-          <div className="border-t border-slate-100 px-5 py-2.5">
-            <p className="text-[11px] text-slate-400 font-medium">{results.length} result{results.length !== 1 ? "s" : ""} found · Press <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-bold">Esc</kbd> to close</p>
+          <div className="border-t border-slate-100 dark:border-slate-700 px-5 py-2.5">
+            <p className="text-[11px] text-slate-400 font-medium">
+              {results.length} result{results.length !== 1 ? "s" : ""} · <kbd className="rounded border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 font-bold">↑↓</kbd> navigate · <kbd className="rounded border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 font-bold">↵</kbd> open · <kbd className="rounded border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 font-bold">Esc</kbd> close
+            </p>
           </div>
         )}
       </div>
@@ -135,7 +184,7 @@ export function GlobalSearch() {
       {/* Trigger button */}
       <button
         onClick={() => { setOpen(true); }}
-        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm transition hover:border-sky-300 hover:shadow-md"
+        className="flex w-full max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm transition hover:border-sky-300 hover:shadow-md sm:w-auto"
       >
         <MagnifyingGlass size={15} weight="bold" />
         <span className="hidden sm:inline">Search anything...</span>
@@ -147,4 +196,3 @@ export function GlobalSearch() {
     </>
   );
 }
-

@@ -1,6 +1,7 @@
-import React from "react";
 import { db } from "@/lib/db";
 import { TestRunnerUI } from "@/components/test-runner-ui";
+import { PageShell } from "@/components/page-shell";
+import { Breadcrumb } from "@/components/breadcrumb";
 import { notFound } from "next/navigation";
 
 type ScenarioRow = {
@@ -11,29 +12,45 @@ type ScenarioRow = {
 type TestCaseRow = {
   id: number;
   scenarioId: string;
+  testStep?: string;
+  expectedResult?: string;
+  preCondition?: string;
+  caseName?: string;
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function TestRunnerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const scenario = await db.get<ScenarioRow>('SELECT * FROM "TestCaseScenario" WHERE id = ?', [id]);
-  
+
+  let scenario: ScenarioRow | undefined;
+  let testCases: TestCaseRow[] = [];
+
+  try {
+    const raw = await db.get<ScenarioRow>('SELECT * FROM "TestCaseScenario" WHERE id = ?', [id]);
+    scenario = raw ? JSON.parse(JSON.stringify(raw)) : undefined;
+  } catch (error) {
+    console.error("Failed to load scenario:", error);
+  }
+
   if (!scenario) notFound();
 
-  if (!scenario) return <div>Scenario not found</div>;
-  const testCases = await db.query<TestCaseRow>('SELECT * FROM "TestCase" WHERE scenarioId = ? ORDER BY id ASC', [id]);
+  try {
+    testCases = JSON.parse(JSON.stringify(
+      await db.query<TestCaseRow>('SELECT * FROM "TestCase" WHERE scenarioId = ? ORDER BY id ASC', [id])
+    ));
+  } catch (error) {
+    console.error("Failed to load test cases:", error);
+  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-600">Test Execution Mode</span>
-           <h1 className="text-3xl font-black text-slate-900 tracking-tight">{scenario.title}</h1>
-        </div>
-      </header>
-
-      <TestRunnerUI scenarioId={id} initialCases={testCases} />
-    </div>
+    <PageShell
+      eyebrow="Test Execution Mode"
+      title={scenario.title}
+      description="Run through test cases and record results."
+    >
+      <Breadcrumb crumbs={[{ label: "Test Cases", href: "/test-case-management" }, { label: scenario.title, href: `/test-case-management/${id}` }, { label: "Run" }]} className="mb-2" />
+      <TestRunnerUI scenarioId={id} initialCases={testCases as any[]} />
+    </PageShell>
   );
 }

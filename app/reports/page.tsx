@@ -20,8 +20,8 @@ export default async function ReportsPage() {
   return (
     <PageShell
       eyebrow="Reports"
-      title="Visual Insights"
-      description="Summarized bug and test case data represented in graphical format to assist daily tracking and quality analysis."
+      title="Visual Reports"
+      description="Quick charts for bug and test case trends."
     >
       <ReportsCharts {...data} />
     </PageShell>

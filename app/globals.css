@@ -1,8 +1,41 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --bg-app: #eef4f8;
+  --bg-sidebar: #f7fafc;
+  --bg-card: #ffffff;
+  --bg-header: rgba(255,255,255,0.85);
+  --bg-input: #f8fafc;
+  --bg-table-head: #f1f5f9;
+  --bg-table-row-alt: rgba(248,250,252,0.7);
+  --border-color: #d9e2ea;
+  --border-sidebar: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-label: #64748b;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --bg-app: #0f172a;
+  --bg-sidebar: #1e293b;
+  --bg-card: #1e293b;
+  --bg-header: rgba(15,23,42,0.9);
+  --bg-input: #0f172a;
+  --bg-table-head: #1e293b;
+  --bg-table-row-alt: rgba(30,41,59,0.5);
+  --border-color: #334155;
+  --border-sidebar: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-label: #94a3b8;
 }
 
 @theme inline {
@@ -18,9 +51,183 @@
 }
 
 body {
-  background: #eef4f8;
+  background: var(--bg-app);
   color: var(--foreground);
   font-family: var(--font-lato), sans-serif;
+}
+
+/* ── Global dark mode overrides ─────────────────────────────── */
+.dark body {
+  background: var(--bg-app);
+  color: var(--foreground);
+}
+
+/* Sidebar */
+.dark aside {
+  background: var(--bg-sidebar) !important;
+  border-color: var(--border-sidebar) !important;
+}
+
+/* Cards / white backgrounds */
+.dark .bg-white {
+  background-color: var(--bg-card) !important;
+}
+.dark .bg-\[\#f4f8fb\],
+.dark .bg-\[\#f7fafc\],
+.dark .bg-\[\#f8fafc\] {
+  background-color: #1e293b !important;
+}
+.dark .bg-slate-50,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/70 {
+  background-color: #1e293b !important;
+}
+.dark .bg-slate-100 {
+  background-color: #334155 !important;
+}
+
+/* Borders */
+.dark .border-slate-200,
+.dark .border-\[\#c9d7e3\],
+.dark .border-\[\#d9e2ea\] {
+  border-color: var(--border-color) !important;
+}
+.dark .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+/* Text */
+.dark .text-slate-900 { color: #f1f5f9 !important; }
+.dark .text-slate-800 { color: #e2e8f0 !important; }
+.dark .text-slate-700 { color: #cbd5e1 !important; }
+.dark .text-slate-600 { color: #94a3b8 !important; }
+.dark .text-slate-500 { color: #64748b !important; }
+.dark .text-slate-400 { color: #475569 !important; }
+
+/* Inputs / selects / textareas */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #475569 !important;
+}
+
+/* Table */
+.dark table thead {
+  background-color: #1e293b !important;
+}
+.dark table tr:nth-child(even) {
+  background-color: rgba(30,41,59,0.5) !important;
+}
+.dark table tr {
+  background-color: #1e293b !important;
+}
+.dark table td,
+.dark table th {
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+/* Header */
+.dark header {
+  background-color: rgba(15,23,42,0.9) !important;
+  border-color: #334155 !important;
+}
+
+/* Sticky toolbar in module-workspace */
+.dark .sticky {
+  background-color: rgba(15,23,42,0.95) !important;
+}
+
+/* Backdrop blur panels */
+.dark .backdrop-blur-sm,
+.dark .backdrop-blur-xl {
+  background-color: rgba(15,23,42,0.85) !important;
+}
+
+/* Hover states */
+.dark .hover\:bg-slate-50:hover { background-color: #1e293b !important; }
+.dark .hover\:bg-slate-100:hover { background-color: #334155 !important; }
+.dark .hover\:bg-slate-200:hover { background-color: #334155 !important; }
+
+/* Rounded cards with explicit bg */
+.dark [class*="rounded-"][class*="bg-white"] {
+  background-color: var(--bg-card) !important;
+}
+
+/* Form section */
+.dark .bg-slate-50.px-6 {
+  background-color: #1e293b !important;
+}
+
+/* Kanban */
+.dark .bg-slate-900 {
+  background-color: #020617 !important;
+}
+
+/* Search modal */
+.dark .bg-white.shadow-2xl {
+  background-color: #1e293b !important;
+}
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track { background: #1e293b; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+
+/* Hide default scrollbar globally, use overlay style */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: rgba(148,163,184,0.4) transparent;
+}
+.dark * {
+  scrollbar-color: transparent transparent;
+}
+.dark *:hover {
+  scrollbar-color: rgba(51,65,85,0.6) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(148,163,184,0.5);
+}
+*:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(100,116,139,0.8);
+}
+.dark *:hover::-webkit-scrollbar-thumb {
+  background: rgba(51,65,85,0.7);
+}
+.dark *:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(71,85,105,0.9);
+}
+
+/* Sidebar: completely hidden scrollbar */
+aside ::-webkit-scrollbar {
+  width: 0px;
+}
+aside {
+  scrollbar-width: none;
 }
 
 .font-serif {

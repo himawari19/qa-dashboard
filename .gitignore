@@ -40,3 +40,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor
+.vscode/
+.idea/
+
+# local database
+/prisma/*.db
+/prisma/*.db-shm
+/prisma/*.db-wal
+
+# playwright / e2e local testing artifacts
+/.playwright-cli/
+/playwright-report/
+/test-results/
+/playwright/.cache/
+
+# local uploads
+/public/uploads/
+
+# local logs
+*.log
+logs/

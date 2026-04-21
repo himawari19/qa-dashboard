@@ -59,7 +59,7 @@ export default function QAToolboxPage() {
     <PageShell
       eyebrow="QA Toolbox"
       title="Quick Utilities"
-      description="Fast helpers for repetitive QA work: standup formatting, fake data generation, and testing links."
+      description="Fast helpers for standups, sample data, and links."
       actions={
         <ActionButton type="button" onClick={generateStandup} disabled={loadingStandup}>
           <Coffee size={16} weight="bold" />
@@ -129,7 +129,7 @@ export default function QAToolboxPage() {
 
           <div className="space-y-3">
             {fakeData.length === 0 ? (
-              <EmptyState title="No Fake Data" description="Generate dummy QA data for test flows and screenshots." />
+              <EmptyState title="No Sample Data" description="Generate sample QA data for test flows and screenshots." />
             ) : (
               fakeData.map((data) => (
                 <div key={data.label} className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -158,13 +158,13 @@ export default function QAToolboxPage() {
       <section className="mt-8">
         <div className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Quick Assets</p>
-          <h2 className="mt-2 text-2xl font-bold text-slate-900">Testing Links</h2>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">Useful Links</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
             { name: "Placeholder Images", url: "https://via.placeholder.com" },
-            { name: "Dummy JSON API", url: "https://dummyjson.com" },
-            { name: "RegEx Tester", url: "https://regex101.com" },
+            { name: "JSON Sample API", url: "https://dummyjson.com" },
+            { name: "Regex Tester", url: "https://regex101.com" },
             { name: "Speed Test", url: "https://fast.com" },
           ].map((link) => (
             <a

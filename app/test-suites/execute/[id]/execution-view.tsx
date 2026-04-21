@@ -1,18 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Checks, 
-  CheckCircle, 
-  XCircle, 
-  WarningCircle, 
-  Clock, 
-  ArrowLeft,
-  DeviceMobile,
-  Monitor,
-  Database,
-  ArrowRight
-} from "@phosphor-icons/react";
+import { CheckCircle, XCircle, ArrowLeft, Monitor, Database } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast";
@@ -29,7 +18,12 @@ type TestCase = {
   status: string;
 };
 
-export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCase[] }) {
+type Suite = {
+  project: string;
+  title: string;
+};
+
+export function SuiteExecutionView({ suite, cases, scenarioId }: { suite: Suite; cases: TestCase[]; scenarioId: string }) {
   const router = useRouter();
   const [items, setItems] = useState<TestCase[]>(cases);
   const [loading, setLoading] = useState(false);
@@ -49,24 +43,20 @@ export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCa
   const saveResults = async () => {
     setLoading(true);
     try {
-       // Loop and save OR use a bulk API
-       const res = await fetch("/api/test-cases/bulk-status", {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({
-            ids: items.map(i => i.id),
-            status: "Bulk Status Update" // Mocking for now OR passing specific statuses
-         })
-       });
+      const res = await fetch("/api/test-cases", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: items }),
+      });
 
-       if (!res.ok) throw new Error("Bulk update failed");
-       
-       toast("Full execution results saved successfully!", "success");
-       router.push("/test-suites");
-    } catch (err: any) {
-       toast(err.message, "error");
+      if (!res.ok) throw new Error("Failed to save execution results");
+        
+      toast("Full execution results saved successfully!", "success");
+      router.push("/test-suites");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Failed to save results", "error");
     } finally {
-       setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -81,6 +71,7 @@ export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCa
             <div className="flex items-center gap-3">
               <span className="rounded-full bg-violet-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-violet-700">Suite Execution</span>
               <p className="text-xs font-bold text-slate-400">{suite.project}</p>
+              <p className="text-xs font-bold text-slate-300">ID: {scenarioId}</p>
             </div>
             <h1 className="mt-1 text-4xl font-black tracking-tight text-slate-900">{suite.title}</h1>
           </div>
@@ -88,7 +79,7 @@ export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCa
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 rounded-2xl bg-white p-2 shadow-sm border border-slate-100">
-            <button onClick={() => setAllStatus("Passed")} className="rounded-xl px-4 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-50">Set All PASS</button>
+            <button onClick={() => setAllStatus("Success")} className="rounded-xl px-4 py-2 text-xs font-bold text-emerald-600 transition hover:bg-emerald-50">Set All PASS</button>
             <div className="h-4 w-px bg-slate-100" />
             <button onClick={() => setAllStatus("Failed")} className="rounded-xl px-4 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-50">Set All FAIL</button>
           </div>
@@ -103,7 +94,6 @@ export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCa
       </header>
 
       <div className="grid gap-8 lg:grid-cols-12">
-        {/* Case List Sidebar */}
         <div className="lg:col-span-4 max-h-[70vh] overflow-y-auto space-y-3 pr-2 scrollbar-thin">
           {items.map((item) => (
             <div 
@@ -120,7 +110,7 @@ export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCa
                   <h4 className="truncate text-sm font-bold text-slate-700">{item.caseName}</h4>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={(e) => { e.stopPropagation(); updateStatus(item.id, "Passed"); }} className={cn("rounded-full p-2 transition", item.status === "Passed" ? "bg-emerald-500 text-white" : "bg-slate-50 text-slate-300 hover:bg-emerald-50 hover:text-emerald-500")}>
+                  <button onClick={(e) => { e.stopPropagation(); updateStatus(item.id, "Success"); }} className={cn("rounded-full p-2 transition", item.status === "Success" ? "bg-emerald-500 text-white" : "bg-slate-50 text-slate-300 hover:bg-emerald-50 hover:text-emerald-500")}>
                     <CheckCircle size={18} weight="bold" />
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); updateStatus(item.id, "Failed"); }} className={cn("rounded-full p-2 transition", item.status === "Failed" ? "bg-rose-500 text-white" : "bg-slate-50 text-slate-300 hover:bg-rose-50 hover:text-rose-500")}>
@@ -132,7 +122,6 @@ export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCa
           ))}
         </div>
 
-        {/* Selected Case Detail */}
         <div className="lg:col-span-8">
           {selectedCase ? (
             <div className="sticky top-10 rounded-[40px] border border-slate-100 bg-white p-12 shadow-2xl">
@@ -180,8 +169,8 @@ export function SuiteExecutionView({ suite, cases }: { suite: any, cases: TestCa
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-6">Current Execution Verdict</p>
                     <div className="flex items-center gap-4">
                       <button 
-                        onClick={() => updateStatus(selectedCase.id, "Passed")}
-                        className={cn("flex-1 rounded-2xl py-4 flex flex-col items-center gap-2 transition-all active:scale-95", selectedCase.status === "Passed" ? "bg-emerald-500 text-white" : "bg-white/10 hover:bg-white/20 text-white")}
+                        onClick={() => updateStatus(selectedCase.id, "Success")}
+                        className={cn("flex-1 rounded-2xl py-4 flex flex-col items-center gap-2 transition-all active:scale-95", selectedCase.status === "Success" ? "bg-emerald-500 text-white" : "bg-white/10 hover:bg-white/20 text-white")}
                       >
                         <CheckCircle size={32} weight="fill" />
                         <span className="text-[10px] font-black uppercase tracking-widest">PASS</span>

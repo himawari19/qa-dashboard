@@ -23,6 +23,8 @@ function emptyDashboardData() {
       logs: [],
     },
     sprintInfo: null,
+    bugTrendData: [],
+    sprints: [],
   };
 }
 

@@ -6,6 +6,17 @@ import { Badge } from "@/components/badge";
 import { formatDate, cn } from "@/lib/utils";
 import { Printer, FileXls, ChartPieSlice, ChartLineUp, Checks } from "@phosphor-icons/react";
 import { EmptyState } from "@/components/skeleton";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 type DashboardProps = {
   metrics: { label: string; value: number; caption: string }[];
@@ -54,35 +65,56 @@ type DashboardProps = {
     summary: string;
     createdAt: string;
   }[];
+  bugTrendData?: { date: string; count: number }[];
+  sprints?: { id: number; name: string; startDate: string; endDate: string; status: string }[];
 };
 
-export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo, personalSuccessRate, activity = [] }: DashboardProps) {
+export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo, personalSuccessRate, activity = [], bugTrendData = [], sprints = [] }: DashboardProps) {
   const [mounted, setMounted] = React.useState(false);
-  const handlePrint = () => {
-    window.print();
-  };
+  const [selectedSprintId, setSelectedSprintId] = React.useState<number | null>(null);
+  const handlePrint = () => { window.print(); };
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  React.useEffect(() => { setMounted(true); }, []);
+
+  const activeSprint = selectedSprintId
+    ? sprints.find((s) => s.id === selectedSprintId) ?? null
+    : null;
+  const displayedSprint = activeSprint
+    ? { ...sprintInfo, name: activeSprint.name, startDate: activeSprint.startDate, endDate: activeSprint.endDate }
+    : sprintInfo;
 
   return (
     <div className="space-y-6 pb-12">
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Link href="/bugs" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
           <h3 className="mt-2 text-lg font-bold text-slate-900">Open Bug Register</h3>
-          <p className="mt-2 text-sm text-slate-500">Log or review defects fast.</p>
+          <p className="mt-2 text-sm text-slate-500">Capture or review defects fast.</p>
+        </Link>
+        <Link href="/test-plans" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">Open Test Plans</h3>
+          <p className="mt-2 text-sm text-slate-500">Define scope and ownership.</p>
+        </Link>
+        <Link href="/test-suites" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">Open Test Suites</h3>
+          <p className="mt-2 text-sm text-slate-500">Group cases for execution.</p>
         </Link>
         <Link href="/test-case-management" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
           <h3 className="mt-2 text-lg font-bold text-slate-900">Manage Test Cases</h3>
           <p className="mt-2 text-sm text-slate-500">Create, review, or execute cases.</p>
         </Link>
+        <Link href="/test-sessions" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">Open Exec Sessions</h3>
+          <p className="mt-2 text-sm text-slate-500">Track test execution results.</p>
+        </Link>
         <Link href="/activity-log" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
           <h3 className="mt-2 text-lg font-bold text-slate-900">View Activity Log</h3>
-          <p className="mt-2 text-sm text-slate-500">Track recent changes in one place.</p>
+          <p className="mt-2 text-sm text-slate-500">Track updates and handoffs in one place.</p>
         </Link>
       </section>
 
@@ -102,7 +134,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="flex h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
-                    <p className="text-[11px] font-black uppercase tracking-[0.3em] text-sky-600/80">Active Portfolio Showcase</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.3em] text-sky-600/80">Overview</p>
                   </div>
                   <h1 className="mt-1 text-4xl font-black tracking-tight text-slate-900 drop-shadow-sm leading-tight">
                     {spotlight.projectName}
@@ -111,7 +143,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               </div>
               
               <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-600/90 font-medium">
-                {spotlight.projectDescription || "Tracking QA activities, defects, and test scenarios for this project."}
+                {spotlight.projectDescription || "Tracking QA work, defects, and test scenarios."}
               </p>
 
               <div className="mt-10 grid grid-cols-3 gap-6">
@@ -167,23 +199,38 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           </section>
         )}
 
-      {/* SPRINT PROGRESS (Idea 23) */}
-      {sprintInfo && (
+      {/* SPRINT PROGRESS */}
+      {displayedSprint && (
         <section className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-100">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Active Sprint
-                </span>
-                <h3 className="mt-3 text-xl font-black text-slate-900">{sprintInfo.name}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-100">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Active Sprint
+                  </span>
+                  {/* Upgrade 12: sprint selector */}
+                  {sprints.length > 1 && (
+                    <select
+                      value={selectedSprintId ?? ""}
+                      onChange={(e) => setSelectedSprintId(e.target.value ? Number(e.target.value) : null)}
+                      className="h-7 rounded-full border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-600 outline-none transition hover:border-sky-300"
+                    >
+                      <option value="">Current Sprint</option>
+                      {sprints.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <h3 className="mt-3 text-xl font-black text-slate-900">{displayedSprint.name}</h3>
                 <p className="mt-1 text-xs font-bold text-slate-400">
-                  {formatDate(sprintInfo.startDate)} — {formatDate(sprintInfo.endDate)}
+                  {formatDate(displayedSprint.startDate)} — {formatDate(displayedSprint.endDate)}
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-3xl font-black text-emerald-600">{sprintInfo.progress}%</span>
+                <span className="text-3xl font-black text-emerald-600">{displayedSprint.progress}%</span>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Completed</p>
               </div>
             </div>
@@ -192,21 +239,21 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5">
                 <div 
                   className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm transition-all duration-1000 ease-out"
-                  style={{ width: `${sprintInfo.progress}%` }}
+                  style={{ width: `${displayedSprint.progress}%` }}
                 />
               </div>
               <div className="mt-3 flex justify-between text-[11px] font-bold text-slate-500">
-                <span>{sprintInfo.taskDone} Tasks Done</span>
-                <span>{sprintInfo.taskTotal} Total Tasks</span>
+                <span>{displayedSprint.taskDone} Tasks Done</span>
+                <span>{displayedSprint.taskTotal} Total Tasks</span>
               </div>
             </div>
           </div>
           
           <div className="rounded-[32px] border border-sky-100 bg-sky-50 p-6 flex flex-col justify-center">
-             <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">Sprint Goal</p>
-             <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-700 italic">
-               {sprintInfo?.goal || "Deliver quality outcomes for this sprint cycle."}
-             </p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">Sprint Goal</p>
+            <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-700 italic">
+              {sprintInfo?.goal || "Deliver sprint outcomes with quality."}
+            </p>
           </div>
         </section>
       )}
@@ -225,17 +272,17 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               Comprehensive overview of testing activities, including bug distribution, task health, and recent documentation logs.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 no-print">
+          <div className="flex max-w-full flex-wrap justify-start gap-3 no-print lg:justify-end">
             <button
               onClick={handlePrint}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:shadow-md"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:shadow-md"
             >
               <Printer size={18} weight="bold" />
               Export PDF / Print
             </button>
             <Link
               href="/api/export/all"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-5 text-sm font-bold text-sky-700 shadow-sm transition hover:bg-sky-600 hover:text-white hover:shadow-md"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-5 text-sm font-bold text-sky-700 shadow-sm transition hover:bg-sky-600 hover:text-white hover:shadow-md"
             >
               <FileXls size={18} weight="bold" />
               Export Excel
@@ -294,8 +341,8 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
                   <Checks size={24} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">Personal Quality Shield</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">My Success Rate</p>
+                  <h3 className="text-xl font-bold">Quality Shield</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">Success Rate</p>
                 </div>
               </div>
               
@@ -338,7 +385,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
       {/* CHARTS / DISTRIBUTION */}
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-8 flex items-center gap-3">
+          <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
               <ChartPieSlice size={20} weight="bold" />
             </div>
@@ -347,31 +394,35 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               <p className="text-xs text-slate-500">Breakdown of reported defects by criticality</p>
             </div>
           </div>
-          <div className="space-y-5">
-            {distribution.bugs.length > 0 ? distribution.bugs.map((item) => (
-              <div key={item.name} className="space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
-                  <span className="text-slate-600">{item.name}</span>
-                  <span className="text-slate-900">{item.value} bugs</span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                  <div 
-                    className={cn(
-                      "h-full transition-all duration-1000",
-                      item.name === 'critical' ? 'bg-rose-600' :
-                      item.name === 'high' ? 'bg-rose-500' :
-                      item.name === 'medium' ? 'bg-amber-400' : 'bg-emerald-400'
-                    )}
-                    style={{ width: `${Math.min(100, (item.value / Math.max(1, metrics[1]?.value || 1)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )) : <p className="text-sm text-slate-400 italic">No data available</p>}
-          </div>
+          {distribution.bugs.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={distribution.bugs} barCategoryGap="30%">
+                <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip
+                  cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                  contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
+                  formatter={(v) => [`${v} bugs`, "Count"]}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {distribution.bugs.map((item) => (
+                    <Cell
+                      key={item.name}
+                      fill={
+                        item.name === "critical" ? "#dc2626" :
+                        item.name === "high" ? "#f87171" :
+                        item.name === "medium" ? "#fbbf24" : "#34d399"
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-sm text-slate-400 italic">No data available</p>}
         </section>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-8 flex items-center gap-3">
+          <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
               <ChartLineUp size={20} weight="bold" />
             </div>
@@ -380,33 +431,88 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
               <p className="text-xs text-slate-500">Current state of daily testing tasks</p>
             </div>
           </div>
-          <div className="space-y-5">
-            {distribution.tasks.length > 0 ? distribution.tasks.map((item) => (
-              <div key={item.name} className="space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
-                  <span className="text-slate-600">{item.name}</span>
-                  <span className="text-slate-900">{item.value} tasks</span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                  <div 
-                    className={cn(
-                      "h-full transition-all duration-1000",
-                      item.name === 'todo' ? 'bg-slate-400' :
-                      item.name === 'doing' ? 'bg-sky-500' :
-                      item.name === 'done' ? 'bg-emerald-500' : 'bg-fuchsia-400'
-                    )}
-                    style={{ width: `${Math.min(100, (item.value / Math.max(1, metrics[0]?.value || 1)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )) : <p className="text-sm text-slate-400 italic">No data available</p>}
-          </div>
+          {distribution.tasks.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={distribution.tasks} barCategoryGap="30%">
+                <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip
+                  cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                  contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
+                  formatter={(v) => [`${v} tasks`, "Count"]}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {distribution.tasks.map((item) => (
+                    <Cell
+                      key={item.name}
+                      fill={
+                        item.name === "todo" ? "#94a3b8" :
+                        item.name === "doing" ? "#0ea5e9" :
+                        item.name === "done" ? "#10b981" : "#e879f9"
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-sm text-slate-400 italic">No data available</p>}
         </section>
       </div>
 
+      {/* BUG TREND LINE CHART */}
+      {bugTrendData.length > 0 && (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+              <ChartLineUp size={20} weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Bug Trend (Last 7 Days)</h3>
+              <p className="text-xs text-slate-500">Daily count of reported defects</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={bugTrendData}>
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
+                formatter={(v) => [`${v} bugs`, "Count"]}
+              />
+              <Line type="monotone" dataKey="count" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: 4, fill: "#f43f5e" }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </section>
+      )}
+      {/* Upgrade 7: Bug trend line chart */}
+      {bugTrendData.length > 0 && (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+              <ChartLineUp size={20} weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Bug Trend (Last 7 Days)</h3>
+              <p className="text-xs text-slate-500">Bugs created per day over the past week</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={bugTrendData}>
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
+                formatter={(v) => [`${v} bugs`, "Count"]}
+              />
+              <Line type="monotone" dataKey="count" stroke="#dc2626" strokeWidth={2} dot={{ r: 4, fill: "#dc2626" }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </section>
+      )}
+
       {/* RECENT ACTIVITY LOGS */}
       <section className="grid gap-6 xl:grid-cols-2">
-        <Panel title="Recent Tasks" href="/tasks">
+        <Panel title="Tasks" href="/tasks">
           {recent.tasks.map((item) => (
             <ListCard key={item.id} code={item.code} title={item.title}>
               <Badge value={item.priority} />
@@ -416,7 +522,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           {recent.tasks.length === 0 && <EmptyState title="No Tasks" description="Create a task to start tracking work." />}
         </Panel>
 
-        <Panel title="Recent Bugs" href="/bugs">
+        <Panel title="Bugs" href="/bugs">
           {recent.bugs.map((item) => (
             <ListCard key={item.id} code={item.code} title={item.title}>
               <Badge value={item.severity} />
@@ -427,7 +533,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           {recent.bugs.length === 0 && <EmptyState title="No Bugs" description="Register defects to see them here." />}
         </Panel>
 
-        <Panel title="Recent Scenarios" href="/test-case-management">
+        <Panel title="Scenarios" href="/test-case-management">
           {recent.testCases.map((item) => (
             <ListCard key={item.id} code={item.code} title={item.title}>
               <div className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
@@ -438,7 +544,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           {recent.testCases.length === 0 && <EmptyState title="No Scenarios" description="Add test case scenarios to continue." />}
         </Panel>
 
-        <Panel title="Meetings & Logs" href="/meeting-notes">
+        <Panel title="Meetings / Logs" href="/meeting-notes">
           {recent.meetings.map((item) => (
             <ListCard key={item.id} code={item.code} title={item.title} date={item.date} />
           ))}
@@ -450,7 +556,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
       </section>
 
       <section>
-        <Panel title="Activity Feed" href="/activity-log">
+        <Panel title="Activity" href="/activity-log">
           {activity.length > 0 ? activity.map((item) => (
             <ListCard key={item.id} code={`${item.action.toUpperCase()}`} title={item.summary} date={item.createdAt} dashed>
               <Badge value={item.entityType} />

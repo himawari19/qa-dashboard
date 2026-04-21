@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
   DownloadSimple, 
   FileXls, 
   Plus, 
   UploadSimple, 
-  Trash, 
-  X, 
   Tag, 
+  X,
   Folder, 
   Compass, 
   SquaresFour, 
@@ -22,7 +21,9 @@ import {
   CheckCircle,
   WarningCircle,
   Clock,
-  CopySimple
+  CopySimple,
+  CaretUp,
+  CaretDown
 } from "@phosphor-icons/react";
 import { Badge } from "@/components/badge";
 import { KanbanBoard } from "@/components/kanban-board";
@@ -86,19 +87,38 @@ export function ModuleWorkspace({
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [editingRow, setEditingRow] = useState<Row | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
-  const [isBulkDelete, setIsBulkDelete] = useState(false);
-  const [duplicates, setDuplicates] = useState<any[]>([]);
-  const [bulkEditOpen, setBulkEditOpen] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState("");
-  const bulkStatusField = config.fields.find((field) => field.name === "status" && field.kind === "select");
-  const bulkStatusOptions = bulkStatusField && "options" in bulkStatusField ? bulkStatusField.options : [];
+  const [duplicates, setDuplicates] = useState<{ id: number; code: string; title: string; status: string }[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
+  const [statusDropdownId, setStatusDropdownId] = useState<string | number | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Sort state
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  // Filter state
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterPriority, setFilterPriority] = useState("");
+  const [filterSeverity, setFilterSeverity] = useState("");
+  // Pagination
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+  // Undo delete
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
 
   useEffect(() => {
     const storedView = window.localStorage.getItem(`qa-daily:view:${module}`);
     if (storedView === "table" || storedView === "kanban") {
       setViewMode(storedView);
+    }
+    // Restore sort from localStorage
+    const storedSort = window.localStorage.getItem(`qa-daily:sort:${module}`);
+    if (storedSort) {
+      try {
+        const { key, dir } = JSON.parse(storedSort);
+        if (key) { setSortKey(key); setSortDir(dir ?? "asc"); }
+      } catch { /* ignore */ }
     }
   }, [module]);
 
@@ -106,9 +126,48 @@ export function ModuleWorkspace({
     window.localStorage.setItem(`qa-daily:view:${module}`, viewMode);
   }, [module, viewMode]);
 
+  // Persist sort to localStorage
+  useEffect(() => {
+    if (sortKey) {
+      window.localStorage.setItem(`qa-daily:sort:${module}`, JSON.stringify({ key: sortKey, dir: sortDir }));
+    }
+  }, [module, sortKey, sortDir]);
+
+  // Listen for qa:open-form event (keyboard shortcut Cmd+N)
+  useEffect(() => {
+    const handler = () => {
+      setEditingRow(null);
+      setShowForm(true);
+      setTimeout(() => {
+        document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    };
+    window.addEventListener("qa:open-form", handler);
+    return () => window.removeEventListener("qa:open-form", handler);
+  }, []);
+
+  // Close status dropdown on outside click
+  useEffect(() => {
+    if (statusDropdownId === null) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-status-dropdown]")) setStatusDropdownId(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [statusDropdownId]);
+
+  // Reset page when search/filter changes
+  useEffect(() => { setPage(1); }, [searchQuery, filterStatus, filterPriority, filterSeverity]);
+
   const statusField = config.fields.find((f) => f.name === "status");
   const statusOptions = statusField && "options" in statusField ? statusField.options : [];
   const hasKanban = statusOptions.length > 0 && (module === "tasks" || module === "bugs" || module === "test-cases");
+
+  const priorityField = config.fields.find((f) => f.name === "priority");
+  const priorityOptions = priorityField && "options" in priorityField ? priorityField.options : [];
+  const severityField = config.fields.find((f) => f.name === "severity");
+  const severityOptions = severityField && "options" in severityField ? severityField.options : [];
 
   const fieldIcons: Record<string, any> = {
     title: <Tag size={16} className="text-sky-500" />,
@@ -141,30 +200,120 @@ export function ModuleWorkspace({
     nextPlan: <Clock size={16} className="text-indigo-500" />,
   };
 
-  const visibleRows = rows.filter((row) =>
-    Object.values(row).some((val) =>
+  const filteredRows = useMemo(() => rows.filter((row) => {
+    const matchSearch = Object.values(row).some((val) =>
       String(val).toLowerCase().includes(searchQuery.toLowerCase()),
-    ),
-  );
-  const preferredColumnOrder = ["code", "title", "project", "module", "moduleName", "status", "priority", "severity", "date", "dueDate"];
+    );
+    const matchStatus = !filterStatus || String(row.status) === filterStatus;
+    const matchPriority = !filterPriority || String(row.priority) === filterPriority;
+    const matchSeverity = !filterSeverity || String(row.severity) === filterSeverity;
+    return matchSearch && matchStatus && matchPriority && matchSeverity;
+  }), [rows, searchQuery, filterStatus, filterPriority, filterSeverity]);
+
+  const sortedRows = useMemo(() => sortKey
+    ? [...filteredRows].sort((a, b) => {
+        const av = String(a[sortKey] ?? "").toLowerCase();
+        const bv = String(b[sortKey] ?? "").toLowerCase();
+        const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+        return sortDir === "asc" ? cmp : -cmp;
+      })
+    : filteredRows,
+  [filteredRows, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleRows = sortedRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  function handleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+  const preferredColumnOrder = [
+    "code",
+    "title",
+    "project",
+    "module",
+    "moduleName",
+    "status",
+    "priority",
+    "severity",
+    "date",
+    "dueDate",
+    "sprint",
+    "startDate",
+    "endDate",
+    "assignee",
+  ];
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
     .sort((a, b) => preferredColumnOrder.indexOf(a.key) - preferredColumnOrder.indexOf(b.key));
-  const visibleColumns = defaultVisibleColumns.length > 0 ? defaultVisibleColumns : config.columns.slice(0, Math.min(6, config.columns.length));
+  const visibleColumns = useMemo(
+    () => defaultVisibleColumns.length > 0 ? defaultVisibleColumns : config.columns.slice(0, Math.min(6, config.columns.length)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [module]
+  );
 
-  const checkDuplicates = async (title: string) => {
-    if (module !== "bugs" || title.length < 5) {
+  const checkDuplicates = useCallback(async (title: string) => {
+    if ((module !== "bugs" && module !== "tasks") || title.length < 5) {
       setDuplicates([]);
       return;
     }
     try {
-      const res = await fetch(`/api/bugs/find-duplicates?title=${encodeURIComponent(title)}`);
+      const endpoint = module === "tasks" ? "/api/tasks/find-duplicates" : "/api/bugs/find-duplicates";
+      const res = await fetch(`${endpoint}?title=${encodeURIComponent(title)}`);
       const data = await res.json();
       setDuplicates(data.duplicates || []);
     } catch {
       setDuplicates([]);
     }
+  }, [module]);
+
+  // Upgrade 4: warn before leaving with unsaved form changes
+  useEffect(() => {
+    if (!showForm || !formDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [showForm, formDirty]);
+
+  useEffect(() => {
+    if (!showForm) setFormDirty(false);
+  }, [showForm]);
+
+  // Upgrade 6: format any row as readable text for clipboard
+  const formatRowForClipboard = (row: Row): string => {
+    return visibleColumns
+      .map((col) => `${col.label}: ${String(row[col.key] || "-")}`)
+      .join("\n");
   };
+
+  function parseFieldError(msg: string): Record<string, string> {
+    const lower = msg.toLowerCase();
+    const fieldNames = config.fields.map((f) => f.name);
+    for (const name of fieldNames) {
+      if (lower.includes(name.toLowerCase())) return { [name]: msg };
+    }
+    // Try common patterns like "Title is required"
+    const match = msg.match(/^(\w+)\s+is\s+/i);
+    if (match) {
+      const candidate = fieldNames.find((n) => n.toLowerCase() === match[1].toLowerCase());
+      if (candidate) return { [candidate]: msg };
+    }
+    return {};
+  }
+
+  function refreshPage() {
+    setRefreshing(true);
+    router.refresh();
+    setTimeout(() => setRefreshing(false), 800);
+  }
 
   async function onCreate(formData: FormData) {
     const response = await fetch(`/api/items/${module}`, {
@@ -173,16 +322,19 @@ export function ModuleWorkspace({
     });
     const data = (await response.json()) as { message?: string; error?: string };
     if (!response.ok) {
-      toast(data.error ?? "Failed to save data.", "error");
+      const errMsg = data.error ?? "Failed to save data.";
+      toast(errMsg, "error");
+      setFieldErrors(parseFieldError(errMsg));
       return;
     }
 
+    setFieldErrors({});
     toast(data.message ?? "Data saved successfully.", "success");
     const form = document.getElementById(`${module}-form`) as HTMLFormElement | null;
     form?.reset();
     localStorage.removeItem(`draft-${module}`);
     setShowForm(false);
-    router.refresh();
+    refreshPage();
   }
 
   async function onUpdate(formData: FormData) {
@@ -200,14 +352,17 @@ export function ModuleWorkspace({
     });
     const data = (await response.json()) as { message?: string; error?: string };
     if (!response.ok) {
-      toast(data.error ?? "Failed to update data.", "error");
+      const errMsg = data.error ?? "Failed to update data.";
+      toast(errMsg, "error");
+      setFieldErrors(parseFieldError(errMsg));
       return;
     }
 
+    setFieldErrors({});
     toast(data.message ?? "Data updated successfully.", "success");
     setEditingRow(null);
     setShowForm(false);
-    router.refresh();
+    refreshPage();
   }
 
   async function onImport(file: File) {
@@ -237,73 +392,34 @@ export function ModuleWorkspace({
       toast(data.error ?? "Failed to delete data.", "error");
       return;
     }
-
     toast(data.message ?? "Data deleted successfully.", "success");
-    setSelectedIds(new Set()); // Cleanup selection
-    router.refresh();
+    refreshPage();
   }
 
-  async function performBulkDelete() {
-    const ids = Array.from(selectedIds).join(",");
-    const response = await fetch(`/api/items/${module}?ids=${ids}`, {
-      method: "DELETE",
-    });
-    const data = (await response.json()) as { message?: string; error?: string };
-    if (!response.ok) {
-      toast(data.error ?? "Failed to delete items.", "error");
-      return;
-    }
-
-    toast(data.message ?? "Bulk deletion successful.", "success");
-    setSelectedIds(new Set()); // Clear selection
-    setDeleteId(null);
-    setIsBulkDelete(false);
-    router.refresh();
+  function requestDelete(id: string | number) {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setPendingDeleteId(id);
+    // Show undo toast — we use a custom event on the button since toast() takes a string
+    const toastId = `undo-${Date.now()}`;
+    toast(`Item deleted. <button id="${toastId}" style="font-weight:700;text-decoration:underline;margin-left:8px;cursor:pointer">Undo</button>`, "info");
+    undoTimerRef.current = setTimeout(() => {
+      setPendingDeleteId(null);
+      void onDelete(id);
+    }, 4000);
+    setTimeout(() => {
+      document.getElementById(toastId)?.addEventListener("click", () => {
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        setPendingDeleteId(null);
+        toast("Delete cancelled.", "success");
+      });
+    }, 50);
   }
 
-  async function performBulkStatusUpdate() {
-    if (!bulkStatus.trim()) return;
-    const ids = Array.from(selectedIds);
-    const response = await fetch(`/api/items/${module}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids, status: bulkStatus.trim() }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      toast(data.error ?? "Failed to update selected items.", "error");
-      return;
-    }
-
-    toast(data.message ?? "Selected items updated successfully.", "success");
-    setSelectedIds(new Set());
-    setBulkEditOpen(false);
-    setBulkStatus("");
-    router.refresh();
-  }
-
-  async function performSingleDelete() {
+  function performSingleDelete() {
     if (deleteId === null) return;
-    await onDelete(deleteId);
+    requestDelete(deleteId);
     setDeleteId(null);
   }
-
-
-
-  const toggleSelect = (id: string | number) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedIds(next);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === visibleRows.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(visibleRows.map((r) => r.id as string | number)));
-    }
-  };
 
   async function onUpdateStatus(id: number | string, status: string) {
     const response = await fetch(`/api/items/${module}`, {
@@ -317,22 +433,22 @@ export function ModuleWorkspace({
       return;
     }
     toast(data.message ?? "Status updated successfully.", "success");
-    router.refresh();
+    refreshPage();
   }
 
   return (
     <div className="space-y-6">
-      <section className="border border-[#c9d7e3] bg-white">
-        <div className="border-b border-[#d9e2ea] bg-[#f4f8fb] px-6 py-6">
+      <section className="border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-900">
+        <div className="border-b border-[#d9e2ea] dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700 dark:text-sky-400">
                 {config.shortTitle}
               </p>
-              <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-900">
+              <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                 {config.title}
               </h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+              <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">
                 {config.description}
               </p>
             </div>
@@ -342,7 +458,15 @@ export function ModuleWorkspace({
                 type="button"
                 onClick={() => {
                   setEditingRow(null);
-                  setShowForm((value) => !value);
+                  setShowForm((value) => {
+                    const next = !value;
+                    if (next) {
+                      setTimeout(() => {
+                        document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 50);
+                    }
+                    return next;
+                  });
                 }}
                 className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
               >
@@ -390,17 +514,17 @@ export function ModuleWorkspace({
             </div>
           </div>
         </div>
-        <div className="sticky top-0 z-20 space-y-4 border-b border-[#d9e2ea] bg-white/95 px-6 py-5 text-sm text-slate-600 backdrop-blur lg:px-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="sticky top-0 z-20 space-y-4 border-b border-[#d9e2ea] dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 px-6 py-5 text-sm text-slate-600 dark:text-slate-400 backdrop-blur lg:px-6">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-3">
               {hasKanban ? (
-                <div className="flex h-10 items-center overflow-hidden rounded-full border border-[#c9d7e3] bg-white">
+                <div className="flex h-10 items-center overflow-hidden rounded-full border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800">
                   <button
                     type="button"
                     onClick={() => setViewMode("table")}
                     className={cn(
                       "px-4 text-sm font-semibold transition h-full",
-                      viewMode === "table" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-50",
+                      viewMode === "table" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50",
                     )}
                   >
                     Table
@@ -409,60 +533,115 @@ export function ModuleWorkspace({
                     type="button"
                     onClick={() => setViewMode("kanban")}
                     className={cn(
-                      "border-l border-[#d9e2ea] px-4 text-sm font-semibold transition h-full",
-                      viewMode === "kanban" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-50",
+                      "border-l border-[#d9e2ea] dark:border-slate-700 px-4 text-sm font-semibold transition h-full",
+                      viewMode === "kanban" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50",
                     )}
                   >
                     Kanban
                   </button>
                 </div>
               ) : null}
-
-              {selectedIds.size > 0 && (
+              {/* Filter dropdowns */}
+              {statusOptions.length > 0 && (
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className={cn(
+                    "h-10 rounded-full border px-3 text-[11px] font-semibold outline-none transition",
+                    filterStatus ? "border-sky-400 bg-sky-50 text-sky-700" : "border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-sky-300",
+                  )}
+                >
+                  <option value="">All Status</option>
+                  {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              )}
+              {priorityOptions.length > 0 && (
+                <select
+                  value={filterPriority}
+                  onChange={(e) => setFilterPriority(e.target.value)}
+                  className={cn(
+                    "h-10 rounded-full border px-3 text-[11px] font-semibold outline-none transition",
+                    filterPriority ? "border-amber-400 bg-amber-50 text-amber-700" : "border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-amber-300",
+                  )}
+                >
+                  <option value="">All Priority</option>
+                  {priorityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              )}
+              {severityOptions.length > 0 && (
+                <select
+                  value={filterSeverity}
+                  onChange={(e) => setFilterSeverity(e.target.value)}
+                  className={cn(
+                    "h-10 rounded-full border px-3 text-[11px] font-semibold outline-none transition",
+                    filterSeverity ? "border-rose-400 bg-rose-50 text-rose-700" : "border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-rose-300",
+                  )}
+                >
+                  <option value="">All Severity</option>
+                  {severityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              )}
+              {(filterStatus || filterPriority || filterSeverity) && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsBulkDelete(true);
-                    setDeleteId("bulk");
-                  }}
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-600 shadow-sm transition hover:bg-rose-600 hover:text-white"
+                  onClick={() => { setFilterStatus(""); setFilterPriority(""); setFilterSeverity(""); }}
+                  className="flex h-10 items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:border-rose-300 hover:text-rose-600 transition"
                 >
-                  <Trash size={14} weight="bold" />
-                  Delete Selected ({selectedIds.size})
+                  <X size={12} weight="bold" /> Clear filters
                 </button>
               )}
             </div>
-            <div className="w-full xl:ml-auto xl:w-64 shrink-0">
-              <input
-                type="text"
-                placeholder="Filter data..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-full rounded-full border border-[#c9d7e3] px-4 text-[11px] font-medium outline-none transition focus:border-sky-500 focus:shadow-md focus:bg-white shadow-sm bg-slate-50/50"
-              />
+            <div className="flex items-center gap-3 w-full xl:ml-auto xl:w-auto shrink-0">
+              {(pending || refreshing) && (
+                <span role="status" className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-600">
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Refreshing...
+                </span>
+              )}
+              <div className="flex items-center gap-2 w-full xl:w-auto">
+                <div className="w-full xl:w-64">
+                  <input
+                    type="text"
+                    placeholder="Filter data..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-10 w-full rounded-full border border-[#c9d7e3] dark:border-slate-700 px-4 text-[11px] font-medium outline-none transition focus:border-sky-500 focus:shadow-md focus:bg-white dark:focus:bg-slate-800 shadow-sm bg-slate-50/50 dark:bg-slate-800/50 dark:text-slate-300 dark:placeholder:text-slate-500"
+                  />
+                </div>
+                <kbd
+                  title="Press ⌘N to add a new item"
+                  className="hidden xl:inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 shadow-sm cursor-default select-none"
+                >
+                  ⌘N
+                </kbd>
+              </div>
             </div>
           </div>
         </div>
 
         {showForm ? (
-          <div className="rounded-[28px] border border-slate-200 bg-slate-50 px-6 py-6 shadow-sm">
+          <div id="module-form-section" className="rounded-[28px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
             <div className="mb-6 grid gap-3 sm:flex sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-2xl font-semibold text-slate-900">
+                <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
                   {editingRow ? `Edit ${config.shortTitle}` : `Create New ${config.shortTitle}`}
                 </h3>
-                <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
                   {editingRow ? "Update existing data." : "Fill in new data with a consistent format for import/export and tracking."}
                 </p>
               </div>
-              <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+              <div className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-sm">
                 Enter QA data clearly and quickly
               </div>
             </div>
 
             <form
               id={`${module}-form`}
-              className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl"
+              className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-xl"
+              onChange={() => setFormDirty(true)}
               onSubmit={(event) => {
                 event.preventDefault();
                 const form = event.currentTarget;
@@ -480,6 +659,7 @@ export function ModuleWorkspace({
                 {config.fields.map((field) => {
                   const isFullWidth = field.kind === "textarea";
                   const Icon = fieldIcons[field.name] || <Note size={16} />;
+                  const fieldError = fieldErrors[field.name];
 
                   return (
                     <label
@@ -489,7 +669,7 @@ export function ModuleWorkspace({
                         isFullWidth ? "md:col-span-2 lg:col-span-3" : "md:col-span-1"
                       )}
                     >
-                      <span className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                      <span className="flex items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-300">
                         {Icon}
                         {field.label}
                         {field.required && <span className="text-rose-500">*</span>}
@@ -501,9 +681,10 @@ export function ModuleWorkspace({
                           defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
                           required={field.required}
                           placeholder={field.placeholder ?? `Enter ${field.label}`}
-                          className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-sky-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]"
+                          className={cn("min-h-[120px] w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
                         />
-                      ) : field.kind === "text" && field.name === "title" && module === "bugs" ? (
+                      ) : field.kind === "text" && field.name === "title" && (module === "bugs" || module === "tasks") ? (
                         <div className="flex flex-col gap-2">
                           <input
                             type="text"
@@ -513,7 +694,8 @@ export function ModuleWorkspace({
                             autoComplete="off"
                             placeholder={field.placeholder ?? `Enter ${field.label}`}
                             onChange={(e) => checkDuplicates(e.target.value)}
-                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 outline-none transition focus:border-sky-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]"
+                            className={cn("h-12 w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                              fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
                           />
                           {duplicates.length > 0 && (
                             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -536,9 +718,12 @@ export function ModuleWorkspace({
                       ) : field.kind === "select" ? (
                         <select
                           name={field.name}
-                          defaultValue={editingRow ? String(editingRow[field.name]) : ""}
+                          value={editingRow ? String(editingRow[field.name] ?? "") : undefined}
+                          defaultValue={editingRow ? undefined : ""}
                           required={field.required}
-                          className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 outline-none transition focus:border-sky-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]"
+                          className={cn("h-12 w-full appearance-none rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
+                          onChange={() => setFormDirty(true)}
                         >
                           <option value="" disabled>
                             Select {field.label}
@@ -555,7 +740,8 @@ export function ModuleWorkspace({
                           name={field.name}
                           required={field.required}
                           placeholder={field.placeholder ?? "Paste link or upload file"}
-                          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 outline-none transition focus:border-sky-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]"
+                          className={cn("h-12 w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
                           onPaste={async (e) => {
                             const items = e.clipboardData?.items;
                             if (!items) return;
@@ -610,8 +796,12 @@ export function ModuleWorkspace({
                           defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
                           required={field.required}
                           placeholder={field.placeholder ?? `Enter ${field.label}`}
-                          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 outline-none transition focus:border-sky-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]"
+                          className={cn("h-12 w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
                         />
+                      )}
+                      {fieldError && (
+                        <p className="text-xs font-semibold text-rose-600">{fieldError}</p>
                       )}
                     </label>
                   );
@@ -633,7 +823,7 @@ export function ModuleWorkspace({
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="h-12 rounded-2xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                    className="h-12 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-5 text-sm font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
                     Cancel
                   </button>
@@ -643,31 +833,31 @@ export function ModuleWorkspace({
           </div>
         ) : null}
 
-        {viewMode === "table" ? (
+        {!showForm && viewMode === "table" ? (
           <div className="max-w-full overflow-x-auto px-6 py-6">
             <table className="w-full min-w-[980px] border-collapse table-auto">
-              <thead className="bg-slate-100">
+              <thead className="bg-slate-100 dark:bg-slate-800">
                 <tr>
-                  <th className="border border-[#d9e2ea] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 w-10">
-                    <input 
-                      type="checkbox" 
-                      className="h-4 w-4 rounded border-slate-300 accent-sky-600"
-                      checked={visibleRows.length > 0 && selectedIds.size === visibleRows.length}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-                  <th className="border border-[#d9e2ea] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 w-12">
+                  <th className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400 w-12">
                     No.
                   </th>
                   {visibleColumns.map((column) => (
                     <th
                       key={column.key}
-                      className="border border-[#d9e2ea] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600"
+                      onClick={() => handleSort(column.key)}
+                      className="cursor-pointer select-none border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                     >
-                      {column.label}
+                      <span className="flex items-center gap-1">
+                        {column.label}
+                        {sortKey === column.key ? (
+                          sortDir === "asc" ? <CaretUp size={10} weight="bold" className="text-sky-600" /> : <CaretDown size={10} weight="bold" className="text-sky-600" />
+                        ) : (
+                          <span className="text-slate-300 text-[9px]">▲▼</span>
+                        )}
+                      </span>
                     </th>
                   ))}
-                  <th className="border border-[#d9e2ea] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+                  <th className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400">
                     Action
                   </th>
                 </tr>
@@ -676,34 +866,50 @@ export function ModuleWorkspace({
                 {visibleRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={visibleColumns.length + 3}
-                      className="border border-[#d9e2ea] px-4 py-10 text-center text-sm text-slate-500"
+                      colSpan={visibleColumns.length + 2}
+                      className="border border-[#d9e2ea] dark:border-slate-700 px-4 py-16 text-center"
                     >
-                      No data found.
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="currentColor">
+                            <path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/>
+                          </svg>
+                        </div>
+                        <p className="text-base font-bold text-slate-700">No {config.shortTitle} yet</p>
+                        <p className="text-sm text-slate-400">Add your first {config.shortTitle} to get started</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingRow(null);
+                            setShowForm(true);
+                            setTimeout(() => {
+                              document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }, 50);
+                          }}
+                          className="mt-1 inline-flex h-9 items-center gap-2 rounded-full border border-sky-200 bg-white px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-600 hover:text-white"
+                        >
+                          <Plus size={14} weight="bold" />
+                          Add {config.shortTitle}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   visibleRows.map((row, index) => (
                     <tr 
                       key={String(row.id)} 
-                      className={cn(
-                        "bg-white align-top transition-colors", 
-                        selectedIds.has(row.id as string | number) ? "bg-sky-50/50" : "even:bg-slate-50/70"
-                      )}
+                      className={cn("bg-white dark:bg-slate-900 align-top transition-colors even:bg-slate-50/70 dark:even:bg-slate-800/50", pendingDeleteId === row.id && "opacity-40 pointer-events-none")}
                     >
-                      <td className="border border-[#d9e2ea] px-3 py-2 text-center align-middle">
-                        <input 
-                          type="checkbox" 
-                          className="h-4 w-4 rounded border-slate-300 accent-sky-600"
-                          checked={selectedIds.has(row.id as string | number)}
-                          onChange={() => toggleSelect(row.id as string | number)}
-                        />
-                      </td>
-                      <td className="relative border border-[#d9e2ea] px-3 py-2 text-center text-xs font-bold text-slate-400 align-middle">
-                        {index + 1}
-                        {module === "bugs" && row.status !== "fixed" && row.status !== "closed" && row.createdAt && !isNaN(new Date(String(row.createdAt)).getTime()) && (new Date().getTime() - new Date(String(row.createdAt)).getTime() > 3 * 24 * 60 * 60 * 1000) && (
-                          <div className="absolute top-1 left-1 h-2 w-2 rounded-full bg-rose-500 animate-pulse shadow-sm shadow-rose-200" title="Stale Bug (>3 days)" />
-                        )}
+                      <td className="relative border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-center text-xs font-bold text-slate-400 align-middle">
+                        {(safePage - 1) * PAGE_SIZE + index + 1}
+                        {module === "bugs" && row.status !== "fixed" && row.status !== "closed" && row.createdAt && !isNaN(new Date(String(row.createdAt)).getTime()) && (() => {
+                          const days = Math.floor((new Date().getTime() - new Date(String(row.createdAt)).getTime()) / (24 * 60 * 60 * 1000));
+                          return days > 3 ? (
+                            <span className="absolute -top-1 -right-1 rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm" title={`Stale Bug (${days} days old)`}>
+                              {days}d
+                            </span>
+                          ) : null;
+                        })()}
                       </td>
                       {visibleColumns.map((column) => {
                         const value = row[column.key];
@@ -711,7 +917,7 @@ export function ModuleWorkspace({
                           <td
                             key={column.key}
                             className={cn(
-                              "max-w-64 border border-[#d9e2ea] px-3 py-2 text-sm text-slate-700"
+                              "max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300"
                             )}
                           >
                             {column.internalLink && value ? (
@@ -730,12 +936,43 @@ export function ModuleWorkspace({
                               >
                                 {String(value)}
                               </a>
+                            ) : column.tone === "status" && statusOptions.length > 0 && ["tasks","bugs","test-plans","test-sessions","test-suites"].includes(module) ? (
+                              <div className="relative" data-status-dropdown>
+                                <button
+                                  type="button"
+                                  onClick={() => setStatusDropdownId(statusDropdownId === row.id ? null : row.id)}
+                                  className="cursor-pointer"
+                                  title="Click to change status"
+                                >
+                                  <Badge value={String(value)} />
+                                </button>
+                                {statusDropdownId === row.id && (
+                                  <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 shadow-lg">
+                                    {statusOptions.map((opt) => (
+                                      <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => {
+                                          void onUpdateStatus(row.id, opt.value);
+                                          setStatusDropdownId(null);
+                                        }}
+                                        className={cn(
+                                          "flex w-full items-center px-3 py-1.5 text-xs font-semibold transition hover:bg-slate-50 dark:hover:bg-slate-700",
+                                          String(value) === opt.value ? "text-sky-700 dark:text-sky-400" : "text-slate-700 dark:text-slate-300"
+                                        )}
+                                      >
+                                        {opt.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             ) : column.tone ? (
                               <Badge value={String(value)} />
                             ) : column.key.toLowerCase().includes("date") ? (
                               formatDate(String(value))
                             ) : column.multiline ? (
-                              <div className="max-h-24 overflow-auto rounded-sm bg-slate-50 p-2 text-xs leading-relaxed whitespace-pre-wrap break-words">
+                              <div className="max-h-24 overflow-auto rounded-sm bg-slate-50 dark:bg-slate-800 p-2 text-xs leading-relaxed whitespace-pre-wrap break-words">
                                 {String(value || "-")}
                               </div>
                             ) : (
@@ -744,9 +981,10 @@ export function ModuleWorkspace({
                           </td>
                         );
                       })}
-                      <td className="border border-[#d9e2ea] px-3 py-2">
+                      <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2">
                         <div className="flex items-center gap-2">
-                          {module === "bugs" && (
+                          {/* Upgrade 6: copy row as text for all modules */}
+                          {module === "bugs" ? (
                             <button
                               type="button"
                               title="Copy bug report to clipboard"
@@ -760,6 +998,33 @@ export function ModuleWorkspace({
                             >
                               <CopySimple size={13} weight="bold" />
                             </button>
+                          ) : module === "sql-snippets" ? (
+                            <button
+                              type="button"
+                              title="Copy SQL query"
+                              onClick={() => {
+                                navigator.clipboard.writeText(String(row.query)).then(() => {
+                                  toast("SQL Query copied to clipboard!", "success");
+                                });
+                              }}
+                              className="rounded-sm border border-violet-200 px-2 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
+                            >
+                              <CopySimple size={13} weight="bold" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Copy row as text"
+                              onClick={() => {
+                                const text = formatRowForClipboard(row);
+                                navigator.clipboard.writeText(text).then(() => {
+                                  toast("Copied to clipboard");
+                                });
+                              }}
+                              className="rounded-sm border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50"
+                            >
+                              <CopySimple size={13} weight="bold" />
+                            </button>
                           )}
                           {module === "test-suites" && (
                             <Link
@@ -769,25 +1034,14 @@ export function ModuleWorkspace({
                               Execute
                             </Link>
                           )}
-                          {module === "sql-snippets" && (
-                             <button
-                               type="button"
-                               onClick={() => {
-                                 navigator.clipboard.writeText(String(row.query)).then(() => {
-                                   toast("SQL Query copied to clipboard!", "success");
-                                 });
-                               }}
-                               className="rounded-sm border border-violet-200 px-2 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
-                             >
-                               <CopySimple size={13} weight="bold" />
-                             </button>
-                          )}
                           <button
                             type="button"
                             onClick={() => {
                               setEditingRow(row);
                               setShowForm(true);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
+                              setTimeout(() => {
+                                document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                              }, 50);
                             }}
                             className="rounded-sm border border-sky-200 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
                           >
@@ -795,10 +1049,7 @@ export function ModuleWorkspace({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              setDeleteId(row.id);
-                              setIsBulkDelete(false);
-                            }}
+                            onClick={() => setDeleteId(row.id)}
                             className="rounded-sm border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
                           >
                             Delete
@@ -810,118 +1061,55 @@ export function ModuleWorkspace({
                 )}
               </tbody>
             </table>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t border-[#d9e2ea] dark:border-slate-700 pt-4">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {sortedRows.length} result{sortedRows.length !== 1 ? "s" : ""} · Page {safePage} of {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={safePage <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="h-8 rounded-full border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    ← Prev
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className="h-8 rounded-full border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="p-5 bg-slate-50 border-t border-[#d9e2ea]">
-            <KanbanBoard
-              rows={visibleRows}
-              statusOptions={statusOptions}
-              onUpdateStatus={onUpdateStatus}
-            />
+          <div className="overflow-hidden bg-slate-50 dark:bg-slate-800/50 border-t border-[#d9e2ea] dark:border-slate-700 p-5">
+            {!showForm && (
+              <KanbanBoard
+                rows={visibleRows}
+                statusOptions={statusOptions}
+                onUpdateStatus={onUpdateStatus}
+              />
+            )}
           </div>
         )}
       </section>
 
-      {/* FLOATING BULK ACTION BAR */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-3xl border border-slate-200 bg-white px-8 py-4 shadow-2xl animate-in fade-in slide-in-from-bottom-5">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-[10px] font-black text-white">
-              {selectedIds.size}
-            </span>
-            <span className="text-sm font-bold text-slate-700">Items selected</span>
-          </div>
-          <div className="h-6 w-px bg-slate-200" />
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setBulkEditOpen(true)}
-              disabled={pending}
-              className="flex items-center gap-2 rounded-xl bg-sky-50 px-4 py-2 text-sm font-bold text-sky-700 transition hover:bg-sky-600 hover:text-white disabled:opacity-50"
-            >
-              <Tag size={18} weight="bold" />
-              Bulk Status
-            </button>
-            <button
-              onClick={() => {
-                setIsBulkDelete(true);
-                setDeleteId("bulk");
-              }}
-              disabled={pending}
-              className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600 transition hover:bg-rose-600 hover:text-white disabled:opacity-50"
-            >
-              <Trash size={18} weight="bold" />
-              Delete Selected
-            </button>
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="flex items-center justify-center rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
-            >
-              <X size={18} weight="bold" />
-            </button>
-          </div>
-        </div>
-      )}
-
       <ConfirmModal
         isOpen={deleteId !== null}
-        title={isBulkDelete ? "Bulk Delete" : "Delete Item"}
-        message={isBulkDelete 
-          ? `Are you sure you want to delete ${selectedIds.size} selected items? This action is permanent.` 
-          : "Are you sure you want to delete this item? This action cannot be undone."}
+        title="Delete Item"
+        message="Are you sure you want to delete this item? This action cannot be undone."
         type="danger"
         confirmText="Delete"
-        onConfirm={isBulkDelete ? performBulkDelete : performSingleDelete}
-        onCancel={() => {
-          setDeleteId(null);
-          setIsBulkDelete(false);
-        }}
+        onConfirm={performSingleDelete}
+        onCancel={() => setDeleteId(null)}
       />
-
-      {bulkEditOpen && (
-        <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={() => setBulkEditOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[24px] bg-white p-8 shadow-2xl">
-            <h3 className="text-xl font-bold text-slate-900">Bulk Edit Status</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Update {selectedIds.size} selected items.
-            </p>
-            <div className="mt-6">
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">
-                New Status
-              </label>
-              <select
-                value={bulkStatus}
-                onChange={(e) => setBulkStatus(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none focus:border-sky-500"
-              >
-                <option value="">Select status</option>
-                {bulkStatusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mt-8 flex gap-3">
-              <button
-                onClick={() => {
-                  setBulkEditOpen(false);
-                  setBulkStatus("");
-                }}
-                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => void performBulkStatusUpdate()}
-                className="flex-1 rounded-2xl bg-sky-700 px-4 py-3 text-sm font-bold text-white"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

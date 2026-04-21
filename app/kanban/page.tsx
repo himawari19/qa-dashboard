@@ -1,27 +1,30 @@
 import React from "react";
 import { db } from "@/lib/db";
 import { KanbanBoardUI } from "@/components/kanban-board-ui";
+import { PageShell } from "@/components/page-shell";
 
 export const dynamic = "force-dynamic";
 
 export default async function KanbanPage() {
-  const tasks = await db.query('SELECT * FROM "Task"');
-  const bugs = await db.query('SELECT * FROM "Bug"');
-
-  // Combine and format for Kanban
-  const allItems = [
-    ...tasks.map((t: any) => ({ ...t, type: 'task' })),
-    ...bugs.map((b: any) => ({ ...b, type: 'bug' }))
-  ];
+  let allItems: any[] = [];
+  try {
+    const tasks = await db.query('SELECT * FROM "Task"');
+    const bugs = await db.query('SELECT * FROM "Bug"');
+    allItems = [
+      ...tasks.map((t: any) => ({ ...t, type: "task" })),
+      ...bugs.map((b: any) => ({ ...b, type: "bug" })),
+    ];
+  } catch (error) {
+    console.error("Failed to load kanban data:", error);
+  }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">QA Kanban Board</h1>
-        <p className="text-sm text-slate-500 font-medium mt-1">Unified view of all tasks and bugs across projects.</p>
-      </header>
-      
+    <PageShell
+      eyebrow="Kanban"
+      title="QA Kanban Board"
+      description="Unified view of all tasks and bugs across projects."
+    >
       <KanbanBoardUI initialItems={allItems} />
-    </div>
+    </PageShell>
   );
 }

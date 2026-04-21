@@ -12,11 +12,25 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
+import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
+type ExecutiveMetric = {
+  label: string;
+  value: string | number;
+  trend: "up" | "down" | "stable";
+  status: "success" | "warning" | "danger";
+};
+
+type ReleaseItem = { code: string; title: string; severity?: string };
+
 export default async function ExecutiveSummaryPage() {
-  let data: any = {
+  let data: {
+    metrics: ExecutiveMetric[];
+    releaseNotes: { completedTasks: ReleaseItem[]; fixedBugs: ReleaseItem[] };
+    summary: { health: string; message: string };
+  } = {
     metrics: [],
     releaseNotes: { completedTasks: [], fixedBugs: [] },
     summary: { health: "N/A", message: "No data available." },
@@ -49,18 +63,15 @@ export default async function ExecutiveSummaryPage() {
     <PageShell
       eyebrow="Strategic Insight"
       title="Executive Quality Summary"
-      description="High-level snapshots for decision makers and stakeholders."
+      description="Compact health view for quality, delivery, and recent outcomes."
       actions={
-        <button className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 print:hidden">
-          <Printer size={18} weight="bold" />
-          Print Report
-        </button>
+        <PrintButton />
       }
       className="print:bg-white"
     >
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.length > 0 ? (
-          metrics.map((metric: any) => (
+          metrics.map((metric) => (
             <div key={metric.label} className="group relative overflow-hidden rounded-[32px] border border-white bg-white p-8 shadow-sm transition-all hover:shadow-xl print:border-slate-100 print:shadow-none">
               <div className={cn(
                 "absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-5 transition-transform group-hover:scale-150",

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   // API Endpoints
   const apis = await db.query(`SELECT id, title, endpoint FROM "ApiEndpoint" WHERE title LIKE ? OR endpoint LIKE ? LIMIT 3`, [like, like]) as any[];
   for (const a of apis) {
-    results.push({ id: `api-${a.id}`, code: codeFromId("API", Number(a.id)), label: a.title, sublabel: a.endpoint, href: "/api-inventory", type: "API" });
+    results.push({ id: `api-${a.id}`, code: codeFromId("API", Number(a.id)), label: a.title, sublabel: a.endpoint, href: "/api-testing", type: "API" });
   }
 
   // Daily Logs

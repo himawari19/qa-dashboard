@@ -44,8 +44,8 @@ export function ReportsCharts({
     <div>
       <div className="flex flex-col gap-3 print:hidden sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">Quality Visualization</h2>
-          <p className="text-sm leading-6 text-slate-600">Performance metrics for bug tracking and test case execution.</p>
+          <h2 className="text-xl font-semibold text-slate-900">Quality Charts</h2>
+          <p className="text-sm leading-6 text-slate-600">Bug and test case trends at a glance.</p>
         </div>
         <button
           onClick={() => window.print()}
@@ -58,7 +58,7 @@ export function ReportsCharts({
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
-            Bug Distribution by Severity
+            Bug Severity
           </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
@@ -89,7 +89,7 @@ export function ReportsCharts({
 
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
-            Bug Distribution by Status
+            Bug Status
           </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
@@ -110,7 +110,7 @@ export function ReportsCharts({
 
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
-            Test Case Execution Status
+            Test Case Status
           </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
@@ -141,7 +141,7 @@ export function ReportsCharts({
 
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
-            Bug Trend (Reported per Day)
+            Bug Trend
           </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
