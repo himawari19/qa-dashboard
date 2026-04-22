@@ -302,7 +302,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
   switch (module) {
     case "test-cases":
       return await runInsert(
-        `INSERT INTO "TestCaseScenario" (id, projectName, moduleName, referenceDocument, createdBy)
+        `INSERT INTO "TestCaseScenario" (id, "projectName", "moduleName", "referenceDocument", "createdBy")
          VALUES (?, ?, ?, ?, ?)`,
         [
           `TCS-${Date.now()}`,
@@ -328,31 +328,31 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
     case "workload":
       return await runInsert(
-        `INSERT INTO "WorkloadAssignment" (qaName, project, sprint, tasks, status)
+        `INSERT INTO "WorkloadAssignment" ("qaName", project, sprint, tasks, status)
          VALUES (?, ?, ?, ?, ?)`,
         [data.qaName, data.project, data.sprint, data.tasks, data.status]
       );
     case "performance":
       return await runInsert(
-        `INSERT INTO "PerformanceBenchmark" (date, title, targetUrl, loadTime, score, notes)
+        `INSERT INTO "PerformanceBenchmark" (date, title, "targetUrl", "loadTime", score, notes)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [data.date, data.title, data.targetUrl, data.loadTime, data.score, data.notes]
       );
     case "env-config":
       return await runInsert(
-        `INSERT INTO "EnvConfig" (envName, label, url, username, password, notes)
+        `INSERT INTO "EnvConfig" ("envName", label, url, username, password, notes)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [data.envName, data.label, data.url, data.username, data.password, data.notes]
       );
     case "test-plans":
       return await runInsert(
-        `INSERT INTO "TestPlan" (title, project, sprint, scope, startDate, endDate, assignee, status, notes)
+        `INSERT INTO "TestPlan" (title, project, sprint, scope, "startDate", "endDate", assignee, status, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.assignee, data.status, data.notes]
       );
     case "test-sessions":
       return await runInsert(
-        `INSERT INTO "TestSession" (date, project, sprint, tester, scope, totalCases, passed, failed, blocked, result, notes, evidence)
+        `INSERT INTO "TestSession" (date, project, sprint, tester, scope, "totalCases", passed, failed, blocked, result, notes, evidence)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
@@ -517,7 +517,7 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
 
 export async function logActivity(entityType: string, entityId: string | number, action: string, summary: string) {
   await db.run(
-    'INSERT INTO "ActivityLog" (entityType, entityId, action, summary) VALUES (?, ?, ?, ?)',
+    'INSERT INTO "ActivityLog" ("entityType", "entityId", action, summary) VALUES (?, ?, ?, ?)',
     [entityType, String(entityId), action, summary],
   );
 }
