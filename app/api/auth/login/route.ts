@@ -3,7 +3,7 @@ import { createSessionToken, validateCredentials, sessionCookieName, authEnabled
 
 export async function POST(request: NextRequest) {
   if (!authEnabled()) {
-    return NextResponse.json({ error: "AUTH_USERNAME, AUTH_PASSWORD, and AUTH_SECRET are required." }, { status: 500 });
+    return NextResponse.json({ error: "Login is not configured. Please contact your administrator." }, { status: 500 });
   }
 
   const body = await request.json().catch(() => null) as { username?: string; password?: string } | null;

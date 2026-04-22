@@ -35,6 +35,7 @@ const testCaseFields = [
   { name: "expectedResult", label: "Expected Result", kind: "textarea", required: true },
   { name: "actualResult", label: "Actual Result", kind: "textarea", required: false },
   { name: "status", label: "Status", kind: "select", options: [{ label: "Pending", value: "Pending" }, { label: "Success", value: "Success" }, { label: "Failed", value: "Failed" }], required: true },
+  { name: "evidence", label: "Evidence", kind: "textarea", required: false },
 ];
 
 export function TestCaseGrid({
@@ -120,6 +121,15 @@ export function TestCaseGrid({
     }
     if (columnKey.toLowerCase().includes("date") && value) {
       return formatDate(String(value));
+    }
+    if (columnKey === "evidence" && value) {
+      const url = String(value);
+      return (
+        <a href={url} target="_blank" rel="noreferrer"
+          className="break-all text-sky-600 hover:underline text-xs font-medium">
+          {url}
+        </a>
+      );
     }
     if (["preCondition", "caseName", "testStep", "expectedResult", "actualResult"].includes(columnKey)) {
       return (

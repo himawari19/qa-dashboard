@@ -29,29 +29,48 @@ export default async function TestCaseDetailPage({ params }: { params: Promise<{
     id: Number(row.id),
   }));
 
+  const projectName = String((scenario as any).projectName || "");
+  const referenceDocument = String((scenario as any).referenceDocument || "");
+  const createdBy = String((scenario as any).createdBy || "");
+
   return (
     <PageShell
       eyebrow="Test Cases"
       title={String((scenario as any).moduleName)}
       description="Scenario details and executable cases for this module."
       actions={
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-            Project: {String((scenario as any).projectName)}
-          </span>
-          <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
-            Ref: {String((scenario as any).referenceDocument)}
-          </span>
-        </div>
+        (projectName || referenceDocument) ? (
+          <div className="flex flex-wrap gap-2">
+            {projectName && (
+              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                Project: {projectName}
+              </span>
+            )}
+            {referenceDocument && (
+              referenceDocument.startsWith("http") ? (
+                <a href={referenceDocument} target="_blank" rel="noreferrer"
+                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700 hover:bg-violet-100 transition">
+                  Ref: {referenceDocument}
+                </a>
+              ) : (
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
+                  Ref: {referenceDocument}
+                </span>
+              )
+            )}
+          </div>
+        ) : undefined
       }
       controls={
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
             ID: TCS-{String((scenario as any).id).substring(0, 8)}
           </span>
-          <span className="text-xs font-semibold text-slate-500">
-            Created by {String((scenario as any).createdBy)}
-          </span>
+          {createdBy && (
+            <span className="text-xs font-semibold text-slate-500">
+              Created by {createdBy}
+            </span>
+          )}
         </div>
       }
     >
