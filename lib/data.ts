@@ -2,6 +2,52 @@ import { db } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 
+export function normalizeTestCaseScenarioRow(item: Record<string, unknown>) {
+  const id = String(item.id ?? "");
+  const projectName = String(item.projectName ?? item.projectname ?? "");
+  const moduleName = String(item.moduleName ?? item.modulename ?? "");
+  const referenceDocument = String(item.referenceDocument ?? item.referencedocument ?? "");
+  const traceability = String(item.traceability ?? "");
+  const createdBy = String(item.createdBy ?? item.createdby ?? "");
+
+  return {
+    ...item,
+    id,
+    projectName,
+    moduleName,
+    referenceDocument,
+    traceability,
+    createdBy,
+    code: `${projectName.slice(0, 8)} / ${moduleName}`,
+  };
+}
+
+export function normalizeTestPlanRow(item: Record<string, unknown>) {
+  return {
+    ...item,
+    id: String(item.id ?? ""),
+    code: String(item.code ?? ""),
+  };
+}
+
+export function normalizeTestSuiteRow(item: Record<string, unknown>) {
+  return {
+    ...item,
+    id: String(item.id ?? ""),
+    testPlanId: String(item.testPlanId ?? ""),
+    title: String(item.title ?? ""),
+    status: String(item.status ?? ""),
+  };
+}
+
+export function normalizeTestCaseRow(item: Record<string, unknown>) {
+  return {
+    ...item,
+    id: Number(item.id ?? 0),
+    testSuiteId: String(item.testSuiteId ?? item.scenarioId ?? ""),
+  };
+}
+
 export function getTableName(module: ModuleKey) {
   switch (module) {
     case "tasks":
@@ -9,7 +55,7 @@ export function getTableName(module: ModuleKey) {
     case "bugs":
       return "Bug";
     case "test-cases":
-      return "TestCaseScenario";
+      return "TestCase";
     case "test-plans":
       return "TestPlan";
     case "test-sessions":
@@ -256,14 +302,11 @@ export async function getExecutiveData() {
 export async function getModuleRows(module: ModuleKey) {
   switch (module) {
     case "test-plans":
-      return await selectAll('SELECT * FROM "TestPlan" ORDER BY "updatedAt" DESC');
+      return (await selectAll('SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map(normalizeTestPlanRow);
     case "test-sessions":
       return await selectAll('SELECT * FROM "TestSession" ORDER BY "updatedAt" DESC');
     case "test-cases":
-      return (await selectAll('SELECT * FROM "TestCaseScenario" ORDER BY "updatedAt" DESC')).map((item) => ({
-        ...item,
-        code: `${String(item.projectName || "").slice(0, 8)} / ${String(item.moduleName || "")}`,
-      }));
+      return (await selectAll('SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map(normalizeTestCaseRow);
     case "bugs":
       return await selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC');
     case "tasks":
@@ -279,8 +322,8 @@ export async function getModuleRows(module: ModuleKey) {
     case "env-config":
       return await selectAll('SELECT * FROM "EnvConfig" ORDER BY "updatedAt" DESC');
     case "test-suites":
-      return (await selectAll('SELECT * FROM "TestSuite" ORDER BY "updatedAt" DESC')).map((item) => ({
-        ...item,
+      return (await selectAll('SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => ({
+        ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", Number(item.id)),
       }));
     case "sql-snippets":
@@ -302,15 +345,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
   switch (module) {
     case "test-cases":
       return await runInsert(
-        `INSERT INTO "TestCaseScenario" (id, "projectName", "moduleName", "referenceDocument", "createdBy")
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          `TCS-${Date.now()}`,
-          data.projectName,
-          data.moduleName,
-          data.referenceDocument,
-          data.createdBy,
-        ]
+        `INSERT INTO "TestCase" ("testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status]
       );
     case "bugs":
       const lastDev = await db.get('SELECT suggestedDev FROM "Bug" WHERE module = ? ORDER BY id DESC LIMIT 1', [data.module]) as any;
@@ -346,9 +383,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
     case "test-plans":
       return await runInsert(
-        `INSERT INTO "TestPlan" (title, project, sprint, scope, "startDate", "endDate", assignee, status, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.assignee, data.status, data.notes]
+        `INSERT INTO "TestPlan" (code, title, project, sprint, scope, status, "startDate", "endDate", assignee, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.code ?? "", data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.assignee, data.notes]
       );
     case "test-sessions":
       return await runInsert(
@@ -364,9 +401,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
     case "test-suites":
       return await runInsert(
-        `INSERT INTO "TestSuite" (title, project, "caseIds", status, notes)
-         VALUES (?, ?, ?, ?, ?)`,
-        [data.title, data.project, data.caseIds, data.status, data.notes],
+        `INSERT INTO "TestSuite" ("testPlanId", title, status, notes)
+         VALUES (?, ?, ?, ?)`,
+        [data.testPlanId, data.title, data.status, data.notes],
       );
     case "sql-snippets":
       return await runInsert(
@@ -409,9 +446,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "test-plans":
       return await db.run(
         `UPDATE "TestPlan"
-         SET title = ?, project = ?, sprint = ?, scope = ?, startDate = ?, endDate = ?, assignee = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         SET code = ?, title = ?, project = ?, sprint = ?, scope = ?, startDate = ?, endDate = ?, assignee = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.assignee, data.status, data.notes, id]
+        [data.code ?? "", data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.assignee, data.status, data.notes, id]
       );
     case "test-sessions":
       return await db.run(
@@ -444,9 +481,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "test-suites":
       return await db.run(
         `UPDATE "TestSuite"
-         SET title = ?, project = ?, "caseIds" = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         SET "testPlanId" = ?, title = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [data.title, data.project, data.caseIds, data.status, data.notes, id]
+        [data.testPlanId, data.title, data.status, data.notes, id]
       );
      case "sql-snippets":
       return await db.run(
@@ -495,11 +532,14 @@ export async function replaceModuleRecords(module: ModuleKey, rows: any[]) {
 }
 
 export async function getTestCaseScenario(id: string) {
-  return await db.get('SELECT * FROM "TestCaseScenario" WHERE id = ?', [id]);
+  const item = await db.get('SELECT * FROM "TestCase" WHERE id = ? AND "deletedAt" IS NULL', [id]) as Record<string, unknown> | undefined;
+  if (!item) return null;
+
+  return normalizeTestCaseRow(item);
 }
 
 export async function getTestCasesByScenario(scenarioId: string) {
-  return await db.query('SELECT * FROM "TestCase" WHERE scenarioId = ? ORDER BY id ASC', [scenarioId]);
+  return await db.query('SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ORDER BY id ASC', [scenarioId]);
 }
 
 export async function updateTestCase(id: number, data: any) {
@@ -512,7 +552,11 @@ export async function updateTestCase(id: number, data: any) {
 }
 
 export async function deleteModuleRecord(module: ModuleKey, id: string | number) {
-  return await db.run(`DELETE FROM "${getTableName(module)}" WHERE id = ?`, [id]);
+  const tableName = getTableName(module);
+  if (module === "test-plans" || module === "test-suites" || module === "test-cases") {
+    return await db.run(`UPDATE "${tableName}" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`, [id]);
+  }
+  return await db.run(`DELETE FROM "${tableName}" WHERE id = ?`, [id]);
 }
 
 export async function logActivity(entityType: string, entityId: string | number, action: string, summary: string) {
@@ -567,18 +611,18 @@ export async function getQualityTrend() {
 }
 
 export async function getTestSuite(id: string | number) {
-  const item = await db.get('SELECT * FROM "TestSuite" WHERE id = ?', [id]) as Record<string, unknown> | undefined;
+  const item = await db.get('SELECT * FROM "TestSuite" WHERE id = ? AND "deletedAt" IS NULL', [id]) as Record<string, unknown> | undefined;
   if (!item) return null;
   return { ...item, code: codeFromId("SUITE", Number(id)) };
 }
 
 export async function getTestCasesByIdStrings(idStrings: string) {
-  const ids = idStrings.split(/[\\s,]+/).map((s) => s.trim()).filter((s) => s !== "");
-  if (ids.length === 0) return [];
-  const placeholders = ids.map(() => "?").join(",");
-  const query = `SELECT * FROM "TestCase" WHERE "tcId" IN (${placeholders}) OR CAST("id" AS TEXT) IN (${placeholders}) ORDER BY "id" ASC`;
-  const rows = await selectAll(query, [...ids, ...ids]);
-  return rows.map(r => ({ ...r, code: codeFromId("TC", Number(r.id)) }));
+  if (!idStrings.trim()) return [];
+  const rows = await selectAll(
+    'SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ORDER BY "id" ASC',
+    [idStrings.trim()],
+  );
+  return rows.map((r) => ({ ...normalizeTestCaseRow(r), code: codeFromId("TC", Number(r.id)) }));
 }
 
 async function countRows(table: string) {

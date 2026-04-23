@@ -3,6 +3,7 @@ import { TestRunnerUI } from "@/components/test-runner-ui";
 import { PageShell } from "@/components/page-shell";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { notFound } from "next/navigation";
+import { normalizeTestCaseRow, normalizeTestSuiteRow } from "@/lib/data";
 
 type ScenarioRow = {
   id: string;
@@ -27,8 +28,8 @@ export default async function TestRunnerPage({ params }: { params: Promise<{ id:
   let testCases: TestCaseRow[] = [];
 
   try {
-    const raw = await db.get<ScenarioRow>('SELECT * FROM "TestCaseScenario" WHERE id = ?', [id]);
-    scenario = raw ? JSON.parse(JSON.stringify(raw)) : undefined;
+    const raw = await db.get<ScenarioRow>('SELECT * FROM "TestSuite" WHERE id = ? AND "deletedAt" IS NULL', [id]);
+    scenario = raw ? normalizeTestSuiteRow(JSON.parse(JSON.stringify(raw))) as ScenarioRow : undefined;
   } catch (error) {
     console.error("Failed to load scenario:", error);
   }
@@ -37,7 +38,7 @@ export default async function TestRunnerPage({ params }: { params: Promise<{ id:
 
   try {
     testCases = JSON.parse(JSON.stringify(
-      await db.query<TestCaseRow>('SELECT * FROM "TestCase" WHERE scenarioId = ? ORDER BY id ASC', [id])
+      await db.query<TestCaseRow>('SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ORDER BY id ASC', [id])
     ));
   } catch (error) {
     console.error("Failed to load test cases:", error);

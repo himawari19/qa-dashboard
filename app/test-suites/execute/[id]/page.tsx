@@ -8,8 +8,7 @@ export const dynamic = "force-dynamic";
 type SuiteRow = {
   id: string | number;
   title: string;
-  project: string;
-  caseIds?: string;
+  testPlanId: string;
 };
 
 export default async function SuiteExecutePage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,8 +16,7 @@ export default async function SuiteExecutePage({ params }: { params: Promise<{ i
   const suiteRaw = await getTestSuite(id) as SuiteRow | null;
   if (!suiteRaw) notFound();
 
-  const caseIds = String(suiteRaw.caseIds ?? "").trim();
-  const casesRaw = caseIds ? await getTestCasesByIdStrings(caseIds) : [];
+  const casesRaw = await getTestCasesByIdStrings(String(id));
   
   const suite = JSON.parse(JSON.stringify(suiteRaw));
   const cases = JSON.parse(JSON.stringify(casesRaw));

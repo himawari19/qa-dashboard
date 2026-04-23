@@ -89,7 +89,7 @@ const tables = [
     name: "TestCase",
     schema: `
       id SERIAL_OR_PK,
-      scenarioId TEXT NOT NULL,
+      testSuiteId TEXT NOT NULL DEFAULT '',
       tcId TEXT NOT NULL,
       typeCase TEXT NOT NULL,
       preCondition TEXT NOT NULL,
@@ -101,6 +101,7 @@ const tables = [
       automationResult TEXT,
       lastRunAt TEXT,
       relatedItems TEXT DEFAULT '',
+      deletedAt DATE_TYPE,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -214,15 +215,17 @@ const tables = [
     name: "TestPlan",
     schema: `
       id SERIAL_OR_PK,
+      code TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
       project TEXT NOT NULL,
       sprint TEXT NOT NULL,
       scope TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'draft',
       startDate TEXT,
       endDate TEXT,
       assignee TEXT,
-      status TEXT NOT NULL DEFAULT 'draft',
       notes TEXT,
+      deletedAt DATE_TYPE,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -263,11 +266,11 @@ const tables = [
     name: "TestSuite",
     schema: `
       id SERIAL_OR_PK,
+      testPlanId TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
-      project TEXT NOT NULL,
-      caseIds TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'draft',
       notes TEXT,
+      deletedAt DATE_TYPE,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -396,6 +399,50 @@ async function getSqlite() {
 
 let schemaInitPromise: Promise<void> | null = null;
 
+async function applyMissingColumns() {
+  const columnQueries = tables.flatMap((table) =>
+    table.schema
+      .split("\n")
+      .map((line) => line.trim().replace(/,$/, ""))
+      .filter(Boolean)
+      .map((def) => ({ table: table.name, def })),
+  );
+
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    for (const { table, def } of columnQueries) {
+      if (def.startsWith("PRIMARY") || def.startsWith("FOREIGN") || def.startsWith("id ")) continue;
+      const firstSpace = def.indexOf(" ");
+      if (firstSpace <= 0) continue;
+      const rawColumn = def.slice(0, firstSpace).trim();
+      const columnType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
+      try {
+        const exists = sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all(rawColumn) as any[];
+        if (exists.length === 0) {
+          sqlite.prepare(`ALTER TABLE "${table}" ADD COLUMN ${rawColumn} ${columnType}`).run();
+        }
+      } catch {
+        // keep startup resilient
+      }
+    }
+    return;
+  }
+
+  const pool = await getPostgresPool();
+  for (const { table, def } of columnQueries) {
+    if (def.startsWith("PRIMARY") || def.startsWith("FOREIGN") || def.startsWith("id ")) continue;
+    const firstSpace = def.indexOf(" ");
+    if (firstSpace <= 0) continue;
+    const rawColumn = def.slice(0, firstSpace).trim();
+    const columnType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
+    try {
+      await pool.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS ${rawColumn.toLowerCase()} ${columnType}`);
+    } catch {
+      // keep startup resilient
+    }
+  }
+}
+
 async function ensureSchema() {
   if (typeof window !== 'undefined') return;
   if (!schemaInitPromise) {
@@ -407,39 +454,7 @@ async function ensureSchema() {
           await db.exec(schemaSql);
         }
         
-        // Auto-migration: Check for missing columns
-        if (isPostgres) {
-          const pool = await getPostgresPool();
-          for (const table of tables) {
-            const columnDefs = table.schema
-              .split("\n")
-              .map((line) => line.trim().replace(/,$/, ""))
-              .filter(Boolean);
-            for (const def of columnDefs) {
-              if (
-                def.startsWith("PRIMARY") ||
-                def.startsWith("FOREIGN") ||
-                def.startsWith("id ")
-              ) {
-                continue;
-              }
-
-              const firstSpace = def.indexOf(" ");
-              if (firstSpace <= 0) continue;
-              const rawColumn = def.slice(0, firstSpace).trim();
-              const restDef = def.slice(firstSpace + 1).trim();
-              const columnName = rawColumn.toLowerCase();
-              const columnType = restDef.split(/\s+/)[0] || "TEXT";
-              try {
-                await pool.query(
-                  `ALTER TABLE "${table.name}" ADD COLUMN IF NOT EXISTS ${columnName} ${columnType}`,
-                );
-              } catch {
-                // Ignore migration errors to keep startup resilient.
-              }
-            }
-          }
-        }
+        await applyMissingColumns();
       } catch (err) {
         schemaInitPromise = null;
         if (databaseUrl || useSqlite) {

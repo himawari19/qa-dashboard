@@ -14,7 +14,7 @@ describe("getTableName mapping", () => {
   const mappings: { module: ModuleKey; expectedTable: string }[] = [
     { module: "tasks", expectedTable: "Task" },
     { module: "bugs", expectedTable: "Bug" },
-    { module: "test-cases", expectedTable: "TestCaseScenario" },
+    { module: "test-cases", expectedTable: "TestCase" },
     { module: "test-plans", expectedTable: "TestPlan" },
     { module: "test-sessions", expectedTable: "TestSession" },
     { module: "test-suites", expectedTable: "TestSuite" },

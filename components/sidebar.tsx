@@ -28,7 +28,7 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
-type Scenario = { id: string; moduleName: string; projectName: string };
+type Scenario = { id: string; title: string; testPlanId: string };
 
 const groups = [
   {
@@ -89,7 +89,11 @@ export function Sidebar({
   useEffect(() => {
     fetch("/api/test-cases/scenarios")
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setScenarios(data); })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setScenarios(data as Scenario[]);
+        }
+      })
       .catch(() => {});
   }, [pathname]);
 
@@ -216,7 +220,7 @@ export function Sidebar({
                               <Link
                                 key={s.id}
                                 href={`/test-case-management/${s.id}`}
-                                title={s.moduleName}
+                                title={s.title}
                                 className={cn(
                                   "flex h-8 items-center gap-2 rounded-lg px-3 text-xs font-semibold transition",
                                   pathname === `/test-case-management/${s.id}`
@@ -225,7 +229,7 @@ export function Sidebar({
                                 )}
                               >
                                 <FileText size={13} className="shrink-0 opacity-60" />
-                                <span className="truncate">{s.moduleName}</span>
+                                <span className="truncate">{s.title}</span>
                               </Link>
                             ))}
                           </div>

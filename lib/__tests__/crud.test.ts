@@ -15,7 +15,7 @@ describe("getTableName mapping - CREATE operation", () => {
   const createMappings: { module: ModuleKey; table: string }[] = [
     { module: "tasks", table: "Task" },
     { module: "bugs", table: "Bug" },
-    { module: "test-cases", table: "TestCaseScenario" },
+    { module: "test-cases", table: "TestCase" },
     { module: "test-plans", table: "TestPlan" },
     { module: "test-sessions", table: "TestSession" },
     { module: "test-suites", table: "TestSuite" },

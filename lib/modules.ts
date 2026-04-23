@@ -175,10 +175,15 @@ const bugSchema = z.object({
 });
 
 const testCaseSchema = z.object({
-  projectName: requiredText("Project Name"),
-  moduleName: requiredText("Module Name"),
-  referenceDocument: requiredText("Reference Document"),
-  createdBy: requiredText("Created by"),
+  testSuiteId: requiredText("Test Suite ID"),
+  tcId: requiredText("TC ID"),
+  caseName: requiredText("Case Name"),
+  typeCase: z.enum(["Positive", "Negative"]),
+  preCondition: requiredText("Pre-condition"),
+  testStep: requiredText("Test Step"),
+  expectedResult: requiredText("Expected Result"),
+  actualResult: optionalText,
+  status: z.enum(["Pending", "Passed", "Failed", "Blocked"]),
 });
 
 const meetingSchema = z.object({
@@ -245,11 +250,11 @@ const envConfigSchema = z.object({
 const testPlanStatusOptions: Option[] = [
   ["Draft", "draft"],
   ["Active", "active"],
-  ["Completed", "completed"],
-  ["Cancelled", "cancelled"],
+  ["Closed", "closed"],
 ].map(([label, value]) => ({ label, value }));
 
 const testPlanSchema = z.object({
+  code: optionalText,
   title: requiredText("Plan Title"),
   project: requiredText("Project"),
   sprint: requiredText("Sprint"),
@@ -257,7 +262,7 @@ const testPlanSchema = z.object({
   startDate: z.string().optional().default(""),
   endDate: z.string().optional().default(""),
   assignee: optionalText,
-  status: z.enum(["draft", "active", "completed", "cancelled"]),
+  status: z.enum(["draft", "active", "closed"]),
   notes: optionalText,
 });
 
@@ -285,11 +290,9 @@ const testSessionSchema = z.object({
 
 const suiteSchema = z.object({
   title: requiredText("Suite Title"),
-  project: requiredText("Project"),
   testPlanId: optionalText,
-  caseIds: requiredText("Test Case IDs (e.g. TC-001, TC-002)"),
-  status: z.enum(["draft", "active", "archived"]),
   notes: optionalText,
+  status: z.enum(["draft", "active", "archived"]),
 });
 
 const sqlSnippetSchema = z.object({
@@ -429,38 +432,43 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   "test-cases": {
-    title: "Test Case Management",
+    title: "Test Cases",
     shortTitle: "Test Cases",
-    description: "Register scenario groups with project, module, reference document, and ownership details.",
+    description: "Executable cases tied to a suite.",
     prefix: "TC",
     sheetName: "Test Cases",
     schema: testCaseSchema,
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
       ID: String(item.id),
-      "Project Name": String(item.projectName),
-      "Module Name": String(item.moduleName),
-      "Reference Document": String(item.referenceDocument),
-      Traceability: String(item.traceability ?? ""),
-      "Created by": String(item.createdBy),
-      "Related Items": String(item.relatedItems ?? ""),
+      "Test Suite ID": String(item.testSuiteId),
+      "TC ID": String(item.tcId),
+      "Case Name": String(item.caseName),
+      "Type Case": String(item.typeCase),
+      "Pre-Condition": String(item.preCondition),
+      "Test Step": String(item.testStep),
+      "Expected Result": String(item.expectedResult),
+      "Actual Result": String(item.actualResult ?? ""),
+      Status: String(item.status),
     }),
     fields: [
-      { name: "projectName", label: "Project Name", kind: "text", placeholder: "e.g. VanApp", required: true },
-      { name: "moduleName", label: "Module Name", kind: "text", placeholder: "e.g. Login / Auth", required: true },
-      { name: "referenceDocument", label: "Reference Document", kind: "text", placeholder: "e.g. PRD-001 / Figma Link", required: true },
-      { name: "traceability", label: "Req. Traceability", kind: "text", placeholder: "e.g. REQ-101, US-45", required: false },
-      { name: "createdBy", label: "Created by", kind: "text", placeholder: "e.g. Wahyu Priyono", required: true },
-      { name: "relatedItems", label: "Linked Items", kind: "textarea", rows: 2 },
+      { name: "testSuiteId", label: "Test Suite ID", kind: "text", required: true },
+      { name: "tcId", label: "TC ID", kind: "text", required: true },
+      { name: "caseName", label: "Case Name", kind: "text", required: true },
+      { name: "typeCase", label: "Type Case", kind: "select", options: [{ label: "Positive", value: "Positive" }, { label: "Negative", value: "Negative" }], required: true },
+      { name: "preCondition", label: "Pre-condition", kind: "textarea", rows: 3, required: true },
+      { name: "testStep", label: "Test Step", kind: "textarea", rows: 4, required: true },
+      { name: "expectedResult", label: "Expected Result", kind: "textarea", rows: 3, required: true },
+      { name: "actualResult", label: "Actual Result", kind: "textarea", rows: 3 },
+      { name: "status", label: "Status", kind: "select", options: [{ label: "Pending", value: "Pending" }, { label: "Passed", value: "Passed" }, { label: "Failed", value: "Failed" }, { label: "Blocked", value: "Blocked" }], required: true },
     ],
     columns: [
       { key: "code", label: "ID" },
-      { key: "moduleName", label: "Module Name", internalLink: (row) => `/test-case-management/${row.id}` },
-      { key: "projectName", label: "Project Name" },
-      { key: "referenceDocument", label: "Reference Document" },
-      { key: "traceability", label: "Traceability" },
-      { key: "createdBy", label: "Created by" },
-      { key: "relatedItems", label: "Linked Items", multiline: true },
+      { key: "tcId", label: "TC ID" },
+      { key: "caseName", label: "Case Name" },
+      { key: "typeCase", label: "Type Case" },
+      { key: "testSuiteId", label: "Test Suite ID" },
+      { key: "status", label: "Status" },
     ],
   },
   "meeting-notes": {
@@ -701,15 +709,16 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   "test-plans": {
-    title: "Test Plan Manager",
+    title: "Test Plan",
     shortTitle: "Test Plans",
-    description: "Define the testing scope, timeline, and ownership for each cycle before execution starts.",
+    description: "Top-level testing plan for a release or cycle.",
     prefix: "PLAN",
     sheetName: "Test Plans",
     schema: testPlanSchema,
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
       ID: codeFromId("PLAN", Number(item.id)),
+      Code: String(item.code ?? ""),
       Title: String(item.title),
       Project: String(item.project),
       Sprint: String(item.sprint),
@@ -790,24 +799,22 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   "test-suites": {
-    title: "Test Suite Library",
+    title: "Test Suite",
     shortTitle: "Suites",
-    description: "Group related test cases into reusable suites for planning and execution.",
+    description: "Middle layer grouping test cases under a test plan.",
     prefix: "SUITE",
     sheetName: "Suites",
     schema: suiteSchema,
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
       ID: codeFromId("SUITE", Number(item.id)),
+      "Test Plan ID": String(item.testPlanId ?? ""),
       Title: String(item.title),
-      Project: String(item.project),
-      "Cases Contained": String(item.caseIds),
       Status: String(item.status),
     }),
     fields: [
+      { name: "testPlanId", label: "Test Plan ID", kind: "text", required: true },
       { name: "title", label: "Suite Title", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
-      { name: "caseIds", label: "Test Case IDs", kind: "textarea", rows: 4, placeholder: "TC-001, TC-002", required: true },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Draft", value: "draft" },
         { label: "Active", value: "active" },
@@ -818,9 +825,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "code", label: "ID" },
       { key: "title", label: "Suite Title" },
-      { key: "project", label: "Project" },
+      { key: "testPlanId", label: "Test Plan ID" },
       { key: "status", label: "Status", tone: "status" },
-      { key: "caseIds", label: "Cases", multiline: true },
     ],
   },
   "sql-snippets": {

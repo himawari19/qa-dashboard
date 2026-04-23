@@ -8,19 +8,19 @@ export const dynamic = "force-dynamic";
 
 export default async function TestCaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const scenarioId = id;
+  const testCaseId = id;
 
-  if (!scenarioId) {
+  if (!testCaseId) {
     notFound();
   }
 
-  const scenario = await getTestCaseScenario(scenarioId);
+  const scenario = await getTestCaseScenario(testCaseId);
 
   if (!scenario) {
     notFound();
   }
 
-  const testCases = await getTestCasesByScenario(scenarioId);
+  const testCases = await getTestCasesByScenario(String((scenario as any).testSuiteId || ""));
 
   // RSC boundary requires strictly plain objects
   const plainScenario = JSON.parse(JSON.stringify(scenario));
@@ -29,34 +29,33 @@ export default async function TestCaseDetailPage({ params }: { params: Promise<{
     id: Number(row.id),
   }));
 
-  const projectName = String((scenario as any).projectName || "");
-  const referenceDocument = String((scenario as any).referenceDocument || "");
-  const createdBy = String((scenario as any).createdBy || "");
+  const tcId = String((scenario as any).tcId || "");
+  const caseName = String((scenario as any).caseName || "");
+  const testSuiteId = String((scenario as any).testSuiteId || "");
+  const typeCase = String((scenario as any).typeCase || "");
 
   return (
     <PageShell
       eyebrow="Test Cases"
-      title={String((scenario as any).moduleName)}
-      description="Scenario details and executable cases for this module."
+      title={caseName || tcId}
+      description="Test case details."
       actions={
-        (projectName || referenceDocument) ? (
+        (tcId || testSuiteId) ? (
           <div className="flex flex-wrap gap-2">
-            {projectName && (
+            {tcId && (
               <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-                Project: {projectName}
+                TC: {tcId}
               </span>
             )}
-            {referenceDocument && (
-              referenceDocument.startsWith("http") ? (
-                <a href={referenceDocument} target="_blank" rel="noreferrer"
-                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700 hover:bg-violet-100 transition">
-                  Ref: {referenceDocument}
-                </a>
-              ) : (
-                <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
-                  Ref: {referenceDocument}
-                </span>
-              )
+            {testSuiteId && (
+              <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
+                Suite: {testSuiteId}
+              </span>
+            )}
+            {typeCase && (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                {typeCase}
+              </span>
             )}
           </div>
         ) : undefined
@@ -64,17 +63,12 @@ export default async function TestCaseDetailPage({ params }: { params: Promise<{
       controls={
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-            ID: TCS-{String((scenario as any).id).substring(0, 8)}
+            ID: {String((scenario as any).id)}
           </span>
-          {createdBy && (
-            <span className="text-xs font-semibold text-slate-500">
-              Created by {createdBy}
-            </span>
-          )}
         </div>
       }
     >
-      <Breadcrumb crumbs={[{ label: "Test Cases", href: "/test-case-management" }, { label: String((scenario as any).moduleName) }]} className="mb-2" />
+      <Breadcrumb crumbs={[{ label: "Test Cases", href: "/test-case-management" }, { label: caseName || tcId }]} className="mb-2" />
       <TestCaseGrid scenario={plainScenario} rows={rows} />
     </PageShell>
   );

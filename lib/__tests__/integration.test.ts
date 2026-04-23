@@ -21,7 +21,7 @@ describe("🔐 AUTH UNIT TESTS", () => {
   });
   
   it("AUTH: getTableName returns correct table for test-cases", () => {
-    expect(getTableName("test-cases" as ModuleKey)).toBe("TestCaseScenario");
+    expect(getTableName("test-cases" as ModuleKey)).toBe("TestCase");
   });
   
   it("AUTH: getTableName handles meeting-notes", () => {
@@ -105,7 +105,7 @@ describe("📤 EXPORT FORMAT", () => {
     const mapping = {
       tasks: "Task",
       bugs: "Bug",
-      "test-cases": "TestCaseScenario",
+      "test-cases": "TestCase",
       "meeting-notes": "MeetingNote",
       "daily-logs": "DailyLog"
     };

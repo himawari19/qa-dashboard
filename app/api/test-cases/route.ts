@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const scenarioId = String(formData.get("scenarioId") || "");
+    const testSuiteId = String(formData.get("testSuiteId") || "");
     const tcId = String(formData.get("tcId") || "");
     const typeCase = String(formData.get("typeCase") || "");
     const preCondition = String(formData.get("preCondition") || "");
@@ -15,18 +15,18 @@ export async function POST(request: NextRequest) {
     const actualResult = String(formData.get("actualResult") || "");
     const status = String(formData.get("status") || "Pending");
 
-    if (!scenarioId || !tcId || !typeCase || !caseName || !testStep || !expectedResult) {
+    if (!testSuiteId || !tcId || !typeCase || !caseName || !testStep || !expectedResult) {
       return NextResponse.json({ error: "Selesaikan semua form yang wajib diisi." }, { status: 400 });
     }
 
     await db.run(
-      `INSERT INTO "TestCase" ("scenarioId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status")
+      `INSERT INTO "TestCase" ("testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status")
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [scenarioId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status]
+      [testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status]
     );
 
     revalidatePath("/test-case-management");
-    revalidatePath(`/test-case-management/${scenarioId}`);
+    revalidatePath(`/test-case-management/${testSuiteId}`);
 
     return NextResponse.json({ message: "Test case berhasil ditambahkan." });
   } catch (error) {
@@ -44,12 +44,12 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const tc = await db.get('SELECT "scenarioId" FROM "TestCase" WHERE id = ?', [id]) as { scenarioId?: string };
-    await db.run('DELETE FROM "TestCase" WHERE "id" = ?', [id]);
+    const tc = await db.get('SELECT "testSuiteId" FROM "TestCase" WHERE id = ?', [id]) as { testSuiteId?: string };
+    await db.run('UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?', [id]);
 
     revalidatePath("/test-case-management");
-    if (tc && tc.scenarioId) {
-      revalidatePath(`/test-case-management/${tc.scenarioId}`);
+    if (tc && tc.testSuiteId) {
+      revalidatePath(`/test-case-management/${tc.testSuiteId}`);
     }
 
     return NextResponse.json({ message: "Test case berhasil dihapus." });
