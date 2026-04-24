@@ -681,8 +681,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Scope: String(item.scope),
     }),
     fields: [
-      { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
       { name: "project", label: "Project Name", kind: "text", required: true },
+      { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. Sprint 12", required: true },
       { name: "status", label: "Status", kind: "select", options: testPlanStatusOptions, required: true },
       { name: "startDate", label: "Start Date", kind: "date" },

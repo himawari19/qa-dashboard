@@ -314,6 +314,8 @@ export async function getExecutiveData() {
         : (isHealthy 
            ? "The project is currently in a stable state with a high pass rate." 
            : "Action required: Several high-severity defects are pending or pass rate is low."),
+      planName: (await db.get('SELECT title FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.title || "Master Test Strategy",
+      projectName: (await db.get('SELECT project FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.project || "All Active Projects"
     }
   };
 }

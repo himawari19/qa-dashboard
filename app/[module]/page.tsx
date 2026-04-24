@@ -123,6 +123,27 @@ export default async function ModulePage({
         ...row,
         relatedSuites: suitesByPlan.get(String(row.id)) ?? []
       }));
+
+      // Row span logic for Project Name
+      rows.sort((a: any, b: any) => {
+        const projA = String(a.project ?? "");
+        const projB = String(b.project ?? "");
+        if (projA !== projB) return projA.localeCompare(projB);
+        return String(a.title ?? "").localeCompare(String(b.title ?? ""));
+      });
+
+      const groupedProj = new Map<string, { start: number; count: number }>();
+      rows.forEach((row: any, index) => {
+        const key = String(row.project ?? "");
+        const current = groupedProj.get(key);
+        if (!current) groupedProj.set(key, { start: index, count: 1 });
+        else current.count += 1;
+      });
+      rows = rows.map((row: any, index) => {
+        const key = String(row.project ?? "");
+        const group = groupedProj.get(key);
+        return { ...row, projectRowSpan: group && group.start === index ? group.count : 0 };
+      });
     }
   } catch (error) {
     console.error(`Failed to load module rows for ${moduleKey}:`, error);

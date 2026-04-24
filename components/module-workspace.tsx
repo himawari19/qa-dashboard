@@ -245,6 +245,7 @@ export function ModuleWorkspace({
       ? [
           "code",
           "project",
+          "title",
           "sprint",
           "startDate",
           "endDate",
@@ -831,8 +832,9 @@ export function ModuleWorkspace({
                       </td>
                       {visibleColumns.map((column) => {
                         const value = row[column.key];
-                        if ((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") {
-                          const rowSpan = Number((row as Record<string, unknown>).testPlanRowSpan ?? 1);
+                        if (((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") || (module === "test-plans" && column.key === "project")) {
+                          const rowSpanKey = module === "test-plans" ? "projectRowSpan" : "testPlanRowSpan";
+                          const rowSpan = Number((row as Record<string, unknown>)[rowSpanKey] ?? 1);
                           if (rowSpan === 0) return null;
                           return (
                             <td
