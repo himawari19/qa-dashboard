@@ -68,7 +68,7 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
       
       {/* Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
             <FolderSimple size={20} weight="bold" className="text-sky-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Project Info</h3>
@@ -81,7 +81,7 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
             <Target size={20} weight="bold" className="text-amber-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Goal Progress</h3>
@@ -90,13 +90,13 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
             {successRate}% 
             <span className="text-sm font-semibold text-slate-500 ml-2">Pass Rate</span>
           </div>
-          <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full mt-3 overflow-hidden flex">
+          <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-md mt-3 overflow-hidden flex">
             <div style={{ width: `${totalCases ? (totalPassed/totalCases)*100 : 0}%` }} className="bg-emerald-500 h-full transition-all"></div>
             <div style={{ width: `${totalCases ? (totalFailed/totalCases)*100 : 0}%` }} className="bg-rose-500 h-full transition-all"></div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
             <CheckCircle size={20} weight="bold" className="text-emerald-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Passed / Total</h3>
@@ -109,7 +109,7 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Plan Status</h3>
             <Badge value={plan.status} />
@@ -131,17 +131,17 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
       </h3>
       
       {suiteStats.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 border-dashed bg-slate-50 p-10 text-center dark:border-slate-700 dark:bg-slate-800/50">
+        <div className="rounded-md border border-slate-200 border-dashed bg-slate-50 p-10 text-center dark:border-slate-700 dark:bg-slate-800/50">
           <p className="text-base font-bold text-slate-700 dark:text-slate-200">No test suites linked yet</p>
           <p className="mt-1 text-sm text-slate-500">Create a test suite and select this plan to link it.</p>
-          <Link href="/test-suites" className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-sky-700">
+          <Link href="/test-suites" className="mt-4 inline-flex items-center gap-2 rounded-md bg-sky-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-sky-700">
             Go to Test Suites
           </Link>
         </div>
       ) : (
         <div className="space-y-4">
           {suiteStats.map((suite) => (
-            <div key={suite.id} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+            <div key={suite.id} className="group relative overflow-hidden rounded-md border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
@@ -182,14 +182,14 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Link
                       href={`/test-cases/detail/${suite.publicToken}`}
-                      className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 text-xs font-bold tracking-wide text-sky-700 transition hover:bg-sky-100 hover:text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-900"
+                      className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 text-xs font-bold tracking-wide text-sky-700 transition hover:bg-sky-100 hover:text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-900"
                     >
                       <Table size={14} weight="bold" />
                       SPREADSHEET
                     </Link>
                     <Link
                       href={`/test-suites/execute/${suite.publicToken}`}
-                      className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-slate-900 px-4 text-xs font-bold tracking-wide text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white shadow-sm"
+                      className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-bold tracking-wide text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white shadow-sm"
                     >
                       <Play size={14} weight="fill" className="text-emerald-400 dark:text-emerald-500" />
                       EXECUTE

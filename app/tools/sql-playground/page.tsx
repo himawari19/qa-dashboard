@@ -39,7 +39,7 @@ export default function SqlPlayground() {
         <button
           onClick={runQuery}
           disabled={loading}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md disabled:opacity-50"
+          className="inline-flex h-11 items-center gap-2 rounded-md border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md disabled:opacity-50"
         >
           <Play size={16} weight="bold" />
           {loading ? "Running..." : "Run Query"}
@@ -47,7 +47,7 @@ export default function SqlPlayground() {
       }
     >
       <div className="space-y-6">
-        <div className="rounded-3xl border border-slate-200 bg-slate-900 overflow-hidden shadow-xl">
+        <div className="rounded-md border border-slate-200 bg-slate-900 overflow-hidden shadow-xl">
           <div className="flex items-center justify-between px-6 py-3 border-b border-white/10 bg-white/5">
             <div className="flex items-center gap-2 text-white/50">
               <TerminalWindow size={20} weight="fill" />
@@ -63,13 +63,13 @@ export default function SqlPlayground() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-700 text-sm font-bold animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-md text-rose-700 text-sm font-bold animate-in fade-in slide-in-from-top-4">
             <WarningCircle size={20} weight="fill" />
             {error}
           </div>
         )}
 
-        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-400">
               <Table size={18} weight="bold" />

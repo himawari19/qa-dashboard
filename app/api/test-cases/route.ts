@@ -15,15 +15,17 @@ export async function POST(request: NextRequest) {
     const expectedResult = String(formData.get("expectedResult") || "");
     const actualResult = String(formData.get("actualResult") || "");
     const status = String(formData.get("status") || "Pending");
+    const evidence = String(formData.get("evidence") || "");
+    const priority = String(formData.get("priority") || "Medium");
 
     if (!testSuiteId || !tcId || !typeCase || !caseName || !testStep || !expectedResult) {
       return NextResponse.json({ error: "Selesaikan semua form yang wajib diisi." }, { status: 400 });
     }
 
     await db.run(
-      `INSERT INTO "TestCase" ("testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status")
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status]
+      `INSERT INTO "TestCase" ("testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status, evidence, priority]
     );
 
     revalidatePath("/test-cases");
@@ -78,8 +80,10 @@ export async function PUT(request: NextRequest) {
     for (const tc of rows) {
       if (tc.id) {
         await db.run(
-          'UPDATE "TestCase" SET status = ?, "actualResult" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?',
-          [tc.status || "Pending", tc.actualResult || "", tc.id]
+          `UPDATE "TestCase" 
+           SET status = ?, "actualResult" = ?, evidence = ?, priority = ?, "updatedAt" = CURRENT_TIMESTAMP 
+           WHERE id = ?`,
+          [tc.status || "Pending", tc.actualResult || "", tc.evidence || "", tc.priority || "Medium", tc.id]
         );
       }
     }

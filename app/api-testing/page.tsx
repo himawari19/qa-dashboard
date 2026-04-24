@@ -41,8 +41,8 @@ export default async function ApiTestingPage() {
       description="Save endpoints, run requests, and keep history in the internal database."
       controls={
         <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-          <span className="rounded-full border border-slate-200 px-3 py-1">Saved APIs: {endpoints.length}</span>
-          <span className="rounded-full border border-slate-200 px-3 py-1">Runs: {runs.length}</span>
+          <span className="rounded-md border border-slate-200 px-3 py-1">Saved APIs: {endpoints.length}</span>
+          <span className="rounded-md border border-slate-200 px-3 py-1">Runs: {runs.length}</span>
         </div>
       }
     >

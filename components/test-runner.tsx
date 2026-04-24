@@ -53,12 +53,12 @@ export function TestRunner({
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
       
       {/* Modal */}
-      <div className="relative m-auto flex h-[82vh] w-[88vw] max-w-5xl flex-col overflow-hidden rounded-[24px] bg-[#f8fafc] shadow-2xl transition-all">
+      <div className="relative m-auto flex h-[82vh] w-[88vw] max-w-5xl flex-col overflow-hidden rounded-md bg-[#f8fafc] shadow-2xl transition-all">
         
         {/* Header */}
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-sky-100 text-sky-700">
               <CheckCircle size={28} weight="fill" />
             </div>
             <div>
@@ -73,7 +73,7 @@ export function TestRunner({
               <span className="text-rose-600 flex items-center gap-1"><XCircle weight="fill" size={16}/> {failedCount} Fail</span>
               <span className="text-slate-400 flex items-center gap-1"><SkipForward weight="fill" size={16}/> {pendingCount} Pending</span>
             </div>
-            <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition">
+            <button onClick={onClose} className="rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition">
               <X size={20} weight="bold" />
             </button>
           </div>
@@ -93,7 +93,7 @@ export function TestRunner({
                     key={idx}
                     onClick={() => setCurrentIndex(idx)}
                     className={cn(
-                      "w-full text-left p-3 rounded-2xl border transition-all text-sm",
+                      "w-full text-left p-3 rounded-md border transition-all text-sm",
                       currentIndex === idx ? "bg-sky-50 border-sky-300 shadow-sm" : "border-transparent hover:bg-slate-50",
                     )}
                   >
@@ -103,7 +103,7 @@ export function TestRunner({
                       </span>
                       {row.status === "Success" && <CheckCircle size={16} weight="fill" className="text-emerald-500" />}
                       {row.status === "Failed" && <XCircle size={16} weight="fill" className="text-rose-500" />}
-                      {row.status === "Pending" && <div className="h-2 w-2 rounded-full bg-slate-300" />}
+                      {row.status === "Pending" && <div className="h-2 w-2 rounded-md bg-slate-300" />}
                     </div>
                     <p className="line-clamp-2 text-xs font-medium text-slate-500">{String(row.caseName || "Unnamed Case")}</p>
                   </button>
@@ -116,12 +116,12 @@ export function TestRunner({
               <div className="mx-auto max-w-3xl space-y-8">
                 
                 <div className="flex items-center justify-between">
-                  <div className="px-3 py-1 rounded-full border border-slate-200 text-xs font-bold text-slate-500 bg-white">
+                  <div className="px-3 py-1 rounded-md border border-slate-200 text-xs font-bold text-slate-500 bg-white">
                     Step {currentIndex + 1} of {rows.length}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setCurrentIndex(c => Math.max(0, c-1))} disabled={currentIndex===0} className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"><CaretLeft size={16} weight="bold"/></button>
-                    <button onClick={() => setCurrentIndex(c => Math.min(rows.length-1, c+1))} disabled={currentIndex===rows.length-1} className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"><CaretRight size={16} weight="bold"/></button>
+                    <button onClick={() => setCurrentIndex(c => Math.max(0, c-1))} disabled={currentIndex===0} className="p-2 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"><CaretLeft size={16} weight="bold"/></button>
+                    <button onClick={() => setCurrentIndex(c => Math.min(rows.length-1, c+1))} disabled={currentIndex===rows.length-1} className="p-2 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"><CaretRight size={16} weight="bold"/></button>
                   </div>
                 </div>
 
@@ -134,28 +134,28 @@ export function TestRunner({
                 </div>
 
                 {!!currentCase.preCondition && (
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                  <div className="rounded-md border border-slate-200 bg-white p-6">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Pre-Conditions</div>
                     <div className="prose prose-sm prose-slate max-w-none font-medium whitespace-pre-wrap">{String(currentCase.preCondition)}</div>
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Test Steps</div>
                     <div className="prose prose-sm prose-slate max-w-none font-medium whitespace-pre-wrap">{String(currentCase.testStep)}</div>
                   </div>
-                  <div className="rounded-3xl border border-sky-100 bg-sky-50/50 p-6 shadow-sm relative overflow-hidden">
+                  <div className="rounded-md border border-sky-100 bg-sky-50/50 p-6 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-sky-100 rounded-bl-full -z-10 opacity-50" />
                     <div className="text-xs font-bold uppercase tracking-widest text-sky-600/80 mb-3">Expected Result</div>
                     <div className="prose prose-sm prose-slate max-w-none font-semibold text-slate-900 whitespace-pre-wrap">{String(currentCase.expectedResult)}</div>
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Actual Result (Optional Notes)</div>
                   <textarea 
-                    className="w-full min-h-[120px] rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium outline-none transition focus:border-sky-300 focus:bg-white"
+                    className="w-full min-h-[120px] rounded-md border border-slate-200 bg-slate-50 p-4 text-sm font-medium outline-none transition focus:border-sky-300 focus:bg-white"
                     placeholder="Enter what actually happened during the test..."
                     defaultValue={String(currentCase.actualResult || "")}
                     onChange={(e) => {
@@ -173,23 +173,23 @@ export function TestRunner({
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => handleUpdateCurrent("Success")}
-                  className="group flex h-14 items-center gap-3 rounded-full bg-emerald-50 pl-2 pr-6 font-bold text-emerald-700 transition hover:bg-emerald-100 active:scale-95"
+                  className="group flex h-14 items-center gap-3 rounded-md bg-emerald-50 pl-2 pr-6 font-bold text-emerald-700 transition hover:bg-emerald-100 active:scale-95"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition group-hover:scale-105"><CheckCircle size={20} weight="bold" /></div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white shadow-sm transition group-hover:scale-105"><CheckCircle size={20} weight="bold" /></div>
                   PASS
                 </button>
                 <button 
                   onClick={() => handleUpdateCurrent("Failed")}
-                  className="group flex h-14 items-center gap-3 rounded-full bg-rose-50 pl-2 pr-6 font-bold text-rose-700 transition hover:bg-rose-100 active:scale-95"
+                  className="group flex h-14 items-center gap-3 rounded-md bg-rose-50 pl-2 pr-6 font-bold text-rose-700 transition hover:bg-rose-100 active:scale-95"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500 text-white shadow-sm transition group-hover:scale-105"><XCircle size={20} weight="bold" /></div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-rose-500 text-white shadow-sm transition group-hover:scale-105"><XCircle size={20} weight="bold" /></div>
                   FAIL
                 </button>
                 <button 
                   onClick={() => handleUpdateCurrent("Pending")}
-                  className="group flex h-14 items-center gap-3 rounded-full bg-slate-100 pl-2 pr-6 font-bold text-slate-600 transition hover:bg-slate-200 active:scale-95"
+                  className="group flex h-14 items-center gap-3 rounded-md bg-slate-100 pl-2 pr-6 font-bold text-slate-600 transition hover:bg-slate-200 active:scale-95"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-300 text-white shadow-sm transition group-hover:scale-105"><SkipForward size={20} weight="bold" /></div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-300 text-white shadow-sm transition group-hover:scale-105"><SkipForward size={20} weight="bold" /></div>
                   SKIP
                 </button>
               </div>
@@ -197,7 +197,7 @@ export function TestRunner({
               {(isDone || currentIndex === rows.length - 1) && (
                 <button 
                   onClick={handleFinish}
-                  className="flex h-14 items-center gap-3 rounded-full bg-sky-700 px-8 font-bold text-white shadow-lg transition hover:bg-sky-800 active:scale-95"
+                  className="flex h-14 items-center gap-3 rounded-md bg-sky-700 px-8 font-bold text-white shadow-lg transition hover:bg-sky-800 active:scale-95"
                 >
                   <FloppyDisk size={20} weight="bold" />
                   Save Final Results

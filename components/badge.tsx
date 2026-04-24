@@ -38,12 +38,13 @@ const toneMap = {
   cancelled: "bg-rose-500 text-white",
 } as const;
 
-export function Badge({ value }: { value: string }) {
+export function Badge({ value, className }: { value: string; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex min-w-[80px] justify-center rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest shadow-sm",
+        "inline-flex min-w-[80px] justify-center rounded-md px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest shadow-sm",
         toneMap[value as keyof typeof toneMap] ?? "bg-slate-500 text-white",
+        className
       )}
     >
       {value.replace(/_/g, " ")}

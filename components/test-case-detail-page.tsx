@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Plus } from "@phosphor-icons/react";
+import React, { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { PlayCircle } from "@phosphor-icons/react";
 import { PageShell } from "@/components/page-shell";
-import { Breadcrumb } from "@/components/breadcrumb";
+import { toast } from "@/components/ui/toast";
 import { TestCaseDetailEditor, type TestCaseRow } from "@/components/test-case-detail-editor";
 
 export function TestCaseDetailPage({
@@ -19,6 +20,8 @@ export function TestCaseDetailPage({
   suiteToken: string;
   plan: any;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const suiteId = String(scenario.id ?? "");
   const planLabel = plan?.title || "Test Plan";
   const planToken = plan?.publicToken || plan?.id;
@@ -34,29 +37,72 @@ export function TestCaseDetailPage({
   crumbs.push({ label: suiteLabel || suiteId, href: `/test-suites/execute/${suiteToken}` });
   crumbs.push({ label: "Cases" });
 
+  async function handleSubmitExecution() {
+    if (rows.length === 0 || isPending) return;
+    
+    const total = rows.length;
+    const p = rows.filter(c => String(c.status) === "Passed" || String(c.status) === "Success").length;
+    const f = rows.filter(c => String(c.status) === "Failed").length;
+    const b = rows.filter(c => String(c.status) === "Blocked").length;
+
+    let resVal = "Pending";
+    if (f > 0) resVal = "failed";
+    else if (b > 0) resVal = "blocked";
+    else if (p === total && total > 0) resVal = "passed";
+    else if (p > 0) resVal = "partial";
+
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.append("date", new Date().toISOString().split("T")[0]);
+      fd.append("project", suiteLabel.split(" ")[0] || "Project");
+      fd.append("sprint", "Active");
+      fd.append("tester", "QA Specialist");
+      fd.append("scope", suiteLabel);
+      fd.append("totalCases", String(total));
+      fd.append("passed", String(p));
+      fd.append("failed", String(f));
+      fd.append("blocked", String(b));
+      fd.append("result", resVal);
+      fd.append("notes", `Automated submission from suite ${suiteLabel}`);
+      
+      try {
+        const res = await fetch("/api/items/test-sessions", { method: "POST", body: fd });
+        if (res.ok) {
+          toast("Execution session recorded!", "success");
+          router.push("/test-sessions");
+        } else {
+          toast("Failed to record session", "error");
+        }
+      } catch (err) {
+        toast("An error occurred", "error");
+      }
+    });
+  }
+
+  const actions = (
+    <button 
+      onClick={handleSubmitExecution} 
+      disabled={isPending || rows.length === 0}
+      className="flex h-10 items-center gap-2 rounded-md bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-700 disabled:opacity-50"
+    >
+      <PlayCircle size={18} weight="bold" />
+      Submit for Test Execution
+    </button>
+  );
+
   return (
     <PageShell
       eyebrow="Test Cases"
       title={suiteLabel || "Test Case Detail"}
       description="Spreadsheet-style input for all test cases in this suite."
-      actions={
-        suiteId ? (
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">Suite: {suiteLabel || suiteId}</span>
-            <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">Cases: {rows.length}</span>
-            {suiteToken && (
-              <Link href={`/test-suites/execute/${suiteToken}`} className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-bold text-sky-700 transition hover:bg-sky-50">
-                <ArrowLeft size={14} weight="bold" />
-                Back to Execution Detail
-              </Link>
-            )}
-          </div>
-        ) : undefined
-      }
-      controls={<div className="flex flex-wrap items-center justify-between gap-3"><span className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">test suite ID: {suiteId}</span></div>}
+      crumbs={crumbs}
+      actions={actions}
     >
-      <Breadcrumb crumbs={crumbs} className="mb-2" />
-      <TestCaseDetailEditor suiteId={suiteId} suiteTitle={suiteLabel || "Test Case Detail"} initialCases={rows as unknown as TestCaseRow[]} />
+      <TestCaseDetailEditor 
+        suiteId={suiteId} 
+        suiteTitle={suiteLabel || "Test Case Detail"} 
+        initialCases={rows as unknown as TestCaseRow[]} 
+      />
     </PageShell>
   );
 }

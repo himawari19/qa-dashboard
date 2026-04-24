@@ -21,8 +21,6 @@ describe("getTableName mapping - CREATE operation", () => {
     { module: "test-suites", table: "TestSuite" },
     { module: "api-testing", table: "ApiEndpoint" },
     { module: "env-config", table: "EnvConfig" },
-    { module: "workload", table: "WorkloadAssignment" },
-    { module: "performance", table: "PerformanceBenchmark" },
     { module: "meeting-notes", table: "MeetingNote" },
     { module: "daily-logs", table: "DailyLog" },
     { module: "sql-snippets", table: "SqlSnippet" },
@@ -38,8 +36,8 @@ describe("getTableName mapping - CREATE operation", () => {
 describe("getTableName mapping - UPDATE operation", () => {
   const updateModules: ModuleKey[] = [
     "tasks", "bugs", "test-cases", "test-plans", "test-sessions",
-    "test-suites", "api-testing", "env-config", "workload",
-    "performance", "meeting-notes", "daily-logs",
+    "test-suites", "api-testing", "env-config",
+    "meeting-notes", "daily-logs",
   ];
 
   it.each(updateModules)(

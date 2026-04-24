@@ -72,9 +72,9 @@ export default async function ExecutiveSummaryPage() {
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.length > 0 ? (
           metrics.map((metric) => (
-            <div key={metric.label} className="group relative overflow-hidden rounded-[32px] border border-white bg-white p-8 shadow-sm transition-all hover:shadow-xl print:border-slate-100 print:shadow-none">
+            <div key={metric.label} className="group relative overflow-hidden rounded-md border border-white bg-white p-8 shadow-sm transition-all hover:shadow-xl print:border-slate-100 print:shadow-none">
               <div className={cn(
-                "absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-5 transition-transform group-hover:scale-150",
+                "absolute -right-4 -top-4 h-24 w-24 rounded-md opacity-5 transition-transform group-hover:scale-150",
                 metric.status === "success" ? "bg-emerald-500" :
                 metric.status === "danger" ? "bg-rose-500" : "bg-amber-500"
               )} />
@@ -89,15 +89,15 @@ export default async function ExecutiveSummaryPage() {
             </div>
           ))
         ) : (
-          <div className="col-span-full rounded-[32px] border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
+          <div className="col-span-full rounded-md border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
             No executive data available.
           </div>
         )}
       </section>
 
-      <section className="mt-8 rounded-[40px] border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
+      <section className="mt-8 rounded-md border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
         <div className="flex items-center gap-3 mb-8">
-          <div className="rounded-xl bg-violet-50 p-2 text-violet-600">
+          <div className="rounded-md bg-violet-50 p-2 text-violet-600">
             <Clock size={24} weight="bold" />
           </div>
           <div>
@@ -109,14 +109,14 @@ export default async function ExecutiveSummaryPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {trend.length > 0 ? (
             trend.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-slate-100 p-4 text-center">
+              <div key={item.label} className="rounded-md border border-slate-100 p-4 text-center">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{item.label}</p>
                 <p className="mt-2 text-2xl font-black text-slate-900">{item.bugs}</p>
                 <p className="text-xs text-slate-500">bugs / {item.fixed} fixed</p>
               </div>
             ))
           ) : (
-            <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
+            <div className="col-span-full rounded-md border border-dashed border-slate-200 p-6 text-sm text-slate-500">
               No quality trend data available.
             </div>
           )}
@@ -124,14 +124,14 @@ export default async function ExecutiveSummaryPage() {
       </section>
 
       <section className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[40px] border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
+        <div className="rounded-md border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
           <h3 className="mb-6 text-xl font-bold text-slate-900">Summary</h3>
           <p className="text-sm leading-7 text-slate-600">{summary.message}</p>
         </div>
 
-        <div className="rounded-[40px] border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
+        <div className="rounded-md border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
           <div className="mb-8 flex flex-col items-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-50 text-sky-600">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-sky-50 text-sky-600">
               <ShieldCheck size={32} weight="bold" />
             </div>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Final Status</p>
@@ -140,7 +140,7 @@ export default async function ExecutiveSummaryPage() {
 
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">
                 <CheckCircle size={24} weight="bold" />
               </div>
               <div>
@@ -149,7 +149,7 @@ export default async function ExecutiveSummaryPage() {
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600">
                 <WarningCircle size={24} weight="bold" />
               </div>
               <div>
@@ -158,7 +158,7 @@ export default async function ExecutiveSummaryPage() {
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-rose-50 text-rose-600">
                 <XCircle size={24} weight="bold" />
               </div>
               <div>
@@ -170,9 +170,9 @@ export default async function ExecutiveSummaryPage() {
         </div>
       </section>
 
-      <section className="mt-8 rounded-[40px] border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
+      <section className="mt-8 rounded-md border border-slate-200 bg-white p-10 shadow-sm print:shadow-none">
         <div className="flex items-center gap-3 mb-8">
-          <div className="rounded-xl bg-sky-50 p-2 text-sky-600">
+          <div className="rounded-md bg-sky-50 p-2 text-sky-600">
             <Printer size={24} weight="bold" />
           </div>
           <div>

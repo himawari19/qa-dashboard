@@ -35,6 +35,7 @@ import { toast } from "@/components/ui/toast";
 import { HighlightText } from "@/components/highlight-text";
 import { ModernDatePicker } from "@/components/date-picker";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { Breadcrumb } from "@/components/breadcrumb";
 
 function linkifyToMarkdown(text: string) {
   if (!text) return "-";
@@ -143,6 +144,13 @@ export function ModuleWorkspace({
       }, 50);
     };
     window.addEventListener("qa:open-form", handler);
+    
+    // Auto-open if query has action=new
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "new") {
+      handler();
+    }
+
     return () => window.removeEventListener("qa:open-form", handler);
   }, []);
 
@@ -480,6 +488,7 @@ export function ModuleWorkspace({
 
   return (
     <div className="space-y-6">
+      <Breadcrumb crumbs={[{ label: "Workspace" }, { label: config.title }]} />
       <section className="border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-900">
         <div className="border-b border-[#d9e2ea] dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -510,7 +519,7 @@ export function ModuleWorkspace({
                     return next;
                   });
                 }}
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
+                className="inline-flex h-11 items-center gap-2 rounded-md border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
               >
                 <Plus size={16} weight="bold" className="shrink-0" />
                 {showForm
@@ -521,7 +530,7 @@ export function ModuleWorkspace({
                 href={`/api/export/${module}`}
                 title="Export Excel"
                 aria-label="Export Excel"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
               >
                 <FileXls size={18} weight="bold" className="shrink-0" />
               </a>
@@ -529,14 +538,14 @@ export function ModuleWorkspace({
                 href={`/api/export/${module}?template=1`}
                 title="Download Template"
                 aria-label="Download Template"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
               >
                 <DownloadSimple size={18} weight="bold" className="shrink-0" />
               </a>
               <label
                 title="Import Excel"
                 aria-label="Import Excel"
-                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
+                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
               >
                 <UploadSimple size={18} weight="bold" className="shrink-0" />
                 <input
@@ -560,7 +569,7 @@ export function ModuleWorkspace({
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-3">
               {hasKanban ? (
-                <div className="flex h-10 items-center overflow-hidden rounded-full border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800">
+                <div className="flex h-10 items-center overflow-hidden rounded-md border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800">
                   <button
                     type="button"
                     onClick={() => setViewMode("table")}
@@ -599,7 +608,7 @@ export function ModuleWorkspace({
         </div>
 
         {showForm ? (
-          <div id="module-form-section" className="rounded-[28px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
+          <div id="module-form-section" className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
               <div className="mb-6 grid gap-3 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
@@ -613,7 +622,7 @@ export function ModuleWorkspace({
 
             <form
               id={`${module}-form`}
-              className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-xl"
+              className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-xl"
               onChange={() => setFormDirty(true)}
               onSubmit={(event) => {
                 event.preventDefault();
@@ -654,7 +663,7 @@ export function ModuleWorkspace({
                               type="button"
                               onClick={() => setOpenSelectField(openSelectField === field.name ? null : field.name)}
                               className={cn(
-                                "flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-left text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                                "flex min-h-12 w-full items-center justify-between gap-3 rounded-md border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-left text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
                                 fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300",
                               )}
                             >
@@ -668,7 +677,7 @@ export function ModuleWorkspace({
                               <span className="shrink-0 text-slate-400">⌄</span>
                             </button>
                             {openSelectField === field.name && (
-                              <div className="absolute left-0 top-full z-40 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                              <div className="absolute left-0 top-full z-40 mt-1 w-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
                                 {(relatedOptions[field.name] ?? field.options ?? []).map((option) => (
                                   <button
                                     key={option.value}
@@ -700,7 +709,7 @@ export function ModuleWorkspace({
                             placeholder={field.placeholder ?? `Enter ${field.label}`}
                             disabled={module === "test-plans" && field.name === "scope"}
                             className={cn(
-                              "w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                              "w-full rounded-md border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
                               field.name === "scope" && module === "test-plans"
                                 ? "min-h-[120px] bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                 : "min-h-[120px]",
@@ -714,7 +723,7 @@ export function ModuleWorkspace({
                             defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
                             required={field.required}
                             placeholder={field.placeholder ?? `Enter ${field.label}`}
-                            className={cn("h-12 w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                            className={cn("h-12 w-full rounded-md border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
                               fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
                           />
                         )}
@@ -732,7 +741,7 @@ export function ModuleWorkspace({
                     disabled={pending}
                     style={{ backgroundColor: editingRow ? '#16a34a' : '#0369a1' }}
                     className={cn(
-                      "h-12 rounded-2xl px-8 text-sm font-bold text-white transition duration-200 shadow-md hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-400",
+                      "h-12 rounded-md px-8 text-sm font-bold text-white transition duration-200 shadow-md hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-400",
                     )}
                   >
                     {pending ? "Processing..." : editingRow ? `Save ${config.shortTitle}` : `Add ${config.shortTitle}`}
@@ -740,7 +749,7 @@ export function ModuleWorkspace({
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="h-12 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-5 text-sm font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
+                    className="h-12 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-5 text-sm font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
                     Cancel
                   </button>
@@ -751,7 +760,7 @@ export function ModuleWorkspace({
         ) : null}
 
         {!showForm && viewMode === "table" ? (
-          <div className="max-w-full overflow-x-auto px-6 py-6">
+          <div className="max-w-full overflow-x-auto px-6 pb-32 pt-6">
             <table className="w-full min-w-[980px] border-collapse table-auto">
               <thead className="bg-slate-100 dark:bg-slate-800">
                 <tr>
@@ -779,7 +788,7 @@ export function ModuleWorkspace({
                       className="border border-[#d9e2ea] dark:border-slate-700 px-4 py-16 text-center"
                     >
                       <div className="flex flex-col items-center gap-3">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-400">
                           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="currentColor">
                             <path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/>
                           </svg>
@@ -795,7 +804,7 @@ export function ModuleWorkspace({
                               document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
                             }, 50);
                           }}
-                          className="mt-1 inline-flex h-9 items-center gap-2 rounded-full border border-sky-200 bg-white px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-600 hover:text-white"
+                          className="mt-1 inline-flex h-9 items-center gap-2 rounded-md border border-sky-200 bg-white px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-600 hover:text-white"
                         >
                           <Plus size={14} weight="bold" />
                           Add {config.shortTitle}
@@ -814,7 +823,7 @@ export function ModuleWorkspace({
                         {module === "bugs" && row.status !== "fixed" && row.status !== "closed" && row.createdAt && !isNaN(new Date(String(row.createdAt)).getTime()) && (() => {
                           const days = Math.floor((new Date().getTime() - new Date(String(row.createdAt)).getTime()) / (24 * 60 * 60 * 1000));
                           return days > 3 ? (
-                            <span className="absolute -top-1 -right-1 rounded-full bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm" title={`Stale Bug (${days} days old)`}>
+                            <span className="absolute -top-1 -right-1 rounded-md bg-rose-500 px-1 py-0.5 text-[9px] font-black leading-none text-white shadow-sm" title={`Stale Bug (${days} days old)`}>
                               {days}d
                             </span>
                           ) : null;
@@ -878,7 +887,10 @@ export function ModuleWorkspace({
                                   <Badge value={String(value)} />
                                 </button>
                                 {statusDropdownId === row.id && (
-                                  <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 shadow-lg">
+                                  <div className={cn(
+                                    "absolute left-0 z-[100] mt-1 min-w-[140px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 shadow-2xl animate-in fade-in zoom-in-95 duration-200",
+                                    index > visibleRows.length - 3 && visibleRows.length > 3 ? "bottom-full mb-1" : "top-full"
+                                  )}>
                                     {statusOptions.map((opt) => (
                                       <button
                                         key={opt.value}
@@ -1019,7 +1031,7 @@ export function ModuleWorkspace({
                     type="button"
                     disabled={safePage <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="h-8 rounded-full border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-8 rounded-md border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ← Prev
                   </button>
@@ -1027,7 +1039,7 @@ export function ModuleWorkspace({
                     type="button"
                     disabled={safePage >= totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className="h-8 rounded-full border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-8 rounded-md border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Next →
                   </button>

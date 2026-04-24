@@ -98,7 +98,7 @@ const COLS = [
   { key: "expectedResult", label: "Expected Result",  width: 220 },
   { key: "actualResult",   label: "Actual Result",    width: 200 },
   { key: "status",         label: "Status",           width: 120 },
-  { key: "priority",       label: "Prio",             width: 100 },
+  { key: "priority",       label: "Priority",         width: 120 },
   { key: "evidence",       label: "Evidence",         width: 180 },
   { key: "__action__",     label: "Action",           width: 100 },
 ] as const;
@@ -347,7 +347,7 @@ function CustomSelect({
                   >
                     <span
                       className={cn(
-                        "inline-block h-2 w-2 shrink-0 rounded-full",
+                        "inline-block h-2 w-2 shrink-0 rounded-md",
                         optTone || "bg-slate-300",
                       )}
                     />
@@ -389,9 +389,37 @@ export function TestCaseDetailEditor({
     expectedResult: "",
     actualResult: "",
     status: "",
-    priority: "Medium",
+    priority: "",
     evidence: "",
   });
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    const draft = localStorage.getItem(`qa-draft-suite-${suiteId}`);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        setForm(s => ({ ...s, ...parsed }));
+        toast("Restored draft from last session", "info");
+      } catch (e) {
+        console.error("Failed to parse draft", e);
+      }
+    }
+  }, [suiteId]);
+
+  // Save draft to localStorage whenever form changes
+  useEffect(() => {
+    // Only save if there's actual content
+    if (form.caseName || form.testStep || form.expectedResult) {
+      const { testSuiteId, ...rest } = form;
+      localStorage.setItem(`qa-draft-suite-${suiteId}`, JSON.stringify(rest));
+    }
+  }, [form, suiteId]);
+
+  // Clear draft on successful save
+  function clearDraft() {
+    localStorage.removeItem(`qa-draft-suite-${suiteId}`);
+  }
 
   function suggestNextId(rows: TestCaseRow[]) {
     if (rows.length === 0) return "TC-001";
@@ -412,10 +440,9 @@ export function TestCaseDetailEditor({
       Boolean(
         form.tcId &&
           form.caseName &&
-          form.typeCase &&
-          form.testStep &&
           form.expectedResult &&
-          form.status,
+          form.status &&
+          form.priority,
       ),
     [form],
   );
@@ -425,10 +452,9 @@ export function TestCaseDetailEditor({
       Boolean(
         editForm?.tcId &&
           editForm?.caseName &&
-          editForm?.typeCase &&
-          editForm?.testStep &&
           editForm?.expectedResult &&
-          editForm?.status,
+          editForm?.status &&
+          editForm?.priority,
       ),
     [editForm],
   );
@@ -508,9 +534,10 @@ export function TestCaseDetailEditor({
             expectedResult: "",
             actualResult: "",
             status: "",
-            priority: "Medium",
+            priority: "",
             evidence: "",
           });
+          clearDraft();
           router.refresh();
         } else {
           toast(resData.error || "Failed to add", "error");
@@ -536,88 +563,87 @@ export function TestCaseDetailEditor({
       }
     });
   }
-
-  async function submitExecution() {
-    if (initialCases.length === 0 || pending) return;
-    const total = initialCases.length;
-    const p = initialCases.filter(c => c.status === "Passed").length;
-    const f = initialCases.filter(c => c.status === "Failed").length;
-    const b = initialCases.filter(c => c.status === "Blocked").length;
-
-    let resVal = "Pending";
-    if (f > 0) resVal = "failed";
-    else if (b > 0) resVal = "blocked";
-    else if (p === total && total > 0) resVal = "passed";
-    else if (p > 0) resVal = "partial";
-
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.append("date", new Date().toISOString().split("T")[0]);
-      fd.append("project", suiteTitle.split(" ")[0] || "Project");
-      fd.append("sprint", "Active");
-      fd.append("tester", "QA Specialist");
-      fd.append("scope", suiteTitle);
-      fd.append("totalCases", String(total));
-      fd.append("passed", String(p));
-      fd.append("failed", String(f));
-      fd.append("blocked", String(b));
-      fd.append("result", resVal);
-      fd.append("notes", `Automated submission from suite ${suiteTitle}`);
-      
-      try {
-        const res = await fetch("/api/items/test-sessions", { method: "POST", body: fd });
-        if (res.ok) {
-          toast("Execution session recorded!", "success");
-          router.push("/test-sessions");
-        } else {
-          toast("Failed to record session", "error");
-        }
-      } catch (err) {
-        toast("An error occurred", "error");
-      }
-    });
-  }
-
   // stats
-  const passed  = initialCases.filter((r) => r.status === "Passed").length;
+  const passed  = initialCases.filter((r) => r.status === "Passed" || r.status === "Success").length;
   const failed  = initialCases.filter((r) => r.status === "Failed").length;
-  const pending_ = initialCases.filter((r) => r.status === "Pending").length;
   const blocked = initialCases.filter((r) => r.status === "Blocked").length;
+  const pending_ = initialCases.filter((r) => r.status === "Pending").length;
+
+  const positive = initialCases.filter((r) => r.typeCase === "Positive").length;
+  const negative = initialCases.filter((r) => r.typeCase === "Negative").length;
+
+  const critical = initialCases.filter((r) => r.priority === "Critical").length;
+  const high     = initialCases.filter((r) => r.priority === "High").length;
+  const medium   = initialCases.filter((r) => r.priority === "Medium").length;
+  const low      = initialCases.filter((r) => r.priority === "Low").length;
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Current Progress</span>
-            <span className="text-sm font-bold text-slate-800 dark:text-white">{suiteTitle}</span>
+    <div className="flex flex-col gap-6">
+      {/* Metrics Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="glass-card p-4 space-y-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/5 pb-2">
+            Execution Status
           </div>
-          <div className="h-8 w-px bg-slate-100 dark:bg-slate-700" />
-          <div className="flex gap-4 text-center">
+          <div className="flex gap-6">
             <div>
-              <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">{passed}</div>
-              <div className="text-[9px] font-bold uppercase text-slate-400">PASSED</div>
+              <div className="text-xl font-black text-emerald-500">{passed}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">PASSED</div>
             </div>
             <div>
-              <div className="text-xs font-black text-rose-600 dark:text-rose-400">{failed}</div>
-              <div className="text-[9px] font-bold uppercase text-slate-400">FAILED</div>
+              <div className="text-xl font-black text-rose-500">{failed}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">FAILED</div>
             </div>
             <div>
-              <div className="text-xs font-black text-amber-600 dark:text-amber-400">{blocked}</div>
-              <div className="text-[9px] font-bold uppercase text-slate-400">BLOCKED</div>
+              <div className="text-xl font-black text-amber-500">{blocked}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">BLOCKED</div>
+            </div>
+            <div>
+              <div className="text-xl font-black text-amber-400">{pending_}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">PENDING</div>
             </div>
           </div>
         </div>
-        
-        <button
-          onClick={submitExecution}
-          disabled={pending || initialCases.length === 0}
-          className="flex h-10 items-center gap-2 rounded-lg bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-700 disabled:opacity-50"
-        >
-          <PlayCircle size={16} weight="bold" />
-          Submit for Test Execution
-        </button>
+
+        <div className="glass-card p-4 space-y-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/5 pb-2">
+            Case Types
+          </div>
+          <div className="flex gap-8">
+            <div>
+              <div className="text-xl font-black text-emerald-500">{positive}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">POSITIVE</div>
+            </div>
+            <div>
+              <div className="text-xl font-black text-rose-500">{negative}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">NEGATIVE</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card p-4 space-y-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/5 pb-2">
+            Priority Distribution
+          </div>
+          <div className="flex gap-5">
+            <div>
+              <div className="text-xl font-black text-red-700">{critical}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">CRIT</div>
+            </div>
+            <div>
+              <div className="text-xl font-black text-rose-500">{high}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">HIGH</div>
+            </div>
+            <div>
+              <div className="text-xl font-black text-sky-500">{medium}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">MED</div>
+            </div>
+            <div>
+              <div className="text-xl font-black text-slate-400">{low}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">LOW</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* spreadsheet */}
@@ -644,7 +670,7 @@ export function TestCaseDetailEditor({
               <Th w={colMap.expectedResult}>Expected Result</Th>
               <Th w={colMap.actualResult}>Actual Result</Th>
               <Th w={colMap.status} className="text-center">Status</Th>
-              <Th w={colMap.priority} className="text-center">Prio</Th>
+              <Th w={colMap.priority} className="text-center">Priority</Th>
               <Th w={colMap.evidence} className="text-center">Evidence</Th>
               <Th w={colMap.__action__} className="text-center bg-slate-200 dark:bg-slate-700">
                 Action
@@ -685,7 +711,7 @@ export function TestCaseDetailEditor({
                     <EditTextCell value={editForm.expectedResult} w={colMap.expectedResult} multiline onChange={(v) => setEdit("expectedResult", v)} setRef={(el) => { if (el) refs.current.expectedResult = el; }} />
                     <EditTextCell value={editForm.actualResult ?? ""} w={colMap.actualResult} multiline onChange={(v) => setEdit("actualResult", v)} setRef={(el) => { if (el) refs.current.actualResult = el; }} />
                     <CustomSelect value={editForm.status} w={colMap.status} fieldKey="status" options={statusOptions} onChange={(v) => setEdit("status", v)} setRef={(el) => { if (el) refs.current.status = el; }} />
-                    <CustomSelect value={editForm.priority} w={colMap.priority} fieldKey="priority" options={priorityOptions} onChange={(v) => setEdit("priority", v)} setRef={(el) => { if (el) refs.current.priority = el; }} autoFocusOpen />
+                    <CustomSelect value={editForm.priority} w={colMap.priority} fieldKey="priority" options={priorityOptions} placeholder="PRIORITY" onChange={(v) => setEdit("priority", v)} setRef={(el) => { if (el) refs.current.priority = el; }} />
                     <EditTextCell value={editForm.evidence ?? ""} w={colMap.evidence} onChange={(v) => setEdit("evidence", v)} setRef={(el) => { if (el) refs.current.evidence = el; }} />
 
                     <td className="border border-slate-200 bg-emerald-50 px-1 py-1 text-center align-middle dark:bg-emerald-950/20">
@@ -709,7 +735,7 @@ export function TestCaseDetailEditor({
                           </button>
                           {editForm.status === "Failed" && (
                             <Link
-                              href={`/bugs?title=${encodeURIComponent(`[Failed] ${editForm.caseName}`)}&steps=${encodeURIComponent(editForm.testStep)}&expected=${encodeURIComponent(editForm.expectedResult)}&actual=${encodeURIComponent(editForm.actualResult || "")}`}
+                              href={`/bugs?action=new&title=${encodeURIComponent(`[Failed] ${editForm.caseName}`)}&preconditions=${encodeURIComponent(editForm.preCondition)}&stepsToReproduce=${encodeURIComponent(editForm.testStep)}&expectedResult=${encodeURIComponent(editForm.expectedResult)}&actualResult=${encodeURIComponent(editForm.actualResult || "")}`}
                               className="flex h-7 flex-1 items-center justify-center rounded bg-amber-50 px-1 text-amber-600 transition hover:bg-amber-100"
                               title="Report Bug"
                             >
@@ -762,7 +788,7 @@ export function TestCaseDetailEditor({
                         </button>
                         {(row.status === "Failed" || row.status === "FAILURE" || String(row.status).toUpperCase() === "FAILED") && (
                           <Link
-                            href={`/bugs?title=${encodeURIComponent(`[Failed] ${row.caseName}`)}&steps=${encodeURIComponent(row.testStep)}&expected=${encodeURIComponent(row.expectedResult)}&actual=${encodeURIComponent(row.actualResult || "")}`}
+                            href={`/bugs?action=new&title=${encodeURIComponent(`[Failed] ${row.caseName}`)}&preconditions=${encodeURIComponent(row.preCondition)}&stepsToReproduce=${encodeURIComponent(row.testStep)}&expectedResult=${encodeURIComponent(row.expectedResult)}&actualResult=${encodeURIComponent(row.actualResult || "")}`}
                             className="flex h-7 items-center justify-center rounded bg-amber-50 text-amber-600 transition hover:bg-amber-100"
                             title="Report Bug"
                           >
@@ -869,7 +895,7 @@ export function TestCaseDetailEditor({
                 w={colMap.priority}
                 fieldKey="priority"
                 options={priorityOptions}
-                placeholder="Prio"
+                placeholder="PRIORITY"
                 onChange={(v) => setNew("priority", v)}
                 setRef={(el) => { if (el) refs.current.priority_new = el; }}
                 autoFocusOpen

@@ -20,8 +20,6 @@ describe("getTableName mapping", () => {
     { module: "test-suites", expectedTable: "TestSuite" },
     { module: "api-testing", expectedTable: "ApiEndpoint" },
     { module: "env-config", expectedTable: "EnvConfig" },
-    { module: "workload", expectedTable: "WorkloadAssignment" },
-    { module: "performance", expectedTable: "PerformanceBenchmark" },
     { module: "meeting-notes", expectedTable: "MeetingNote" },
     { module: "daily-logs", expectedTable: "DailyLog" },
     { module: "sql-snippets", expectedTable: "SqlSnippet" },

@@ -68,10 +68,10 @@ export default function QAToolboxPage() {
       }
     >
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-amber-50 p-2 text-amber-600">
+              <div className="rounded-md bg-amber-50 p-2 text-amber-600">
                 <Coffee size={22} weight="bold" />
               </div>
               <div>
@@ -82,7 +82,7 @@ export default function QAToolboxPage() {
             <button
               onClick={generateStandup}
               disabled={loadingStandup}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-900 px-4 text-xs font-bold text-white transition hover:bg-slate-700 disabled:opacity-50"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-bold text-white transition hover:bg-slate-700 disabled:opacity-50"
             >
               <ArrowsClockwise size={14} weight="bold" />
               Refresh
@@ -94,12 +94,12 @@ export default function QAToolboxPage() {
               readOnly
               value={standup}
               placeholder="Generate a standup summary from current work."
-              className="min-h-[220px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 outline-none resize-none"
+              className="min-h-[220px] w-full rounded-md border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 outline-none resize-none"
             />
             {standup ? (
               <button
                 onClick={() => copyToClipboard(standup)}
-                className="absolute bottom-4 right-4 rounded-xl border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition hover:text-sky-600"
+                className="absolute bottom-4 right-4 rounded-md border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition hover:text-sky-600"
               >
                 <Copy size={18} weight="bold" />
               </button>
@@ -107,10 +107,10 @@ export default function QAToolboxPage() {
           </div>
         </section>
 
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-sky-50 p-2 text-sky-600">
+              <div className="rounded-md bg-sky-50 p-2 text-sky-600">
                 <Fingerprint size={22} weight="bold" />
               </div>
               <div>
@@ -120,7 +120,7 @@ export default function QAToolboxPage() {
             </div>
             <button
               onClick={generateFakeData}
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-sky-200 bg-white px-4 text-xs font-bold text-sky-700 transition hover:bg-sky-600 hover:text-white"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-sky-200 bg-white px-4 text-xs font-bold text-sky-700 transition hover:bg-sky-600 hover:text-white"
             >
               <User size={14} weight="bold" />
               Generate
@@ -132,7 +132,7 @@ export default function QAToolboxPage() {
               <EmptyState title="No Sample Data" description="Generate sample QA data for test flows and screenshots." />
             ) : (
               fakeData.map((data) => (
-                <div key={data.label} className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div key={data.label} className="group flex items-center justify-between gap-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="flex min-w-0 items-center gap-3">
                     {data.label.includes("Email") ? <Envelope size={16} className="text-sky-600" /> : null}
                     {data.label.includes("Phone") ? <PhoneCall size={16} className="text-emerald-600" /> : null}
@@ -144,7 +144,7 @@ export default function QAToolboxPage() {
                   </div>
                   <button
                     onClick={() => copyToClipboard(data.value)}
-                    className="rounded-xl p-2 text-slate-400 transition hover:bg-white hover:text-sky-600"
+                    className="rounded-md p-2 text-slate-400 transition hover:bg-white hover:text-sky-600"
                   >
                     <Copy size={16} weight="bold" />
                   </button>
@@ -172,9 +172,9 @@ export default function QAToolboxPage() {
               href={link.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="flex items-center gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <div className="rounded-xl bg-slate-50 p-2 text-sky-600">
+              <div className="rounded-md bg-slate-50 p-2 text-sky-600">
                 <LinkSimple size={16} weight="bold" />
               </div>
               <span className="text-sm font-bold text-slate-700">{link.name}</span>

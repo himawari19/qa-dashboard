@@ -87,9 +87,9 @@ const tables = [
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
-    {
-      name: "TestCase",
-      schema: `
+  {
+    name: "TestCase",
+    schema: `
       id SERIAL_OR_PK,
       publicToken TEXT NOT NULL DEFAULT '',
       testSuiteId TEXT NOT NULL DEFAULT '',
@@ -176,19 +176,6 @@ const tables = [
     `
   },
   {
-    name: "WorkloadAssignment",
-    schema: `
-      id SERIAL_OR_PK,
-      qaName TEXT NOT NULL,
-      project TEXT NOT NULL,
-      sprint TEXT NOT NULL,
-      tasks TEXT NOT NULL,
-      status TEXT NOT NULL,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
     name: "PerformanceBenchmark",
     schema: `
       id SERIAL_OR_PK,
@@ -216,9 +203,9 @@ const tables = [
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
-    {
-      name: "TestPlan",
-      schema: `
+  {
+    name: "TestPlan",
+    schema: `
       id SERIAL_OR_PK,
       publicToken TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
@@ -267,19 +254,19 @@ const tables = [
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
-    {
-      name: "TestSuite",
-      schema: `
-        id SERIAL_OR_PK,
-        publicToken TEXT NOT NULL DEFAULT '',
-        testPlanId TEXT NOT NULL DEFAULT '',
-        title TEXT NOT NULL,
-        assignee TEXT,
-        status TEXT NOT NULL DEFAULT 'draft',
-        notes TEXT,
-        deletedAt DATE_TYPE,
-        createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+  {
+    name: "TestSuite",
+    schema: `
+      id SERIAL_OR_PK,
+      publicToken TEXT NOT NULL DEFAULT '',
+      testPlanId TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL,
+      assignee TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      notes TEXT,
+      deletedAt DATE_TYPE,
+      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
   {
@@ -366,6 +353,8 @@ function normalizePostgresQuery(queryStr: string) {
 
 function toPostgresQuery(queryStr: string) {
   let pgQuery = normalizePostgresQuery(queryStr);
+  pgQuery = pgQuery.replace(/DATE\('now'\)/gi, "CURRENT_DATE")
+                   .replace(/DATE\('now',\s*'-(\d+)\s+days'\)/gi, (_, d) => `CURRENT_DATE - INTERVAL '${d} days'`);
   if (pgQuery.includes("?")) {
     let count = 0;
     pgQuery = pgQuery.replace(/\?/g, () => `$${++count}`);
@@ -376,6 +365,7 @@ function toPostgresQuery(queryStr: string) {
 const globalForDb = globalThis as unknown as {
   sqliteDb?: unknown;
   neonSql?: unknown;
+  schemaInitPromise?: Promise<void>;
 };
 
 async function getPostgresPool() {
@@ -388,9 +378,9 @@ async function getPostgresPool() {
 
 async function getSqlite() {
   if (!globalForDb.sqliteDb) {
-    const { DatabaseSync } = await import("node:sqlite");
-    const path = await import("node:path");
-    const fs = await import("node:fs");
+    const { DatabaseSync } = await (eval('import("node:sqlite")') as Promise<any>);
+    const path = await (eval('import("node:path")') as Promise<any>);
+    const fs = await (eval('import("node:fs")') as Promise<any>);
     const databasePath = path.join(process.cwd(), "prisma", "dev.db");
     
     if (!fs.existsSync(path.dirname(databasePath))) {
@@ -404,7 +394,7 @@ async function getSqlite() {
   return globalForDb.sqliteDb as SqliteDatabase;
 }
 
-let schemaInitPromise: Promise<void> | null = null;
+
 
 async function applyMissingColumns() {
   const columnQueries = tables.flatMap((table) =>
@@ -422,7 +412,10 @@ async function applyMissingColumns() {
       const firstSpace = def.indexOf(" ");
       if (firstSpace <= 0) continue;
       const rawColumn = def.slice(0, firstSpace).trim();
-      const columnType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
+      const rawType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
+      const columnType = rawType
+        .replace(/DATE_TYPE/g, useSqlite ? "TEXT" : "TIMESTAMP")
+        .replace(/SERIAL_OR_PK/g, useSqlite ? "INTEGER" : "SERIAL");
       try {
         const exists = sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all(rawColumn) as any[];
         if (exists.length === 0) {
@@ -475,8 +468,8 @@ async function backfillPublicTokens() {
 
 async function ensureSchema() {
   if (typeof window !== 'undefined') return;
-  if (!schemaInitPromise) {
-    schemaInitPromise = (async () => {
+  if (!globalForDb.schemaInitPromise) {
+    globalForDb.schemaInitPromise = (async () => {
       try {
         if (useSqlite) {
           await getSqlite();
@@ -487,14 +480,14 @@ async function ensureSchema() {
         await applyMissingColumns();
         await backfillPublicTokens();
       } catch (err) {
-        schemaInitPromise = null;
+        globalForDb.schemaInitPromise = undefined;
         if (databaseUrl || useSqlite) {
           console.error("Schema init error:", err);
         }
       }
     })();
   }
-  return schemaInitPromise;
+  return globalForDb.schemaInitPromise;
 }
 
 export const db = {

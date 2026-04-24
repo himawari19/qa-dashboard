@@ -31,7 +31,7 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-5 text-sm text-rose-700">
+      <div className="rounded-md border border-rose-200 bg-rose-50 px-6 py-5 text-sm text-rose-700">
         {error}
       </div>
     );

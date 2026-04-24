@@ -8,7 +8,6 @@ export type ModuleKey =
   | "meeting-notes"
   | "daily-logs"
   | "api-testing"
-  | "workload"
   | "performance"
   | "env-config"
   | "test-plans"
@@ -66,7 +65,7 @@ type ModuleConfig = {
   sheetName: string;
   fields: Field[];
   columns: Column[];
-  schema: z.ZodObject;
+  schema: z.ZodObject<any>;
   coerce: (entry: Record<string, string>) => Record<string, unknown>;
   toRow: (item: Record<string, unknown>) => Record<string, string | number>;
 };
@@ -143,12 +142,6 @@ const testTypeOptions: Option[] = [
 
 const apiMethodOptions: Option[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"].map(v => ({ label: v, value: v }));
 
-const workloadStatusOptions: Option[] = [
-  ["Available", "available"],
-  ["Busy", "busy"],
-  ["On Leave", "on_leave"]
-].map(([label, value]) => ({ label, value }));
-
 const taskSchema = z.object({
   title: requiredText("Title"),
   project: requiredText("Project"),
@@ -220,14 +213,6 @@ const apiInventorySchema = z.object({
   payload: optionalText,
   response: optionalText,
   notes: optionalText,
-});
-
-const workloadSchema = z.object({
-  qaName: requiredText("QA Name"),
-  project: requiredText("Project"),
-  sprint: requiredText("Sprint"),
-  tasks: requiredText("Focus Tasks"),
-  status: z.enum(["available", "busy", "on_leave"]),
 });
 
 const performanceSchema = z.object({
@@ -608,38 +593,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "notes", label: "Notes", multiline: true },
     ],
   },
-  workload: {
-    title: "QA Workload Planner",
-    shortTitle: "Workload",
-    description: "Track team availability and assignments across projects and sprints.",
-    prefix: "PLAN",
-    sheetName: "Workload",
-    schema: workloadSchema,
-    coerce: (entry) => normalizeEntry(entry),
-    toRow: (item) => ({
-      ID: codeFromId("PLAN", Number(item.id)),
-      "QA Name": String(item.qaName),
-      Project: String(item.project),
-      Sprint: String(item.sprint),
-      "Focus Tasks": String(item.tasks),
-      Status: String(item.status),
-    }),
-    fields: [
-      { name: "qaName", label: "QA Name", kind: "text", required: true },
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "sprint", label: "Current Sprint", kind: "text", required: true },
-      { name: "tasks", label: "Focus Tasks", kind: "textarea", rows: 3, required: true },
-      { name: "status", label: "Availability", kind: "select", options: workloadStatusOptions, required: true },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "qaName", label: "QA Name" },
-      { key: "project", label: "Project Name" },
-      { key: "sprint", label: "Sprint" },
-      { key: "tasks", label: "Focus Tasks", multiline: true },
-      { key: "status", label: "Availability", tone: "status" },
-    ],
-  },
   performance: {
     title: "Performance benchmark Log",
     shortTitle: "Performance",
@@ -738,8 +691,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "notes", label: "Notes / Exclusions", kind: "textarea", rows: 4, span: 1 },
     ],
     columns: [
-      { key: "title", label: "Test Plan Name" },
-      { key: "project", label: "Project Name" },
+      { key: "title", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
+      { key: "project", label: "Project Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
       { key: "sprint", label: "Sprint" },
       { key: "startDate", label: "Start" },
       { key: "endDate", label: "End" },
@@ -824,7 +777,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "title", label: "Test Suite Name", internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
-      { key: "testPlanLabel", label: "Test Plan Name" },
+      { key: "testPlanLabel", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.testPlanToken}` },
       { key: "assignee", label: "Assignee" },
       { key: "notes", label: "Goal / Notes", multiline: true },
       { key: "status", label: "Status", tone: "status" },
@@ -905,7 +858,6 @@ export const moduleOrder: ModuleKey[] = [
   "test-suites",
   "api-testing",
   "env-config",
-  "workload",
   "performance",
   "meeting-notes",
   "daily-logs",

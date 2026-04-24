@@ -69,10 +69,10 @@ describe("📊 DASHBOARD DATA TESTS", () => {
 });
 
 describe("📝 CRUD DATA INTEGRITY", () => {
-  it("CRUD: All 14 modules mapped correctly", () => {
+  it("CRUD: All 13 modules mapped correctly", () => {
     const modules = [
       "tasks", "bugs", "test-cases", "test-plans", "test-sessions",
-      "test-suites", "api-testing", "env-config", "workload", "performance",
+      "test-suites", "api-testing", "env-config", "performance",
       "meeting-notes", "daily-logs", "sql-snippets", "testing-assets"
     ];
     

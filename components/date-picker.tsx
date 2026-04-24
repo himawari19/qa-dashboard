@@ -18,6 +18,7 @@ export function ModernDatePicker({
   required?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState(() => {
     return value ? new Date(value) : new Date();
   });
@@ -28,6 +29,7 @@ export function ModernDatePicker({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     function handleClickOutside(event: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -77,12 +79,12 @@ export function ModernDatePicker({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex h-12 w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus-within:border-sky-300 focus-within:bg-white hover:bg-white",
+          "flex h-12 w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus-within:border-sky-300 focus-within:bg-white hover:bg-white",
           !selectedDate ? "text-slate-400" : "text-slate-800"
         )}
       >
         <span>
-          {selectedDate 
+          {!mounted ? "Select a date..." : selectedDate 
             ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
             : "Select a date..."}
         </span>
@@ -90,12 +92,12 @@ export function ModernDatePicker({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-14 z-50 w-72 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute left-0 top-14 z-50 w-72 rounded-md border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
               onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 text-slate-600 transition"
+              className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition"
             >
               <CaretLeft size={16} weight="bold" />
             </button>
@@ -105,7 +107,7 @@ export function ModernDatePicker({
             <button
               type="button"
               onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 text-slate-600 transition"
+              className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition"
             >
               <CaretRight size={16} weight="bold" />
             </button>
@@ -134,7 +136,7 @@ export function ModernDatePicker({
                   type="button"
                   onClick={() => handleSelect(day)}
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full text-sm transition-all hover:bg-sky-100",
+                    "flex h-8 w-8 items-center justify-center rounded-md text-sm transition-all hover:bg-sky-100",
                     isSelected ? "bg-sky-600 text-white font-semibold shadow-md hover:bg-sky-700" : "text-slate-700",
                     isToday && !isSelected && "text-sky-600 font-bold bg-sky-50"
                   )}

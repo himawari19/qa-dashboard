@@ -2,6 +2,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
+import { Breadcrumb } from "@/components/breadcrumb";
 
 export function PageShell({
   eyebrow,
@@ -11,6 +12,7 @@ export function PageShell({
   controls,
   children,
   className,
+  crumbs,
 }: {
   eyebrow: string;
   title: string;
@@ -19,11 +21,13 @@ export function PageShell({
   controls?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  crumbs?: { label: string; href?: string }[];
 }) {
   return (
     <section className={cn("space-y-6", className)}>
-      <div className="overflow-hidden rounded-[30px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+      <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
         <div className="border-b border-slate-200 dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
+          {crumbs && <Breadcrumb crumbs={crumbs} className="mb-4" />}
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700 dark:text-sky-400">{eyebrow}</p>
@@ -53,7 +57,7 @@ export function ActionButton({
     <button
       {...props}
       className={cn(
-        "inline-flex h-11 items-center gap-2 rounded-full border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md",
+        "inline-flex h-11 items-center gap-2 rounded-md border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md",
         className,
       )}
     >
@@ -71,7 +75,7 @@ export function IconActionLink({
     <a
       {...props}
       className={cn(
-        "inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md",
+        "inline-flex h-11 w-11 items-center justify-center rounded-md border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md",
         className,
       )}
     >

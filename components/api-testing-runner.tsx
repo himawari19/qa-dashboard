@@ -187,20 +187,20 @@ export function ApiTestingRunner({
       {/* LEFT: Save + Run controls */}
       <div className="space-y-4">
         {/* Save new API */}
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Save New API</p>
           <div className="space-y-2">
             <input
               value={saveTitle}
               onChange={(e) => setSaveTitle(e.target.value)}
               placeholder="API name"
-              className="h-10 w-full rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
+              className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
             />
             <div className="flex gap-2">
               <select
                 value={saveMethod}
                 onChange={(e) => setSaveMethod(e.target.value)}
-                className="h-10 w-28 rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
+                className="h-10 w-28 rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
               >
                 {METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
@@ -208,7 +208,7 @@ export function ApiTestingRunner({
                 value={saveEndpoint}
                 onChange={(e) => setSaveEndpoint(e.target.value)}
                 placeholder="https://..."
-                className="h-10 flex-1 rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
+                className="h-10 flex-1 rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
               />
             </div>
             <textarea
@@ -216,13 +216,13 @@ export function ApiTestingRunner({
               onChange={(e) => setSavePayload(e.target.value)}
               placeholder="Request body (optional)"
               rows={3}
-              className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
             />
             <button
               type="button"
               onClick={() => void saveApi()}
               disabled={saving || !saveTitle || !saveEndpoint}
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? <Spinner size={15} className="animate-spin" /> : <Plus size={15} weight="bold" />}
               Save API
@@ -231,13 +231,13 @@ export function ApiTestingRunner({
         </div>
 
         {/* Runner */}
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Run API</p>
           <div className="space-y-2">
             <select
               value={selectedId}
               onChange={(e) => syncFromSelection(e.target.value)}
-              className="h-10 w-full rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
+              className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
             >
               {endpoints.map((item) => (
                 <option key={item.id} value={item.id}>{item.title}</option>
@@ -247,7 +247,7 @@ export function ApiTestingRunner({
               <select
                 value={customMethod}
                 onChange={(e) => setCustomMethod(e.target.value)}
-                className="h-10 w-28 rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
+                className="h-10 w-28 rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
               >
                 {METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
@@ -255,7 +255,7 @@ export function ApiTestingRunner({
                 value={customEndpoint}
                 onChange={(e) => setCustomEndpoint(e.target.value)}
                 placeholder="https://..."
-                className="h-10 flex-1 rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
+                className="h-10 flex-1 rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-sky-500"
               />
             </div>
             <textarea
@@ -263,14 +263,14 @@ export function ApiTestingRunner({
               onChange={(e) => setRequestBody(e.target.value)}
               rows={4}
               placeholder='{"key":"value"}'
-              className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
             />
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => void run()}
                 disabled={loading || !customEndpoint}
-                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? <Spinner size={15} className="animate-spin" /> : <Play size={15} weight="bold" />}
                 Run
@@ -278,7 +278,7 @@ export function ApiTestingRunner({
               <button
                 type="button"
                 onClick={() => void loadDemo()}
-                className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700"
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700"
               >
                 <DownloadSimple size={15} weight="bold" />
                 Demo
@@ -288,7 +288,7 @@ export function ApiTestingRunner({
         </div>
 
         {/* History */}
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">History</p>
           <div className="space-y-2">
             {selectedRuns.length > 0 ? selectedRuns.map((r) => (
@@ -305,7 +305,7 @@ export function ApiTestingRunner({
                     body: r.responseBody || r.error || "No response",
                   });
                 }}
-                className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-sky-300 hover:bg-sky-50"
+                className="w-full rounded-md border border-slate-100 bg-slate-50 p-3 text-left transition hover:border-sky-300 hover:bg-sky-50"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-800 truncate">{r.title}</p>
@@ -326,14 +326,14 @@ export function ApiTestingRunner({
       {/* RIGHT: Response + Saved Requests */}
       <div className="space-y-4">
         {/* Response */}
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Response</p>
           {result ? (
             <div className="space-y-3">
               <p className={cn("text-base font-bold", result.ok ? "text-emerald-700" : "text-rose-700")}>
                 {result.ok ? `✓ ${result.statusText ?? "Success"}` : `✗ ${result.statusText ?? "Failed"}`}
               </p>
-              <pre className="max-h-[32rem] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-relaxed text-slate-100">
+              <pre className="max-h-[32rem] overflow-auto rounded-md bg-slate-950 p-4 text-xs leading-relaxed text-slate-100">
                 {result.body || result.error || "No response"}
               </pre>
             </div>
@@ -343,7 +343,7 @@ export function ApiTestingRunner({
         </div>
 
         {/* Saved Requests — clickable */}
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Saved Requests ({endpoints.length})
           </p>
@@ -355,7 +355,7 @@ export function ApiTestingRunner({
                 <div
                   key={item.id}
                   className={cn(
-                    "flex items-center gap-2 rounded-2xl border p-3 transition",
+                    "flex items-center gap-2 rounded-md border p-3 transition",
                     String(item.id) === selectedId
                       ? "border-sky-300 bg-sky-50"
                       : "border-slate-100 bg-slate-50 hover:border-sky-300 hover:bg-sky-50"
@@ -382,7 +382,7 @@ export function ApiTestingRunner({
                     type="button"
                     title="Delete endpoint"
                     onClick={() => void deleteEndpoint(item.id)}
-                    className="shrink-0 rounded-xl p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                    className="shrink-0 rounded-md p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                   >
                     <Trash size={14} weight="bold" />
                   </button>

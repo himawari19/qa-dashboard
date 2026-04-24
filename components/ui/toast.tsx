@@ -59,7 +59,7 @@ export function Toaster() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex min-w-[300px] animate-in slide-in-from-right-10 fade-in-0 transform items-center gap-3 rounded-2xl border bg-white p-4 shadow-xl transition-all duration-300"
+          className="flex min-w-[300px] animate-in slide-in-from-right-10 fade-in-0 transform items-center gap-3 rounded-md border bg-white p-4 shadow-xl transition-all duration-300"
         >
           {t.type === "success" && <CheckCircle size={24} className="text-emerald-500" weight="fill" />}
           {t.type === "error" && <WarningCircle size={24} className="text-rose-500" weight="fill" />}
@@ -75,7 +75,7 @@ export function Toaster() {
                 t.onAction?.();
                 setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
               }}
-              className="rounded-full border border-sky-200 px-3 py-1 text-xs font-bold text-sky-700 hover:bg-sky-50"
+              className="rounded-md border border-sky-200 px-3 py-1 text-xs font-bold text-sky-700 hover:bg-sky-50"
             >
               {t.actionLabel ?? "Undo"}
             </button>

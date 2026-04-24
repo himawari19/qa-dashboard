@@ -25,17 +25,13 @@ export default async function SuiteExecutePage({ params }: { params: Promise<{ i
   const cases = JSON.parse(JSON.stringify(casesRaw));
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
-      <Breadcrumb crumbs={[{ label: "Test Suites", href: "/test-suites" }, { label: suite.title }]} className="mb-4" />
-      <div className="mb-4 flex justify-end">
-        <Link
-          href={`/test-cases/detail/${suiteToken}`}
-          className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-50"
-        >
-          Add Test Case
-        </Link>
-      </div>
-      <SuiteExecutionView suite={suite} cases={cases} scenarioId={suiteId} />
+    <div className="min-h-screen bg-slate-50/50 dark:bg-black">
+      <SuiteExecutionView 
+        suite={suite} 
+        cases={cases} 
+        scenarioId={suiteId} 
+        suiteToken={suiteToken}
+      />
     </div>
   );
 }

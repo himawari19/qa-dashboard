@@ -39,7 +39,7 @@ export function ReportsCharts({
     setIsClient(true);
   }, []);
 
-  if (!isClient) return <div className="h-96 w-full animate-pulse bg-slate-50 rounded-3xl" />;
+  if (!isClient) return <div className="h-96 w-full animate-pulse bg-slate-50 rounded-md" />;
   return (
     <div>
       <div className="flex flex-col gap-3 print:hidden sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -49,14 +49,14 @@ export function ReportsCharts({
         </div>
         <button
           onClick={() => window.print()}
-          className="inline-flex h-10 items-center rounded-full bg-sky-700 px-5 text-sm font-semibold text-white transition hover:bg-sky-800"
+          className="inline-flex h-10 items-center rounded-md bg-sky-700 px-5 text-sm font-semibold text-white transition hover:bg-sky-800"
         >
           Download PDF Report
         </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
             Bug Severity
           </h3>
@@ -87,7 +87,7 @@ export function ReportsCharts({
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
             Bug Status
           </h3>
@@ -108,7 +108,7 @@ export function ReportsCharts({
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
             Test Case Status
           </h3>
@@ -139,7 +139,7 @@ export function ReportsCharts({
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-700">
             Bug Trend
           </h3>

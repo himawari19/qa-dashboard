@@ -71,7 +71,7 @@ export function KanbanBoard({
             <div
               key={status.value}
               className={cn(
-                "flex min-h-[24rem] flex-col rounded-[20px] border-2 bg-white dark:bg-slate-800/60 p-4 shadow-sm transition-all duration-200",
+                "flex min-h-[24rem] flex-col rounded-md border-2 bg-white dark:bg-slate-800/60 p-4 shadow-sm transition-all duration-200",
                 isDropTarget ? accent.drop + " shadow-lg scale-[1.01]" : accent.border,
               )}
               onDragOver={(e) => handleDragOver(e, status.value)}
@@ -81,13 +81,13 @@ export function KanbanBoard({
               {/* Column header */}
               <div className="mb-4 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className={cn("h-2 w-2 rounded-full shrink-0", accent.dot)} />
+                  <span className={cn("h-2 w-2 rounded-md shrink-0", accent.dot)} />
                   <h4 className={cn("text-xs font-black uppercase tracking-[0.2em]", accent.header)}>
                     {status.label}
                   </h4>
                 </div>
                 <span className={cn(
-                  "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black",
+                  "flex h-5 min-w-5 items-center justify-center rounded-md px-1.5 text-[10px] font-black",
                   columnCards.length > 0
                     ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                     : "bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500"
@@ -105,7 +105,7 @@ export function KanbanBoard({
                     onDragStart={() => setDraggedId(Number(card.id))}
                     onDragEnd={() => setDraggedId(null)}
                     className={cn(
-                      "group cursor-grab rounded-2xl border bg-white dark:bg-slate-800 p-3.5 shadow-sm transition-all duration-150",
+                      "group cursor-grab rounded-md border bg-white dark:bg-slate-800 p-3.5 shadow-sm transition-all duration-150",
                       "hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing active:scale-95",
                       draggedId === Number(card.id)
                         ? "opacity-40 scale-95 rotate-1"
@@ -134,7 +134,7 @@ export function KanbanBoard({
 
                 {/* Drop zone */}
                 <div className={cn(
-                  "flex min-h-[5rem] flex-1 items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-200",
+                  "flex min-h-[5rem] flex-1 items-center justify-center rounded-md border-2 border-dashed transition-all duration-200",
                   isDropTarget
                     ? "border-sky-400 bg-sky-50/60 dark:bg-sky-900/20"
                     : "border-slate-200 dark:border-slate-700 bg-transparent",

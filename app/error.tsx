@@ -24,8 +24,8 @@ export default function Error({
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-6 py-16">
-      <div className="w-full max-w-xl rounded-[28px] border border-rose-100 bg-rose-50/60 p-8 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+      <div className="w-full max-w-xl rounded-md border border-rose-100 bg-rose-50/60 p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-rose-100 text-rose-600">
           <WarningCircle size={28} weight="fill" />
         </div>
         <h2 className="text-xl font-bold text-slate-900">Page failed to load</h2>
@@ -39,7 +39,7 @@ export default function Error({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-11 items-center rounded-full bg-rose-600 px-5 text-sm font-semibold text-white transition hover:bg-rose-700"
+            className="inline-flex h-11 items-center rounded-md bg-rose-600 px-5 text-sm font-semibold text-white transition hover:bg-rose-700"
           >
             Try Again
           </button>
@@ -47,7 +47,7 @@ export default function Error({
             <button
               type="button"
               onClick={copyError}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               <CopySimple size={16} weight="bold" />
               {copied ? "Copied!" : "Copy Error"}
@@ -68,7 +68,7 @@ export default function Error({
               {detailsOpen ? "Hide" : "Show"} error details
             </button>
             {detailsOpen && (
-              <div className="mt-2 rounded-xl border border-rose-200 bg-white p-4">
+              <div className="mt-2 rounded-md border border-rose-200 bg-white p-4">
                 <p className="text-xs font-bold text-rose-700 mb-1">{error.message}</p>
                 <pre className="text-[10px] text-slate-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
                   {error.stack}
