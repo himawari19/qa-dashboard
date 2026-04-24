@@ -43,7 +43,7 @@ function linkifyToMarkdown(text: string) {
     let href = "/";
     if (match.startsWith("TASK")) href = "/tasks";
     else if (match.startsWith("BUG")) href = "/bugs";
-    else if (match.startsWith("TC")) href = "/test-case-management";
+    else if (match.startsWith("TC")) href = "/test-cases";
     else if (match.startsWith("MTG")) href = "/meeting-notes";
     else if (match.startsWith("LOG")) href = "/daily-logs";
     else if (match.startsWith("SUITE")) href = "/test-suites";
@@ -76,9 +76,15 @@ type Row = Record<string, string | number>;
 export function ModuleWorkspace({
   module,
   rows,
+  relatedOptions = {},
+  initialFormValues = {},
+  hiddenFields = [],
 }: {
   module: ModuleKey;
   rows: Row[];
+  relatedOptions?: Record<string, Array<{ label: string; value: string }>>;
+  initialFormValues?: Record<string, string>;
+  hiddenFields?: string[];
 }) {
   const config = moduleConfigs[module];
   const router = useRouter();
@@ -92,10 +98,9 @@ export function ModuleWorkspace({
   const [refreshing, setRefreshing] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
   const [statusDropdownId, setStatusDropdownId] = useState<string | number | null>(null);
+  const [openSelectField, setOpenSelectField] = useState<string | null>(null);
+  const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  // Sort state
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   // Filter state
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
@@ -108,30 +113,25 @@ export function ModuleWorkspace({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
 
   useEffect(() => {
+    if (!showForm || !initialFormValues) return;
+    const form = document.getElementById(`${module}-form`) as HTMLFormElement | null;
+    if (!form) return;
+    for (const [key, value] of Object.entries(initialFormValues)) {
+      const input = form.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+      if (input && !input.value) input.value = value;
+    }
+  }, [showForm, initialFormValues, module]);
+
+  useEffect(() => {
     const storedView = window.localStorage.getItem(`qa-daily:view:${module}`);
     if (storedView === "table" || storedView === "kanban") {
       setViewMode(storedView);
-    }
-    // Restore sort from localStorage
-    const storedSort = window.localStorage.getItem(`qa-daily:sort:${module}`);
-    if (storedSort) {
-      try {
-        const { key, dir } = JSON.parse(storedSort);
-        if (key) { setSortKey(key); setSortDir(dir ?? "asc"); }
-      } catch { /* ignore */ }
     }
   }, [module]);
 
   useEffect(() => {
     window.localStorage.setItem(`qa-daily:view:${module}`, viewMode);
   }, [module, viewMode]);
-
-  // Persist sort to localStorage
-  useEffect(() => {
-    if (sortKey) {
-      window.localStorage.setItem(`qa-daily:sort:${module}`, JSON.stringify({ key: sortKey, dir: sortDir }));
-    }
-  }, [module, sortKey, sortDir]);
 
   // Listen for qa:open-form event (keyboard shortcut Cmd+N)
   useEffect(() => {
@@ -156,6 +156,25 @@ export function ModuleWorkspace({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [statusDropdownId]);
+
+  useEffect(() => {
+    if (openSelectField === null) return;
+    const handler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-custom-select]")) setOpenSelectField(null);
+    };
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, [openSelectField]);
+
+  useEffect(() => {
+    if (!showForm) return;
+    const nextValues: Record<string, string> = {};
+    for (const field of config.fields) {
+      if (field.kind === "select") nextValues[field.name] = String(editingRow ? String(editingRow[field.name] ?? "") : "");
+    }
+    setSelectValues(nextValues);
+  }, [showForm, editingRow, config.fields]);
 
   // Reset page when search/filter changes
   useEffect(() => { setPage(1); }, [searchQuery, filterStatus, filterPriority, filterSeverity]);
@@ -210,44 +229,67 @@ export function ModuleWorkspace({
     return matchSearch && matchStatus && matchPriority && matchSeverity;
   }), [rows, searchQuery, filterStatus, filterPriority, filterSeverity]);
 
-  const sortedRows = useMemo(() => sortKey
-    ? [...filteredRows].sort((a, b) => {
-        const av = String(a[sortKey] ?? "").toLowerCase();
-        const bv = String(b[sortKey] ?? "").toLowerCase();
-        const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-        return sortDir === "asc" ? cmp : -cmp;
-      })
-    : filteredRows,
-  [filteredRows, sortKey, sortDir]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const visibleRows = sortedRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  function handleSort(key: string) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  }
-  const preferredColumnOrder = [
-    "code",
-    "title",
-    "project",
-    "module",
-    "moduleName",
-    "status",
-    "priority",
-    "severity",
-    "date",
-    "dueDate",
-    "sprint",
-    "startDate",
-    "endDate",
-    "assignee",
-  ];
+  const visibleRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const preferredColumnOrder =
+    module === "test-plans"
+      ? [
+          "code",
+          "project",
+          "sprint",
+          "startDate",
+          "endDate",
+          "scope",
+          "notes",
+          "status",
+        ]
+      : module === "test-suites"
+        ? [
+            "testPlanLabel",
+            "title",
+            "code",
+            "assignee",
+            "notes",
+            "status",
+          ]
+      : module === "test-cases"
+        ? [
+            "testPlanLabel",
+            "suiteTitle",
+            "passed",
+            "failed",
+            "total",
+          ]
+      : [
+          "code",
+          "title",
+          "tcId",
+          "caseName",
+          "testPlanLabel",
+          "suiteTitle",
+          "project",
+          "module",
+          "moduleName",
+          "status",
+          "typeCase",
+          "priority",
+          "severity",
+          "date",
+          "dueDate",
+          "sprint",
+          "startDate",
+          "endDate",
+          "assignee",
+          "testPlanId",
+          "testSuiteId",
+          "scope",
+          "notes",
+          "preCondition",
+          "testStep",
+          "expectedResult",
+          "actualResult",
+        ];
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
     .sort((a, b) => preferredColumnOrder.indexOf(a.key) - preferredColumnOrder.indexOf(b.key));
@@ -399,20 +441,20 @@ export function ModuleWorkspace({
   function requestDelete(id: string | number) {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     setPendingDeleteId(id);
-    // Show undo toast — we use a custom event on the button since toast() takes a string
-    const toastId = `undo-${Date.now()}`;
-    toast(`Item deleted. <button id="${toastId}" style="font-weight:700;text-decoration:underline;margin-left:8px;cursor:pointer">Undo</button>`, "info");
+    toast("Item deleted. Undo available for", "info", {
+      duration: 4000,
+      countdown: true,
+      actionLabel: "Undo",
+      onAction: () => {
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        setPendingDeleteId(null);
+        toast("Delete cancelled.", "success");
+      },
+    });
     undoTimerRef.current = setTimeout(() => {
       setPendingDeleteId(null);
       void onDelete(id);
     }, 4000);
-    setTimeout(() => {
-      document.getElementById(toastId)?.addEventListener("click", () => {
-        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-        setPendingDeleteId(null);
-        toast("Delete cancelled.", "success");
-      });
-    }, 50);
   }
 
   function performSingleDelete() {
@@ -541,55 +583,6 @@ export function ModuleWorkspace({
                   </button>
                 </div>
               ) : null}
-              {/* Filter dropdowns */}
-              {statusOptions.length > 0 && (
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className={cn(
-                    "h-10 rounded-full border px-3 text-[11px] font-semibold outline-none transition",
-                    filterStatus ? "border-sky-400 bg-sky-50 text-sky-700" : "border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-sky-300",
-                  )}
-                >
-                  <option value="">All Status</option>
-                  {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              )}
-              {priorityOptions.length > 0 && (
-                <select
-                  value={filterPriority}
-                  onChange={(e) => setFilterPriority(e.target.value)}
-                  className={cn(
-                    "h-10 rounded-full border px-3 text-[11px] font-semibold outline-none transition",
-                    filterPriority ? "border-amber-400 bg-amber-50 text-amber-700" : "border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-amber-300",
-                  )}
-                >
-                  <option value="">All Priority</option>
-                  {priorityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              )}
-              {severityOptions.length > 0 && (
-                <select
-                  value={filterSeverity}
-                  onChange={(e) => setFilterSeverity(e.target.value)}
-                  className={cn(
-                    "h-10 rounded-full border px-3 text-[11px] font-semibold outline-none transition",
-                    filterSeverity ? "border-rose-400 bg-rose-50 text-rose-700" : "border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-rose-300",
-                  )}
-                >
-                  <option value="">All Severity</option>
-                  {severityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              )}
-              {(filterStatus || filterPriority || filterSeverity) && (
-                <button
-                  type="button"
-                  onClick={() => { setFilterStatus(""); setFilterPriority(""); setFilterSeverity(""); }}
-                  className="flex h-10 items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:border-rose-300 hover:text-rose-600 transition"
-                >
-                  <X size={12} weight="bold" /> Clear filters
-                </button>
-              )}
             </div>
             <div className="flex items-center gap-3 w-full xl:ml-auto xl:w-auto shrink-0">
               {(pending || refreshing) && (
@@ -601,42 +594,22 @@ export function ModuleWorkspace({
                   Refreshing...
                 </span>
               )}
-              <div className="flex items-center gap-2 w-full xl:w-auto">
-                <div className="w-full xl:w-64">
-                  <input
-                    type="text"
-                    placeholder="Filter data..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-10 w-full rounded-full border border-[#c9d7e3] dark:border-slate-700 px-4 text-[11px] font-medium outline-none transition focus:border-sky-500 focus:shadow-md focus:bg-white dark:focus:bg-slate-800 shadow-sm bg-slate-50/50 dark:bg-slate-800/50 dark:text-slate-300 dark:placeholder:text-slate-500"
-                  />
-                </div>
-                <kbd
-                  title="Press ⌘N to add a new item"
-                  className="hidden xl:inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 shadow-sm cursor-default select-none"
-                >
-                  ⌘N
-                </kbd>
               </div>
-            </div>
           </div>
         </div>
 
         {showForm ? (
           <div id="module-form-section" className="rounded-[28px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
-            <div className="mb-6 grid gap-3 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                  {editingRow ? `Edit ${config.shortTitle}` : `Create New ${config.shortTitle}`}
-                </h3>
-                <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-                  {editingRow ? "Update existing data." : "Fill in new data with a consistent format for import/export and tracking."}
-                </p>
+              <div className="mb-6 grid gap-3 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                    {editingRow ? `Edit ${config.shortTitle}` : `Create New ${config.shortTitle}`}
+                  </h3>
+                  <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+                    {editingRow ? "Update existing data." : "Fill in new data with a consistent format for import/export and tracking."}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-sm">
-                Enter QA data clearly and quickly
-              </div>
-            </div>
 
             <form
               id={`${module}-form`}
@@ -655,160 +628,104 @@ export function ModuleWorkspace({
                 });
               }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {config.fields.map((field) => {
-                  const isFullWidth = field.kind === "textarea";
-                  const Icon = fieldIcons[field.name] || <Note size={16} />;
-                  const fieldError = fieldErrors[field.name];
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {config.fields
+                  .filter((field) => !(module === "test-plans" && field.name === "assignee"))
+                  .filter((field) => !hiddenFields.includes(field.name))
+                  .map((field) => {
+                    const spanClass =
+                      field.span === 3 ? "md:col-span-3" :
+                      field.span === 2 ? "md:col-span-2" :
+                      "md:col-span-1";
+                    const Icon = fieldIcons[field.name] || <Note size={16} />;
+                    const fieldError = fieldErrors[field.name];
 
-                  return (
-                    <label
-                      key={field.name}
-                      className={cn(
-                        "flex flex-col gap-2.5",
-                        isFullWidth ? "md:col-span-2 lg:col-span-3" : "md:col-span-1"
-                      )}
-                    >
-                      <span className="flex items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-300">
-                        {Icon}
-                        {field.label}
-                        {field.required && <span className="text-rose-500">*</span>}
-                      </span>
-                      {field.kind === "textarea" ? (
-                        <textarea
-                          name={field.name}
-                          rows={field.rows ?? 4}
-                          defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
-                          required={field.required}
-                          placeholder={field.placeholder ?? `Enter ${field.label}`}
-                          className={cn("min-h-[120px] w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
-                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
-                        />
-                      ) : field.kind === "text" && field.name === "title" && (module === "bugs" || module === "tasks") ? (
-                        <div className="flex flex-col gap-2">
+                    return (
+                      <label key={field.name} className={cn("flex flex-col gap-2.5", spanClass)}>
+                        <span className="flex items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-300">
+                          {Icon}
+                          {field.label}
+                          {field.required && <span className="text-rose-500">*</span>}
+                        </span>
+                        {field.kind === "select" ? (
+                          <div className="relative" data-custom-select>
+                            <input type="hidden" name={field.name} value={selectValues[field.name] ?? ""} readOnly />
+                            <button
+                              type="button"
+                              onClick={() => setOpenSelectField(openSelectField === field.name ? null : field.name)}
+                              className={cn(
+                                "flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-left text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                                fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300",
+                              )}
+                            >
+                              <span className="whitespace-normal break-words">
+                                {(() => {
+                                  const options = relatedOptions[field.name] ?? field.options ?? [];
+                                  const current = options.find((opt) => opt.value === String(selectValues[field.name] ?? ""));
+                                  return current?.label || `Select ${field.label}`;
+                                })()}
+                              </span>
+                              <span className="shrink-0 text-slate-400">⌄</span>
+                            </button>
+                            {openSelectField === field.name && (
+                              <div className="absolute left-0 top-full z-40 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                                {(relatedOptions[field.name] ?? field.options ?? []).map((option) => (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                  onClick={() => {
+                                      setSelectValues((s) => ({ ...s, [field.name]: option.value }));
+                                      setOpenSelectField(null);
+                                    }}
+                                    className="block w-full whitespace-normal break-words px-4 py-3 text-left text-sm text-slate-700 hover:bg-sky-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                                  >
+                                    {option.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : field.kind === "date" ? (
+                          <ModernDatePicker
+                            name={field.name}
+                            value={editingRow ? String(editingRow[field.name] || "") : ""}
+                            required={field.required}
+                          />
+                        ) : field.kind === "textarea" ? (
+                          <textarea
+                            name={field.name}
+                            rows={field.rows ?? 4}
+                            defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
+                            required={field.required}
+                            placeholder={field.placeholder ?? `Enter ${field.label}`}
+                            disabled={module === "test-plans" && field.name === "scope"}
+                            className={cn(
+                              "w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
+                              field.name === "scope" && module === "test-plans"
+                                ? "min-h-[120px] bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                                : "min-h-[120px]",
+                              fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300",
+                            )}
+                          />
+                        ) : (
                           <input
-                            type="text"
+                            type={field.kind}
                             name={field.name}
                             defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
                             required={field.required}
-                            autoComplete="off"
                             placeholder={field.placeholder ?? `Enter ${field.label}`}
-                            onChange={(e) => checkDuplicates(e.target.value)}
                             className={cn("h-12 w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
                               fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
                           />
-                          {duplicates.length > 0 && (
-                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                              <p className="flex items-center gap-2 text-xs font-bold text-amber-800 mb-2">
-                                <WarningCircle size={14} weight="fill" />
-                                Potential Duplicates Found:
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {duplicates.map(dup => (
-                                  <div key={dup.id} className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-[11px] shadow-sm">
-                                    <span className="font-bold text-amber-700">{dup.code}</span>
-                                    <span className="max-w-[120px] truncate text-slate-600 font-medium">{dup.title}</span>
-                                    <Badge value={dup.status} />
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : field.kind === "select" ? (
-                        <select
-                          name={field.name}
-                          value={editingRow ? String(editingRow[field.name] ?? "") : undefined}
-                          defaultValue={editingRow ? undefined : ""}
-                          required={field.required}
-                          className={cn("h-12 w-full appearance-none rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
-                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
-                          onChange={() => setFormDirty(true)}
-                        >
-                          <option value="" disabled>
-                            Select {field.label}
-                          </option>
-                          {field.options.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : field.kind === "url" ? (
-                        <input
-                          type="text"
-                          name={field.name}
-                          required={field.required}
-                          placeholder={field.placeholder ?? "Paste link or upload file"}
-                          className={cn("h-12 w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
-                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
-                          onPaste={async (e) => {
-                            const items = e.clipboardData?.items;
-                            if (!items) return;
-                            for (let i = 0; i < items.length; i++) {
-                              if (items[i].type.indexOf("image") !== -1) {
-                                e.preventDefault();
-                                const blob = items[i].getAsFile();
-                                if (!blob) return;
+                        )}
+                        {fieldError && <p className="text-xs font-semibold text-rose-600">{fieldError}</p>}
+                      </label>
+                    );
+                  })}
 
-                                const input = e.currentTarget;
-                                const originalPlaceholder = input.placeholder;
-                                input.placeholder = "Uploading image...";
-                                input.disabled = true;
-
-                                const formData = new FormData();
-                                formData.append("file", blob, "pasted-image.png");
-
-                                try {
-                                  const res = await fetch("/api/upload", {
-                                    method: "POST",
-                                    body: formData,
-                                  });
-                                  if (res.ok) {
-                                    const data = await res.json();
-                                    input.value = data.url;
-                                  } else {
-                                    alert("Upload failed");
-                                  }
-                                } catch (err) {
-                                  console.error(err);
-                                  alert("Upload error");
-                                } finally {
-                                  input.disabled = false;
-                                  input.placeholder = originalPlaceholder;
-                                  input.focus();
-                                }
-                                break;
-                              }
-                            }
-                          }}
-                        />
-                      ) : field.kind === "date" ? (
-                        <ModernDatePicker
-                          name={field.name}
-                          value={editingRow ? String(editingRow[field.name] || "") : ""}
-                          required={field.required}
-                        />
-                      ) : (
-                        <input
-                          type={field.kind}
-                          name={field.name}
-                          defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
-                          required={field.required}
-                          placeholder={field.placeholder ?? `Enter ${field.label}`}
-                          className={cn("h-12 w-full rounded-2xl border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
-                            fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
-                        />
-                      )}
-                      {fieldError && (
-                        <p className="text-xs font-semibold text-rose-600">{fieldError}</p>
-                      )}
-                    </label>
-                  );
-                })}
               </div>
 
-              <div className="md:col-span-2 xl:col-span-4 flex flex-col gap-3 border-t border-slate-200 pt-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="submit"
@@ -844,17 +761,9 @@ export function ModuleWorkspace({
                   {visibleColumns.map((column) => (
                     <th
                       key={column.key}
-                      onClick={() => handleSort(column.key)}
-                      className="cursor-pointer select-none border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400"
                     >
-                      <span className="flex items-center gap-1">
-                        {column.label}
-                        {sortKey === column.key ? (
-                          sortDir === "asc" ? <CaretUp size={10} weight="bold" className="text-sky-600" /> : <CaretDown size={10} weight="bold" className="text-sky-600" />
-                        ) : (
-                          <span className="text-slate-300 text-[9px]">▲▼</span>
-                        )}
-                      </span>
+                      {column.label}
                     </th>
                   ))}
                   <th className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400">
@@ -913,6 +822,28 @@ export function ModuleWorkspace({
                       </td>
                       {visibleColumns.map((column) => {
                         const value = row[column.key];
+                        if ((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") {
+                          const rowSpan = Number((row as Record<string, unknown>).testPlanRowSpan ?? 1);
+                          if (rowSpan === 0) return null;
+                          return (
+                            <td
+                              key={column.key}
+                              rowSpan={rowSpan}
+                              className="max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-middle"
+                            >
+                              {column.internalLink && value ? (
+                                <Link
+                                  href={column.internalLink(row)}
+                                  className="break-all text-sky-700 font-semibold hover:underline"
+                                >
+                                  {String(value)}
+                                </Link>
+                              ) : (
+                                String(value || "-")
+                              )}
+                            </td>
+                          );
+                        }
                         return (
                           <td
                             key={column.key}
@@ -971,6 +902,22 @@ export function ModuleWorkspace({
                               <Badge value={String(value)} />
                             ) : column.key.toLowerCase().includes("date") ? (
                               formatDate(String(value))
+                            ) : module === "test-plans" && column.key === "scope" && Array.isArray((row as Record<string, unknown>).relatedSuites) ? (
+                              <div className="flex flex-col gap-1.5">
+                                {((row as Record<string, unknown>).relatedSuites as Array<{ id: string; title: string; token?: string }>).length > 0 ? (
+                                  (row as Record<string, unknown>).relatedSuites as Array<{ id: string; title: string; token?: string }>
+                                ).map((suite) => (
+                                  <Link
+                                    key={suite.id}
+                                    href={`/test-cases/detail/${suite.token}`}
+                                    className="rounded-sm bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/50 dark:text-sky-300"
+                                  >
+                                    {suite.title || suite.id}
+                                  </Link>
+                                )) : (
+                                  <span>-</span>
+                                )}
+                              </div>
                             ) : column.multiline ? (
                               <div className="max-h-24 overflow-auto rounded-sm bg-slate-50 dark:bg-slate-800 p-2 text-xs leading-relaxed whitespace-pre-wrap break-words">
                                 {String(value || "-")}
@@ -1028,7 +975,7 @@ export function ModuleWorkspace({
                           )}
                           {module === "test-suites" && (
                             <Link
-                              href={`/test-suites/execute/${row.id}`}
+                              href={`/test-suites/execute/${String((row as Record<string, unknown>).publicToken ?? "")}`}
                               className="rounded-sm bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
                             >
                               Execute
@@ -1065,7 +1012,7 @@ export function ModuleWorkspace({
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between border-t border-[#d9e2ea] dark:border-slate-700 pt-4">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {sortedRows.length} result{sortedRows.length !== 1 ? "s" : ""} · Page {safePage} of {totalPages}
+                  {filteredRows.length} result{filteredRows.length !== 1 ? "s" : ""} · Page {safePage} of {totalPages}
                 </p>
                 <div className="flex items-center gap-2">
                   <button

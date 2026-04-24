@@ -101,7 +101,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           <h3 className="mt-2 text-lg font-bold text-slate-900">Open Test Suites</h3>
           <p className="mt-2 text-sm text-slate-500">Group cases for execution.</p>
         </Link>
-        <Link href="/test-case-management" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <Link href="/test-cases" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">Quick Action</p>
           <h3 className="mt-2 text-lg font-bold text-slate-900">Manage Test Cases</h3>
           <p className="mt-2 text-sm text-slate-500">Create, review, or execute cases.</p>
@@ -533,7 +533,7 @@ export function Dashboard({ metrics, distribution, spotlight, recent, sprintInfo
           {recent.bugs.length === 0 && <EmptyState title="No Bugs" description="Register defects to see them here." />}
         </Panel>
 
-        <Panel title="Scenarios" href="/test-case-management">
+        <Panel title="Scenarios" href="/test-cases">
           {recent.testCases.map((item) => (
             <ListCard key={item.id} code={item.code} title={item.title}>
               <div className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">

@@ -59,3 +59,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Keep changes aligned with existing app structure and UI patterns.
 - Before editing, inspect the affected file and related code paths.
 - When a page or layout already has an established pattern, match it instead of introducing a new one.
+- Public record routes must use permanent DB-backed tokens, not raw numeric IDs.
+- Do not reintroduce user-facing `/test-case-management` URLs; use `/test-cases` and token-based detail routes.

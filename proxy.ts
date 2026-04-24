@@ -3,7 +3,7 @@ import { verifySessionToken } from "@/lib/auth-core";
 
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/me", "/favicon.ico", "/_next", "/api/upload"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (publicPaths.some((path) => pathname === path || pathname.startsWith(path))) {
     return NextResponse.next();

@@ -29,6 +29,7 @@ type Field =
       kind: "text" | "url" | "date";
       placeholder?: string;
       required?: boolean;
+      span?: 1 | 2 | 3;
     }
   | {
       name: string;
@@ -37,6 +38,7 @@ type Field =
       placeholder?: string;
       required?: boolean;
       rows?: number;
+      span?: 1 | 2 | 3;
     }
   | {
       name: string;
@@ -44,6 +46,7 @@ type Field =
       kind: "select";
       options: Option[];
       required?: boolean;
+      span?: 1 | 2 | 3;
     };
 
 type Column = {
@@ -258,10 +261,9 @@ const testPlanSchema = z.object({
   title: requiredText("Plan Title"),
   project: requiredText("Project"),
   sprint: requiredText("Sprint"),
-  scope: requiredText("Scope"),
+  scope: optionalText,
   startDate: z.string().optional().default(""),
   endDate: z.string().optional().default(""),
-  assignee: optionalText,
   status: z.enum(["draft", "active", "closed"]),
   notes: optionalText,
 });
@@ -289,8 +291,9 @@ const testSessionSchema = z.object({
 });
 
 const suiteSchema = z.object({
-  title: requiredText("Suite Title"),
+  title: requiredText("Test Suite Name"),
   testPlanId: optionalText,
+  assignee: optionalText,
   notes: optionalText,
   status: z.enum(["draft", "active", "archived"]),
 });
@@ -346,7 +349,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "title", label: "Title", kind: "text", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "relatedFeature", label: "Feature", kind: "text", required: true },
       { name: "category", label: "Category", kind: "select", options: taskCategoryOptions, required: true },
       { name: "status", label: "Status", kind: "select", options: taskStatusOptions, required: true },
@@ -360,7 +363,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "code", label: "ID" },
       { key: "title", label: "Title" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "relatedFeature", label: "Feature" },
       { key: "category", label: "Category" },
       { key: "status", label: "Status", tone: "status" },
@@ -398,7 +401,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Evidence: String(item.evidence),
     }),
     fields: [
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "module", label: "Module", kind: "text", required: true },
       { name: "bugType", label: "Bug Type", kind: "select", options: bugTypeOptions, required: true },
       { name: "title", label: "Title", kind: "text", required: true },
@@ -415,7 +418,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "code", label: "ID" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "module", label: "Module" },
       { key: "bugType", label: "Bug Type" },
       { key: "title", label: "Title" },
@@ -452,7 +455,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Status: String(item.status),
     }),
     fields: [
-      { name: "testSuiteId", label: "Test Suite ID", kind: "text", required: true },
+      { name: "testSuiteId", label: "Test Suite ID", kind: "select", options: [], required: true },
       { name: "tcId", label: "TC ID", kind: "text", required: true },
       { name: "caseName", label: "Case Name", kind: "text", required: true },
       { name: "typeCase", label: "Type Case", kind: "select", options: [{ label: "Positive", value: "Positive" }, { label: "Negative", value: "Negative" }], required: true },
@@ -463,12 +466,11 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "status", label: "Status", kind: "select", options: [{ label: "Pending", value: "Pending" }, { label: "Passed", value: "Passed" }, { label: "Failed", value: "Failed" }, { label: "Blocked", value: "Blocked" }], required: true },
     ],
     columns: [
-      { key: "code", label: "ID" },
-      { key: "tcId", label: "TC ID" },
-      { key: "caseName", label: "Case Name" },
-      { key: "typeCase", label: "Type Case" },
-      { key: "testSuiteId", label: "Test Suite ID" },
-      { key: "status", label: "Status" },
+      { key: "testPlanLabel", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.testPlanToken}` },
+      { key: "suiteTitle", label: "Test Suite Name", internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
+      { key: "passed", label: "Passed" },
+      { key: "failed", label: "Failed" },
+      { key: "total", label: "Total" },
     ],
   },
   "meeting-notes": {
@@ -500,7 +502,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     fields: [
       { name: "date", label: "Date", kind: "date", required: true },
       { name: "title", label: "Title", kind: "text", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "participants", label: "Participants", kind: "text", required: true },
       { name: "summary", label: "Summary", kind: "textarea", rows: 4, required: true },
       { name: "decisions", label: "Decisions", kind: "textarea", rows: 4, required: true },
@@ -512,7 +514,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "code", label: "ID" },
       { key: "date", label: "Date" },
       { key: "title", label: "Title" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "participants", label: "Participants" },
       { key: "summary", label: "Summary", multiline: true },
       { key: "decisions", label: "Decisions", multiline: true },
@@ -549,7 +551,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "date", label: "Date", kind: "date", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "whatTested", label: "What Tested", kind: "textarea", rows: 4, required: true },
       { name: "issuesFound", label: "Issues Found", kind: "textarea", rows: 4, required: true },
       { name: "progressSummary", label: "Progress Summary", kind: "textarea", rows: 4, required: true },
@@ -561,7 +563,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "code", label: "ID" },
       { key: "date", label: "Date" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "whatTested", label: "What Tested", multiline: true },
       { key: "issuesFound", label: "Issues Found", multiline: true },
       { key: "progressSummary", label: "Progress Summary", multiline: true },
@@ -624,7 +626,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "qaName", label: "QA Name", kind: "text", required: true },
-      { name: "project", label: "Project Assignment", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "sprint", label: "Current Sprint", kind: "text", required: true },
       { name: "tasks", label: "Focus Tasks", kind: "textarea", rows: 3, required: true },
       { name: "status", label: "Availability", kind: "select", options: workloadStatusOptions, required: true },
@@ -632,7 +634,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "code", label: "ID" },
       { key: "qaName", label: "QA Name" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "sprint", label: "Sprint" },
       { key: "tasks", label: "Focus Tasks", multiline: true },
       { key: "status", label: "Availability", tone: "status" },
@@ -717,37 +719,33 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     schema: testPlanSchema,
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
-      ID: codeFromId("PLAN", Number(item.id)),
-      Code: String(item.code ?? ""),
       Title: String(item.title),
-      Project: String(item.project),
+      "Project Name": String(item.project),
       Sprint: String(item.sprint),
       Status: String(item.status),
-      Assignee: String(item.assignee),
       "Start Date": String(item.startDate),
       "End Date": String(item.endDate),
       Scope: String(item.scope),
     }),
     fields: [
-      { name: "title", label: "Plan Title", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. Sprint 12", required: true },
       { name: "status", label: "Status", kind: "select", options: testPlanStatusOptions, required: true },
       { name: "startDate", label: "Start Date", kind: "date" },
       { name: "endDate", label: "End Date", kind: "date" },
-      { name: "assignee", label: "Assignee", kind: "text", placeholder: "e.g. Wahyu, Rina" },
-      { name: "scope", label: "Testing Scope", kind: "textarea", rows: 4, required: true },
-      { name: "notes", label: "Notes / Exclusions", kind: "textarea", rows: 3 },
+      { name: "scope", label: "Testing Scope", kind: "textarea", rows: 4, span: 1, placeholder: "Auto-filled from Test Suite", required: false },
+      { name: "notes", label: "Notes / Exclusions", kind: "textarea", rows: 4, span: 1 },
     ],
     columns: [
-      { key: "code", label: "ID" },
-      { key: "title", label: "Plan Title" },
-      { key: "status", label: "Status", tone: "status" },
-      { key: "project", label: "Project" },
+      { key: "title", label: "Test Plan Name" },
+      { key: "project", label: "Project Name" },
       { key: "sprint", label: "Sprint" },
       { key: "startDate", label: "Start" },
       { key: "endDate", label: "End" },
-      { key: "assignee", label: "Assignee" },
+      { key: "scope", label: "Testing Suite", multiline: true },
+      { key: "notes", label: "Notes / Exclusions", multiline: true },
+      { key: "status", label: "Status", tone: "status" },
     ],
   },
   "test-sessions": {
@@ -773,7 +771,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "date", label: "Session Date", kind: "date", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "sprint", label: "Sprint", kind: "text", required: true },
       { name: "tester", label: "Tester", kind: "text", required: true },
       { name: "scope", label: "Modules Tested", kind: "textarea", rows: 3, required: true },
@@ -788,7 +786,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "code", label: "ID" },
       { key: "date", label: "Date" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "sprint", label: "Sprint" },
       { key: "tester", label: "Tester" },
       { key: "result", label: "Result", tone: "status" },
@@ -808,13 +806,15 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
       ID: codeFromId("SUITE", Number(item.id)),
-      "Test Plan ID": String(item.testPlanId ?? ""),
+      "Test Plan Name": String(item.testPlanId ?? ""),
       Title: String(item.title),
+      Assignee: String(item.assignee ?? ""),
       Status: String(item.status),
     }),
     fields: [
-      { name: "testPlanId", label: "Test Plan ID", kind: "text", required: true },
-      { name: "title", label: "Suite Title", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
+      { name: "testPlanId", label: "Test Plan Name", kind: "select", options: [], required: true },
+      { name: "title", label: "Test Suite Name", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
+      { name: "assignee", label: "Assignee", kind: "text", placeholder: "e.g. Wahyu, Rina" },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Draft", value: "draft" },
         { label: "Active", value: "active" },
@@ -823,9 +823,10 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "notes", label: "Goal / Notes", kind: "textarea", rows: 3 },
     ],
     columns: [
-      { key: "code", label: "ID" },
-      { key: "title", label: "Suite Title" },
-      { key: "testPlanId", label: "Test Plan ID" },
+      { key: "title", label: "Test Suite Name", internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
+      { key: "testPlanLabel", label: "Test Plan Name" },
+      { key: "assignee", label: "Assignee" },
+      { key: "notes", label: "Goal / Notes", multiline: true },
       { key: "status", label: "Status", tone: "status" },
     ],
   },
@@ -845,14 +846,14 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "title", label: "Snippet Label", kind: "text", placeholder: "e.g. Reset User Password", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "query", label: "SQL Query", kind: "textarea", rows: 6, placeholder: "UPDATE users SET ...", required: true },
       { name: "notes", label: "Description / Usage Note", kind: "textarea", rows: 2 },
     ],
     columns: [
       { key: "code", label: "ID" },
       { key: "title", label: "Label" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "query", label: "SQL Query", multiline: true },
     ],
   },
@@ -873,7 +874,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "title", label: "Asset Name", kind: "text", placeholder: "e.g. Latest APK Staging", required: true },
-      { name: "project", label: "Project", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", required: true },
       { name: "url", label: "Public URL / Cloud Link", kind: "text", placeholder: "https://gdrive.com/...", required: true },
       { name: "type", label: "Type", kind: "select", options: [
         { label: "APK (Android)", value: "apk" },
@@ -888,7 +889,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "code", label: "ID" },
       { key: "title", label: "Asset Name" },
-      { key: "project", label: "Project" },
+      { key: "project", label: "Project Name" },
       { key: "type", label: "Type", tone: "status" },
       { key: "url", label: "Download Link", link: true },
     ],

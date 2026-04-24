@@ -5,7 +5,7 @@ import { X, CheckCircle, XCircle, SkipForward, CaretLeft, CaretRight, FloppyDisk
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/badge";
 
-type TestRow = Record<string, string | number>;
+type TestRow = Record<string, unknown>;
 
 export function TestRunner({
   scenario,
@@ -63,7 +63,7 @@ export function TestRunner({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 leading-tight">Test Execution Mode</h2>
-              <p className="text-sm font-semibold text-slate-500">{scenario.moduleName}</p>
+              <p className="text-sm font-semibold text-slate-500">{String(scenario.moduleName ?? "")}</p>
             </div>
           </div>
           
@@ -99,7 +99,7 @@ export function TestRunner({
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className={cn("font-bold", currentIndex === idx ? "text-sky-800" : "text-slate-700")}>
-                        {row.tcId || `TC-${idx+1}`}
+                        {String(row.tcId || `TC-${idx+1}`)}
                       </span>
                       {row.status === "Success" && <CheckCircle size={16} weight="fill" className="text-emerald-500" />}
                       {row.status === "Failed" && <XCircle size={16} weight="fill" className="text-rose-500" />}
@@ -133,7 +133,7 @@ export function TestRunner({
                   </div>
                 </div>
 
-                {currentCase.preCondition && (
+                {!!currentCase.preCondition && (
                   <div className="rounded-3xl border border-slate-200 bg-white p-6">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Pre-Conditions</div>
                     <div className="prose prose-sm prose-slate max-w-none font-medium whitespace-pre-wrap">{String(currentCase.preCondition)}</div>

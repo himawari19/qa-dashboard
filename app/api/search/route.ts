@@ -15,21 +15,21 @@ export async function GET(request: NextRequest) {
   const bugs = await db.query(`SELECT id, title, status FROM "Bug" WHERE title LIKE ? OR module LIKE ? LIMIT 5`, [like, like]) as any[];
   for (const b of bugs) results.push({ id: `bug-${b.id}`, code: codeFromId("BUG", Number(b.id)), label: b.title, sublabel: b.status, href: "/bugs", type: "Bug" });
 
-  const suites = await db.query(`SELECT id, title, "testPlanId" FROM "TestSuite" WHERE title LIKE ? OR "testPlanId" LIKE ? AND "deletedAt" IS NULL LIMIT 5`, [like, like]) as any[];
+  const suites = await db.query(`SELECT id, title, "testPlanId", "publicToken" FROM "TestSuite" WHERE title LIKE ? OR "testPlanId" LIKE ? AND "deletedAt" IS NULL LIMIT 5`, [like, like]) as any[];
   for (const suite of suites) {
     results.push({
       id: `suite-${suite.id}`,
       code: codeFromId("SUITE", Number(suite.id)),
       label: String(suite.title ?? ""),
       sublabel: String(suite.testPlanId ?? ""),
-      href: `/test-suites/execute/${suite.id}`,
+      href: `/test-suites/execute/${suite.publicToken}`,
       type: "Test Suite",
     });
   }
 
-  const plans = await db.query(`SELECT id, code, title, status FROM "TestPlan" WHERE title LIKE ? OR code LIKE ? AND "deletedAt" IS NULL LIMIT 5`, [like, like]) as any[];
+  const plans = await db.query(`SELECT id, code, title, status, "publicToken" FROM "TestPlan" WHERE title LIKE ? OR code LIKE ? AND "deletedAt" IS NULL LIMIT 5`, [like, like]) as any[];
   for (const p of plans) {
-    results.push({ id: `plan-${p.id}`, code: String(p.code || codeFromId("PLAN", Number(p.id))), label: p.title, sublabel: p.status, href: "/test-plans", type: "Test Plan" });
+    results.push({ id: `plan-${p.id}`, code: String(p.code || codeFromId("PLAN", Number(p.id))), label: p.title, sublabel: p.status, href: `/test-plans/${p.publicToken}`, type: "Test Plan" });
   }
 
   return NextResponse.json({ results: results.slice(0, 12) });

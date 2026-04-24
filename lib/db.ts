@@ -1,3 +1,5 @@
+import { randomBytes } from "crypto";
+
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const isPostgres = !!databaseUrl.startsWith("postgres");
 const useSqlite = !isPostgres;
@@ -85,10 +87,11 @@ const tables = [
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
-  {
-    name: "TestCase",
-    schema: `
+    {
+      name: "TestCase",
+      schema: `
       id SERIAL_OR_PK,
+      publicToken TEXT NOT NULL DEFAULT '',
       testSuiteId TEXT NOT NULL DEFAULT '',
       tcId TEXT NOT NULL,
       typeCase TEXT NOT NULL,
@@ -99,6 +102,8 @@ const tables = [
       actualResult TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'Pending',
       automationResult TEXT,
+      evidence TEXT,
+      priority TEXT DEFAULT 'Medium',
       lastRunAt TEXT,
       relatedItems TEXT DEFAULT '',
       deletedAt DATE_TYPE,
@@ -211,11 +216,11 @@ const tables = [
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
-  {
-    name: "TestPlan",
-    schema: `
+    {
+      name: "TestPlan",
+      schema: `
       id SERIAL_OR_PK,
-      code TEXT NOT NULL DEFAULT '',
+      publicToken TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
       project TEXT NOT NULL,
       sprint TEXT NOT NULL,
@@ -262,17 +267,19 @@ const tables = [
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
-  {
-    name: "TestSuite",
-    schema: `
-      id SERIAL_OR_PK,
-      testPlanId TEXT NOT NULL DEFAULT '',
-      title TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'draft',
-      notes TEXT,
-      deletedAt DATE_TYPE,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    {
+      name: "TestSuite",
+      schema: `
+        id SERIAL_OR_PK,
+        publicToken TEXT NOT NULL DEFAULT '',
+        testPlanId TEXT NOT NULL DEFAULT '',
+        title TEXT NOT NULL,
+        assignee TEXT,
+        status TEXT NOT NULL DEFAULT 'draft',
+        notes TEXT,
+        deletedAt DATE_TYPE,
+        createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
   {
@@ -443,6 +450,29 @@ async function applyMissingColumns() {
   }
 }
 
+async function backfillPublicTokens() {
+  const tablesToFill = [
+    { table: "TestPlan", column: "publicToken" },
+    { table: "TestSuite", column: "publicToken" },
+    { table: "TestCase", column: "publicToken" },
+  ];
+  for (const { table, column } of tablesToFill) {
+    if (useSqlite) {
+      const sqlite = await getSqlite();
+      const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE COALESCE(${column}, '') = ''`).all() as Array<{ id: string | number }>;
+      for (const row of rows) {
+        sqlite.prepare(`UPDATE "${table}" SET ${column} = ? WHERE id = ?`).run(randomBytes(8).toString("base64url"), row.id);
+      }
+    } else {
+      const pool = await getPostgresPool();
+      const rows = await pool.query(`SELECT id FROM "${table}" WHERE COALESCE(${column}, '') = ''`);
+      for (const row of rows.rows as Array<{ id: string | number }>) {
+        await pool.query(`UPDATE "${table}" SET ${column} = $1 WHERE id = $2`, [randomBytes(8).toString("base64url"), row.id]);
+      }
+    }
+  }
+}
+
 async function ensureSchema() {
   if (typeof window !== 'undefined') return;
   if (!schemaInitPromise) {
@@ -455,6 +485,7 @@ async function ensureSchema() {
         }
         
         await applyMissingColumns();
+        await backfillPublicTokens();
       } catch (err) {
         schemaInitPromise = null;
         if (databaseUrl || useSqlite) {

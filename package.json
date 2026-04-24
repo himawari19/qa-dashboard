@@ -11,6 +11,7 @@
     "lint": "eslint",
     "db:init": "tsx prisma/init-db.ts",
     "db:migrate:test-structure": "tsx scripts/migrate-test-structure.ts",
+    "db:compact:test-ids": "tsx scripts/compact-test-ids.ts",
     "db:seed": "tsx scripts/seed-saucedemo.ts",
     "db:backup": "node scripts/backup-db.js"
   },

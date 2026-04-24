@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { getTestSuite } from "@/lib/data";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,8 +26,11 @@ export async function POST(request: NextRequest) {
       [testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status]
     );
 
-    revalidatePath("/test-case-management");
-    revalidatePath(`/test-case-management/${testSuiteId}`);
+    revalidatePath("/test-cases");
+    const suite = await getTestSuite(testSuiteId);
+    if (suite && (suite as Record<string, unknown>).publicToken) {
+      revalidatePath(`/test-suites/execute/${String((suite as Record<string, unknown>).publicToken)}`);
+    }
 
     return NextResponse.json({ message: "Test case berhasil ditambahkan." });
   } catch (error) {
@@ -47,9 +51,12 @@ export async function DELETE(request: NextRequest) {
     const tc = await db.get('SELECT "testSuiteId" FROM "TestCase" WHERE id = ?', [id]) as { testSuiteId?: string };
     await db.run('UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?', [id]);
 
-    revalidatePath("/test-case-management");
+    revalidatePath("/test-cases");
     if (tc && tc.testSuiteId) {
-      revalidatePath(`/test-case-management/${tc.testSuiteId}`);
+      const suite = await getTestSuite(tc.testSuiteId);
+      if (suite && (suite as Record<string, unknown>).publicToken) {
+        revalidatePath(`/test-suites/execute/${String((suite as Record<string, unknown>).publicToken)}`);
+      }
     }
 
     return NextResponse.json({ message: "Test case berhasil dihapus." });
@@ -77,7 +84,7 @@ export async function PUT(request: NextRequest) {
       }
     }
     
-    revalidatePath("/test-case-management");
+    revalidatePath("/test-cases");
     
     return NextResponse.json({ message: "Eksekusi berhasil disimpan!" });
   } catch (error) {

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    revalidatePath("/test-case-management");
+    revalidatePath("/test-cases");
     revalidatePath("/reports");
 
     return NextResponse.json({

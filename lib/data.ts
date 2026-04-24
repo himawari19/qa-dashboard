@@ -1,6 +1,11 @@
 import { db } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
+import { randomBytes } from "crypto";
+
+export function makePublicToken() {
+  return randomBytes(8).toString("base64url");
+}
 
 export function normalizeTestCaseScenarioRow(item: Record<string, unknown>) {
   const id = String(item.id ?? "");
@@ -26,7 +31,8 @@ export function normalizeTestPlanRow(item: Record<string, unknown>) {
   return {
     ...item,
     id: String(item.id ?? ""),
-    code: String(item.code ?? ""),
+    code: String(item.code && String(item.code).trim() ? item.code : ""),
+    publicToken: String(item.publicToken ?? ""),
   };
 }
 
@@ -37,6 +43,7 @@ export function normalizeTestSuiteRow(item: Record<string, unknown>) {
     testPlanId: String(item.testPlanId ?? ""),
     title: String(item.title ?? ""),
     status: String(item.status ?? ""),
+    publicToken: String(item.publicToken ?? ""),
   };
 }
 
@@ -45,6 +52,7 @@ export function normalizeTestCaseRow(item: Record<string, unknown>) {
     ...item,
     id: Number(item.id ?? 0),
     testSuiteId: String(item.testSuiteId ?? item.scenarioId ?? ""),
+    publicToken: String(item.publicToken ?? ""),
   };
 }
 
@@ -302,11 +310,18 @@ export async function getExecutiveData() {
 export async function getModuleRows(module: ModuleKey) {
   switch (module) {
     case "test-plans":
-      return (await selectAll('SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map(normalizeTestPlanRow);
+      return (await selectAll('SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item, index) => {
+        const normalized = normalizeTestPlanRow(item);
+        return {
+          ...normalized,
+          code: codeFromId("PLAN", index + 1),
+          publicToken: normalized.publicToken || "",
+        };
+      });
     case "test-sessions":
       return await selectAll('SELECT * FROM "TestSession" ORDER BY "updatedAt" DESC');
     case "test-cases":
-      return (await selectAll('SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map(normalizeTestCaseRow);
+      return (await selectAll('SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => normalizeTestCaseRow(item));
     case "bugs":
       return await selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC');
     case "tasks":
@@ -322,9 +337,9 @@ export async function getModuleRows(module: ModuleKey) {
     case "env-config":
       return await selectAll('SELECT * FROM "EnvConfig" ORDER BY "updatedAt" DESC');
     case "test-suites":
-      return (await selectAll('SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => ({
+      return (await selectAll('SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item, index) => ({
         ...normalizeTestSuiteRow(item),
-        code: codeFromId("SUITE", Number(item.id)),
+        code: codeFromId("SUITE", index + 1),
       }));
     case "sql-snippets":
       return (await selectAll('SELECT * FROM "SqlSnippet" ORDER BY "updatedAt" DESC')).map((item) => ({
@@ -343,11 +358,18 @@ export async function getModuleRows(module: ModuleKey) {
 
 export async function createModuleRecord(module: ModuleKey, data: any) {
   switch (module) {
+    case "test-plans": {
+      return await runInsert(
+        `INSERT INTO "TestPlan" ("publicToken", title, project, sprint, scope, status, "startDate", "endDate", notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? ""]
+      );
+    }
     case "test-cases":
       return await runInsert(
-        `INSERT INTO "TestCase" ("testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status]
+        `INSERT INTO "TestCase" ("publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", status, evidence, priority)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.publicToken || makePublicToken(), data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
     case "bugs":
       const lastDev = await db.get('SELECT suggestedDev FROM "Bug" WHERE module = ? ORDER BY id DESC LIMIT 1', [data.module]) as any;
@@ -381,12 +403,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [data.envName, data.label, data.url, data.username, data.password, data.notes]
       );
-    case "test-plans":
-      return await runInsert(
-        `INSERT INTO "TestPlan" (code, title, project, sprint, scope, status, "startDate", "endDate", assignee, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.code ?? "", data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.assignee, data.notes]
-      );
+
     case "test-sessions":
       return await runInsert(
         `INSERT INTO "TestSession" (date, project, sprint, tester, scope, "totalCases", passed, failed, blocked, result, notes, evidence)
@@ -401,9 +418,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
     case "test-suites":
       return await runInsert(
-        `INSERT INTO "TestSuite" ("testPlanId", title, status, notes)
-         VALUES (?, ?, ?, ?)`,
-        [data.testPlanId, data.title, data.status, data.notes],
+        `INSERT INTO "TestSuite" ("publicToken", "testPlanId", title, assignee, status, notes)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes],
       );
     case "sql-snippets":
       return await runInsert(
@@ -446,9 +463,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "test-plans":
       return await db.run(
         `UPDATE "TestPlan"
-         SET code = ?, title = ?, project = ?, sprint = ?, scope = ?, startDate = ?, endDate = ?, assignee = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         SET title = ?, project = ?, sprint = ?, scope = ?, startDate = ?, endDate = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [data.code ?? "", data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.assignee, data.status, data.notes, id]
+        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, id]
       );
     case "test-sessions":
       return await db.run(
@@ -479,11 +496,19 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, id]
       );
     case "test-suites":
+      const suitePlanId = String(data.testPlanId ?? "");
       return await db.run(
         `UPDATE "TestSuite"
-         SET "testPlanId" = ?, title = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
+         SET "testPlanId" = ?, title = ?, assignee = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [data.testPlanId, data.title, data.status, data.notes, id]
+        [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id]
+      );
+    case "test-cases":
+      return await db.run(
+        `UPDATE "TestCase"
+         SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, status = ?, evidence = ?, priority = ?, updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id]
       );
      case "sql-snippets":
       return await db.run(
@@ -532,7 +557,7 @@ export async function replaceModuleRecords(module: ModuleKey, rows: any[]) {
 }
 
 export async function getTestCaseScenario(id: string) {
-  const item = await db.get('SELECT * FROM "TestCase" WHERE id = ? AND "deletedAt" IS NULL', [id]) as Record<string, unknown> | undefined;
+  const item = await db.get('SELECT * FROM "TestCase" WHERE "publicToken" = ? AND "deletedAt" IS NULL', [id]) as Record<string, unknown> | undefined;
   if (!item) return null;
 
   return normalizeTestCaseRow(item);
@@ -557,6 +582,36 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
     return await db.run(`UPDATE "${tableName}" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`, [id]);
   }
   return await db.run(`DELETE FROM "${tableName}" WHERE id = ?`, [id]);
+}
+
+export async function getTestCaseByToken(token: string) {
+  const item = await db.get(
+    'SELECT * FROM "TestCase" WHERE ("publicToken" = ? OR CAST(id AS TEXT) = ?) AND "deletedAt" IS NULL',
+    [token, token],
+  ) as Record<string, unknown> | undefined;
+  return item ? normalizeTestCaseRow(item) : null;
+}
+
+export async function getTestSuiteByToken(token: string) {
+  const item = await db.get(
+    'SELECT * FROM "TestSuite" WHERE ("publicToken" = ? OR CAST(id AS TEXT) = ?) AND "deletedAt" IS NULL',
+    [token, token],
+  ) as Record<string, unknown> | undefined;
+  return item ? normalizeTestSuiteRow(item) : null;
+}
+
+export async function getTestPlanByToken(token: string) {
+  const item = await db.get(
+    'SELECT * FROM "TestPlan" WHERE ("publicToken" = ? OR CAST(id AS TEXT) = ?) AND "deletedAt" IS NULL',
+    [token, token],
+  ) as Record<string, unknown> | undefined;
+  if (!item) return null;
+  return normalizeTestPlanRow(item);
+}
+
+export async function getTestSuitesByPlanId(planId: string) {
+  const rows = await selectAll('SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL ORDER BY "updatedAt" DESC', [planId]);
+  return rows.map(item => normalizeTestSuiteRow(item));
 }
 
 export async function logActivity(entityType: string, entityId: string | number, action: string, summary: string) {
@@ -613,7 +668,7 @@ export async function getQualityTrend() {
 export async function getTestSuite(id: string | number) {
   const item = await db.get('SELECT * FROM "TestSuite" WHERE id = ? AND "deletedAt" IS NULL', [id]) as Record<string, unknown> | undefined;
   if (!item) return null;
-  return { ...item, code: codeFromId("SUITE", Number(id)) };
+  return { ...item, code: String(item.code && String(item.code).trim() ? item.code : codeFromId("SUITE", Number(id))) };
 }
 
 export async function getTestCasesByIdStrings(idStrings: string) {

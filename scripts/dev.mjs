@@ -60,6 +60,7 @@ const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev",
   env: {
     ...process.env,
     PORT: String(port),
+    NODE_OPTIONS: `${process.env.NODE_OPTIONS ? `${process.env.NODE_OPTIONS} ` : ""}--no-warnings`,
   },
 });
 
