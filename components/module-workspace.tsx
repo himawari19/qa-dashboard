@@ -118,7 +118,11 @@ export function ModuleWorkspace({
     if (!form) return;
     for (const [key, value] of Object.entries(initialFormValues)) {
       const input = form.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
-      if (input && !input.value) input.value = value;
+      if (input && !input.value) {
+        input.value = value;
+        // Sync select values for custom selects
+        setSelectValues(prev => ({ ...prev, [key]: value }));
+      }
     }
   }, [showForm, initialFormValues, module]);
 
