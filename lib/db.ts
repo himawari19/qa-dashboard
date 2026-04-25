@@ -181,9 +181,9 @@ type SqliteDatabase = {
 };
 
 function normalizePostgresQuery(queryStr: string) {
-  // Postgres with quoted identifiers is case-sensitive. 
-  // We should keep the quotes and the casing as defined in our schema.
-  return queryStr;
+  // Strip quotes to let Postgres handle identifiers case-insensitively (lowercasing them automatically)
+  // This ensures compatibility even if tables were created as lowercase.
+  return queryStr.replace(/"/g, "");
 }
 
 function toPostgresQuery(queryStr: string) {
@@ -269,7 +269,7 @@ async function applyMissingColumns() {
     const rawColumn = def.slice(0, firstSpace).trim();
     const columnType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
     try {
-      await pool.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${rawColumn}" ${columnType}`);
+      await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${rawColumn}" ${columnType}`));
     } catch {
       // keep startup resilient
     }
@@ -291,9 +291,9 @@ async function backfillPublicTokens() {
       }
     } else {
       const pool = await getPostgresPool();
-      const rows = await pool.query(`SELECT id FROM "${table}" WHERE COALESCE(${column}, '') = ''`);
+      const rows = await pool.query(toPostgresQuery(`SELECT id FROM "${table}" WHERE COALESCE("${column}", '') = ''`));
       for (const row of rows.rows as Array<{ id: string | number }>) {
-        await pool.query(`UPDATE "${table}" SET ${column} = $1 WHERE id = $2`, [randomBytes(8).toString("base64url"), row.id]);
+        await pool.query(toPostgresQuery(`UPDATE "${table}" SET "${column}" = $1 WHERE id = $2`), [randomBytes(8).toString("base64url"), row.id]);
       }
     }
   }
@@ -363,7 +363,7 @@ export const db = {
       const statements = queryStr.split(';').filter(s => s.trim());
       for (const s of statements) {
         try {
-          await pool.query(s);
+          await pool.query(toPostgresQuery(s));
         } catch (err: unknown) {
           if (
             typeof err === "object" &&
