@@ -214,10 +214,7 @@ const suiteSchema = z.object({
 const meetingNoteSchema = z.object({
   date: z.string().min(1, "Date is required"),
   project: requiredText("Project"),
-  title: requiredText("Meeting Title"),
-  attendees: optionalText,
-  content: requiredText("Meeting Content"),
-  actionItems: optionalText,
+  title: requiredText("Meeting Notes"),
 });
 
 function normalizeEntry(entry: Record<string, string>) {
@@ -513,26 +510,17 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Date: item.date ? new Date(String(item.date)).toISOString().slice(0, 10) : "",
       Project: String(item.project),
       Title: String(item.title),
-      Attendees: String(item.attendees),
-      Content: String(item.content),
-      "Action Items": String(item.actionItems),
     }),
     fields: [
       { name: "date", label: "Date", kind: "date", required: true },
-      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Mobile App", required: true },
-      { name: "title", label: "Meeting Title", kind: "text", placeholder: "e.g. Daily Standup", required: true },
-      { name: "attendees", label: "Attendees", kind: "text", placeholder: "e.g. Wahyu, Budi, Siti" },
-      { name: "content", label: "Meeting Content", kind: "textarea", placeholder: "Key discussion points...", required: true },
-      { name: "actionItems", label: "Action Items", kind: "textarea", placeholder: "Tasks to follow up on..." },
+      { name: "project", label: "Project Name", kind: "select", options: [], required: true },
+      { name: "title", label: "Meeting Notes", kind: "textarea", placeholder: "Key discussion points and outcomes...", required: true },
     ],
     columns: [
       { key: "code", label: "ID" },
       { key: "date", label: "Date" },
       { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
-      { key: "title", label: "Meeting Title" },
-      { key: "attendees", label: "Attendees" },
-      { key: "content", label: "Content", multiline: true },
-      { key: "actionItems", label: "Action Items", multiline: true },
+      { key: "title", label: "Meeting Notes", multiline: true },
     ],
   },
 };

@@ -146,6 +146,16 @@ export function ModernDatePicker({
               );
             })}
           </div>
+
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <button
+              type="button"
+              onClick={() => handleSelect(new Date())}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-slate-50 py-2 text-xs font-bold text-sky-700 transition hover:bg-sky-50"
+            >
+              Today (Now)
+            </button>
+          </div>
         </div>
       )}
     </div>

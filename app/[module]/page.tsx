@@ -144,12 +144,14 @@ export default async function ModulePage({
         const group = groupedProj.get(key);
         return { ...row, projectRowSpan: group && group.start === index ? group.count : 0 };
       });
+    // Always fetch projects for modules that have a project select field
+    if (["meeting-notes", "tasks", "bugs"].includes(moduleKey)) {
+      const plans = await getModuleRows("test-plans");
+      const projects = Array.from(new Set(plans.map((p: any) => p.project).filter(Boolean)));
+      relatedOptions.project = projects.map(p => ({ value: String(p), label: String(p) }));
     }
-  } catch (error) {
-    console.error(`Failed to load module rows for ${moduleKey}:`, error);
-  }
 
-  const plainRows = JSON.parse(JSON.stringify(rows));
+    rows = JSON.parse(JSON.stringify(rows));
   const plainRelatedOptions = JSON.parse(JSON.stringify(relatedOptions));
 
   return (

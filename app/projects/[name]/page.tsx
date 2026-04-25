@@ -11,7 +11,8 @@ import {
   ListChecks, 
   CheckCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Note
 } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -159,6 +160,45 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         </section>
       </div>
+
+      {/* Meeting Notes Section */}
+      <section className="mt-10 mb-20">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-md bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-500">
+              <Note size={20} weight="bold" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Recent Meeting Notes</h2>
+          </div>
+          <Link href="/meeting-notes" className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
+            Documentation Center <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {(data.meetings as any[]).slice(0, 6).map((meet: any) => (
+            <div key={meet.id} className="group p-5 rounded-md border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-lg transition-all dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">{meet.code}</span>
+                <span className="text-xs font-bold text-slate-400">{meet.date ? new Date(meet.date).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 transition-colors line-clamp-2 min-h-[48px]">
+                {meet.title}
+              </h3>
+              <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50 flex justify-end">
+                <Link href="/meeting-notes" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500">
+                  Read Full Notes
+                </Link>
+              </div>
+            </div>
+          ))}
+          {(data.meetings as any[]).length === 0 && (
+            <div className="col-span-full py-10 text-center rounded-md border border-dashed border-slate-200 dark:border-slate-700">
+              <p className="text-sm text-slate-400">No meeting documentation found for this project.</p>
+            </div>
+          )}
+        </div>
+      </section>
     </PageShell>
   );
 }

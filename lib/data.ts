@@ -473,11 +473,12 @@ export async function getTestCasesByIdStrings(idStrings: string) {
 
 
 export async function getProjectData(projectName: string) {
-  const [plans, bugs, tasks, sessions] = await Promise.all([
+  const [plans, bugs, tasks, sessions, meetings] = await Promise.all([
     selectAll('SELECT * FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL', [projectName]),
     selectAll('SELECT * FROM "Bug" WHERE project = ?', [projectName]),
     selectAll('SELECT * FROM "Task" WHERE project = ?', [projectName]),
     selectAll('SELECT * FROM "TestSession" WHERE project = ?', [projectName]),
+    selectAll('SELECT * FROM "MeetingNote" WHERE project = ? AND "deletedAt" IS NULL ORDER BY "date" DESC', [projectName]),
   ]);
 
   // For stats, we need suites and cases too
@@ -505,6 +506,7 @@ export async function getProjectData(projectName: string) {
     bugs: bugs.map(b => ({ ...b, code: codeFromId('BUG', Number(b.id)) })),
     tasks: tasks.map(t => ({ ...t, code: codeFromId('TASK', Number(t.id)) })),
     sessions: sessions.map(s => ({ ...s, code: codeFromId('SES', Number(s.id)) })),
+    meetings: meetings.map(m => ({ ...m, code: codeFromId('MEET', Number(m.id)) })),
     stats: {
       totalPlans: plans.length,
       totalBugs: bugs.length,
