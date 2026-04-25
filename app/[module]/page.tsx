@@ -154,6 +154,23 @@ export default async function ModulePage({
       const uniqueProjects = Array.from(new Set(projectNames));
       relatedOptions.project = uniqueProjects.map(p => ({ value: String(p), label: String(p) }));
     }
+
+    // Always fetch Assignees for any module that has an assignee/tester/suggestedDev field
+    const team = await getModuleRows("assignees");
+    const teamOptions = team.map((member: any) => ({
+      value: String(member.name),
+      label: String(member.name),
+    }));
+
+    if (moduleKey === "test-suites") {
+      relatedOptions.assignee = teamOptions;
+    }
+    if (moduleKey === "test-sessions") {
+      relatedOptions.tester = teamOptions;
+    }
+    if (moduleKey === "bugs") {
+      relatedOptions.suggestedDev = teamOptions;
+    }
   } catch (error) {
     console.error(`Failed to load module rows for ${moduleKey}:`, error);
   }

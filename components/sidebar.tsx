@@ -52,6 +52,12 @@ const groups = [
       { href: "/meeting-notes", label: "Meeting Notes", icon: Note },
     ],
   },
+  {
+    title: "System Settings",
+    items: [
+      { href: "/assignees", label: "Assignees", icon: Wrench },
+    ],
+  },
 ];
 
 export function Sidebar({

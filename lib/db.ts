@@ -165,6 +165,18 @@ export const tables = [
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
+  },
+  {
+    name: "Assignee",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "name" TEXT NOT NULL,
+      "role" TEXT,
+      "email" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
   }
 ];
 

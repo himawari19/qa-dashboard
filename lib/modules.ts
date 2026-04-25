@@ -8,7 +8,8 @@ export type ModuleKey =
   | "test-plans"
   | "test-sessions"
   | "test-suites"
-  | "meeting-notes";
+  | "meeting-notes"
+  | "assignees";
 
 type Option = {
   label: string;
@@ -178,6 +179,7 @@ const testPlanSchema = z.object({
   startDate: z.string().optional().default(""),
   endDate: z.string().optional().default(""),
   status: z.enum(["draft", "active", "closed"]),
+  assignee: optionalText,
   notes: optionalText,
 });
 
@@ -212,9 +214,16 @@ const suiteSchema = z.object({
 });
 
 const meetingNoteSchema = z.object({
-  date: z.string().min(1, "Date is required"),
-  project: requiredText("Project"),
-  title: requiredText("Meeting Notes"),
+  "date": z.string().min(1, "Date is required"),
+  "project": requiredText("Project"),
+  "title": requiredText("Meeting Notes"),
+});
+
+const assigneeSchema = z.object({
+  name: requiredText("Full Name"),
+  role: optionalText,
+  email: z.string().trim().email("Invalid email format").optional().or(z.literal("")),
+  status: z.enum(["active", "inactive"]),
 });
 
 function normalizeEntry(entry: Record<string, string>) {
@@ -316,7 +325,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "severity", label: "Severity", kind: "select", options: severityOptions, required: true },
       { name: "priority", label: "Priority", kind: "select", options: priorityOptions, required: true },
       { name: "status", label: "Status", kind: "select", options: bugStatusOptions, required: true },
-      { name: "suggestedDev", label: "Suggested Dev", kind: "text", placeholder: "e.g. Backend Lead" },
+      { name: "suggestedDev", label: "Suggested Dev", kind: "select", options: [] },
       { name: "relatedItems", label: "Linked Items", kind: "textarea", rows: 2, placeholder: "e.g. Task #123" },
       { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/log-file" },
     ],
@@ -398,6 +407,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. CRM System", required: true },
       { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. Sprint 12", required: true },
+      { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "status", label: "Status", kind: "select", options: testPlanStatusOptions, required: true },
       { name: "startDate", label: "Start Date", kind: "date" },
       { name: "endDate", label: "End Date", kind: "date" },
@@ -440,7 +450,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "date", label: "Session Date", kind: "date", required: true },
       { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Web Dashboard", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. W42", required: true },
-      { name: "tester", label: "Tester", kind: "text", placeholder: "e.g. John Doe", required: true },
+      { name: "tester", label: "Tester", kind: "select", options: [], required: true },
       { name: "scope", label: "Modules Tested", kind: "textarea", rows: 3, placeholder: "e.g. Login, Profile, Settings", required: true },
       { name: "result", label: "Overall Result", kind: "select", options: sessionResultOptions, required: true },
       { name: "totalCases", label: "Total Cases", kind: "text", placeholder: "e.g. 45" },
@@ -481,7 +491,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     fields: [
       { name: "testPlanId", label: "Test Plan Name", kind: "select", options: [], required: true },
       { name: "title", label: "Test Suite Name", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
-      { name: "assignee", label: "Assignee", kind: "text", placeholder: "e.g. Alex, Sam" },
+      { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Draft", value: "draft" },
         { label: "Active", value: "active" },
@@ -523,6 +533,37 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "title", label: "Meeting Notes", multiline: true },
     ],
   },
+  assignees: {
+    title: "Team Members",
+    shortTitle: "Assignees",
+    description: "Manage the list of people who can be assigned to tasks and test suites.",
+    prefix: "USER",
+    sheetName: "Assignees",
+    schema: assigneeSchema,
+    coerce: (entry) => normalizeEntry(entry),
+    toRow: (item) => ({
+      ID: String(item.id),
+      Name: String(item.name),
+      Role: String(item.role ?? ""),
+      Email: String(item.email ?? ""),
+      Status: String(item.status),
+    }),
+    fields: [
+      { name: "name", label: "Full Name", kind: "text", placeholder: "e.g. John Doe", required: true },
+      { name: "role", label: "Role / Title", kind: "text", placeholder: "e.g. Senior QA Engineer" },
+      { name: "email", label: "Email Address", kind: "text", placeholder: "e.g. john@example.com" },
+      { name: "status", label: "Status", kind: "select", options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" },
+      ], required: true },
+    ],
+    columns: [
+      { key: "name", label: "Full Name" },
+      { key: "role", label: "Role / Title" },
+      { key: "email", label: "Email Address" },
+      { key: "status", label: "Status", tone: "status" },
+    ],
+  },
 };
 
 export const moduleOrder: ModuleKey[] = [
@@ -533,6 +574,7 @@ export const moduleOrder: ModuleKey[] = [
   "test-sessions",
   "test-suites",
   "meeting-notes",
+  "assignees",
 ];
 
 export const moduleLabels = Object.fromEntries(

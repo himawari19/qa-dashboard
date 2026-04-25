@@ -13,6 +13,7 @@ export function normalizeTestPlanRow(item: Record<string, unknown>) {
     id: String(item.id ?? ""),
     code: String(item.code && String(item.code).trim() ? item.code : ""),
     publicToken: String(item.publicToken ?? ""),
+    assignee: String(item.assignee ?? ""),
   };
 }
 
@@ -53,6 +54,8 @@ export function getTableName(module: ModuleKey) {
       return "TestSession";
     case "test-suites":
       return "TestSuite";
+    case "assignees":
+      return "Assignee";
     default:
       console.warn(`getTableName: unhandled module key: ${module}`);
       return "";
@@ -324,9 +327,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
   switch (module) {
     case "test-plans": {
       return await runInsert(
-        `INSERT INTO "TestPlan" ("publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? ""]
+        `INSERT INTO "TestPlan" ("publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
       );
     }
     case "test-cases":
@@ -361,6 +364,12 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
       );
+    case "assignees":
+      return await runInsert(
+        `INSERT INTO "Assignee" ("name", "role", "email", "status")
+         VALUES (?, ?, ?, ?)`,
+        [data.name, data.role ?? "", data.email ?? "", data.status]
+      );
     default:
       return null;
   }
@@ -385,9 +394,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "test-plans":
       return await db.run(
         `UPDATE "TestPlan"
-         SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = ?`,
-        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, id]
+        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id]
       );
     case "test-sessions":
       return await db.run(
@@ -399,17 +408,24 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "test-cases":
       return await db.run(
         `UPDATE "TestCase"
-         SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, status = ?, evidence = ?, priority = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+         SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?`,
         [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id]
       );
     case "test-suites":
       const suitePlanId = String(data.testPlanId ?? "");
       return await db.run(
         `UPDATE "TestSuite"
-         SET "testPlanId" = ?, title = ?, assignee = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+         SET "testPlanId" = ?, "title" = ?, "assignee" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?`,
         [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id]
+      );
+    case "assignees":
+      return await db.run(
+        `UPDATE "Assignee"
+         SET "name" = ?, "role" = ?, "email" = ?, "status" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?`,
+        [data.name, data.role ?? "", data.email ?? "", data.status, id]
       );
     default:
       return null;
