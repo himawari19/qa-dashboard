@@ -181,7 +181,9 @@ type SqliteDatabase = {
 };
 
 function normalizePostgresQuery(queryStr: string) {
-  return queryStr.replace(/"([a-z][a-zA-Z0-9_]*)"/g, (_, identifier: string) => identifier.toLowerCase());
+  // Postgres with quoted identifiers is case-sensitive. 
+  // We should keep the quotes and the casing as defined in our schema.
+  return queryStr;
 }
 
 function toPostgresQuery(queryStr: string) {
@@ -267,7 +269,7 @@ async function applyMissingColumns() {
     const rawColumn = def.slice(0, firstSpace).trim();
     const columnType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
     try {
-      await pool.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS ${rawColumn.toLowerCase()} ${columnType}`);
+      await pool.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${rawColumn}" ${columnType}`);
     } catch {
       // keep startup resilient
     }
