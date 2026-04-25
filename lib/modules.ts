@@ -5,16 +5,9 @@ export type ModuleKey =
   | "tasks"
   | "bugs"
   | "test-cases"
-  | "meeting-notes"
-  | "daily-logs"
-  | "api-testing"
-  | "performance"
-  | "env-config"
   | "test-plans"
   | "test-sessions"
-  | "test-suites"
-  | "sql-snippets"
-  | "testing-assets";
+  | "test-suites";
 
 type Option = {
   label: string;
@@ -104,12 +97,6 @@ const bugStatusOptions: Option[] = [
   ["Rejected", "rejected"],
 ].map(([label, value]) => ({ label, value }));
 
-const testStatusOptions: Option[] = [
-  ["Draft", "draft"],
-  ["Active", "active"],
-  ["Obsolete", "obsolete"],
-].map(([label, value]) => ({ label, value }));
-
 const taskCategoryOptions: Option[] = [
   ["Testing", "testing"],
   ["Follow-up", "follow-up"],
@@ -134,13 +121,6 @@ const bugTypeOptions: Option[] = [
   "Security",
   "Compatibility",
 ].map((value) => ({ label: value, value }));
-
-const testTypeOptions: Option[] = [
-  ["Positive", "positive"],
-  ["Negative", "negative"],
-].map(([label, value]) => ({ label, value }));
-
-const apiMethodOptions: Option[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"].map(v => ({ label: v, value: v }));
 
 const taskSchema = z.object({
   title: requiredText("Title"),
@@ -180,59 +160,6 @@ const testCaseSchema = z.object({
   expectedResult: requiredText("Expected Result"),
   actualResult: optionalText,
   status: z.enum(["Pending", "Passed", "Failed", "Blocked"]),
-});
-
-const meetingSchema = z.object({
-  date: z.string().min(1, "Date is required"),
-  title: requiredText("Title"),
-  project: requiredText("Project"),
-  participants: requiredText("Participants"),
-  summary: requiredText("Summary"),
-  decisions: requiredText("Decisions"),
-  actionItems: requiredText("Action Items"),
-  notes: optionalText,
-  evidence: urlField,
-});
-
-const dailyLogSchema = z.object({
-  date: z.string().min(1, "Date is required"),
-  project: requiredText("Project"),
-  whatTested: requiredText("What Tested"),
-  issuesFound: requiredText("Issues Found"),
-  progressSummary: requiredText("Progress Summary"),
-  blockers: optionalText,
-  nextPlan: requiredText("Next Plan"),
-  notes: optionalText,
-  evidence: urlField,
-});
-
-const apiInventorySchema = z.object({
-  title: requiredText("Title"),
-  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"]),
-  endpoint: requiredText("Endpoint"),
-  payload: optionalText,
-  response: optionalText,
-  notes: optionalText,
-});
-
-const performanceSchema = z.object({
-  date: z.string().min(1, "Date is required"),
-  title: requiredText("Test Name"),
-  targetUrl: urlField,
-  loadTime: z.string().optional().default(""),
-  score: z.string().optional().default(""),
-  notes: optionalText,
-});
-
-const envOptions: Option[] = ["Dev", "Staging", "UAT", "Production"].map(v => ({ label: v, value: v }));
-
-const envConfigSchema = z.object({
-  envName: z.enum(["Dev", "Staging", "UAT", "Production"]),
-  label: requiredText("Label"),
-  url: urlField,
-  username: optionalText,
-  password: optionalText,
-  notes: optionalText,
 });
 
 const testPlanStatusOptions: Option[] = [
@@ -283,21 +210,6 @@ const suiteSchema = z.object({
   status: z.enum(["draft", "active", "archived"]),
 });
 
-const sqlSnippetSchema = z.object({
-  title: requiredText("Snippet Title"),
-  project: requiredText("Project"),
-  query: requiredText("SQL Query"),
-  notes: optionalText,
-});
-
-const testingAssetSchema = z.object({
-  title: requiredText("Asset Title"),
-  project: requiredText("Project"),
-  url: requiredText("Asset URL / Cloud Link"),
-  type: z.enum(["apk", "ipa", "pdf", "csv", "img", "other"]),
-  notes: optionalText,
-});
-
 function normalizeEntry(entry: Record<string, string>) {
   return Object.fromEntries(
     Object.entries(entry).map(([key, value]) => [key, normalizeMultiline(value ?? "")]),
@@ -333,22 +245,22 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Evidence: String(item.evidence),
     }),
     fields: [
-      { name: "title", label: "Title", kind: "text", required: true },
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "relatedFeature", label: "Feature", kind: "text", required: true },
+      { name: "title", label: "Title", kind: "text", placeholder: "e.g. Verify Login Validation", required: true },
+      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. E-Commerce Platform", required: true },
+      { name: "relatedFeature", label: "Feature", kind: "text", placeholder: "e.g. Authentication Module", required: true },
       { name: "category", label: "Category", kind: "select", options: taskCategoryOptions, required: true },
       { name: "status", label: "Status", kind: "select", options: taskStatusOptions, required: true },
       { name: "priority", label: "Priority", kind: "select", options: priorityOptions, required: true },
       { name: "dueDate", label: "Due Date", kind: "date" },
-      { name: "description", label: "Description", kind: "textarea", rows: 4, required: true },
-      { name: "relatedItems", label: "Linked Items", kind: "textarea", rows: 2 },
-      { name: "notes", label: "Notes", kind: "textarea", rows: 3 },
-      { name: "evidence", label: "Evidence", kind: "url" },
+      { name: "description", label: "Description", kind: "textarea", placeholder: "Provide details about the task...", required: true },
+      { name: "relatedItems", label: "Linked Items", kind: "textarea", placeholder: "Mention related BUG IDs or Task IDs..." },
+      { name: "notes", label: "Notes", kind: "textarea", placeholder: "Any additional context..." },
+      { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/screenshot" },
     ],
     columns: [
       { key: "code", label: "ID" },
       { key: "title", label: "Title" },
-      { key: "project", label: "Project Name" },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "relatedFeature", label: "Feature" },
       { key: "category", label: "Category" },
       { key: "status", label: "Status", tone: "status" },
@@ -386,24 +298,24 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Evidence: String(item.evidence),
     }),
     fields: [
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "module", label: "Module", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Mobile App", required: true },
+      { name: "module", label: "Module", kind: "text", placeholder: "e.g. Checkout", required: true },
       { name: "bugType", label: "Bug Type", kind: "select", options: bugTypeOptions, required: true },
-      { name: "title", label: "Title", kind: "text", required: true },
-      { name: "preconditions", label: "Preconditions", kind: "textarea", rows: 3, required: true },
-      { name: "stepsToReproduce", label: "Steps to Reproduce", kind: "textarea", rows: 5, required: true },
-      { name: "expectedResult", label: "Expected Result", kind: "textarea", rows: 4, required: true },
-      { name: "actualResult", label: "Actual Result", kind: "textarea", rows: 4, required: true },
+      { name: "title", label: "Title", kind: "text", placeholder: "e.g. App crashes when clicking Pay", required: true },
+      { name: "preconditions", label: "Preconditions", kind: "textarea", placeholder: "e.g. User is logged in and cart has items", required: true },
+      { name: "stepsToReproduce", label: "Steps to Reproduce", kind: "textarea", placeholder: "1. Open app\n2. Add item\n3. Click pay", required: true },
+      { name: "expectedResult", label: "Expected Result", kind: "textarea", placeholder: "Payment should be processed", required: true },
+      { name: "actualResult", label: "Actual Result", kind: "textarea", placeholder: "App shows white screen", required: true },
       { name: "severity", label: "Severity", kind: "select", options: severityOptions, required: true },
       { name: "priority", label: "Priority", kind: "select", options: priorityOptions, required: true },
       { name: "status", label: "Status", kind: "select", options: bugStatusOptions, required: true },
-      { name: "suggestedDev", label: "Suggested Dev", kind: "text" },
-      { name: "relatedItems", label: "Linked Items", kind: "textarea", rows: 2 },
-      { name: "evidence", label: "Evidence", kind: "url" },
+      { name: "suggestedDev", label: "Suggested Dev", kind: "text", placeholder: "e.g. Backend Lead" },
+      { name: "relatedItems", label: "Linked Items", kind: "textarea", rows: 2, placeholder: "e.g. Task #123" },
+      { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/log-file" },
     ],
     columns: [
       { key: "code", label: "ID" },
-      { key: "project", label: "Project Name" },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "module", label: "Module" },
       { key: "bugType", label: "Bug Type" },
       { key: "title", label: "Title" },
@@ -441,13 +353,13 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "testSuiteId", label: "Test Suite ID", kind: "select", options: [], required: true },
-      { name: "tcId", label: "TC ID", kind: "text", required: true },
-      { name: "caseName", label: "Case Name", kind: "text", required: true },
+      { name: "tcId", label: "TC ID", kind: "text", placeholder: "e.g. TC-001", required: true },
+      { name: "caseName", label: "Case Name", kind: "text", placeholder: "e.g. Valid Login", required: true },
       { name: "typeCase", label: "Type Case", kind: "select", options: [{ label: "Positive", value: "Positive" }, { label: "Negative", value: "Negative" }], required: true },
-      { name: "preCondition", label: "Pre-condition", kind: "textarea", rows: 3, required: true },
-      { name: "testStep", label: "Test Step", kind: "textarea", rows: 4, required: true },
-      { name: "expectedResult", label: "Expected Result", kind: "textarea", rows: 3, required: true },
-      { name: "actualResult", label: "Actual Result", kind: "textarea", rows: 3 },
+      { name: "preCondition", label: "Pre-condition", kind: "textarea", placeholder: "e.g. Database is clean", required: true },
+      { name: "testStep", label: "Test Step", kind: "textarea", placeholder: "1. Input user\n2. Click OK", required: true },
+      { name: "expectedResult", label: "Expected Result", kind: "textarea", placeholder: "Should see Dashboard", required: true },
+      { name: "actualResult", label: "Actual Result", kind: "textarea", placeholder: "Observed behavior during run" },
       { name: "status", label: "Status", kind: "select", options: [{ label: "Pending", value: "Pending" }, { label: "Passed", value: "Passed" }, { label: "Failed", value: "Failed" }, { label: "Blocked", value: "Blocked" }], required: true },
     ],
     columns: [
@@ -456,211 +368,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "passed", label: "Passed" },
       { key: "failed", label: "Failed" },
       { key: "total", label: "Total" },
-    ],
-  },
-  "meeting-notes": {
-    title: "Meeting Notes",
-    shortTitle: "Meetings",
-    description: "Capture meeting decisions, actions, and owners in one place.",
-    prefix: "MTG",
-    sheetName: "Meeting Notes",
-    schema: meetingSchema,
-    coerce: (entry) => {
-      const clean = normalizeEntry(entry);
-      return {
-        ...clean,
-        date: new Date(clean.date),
-      };
-    },
-    toRow: (item) => ({
-      ID: codeFromId("MTG", Number(item.id)),
-      Date: new Date(String(item.date)).toISOString().slice(0, 10),
-      Title: String(item.title),
-      Project: String(item.project),
-      Participants: String(item.participants),
-      Summary: String(item.summary),
-      Decisions: String(item.decisions),
-      "Action Items": String(item.actionItems),
-      Notes: String(item.notes),
-      Evidence: String(item.evidence),
-    }),
-    fields: [
-      { name: "date", label: "Date", kind: "date", required: true },
-      { name: "title", label: "Title", kind: "text", required: true },
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "participants", label: "Participants", kind: "text", required: true },
-      { name: "summary", label: "Summary", kind: "textarea", rows: 4, required: true },
-      { name: "decisions", label: "Decisions", kind: "textarea", rows: 4, required: true },
-      { name: "actionItems", label: "Action Items", kind: "textarea", rows: 5, required: true },
-      { name: "notes", label: "Notes", kind: "textarea", rows: 3 },
-      { name: "evidence", label: "Evidence", kind: "url" },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "date", label: "Date" },
-      { key: "title", label: "Title" },
-      { key: "project", label: "Project Name" },
-      { key: "participants", label: "Participants" },
-      { key: "summary", label: "Summary", multiline: true },
-      { key: "decisions", label: "Decisions", multiline: true },
-      { key: "actionItems", label: "Action Items", multiline: true },
-      { key: "notes", label: "Notes", multiline: true },
-      { key: "evidence", label: "Evidence", link: true },
-    ],
-  },
-  "daily-logs": {
-    title: "Daily Log",
-    shortTitle: "Daily Log",
-    description: "Daily testing summary, blockers, and next steps.",
-    prefix: "LOG",
-    sheetName: "Daily Log",
-    schema: dailyLogSchema,
-    coerce: (entry) => {
-      const clean = normalizeEntry(entry);
-      return {
-        ...clean,
-        date: new Date(clean.date),
-      };
-    },
-    toRow: (item) => ({
-      ID: codeFromId("LOG", Number(item.id)),
-      Date: new Date(String(item.date)).toISOString().slice(0, 10),
-      Project: String(item.project),
-      "What Tested": String(item.whatTested),
-      "Issues Found": String(item.issuesFound),
-      "Progress Summary": String(item.progressSummary),
-      Blockers: String(item.blockers),
-      "Next Plan": String(item.nextPlan),
-      Notes: String(item.notes),
-      Evidence: String(item.evidence),
-    }),
-    fields: [
-      { name: "date", label: "Date", kind: "date", required: true },
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "whatTested", label: "What Tested", kind: "textarea", rows: 4, required: true },
-      { name: "issuesFound", label: "Issues Found", kind: "textarea", rows: 4, required: true },
-      { name: "progressSummary", label: "Progress Summary", kind: "textarea", rows: 4, required: true },
-      { name: "blockers", label: "Blockers", kind: "textarea", rows: 3 },
-      { name: "nextPlan", label: "Next Plan", kind: "textarea", rows: 3, required: true },
-      { name: "notes", label: "Notes", kind: "textarea", rows: 3 },
-      { name: "evidence", label: "Evidence", kind: "url" },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "date", label: "Date" },
-      { key: "project", label: "Project Name" },
-      { key: "whatTested", label: "What Tested", multiline: true },
-      { key: "issuesFound", label: "Issues Found", multiline: true },
-      { key: "progressSummary", label: "Progress Summary", multiline: true },
-      { key: "blockers", label: "Blockers", multiline: true },
-      { key: "nextPlan", label: "Next Plan", multiline: true },
-      { key: "notes", label: "Notes", multiline: true },
-      { key: "evidence", label: "Evidence", link: true },
-    ],
-  },
-  "api-testing": {
-    title: "API Testing Hub",
-    shortTitle: "API Testing",
-    description: "Store API requests, payloads, and response examples for testing and validation.",
-    prefix: "API",
-    sheetName: "API Testing",
-    schema: apiInventorySchema,
-    coerce: (entry) => normalizeEntry(entry),
-    toRow: (item) => ({
-      ID: codeFromId("API", Number(item.id)),
-      Title: String(item.title),
-      Method: String(item.method),
-      Endpoint: String(item.endpoint),
-      Payload: String(item.payload),
-      Response: String(item.response),
-      Notes: String(item.notes),
-    }),
-    fields: [
-      { name: "title", label: "API Name", kind: "text", placeholder: "e.g. User Login", required: true },
-      { name: "method", label: "Method", kind: "select", options: apiMethodOptions, required: true },
-      { name: "endpoint", label: "Endpoint / Path", kind: "text", placeholder: "e.g. /api/v1/auth/login", required: true },
-      { name: "payload", label: "Request Payload (JSON)", kind: "textarea", rows: 6 },
-      { name: "response", label: "Expected Response", kind: "textarea", rows: 6 },
-      { name: "notes", label: "Authorization / Headers", kind: "textarea", rows: 3 },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "method", label: "Method" },
-      { key: "title", label: "API Name" },
-      { key: "endpoint", label: "Endpoint" },
-      { key: "payload", label: "Payload", multiline: true },
-      { key: "response", label: "Response", multiline: true },
-      { key: "notes", label: "Notes", multiline: true },
-    ],
-  },
-  performance: {
-    title: "Performance benchmark Log",
-    shortTitle: "Performance",
-    description: "Track application load times, Lighthouse scores, and API latency over time.",
-    prefix: "PERF",
-    sheetName: "Performance",
-    schema: performanceSchema,
-    coerce: (entry) => ({
-      ...normalizeEntry(entry),
-      date: new Date(entry.date),
-    }),
-    toRow: (item) => ({
-      ID: codeFromId("PERF", Number(item.id)),
-      Date: new Date(String(item.date)).toISOString().slice(0, 10),
-      "Test Name": String(item.title),
-      URL: String(item.targetUrl),
-      "Load Time": String(item.loadTime),
-      Score: String(item.score),
-      Notes: String(item.notes),
-    }),
-    fields: [
-      { name: "date", label: "Date", kind: "date", required: true },
-      { name: "title", label: "Test Name", kind: "text", placeholder: "e.g. Homepage Smoke Test", required: true },
-      { name: "targetUrl", label: "Target URL", kind: "url", required: true },
-      { name: "loadTime", label: "Load Time (ms/sec)", kind: "text", placeholder: "e.g. 1.2s or 1200ms" },
-      { name: "score", label: "Score (0-100)", kind: "text", placeholder: "e.g. 98" },
-      { name: "notes", label: "Environment/Context", kind: "textarea", rows: 3 },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "date", label: "Date" },
-      { key: "title", label: "Test Name" },
-      { key: "targetUrl", label: "URL", link: true },
-      { key: "loadTime", label: "Load Time" },
-      { key: "score", label: "Score" },
-    ],
-  },
-  "env-config": {
-    title: "Environment Config Vault",
-    shortTitle: "Env Config",
-    description: "Store environment URLs, dummy credentials, and config notes for Dev, Staging, UAT, and Prod.",
-    prefix: "ENV",
-    sheetName: "Env Config",
-    schema: envConfigSchema,
-    coerce: (entry) => normalizeEntry(entry),
-    toRow: (item) => ({
-      ID: codeFromId("ENV", Number(item.id)),
-      Environment: String(item.envName),
-      Label: String(item.label),
-      URL: String(item.url),
-      Username: String(item.username),
-      Notes: String(item.notes),
-    }),
-    fields: [
-      { name: "envName", label: "Environment", kind: "select", options: envOptions, required: true },
-      { name: "label", label: "Config Label", kind: "text", placeholder: "e.g. Admin Portal, API Gateway", required: true },
-      { name: "url", label: "Base URL", kind: "url" },
-      { name: "username", label: "Username / Email", kind: "text", placeholder: "e.g. admin@test.com" },
-      { name: "password", label: "Password (Dummy Only)", kind: "text", placeholder: "e.g. Test@1234" },
-      { name: "notes", label: "Notes / Headers / Token", kind: "textarea", rows: 3 },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "envName", label: "Environment" },
-      { key: "label", label: "Label" },
-      { key: "url", label: "URL", link: true },
-      { key: "username", label: "Username" },
-      { key: "notes", label: "Notes", multiline: true },
     ],
   },
   "test-plans": {
@@ -681,18 +388,18 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Scope: String(item.scope),
     }),
     fields: [
-      { name: "project", label: "Project Name", kind: "text", required: true },
+      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. CRM System", required: true },
       { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. Sprint 12", required: true },
       { name: "status", label: "Status", kind: "select", options: testPlanStatusOptions, required: true },
       { name: "startDate", label: "Start Date", kind: "date" },
       { name: "endDate", label: "End Date", kind: "date" },
-      { name: "scope", label: "Testing Scope", kind: "textarea", rows: 4, span: 1, placeholder: "Auto-filled from Test Suite", required: false },
-      { name: "notes", label: "Notes / Exclusions", kind: "textarea", rows: 4, span: 1 },
+      { name: "scope", label: "Testing Scope", kind: "textarea", span: 1, placeholder: "Briefly describe the testing boundaries...", required: false },
+      { name: "notes", label: "Notes / Exclusions", kind: "textarea", span: 1, placeholder: "Things not covered in this plan..." },
     ],
     columns: [
       { key: "title", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
-      { key: "project", label: "Project Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
+      { key: "project", label: "Project Name", internalLink: (row) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "sprint", label: "Sprint" },
       { key: "startDate", label: "Start" },
       { key: "endDate", label: "End" },
@@ -724,22 +431,22 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "date", label: "Session Date", kind: "date", required: true },
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "sprint", label: "Sprint", kind: "text", required: true },
-      { name: "tester", label: "Tester", kind: "text", required: true },
-      { name: "scope", label: "Modules Tested", kind: "textarea", rows: 3, required: true },
+      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Web Dashboard", required: true },
+      { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. W42", required: true },
+      { name: "tester", label: "Tester", kind: "text", placeholder: "e.g. John Doe", required: true },
+      { name: "scope", label: "Modules Tested", kind: "textarea", rows: 3, placeholder: "e.g. Login, Profile, Settings", required: true },
       { name: "result", label: "Overall Result", kind: "select", options: sessionResultOptions, required: true },
       { name: "totalCases", label: "Total Cases", kind: "text", placeholder: "e.g. 45" },
       { name: "passed", label: "Passed", kind: "text", placeholder: "e.g. 40" },
       { name: "failed", label: "Failed", kind: "text", placeholder: "e.g. 3" },
       { name: "blocked", label: "Blocked", kind: "text", placeholder: "e.g. 2" },
-      { name: "notes", label: "Notes / Issues", kind: "textarea", rows: 3 },
-      { name: "evidence", label: "Evidence", kind: "url" },
+      { name: "notes", label: "Notes / Issues", kind: "textarea", rows: 3, placeholder: "Summary of failures or blockers..." },
+      { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://jira.example.com/ticket-123" },
     ],
     columns: [
       { key: "code", label: "ID" },
       { key: "date", label: "Date" },
-      { key: "project", label: "Project Name" },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "sprint", label: "Sprint" },
       { key: "tester", label: "Tester" },
       { key: "result", label: "Result", tone: "status" },
@@ -767,13 +474,13 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     fields: [
       { name: "testPlanId", label: "Test Plan Name", kind: "select", options: [], required: true },
       { name: "title", label: "Test Suite Name", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
-      { name: "assignee", label: "Assignee", kind: "text", placeholder: "e.g. Wahyu, Rina" },
+      { name: "assignee", label: "Assignee", kind: "text", placeholder: "e.g. Alex, Sam" },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Draft", value: "draft" },
         { label: "Active", value: "active" },
         { label: "Archived", value: "archived" },
       ], required: true },
-      { name: "notes", label: "Goal / Notes", kind: "textarea", rows: 3 },
+      { name: "notes", label: "Goal / Notes", kind: "textarea", rows: 3, placeholder: "Describe the objective of this suite..." },
     ],
     columns: [
       { key: "title", label: "Test Suite Name", internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
@@ -781,70 +488,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "assignee", label: "Assignee" },
       { key: "notes", label: "Goal / Notes", multiline: true },
       { key: "status", label: "Status", tone: "status" },
-    ],
-  },
-  "sql-snippets": {
-    title: "SQL Query Library",
-    shortTitle: "SQL Snippets",
-    description: "Store your common SQL queries per project for quick data preparation.",
-    prefix: "SQL",
-    sheetName: "SQL",
-    schema: sqlSnippetSchema,
-    coerce: (entry) => normalizeEntry(entry),
-    toRow: (item) => ({
-      ID: codeFromId("SQL", Number(item.id)),
-      Title: String(item.title),
-      Project: String(item.project),
-      Query: String(item.query),
-    }),
-    fields: [
-      { name: "title", label: "Snippet Label", kind: "text", placeholder: "e.g. Reset User Password", required: true },
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "query", label: "SQL Query", kind: "textarea", rows: 6, placeholder: "UPDATE users SET ...", required: true },
-      { name: "notes", label: "Description / Usage Note", kind: "textarea", rows: 2 },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "title", label: "Label" },
-      { key: "project", label: "Project Name" },
-      { key: "query", label: "SQL Query", multiline: true },
-    ],
-  },
-  "testing-assets": {
-    title: "Testing Assets Repo",
-    shortTitle: "Assets",
-    description: "Store links to test APKs, dummy data PDFs, or CSV files for specific projects.",
-    prefix: "ASSET",
-    sheetName: "Assets",
-    schema: testingAssetSchema,
-    coerce: (entry) => normalizeEntry(entry),
-    toRow: (item) => ({
-      ID: codeFromId("ASSET", Number(item.id)),
-      Title: String(item.title),
-      Project: String(item.project),
-      URL: String(item.url),
-      Type: String(item.type),
-    }),
-    fields: [
-      { name: "title", label: "Asset Name", kind: "text", placeholder: "e.g. Latest APK Staging", required: true },
-      { name: "project", label: "Project Name", kind: "text", required: true },
-      { name: "url", label: "Public URL / Cloud Link", kind: "text", placeholder: "https://gdrive.com/...", required: true },
-      { name: "type", label: "Type", kind: "select", options: [
-        { label: "APK (Android)", value: "apk" },
-        { label: "IPA (iOS)", value: "ipa" },
-        { label: "PDF Document", value: "pdf" },
-        { label: "CSV / Excel Data", value: "csv" },
-        { label: "Image / Asset", value: "img" },
-        { label: "Other", value: "other" },
-      ], required: true },
-      { name: "notes", label: "Notes / Version Info", kind: "textarea", rows: 2 },
-    ],
-    columns: [
-      { key: "code", label: "ID" },
-      { key: "title", label: "Asset Name" },
-      { key: "project", label: "Project Name" },
-      { key: "type", label: "Type", tone: "status" },
-      { key: "url", label: "Download Link", link: true },
     ],
   },
 };
@@ -856,11 +499,6 @@ export const moduleOrder: ModuleKey[] = [
   "test-plans",
   "test-sessions",
   "test-suites",
-  "api-testing",
-  "env-config",
-  "performance",
-  "meeting-notes",
-  "daily-logs",
 ];
 
 export const moduleLabels = Object.fromEntries(

@@ -72,8 +72,16 @@ export async function verifySessionToken(token: string | undefined | null) {
   if (!payload || !signature) return false;
   if ((await sign(payload, secret)) !== signature) return false;
   try {
-    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { username?: string };
-    return decoded.username === username;
+    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { username?: string; ts?: number };
+    if (decoded.username !== username) return false;
+    
+    // 6-hour session duration check
+    const SESSION_DURATION = 6 * 60 * 60 * 1000;
+    if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) {
+      return false;
+    }
+    
+    return true;
   } catch {
     return false;
   }

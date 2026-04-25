@@ -4,7 +4,7 @@ const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const isPostgres = !!databaseUrl.startsWith("postgres");
 const useSqlite = !isPostgres;
 
-// Unified Tables Definition
+// Core QA Tables Definition
 const tables = [
   {
     name: "Sprint",
@@ -14,18 +14,6 @@ const tables = [
       startDate TEXT,
       endDate TEXT,
       status TEXT NOT NULL DEFAULT 'active',
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "Requirement",
-    schema: `
-      id TEXT NOT NULL PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT,
-      priority TEXT NOT NULL DEFAULT 'medium',
-      status TEXT NOT NULL DEFAULT 'draft',
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -74,20 +62,6 @@ const tables = [
     `
   },
   {
-    name: "TestCaseScenario",
-    schema: `
-      id TEXT NOT NULL PRIMARY KEY,
-      requirementId FK_TEXT_REQ,
-      projectName TEXT NOT NULL,
-      moduleName TEXT NOT NULL,
-      referenceDocument TEXT NOT NULL,
-      traceability TEXT DEFAULT '',
-      createdBy TEXT NOT NULL,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
     name: "TestCase",
     schema: `
       id SERIAL_OR_PK,
@@ -107,98 +81,6 @@ const tables = [
       lastRunAt TEXT,
       relatedItems TEXT DEFAULT '',
       deletedAt DATE_TYPE,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "MeetingNote",
-    schema: `
-      id SERIAL_OR_PK,
-      date TEXT NOT NULL,
-      title TEXT NOT NULL,
-      project TEXT NOT NULL,
-      participants TEXT NOT NULL,
-      summary TEXT NOT NULL,
-      decisions TEXT NOT NULL,
-      actionItems TEXT NOT NULL,
-      notes TEXT NOT NULL DEFAULT '',
-      evidence TEXT NOT NULL DEFAULT '',
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "DailyLog",
-    schema: `
-      id SERIAL_OR_PK,
-      date TEXT NOT NULL,
-      project TEXT NOT NULL,
-      whatTested TEXT NOT NULL,
-      issuesFound TEXT NOT NULL,
-      progressSummary TEXT NOT NULL,
-      blockers TEXT NOT NULL DEFAULT '',
-      nextPlan TEXT NOT NULL,
-      notes TEXT NOT NULL DEFAULT '',
-      evidence TEXT NOT NULL DEFAULT '',
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "ApiEndpoint",
-    schema: `
-      id SERIAL_OR_PK,
-      title TEXT NOT NULL,
-      method TEXT NOT NULL,
-      endpoint TEXT NOT NULL,
-      payload TEXT,
-      response TEXT,
-      notes TEXT,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "ApiTestRun",
-    schema: `
-      id SERIAL_OR_PK,
-      apiEndpointId INTEGER,
-      title TEXT NOT NULL,
-      method TEXT NOT NULL,
-      endpoint TEXT NOT NULL,
-      requestBody TEXT,
-      responseStatus TEXT NOT NULL,
-      responseBody TEXT,
-      error TEXT,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "PerformanceBenchmark",
-    schema: `
-      id SERIAL_OR_PK,
-      date TEXT NOT NULL,
-      title TEXT NOT NULL,
-      targetUrl TEXT NOT NULL,
-      loadTime TEXT,
-      score TEXT,
-      notes TEXT,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "EnvConfig",
-    schema: `
-      id SERIAL_OR_PK,
-      envName TEXT NOT NULL,
-      label TEXT NOT NULL,
-      url TEXT,
-      username TEXT,
-      password TEXT,
-      notes TEXT,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -243,18 +125,6 @@ const tables = [
     `
   },
   {
-    name: "Checklist",
-    schema: `
-      id SERIAL_OR_PK,
-      title TEXT NOT NULL,
-      type TEXT NOT NULL,
-      items TEXT NOT NULL,
-      notes TEXT,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
     name: "TestSuite",
     schema: `
       id SERIAL_OR_PK,
@@ -267,40 +137,6 @@ const tables = [
       deletedAt DATE_TYPE,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "SqlSnippet",
-    schema: `
-      id SERIAL_OR_PK,
-      title TEXT NOT NULL,
-      project TEXT NOT NULL,
-      query TEXT NOT NULL,
-      notes TEXT,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "TestingAsset",
-    schema: `
-      id SERIAL_OR_PK,
-      title TEXT NOT NULL,
-      project TEXT NOT NULL,
-      url TEXT NOT NULL,
-      type TEXT NOT NULL,
-      notes TEXT,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
-    `
-  },
-  {
-    name: "StandupLog",
-    schema: `
-      id SERIAL_OR_PK,
-      date DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      content TEXT NOT NULL,
-      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
   {
@@ -323,8 +159,7 @@ function generateSchemaSql(postgres: boolean) {
     const s = table.schema
       .replace(/SERIAL_OR_PK/g, postgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT")
       .replace(/DATE_TYPE/g, postgres ? "TIMESTAMP" : "TEXT")
-      .replace(/FK_INT_SPRINT/g, postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)')
-      .replace(/FK_TEXT_REQ/g, postgres ? "TEXT" : 'TEXT REFERENCES "Requirement"(id)');
+      .replace(/FK_INT_SPRINT/g, postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)');
     
     sqlRows += `CREATE TABLE IF NOT EXISTS "${table.name}" (${s});\n`;
   }
@@ -346,8 +181,6 @@ type SqliteDatabase = {
 };
 
 function normalizePostgresQuery(queryStr: string) {
-  // Keep quoted PascalCase table names (e.g. "Task"), normalize quoted
-  // camelCase column identifiers (e.g. "updatedAt") to postgres-safe lowercase.
   return queryStr.replace(/"([a-z][a-zA-Z0-9_]*)"/g, (_, identifier: string) => identifier.toLowerCase());
 }
 
@@ -393,8 +226,6 @@ async function getSqlite() {
   }
   return globalForDb.sqliteDb as SqliteDatabase;
 }
-
-
 
 async function applyMissingColumns() {
   const columnQueries = tables.flatMap((table) =>

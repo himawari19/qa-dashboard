@@ -185,7 +185,7 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
                       className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-4 text-xs font-bold tracking-wide text-sky-700 transition hover:bg-sky-100 hover:text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-900"
                     >
                       <Table size={14} weight="bold" />
-                      SPREADSHEET
+                      TEST CASES
                     </Link>
                     <Link
                       href={`/test-suites/execute/${suite.publicToken}`}

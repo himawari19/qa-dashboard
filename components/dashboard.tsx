@@ -47,8 +47,6 @@ type DashboardProps = {
       status: string;
     }[];
     testCases: { id: string; code: string; title: string; priority: string; status: string }[];
-    meetings: { id: number; code: string; title: string; date: string }[];
-    logs: { id: number; code: string; project: string; date: string }[];
   };
   sprintInfo?: {
     name: string;

@@ -16,7 +16,7 @@ export async function GET(
   const template = request.nextUrl.searchParams.get("template") === "1";
 
   if (!moduleKey) {
-    return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
+    return NextResponse.json({ error: "Unknown module." }, { status: 404 });
   }
 
   const workbook = await buildWorkbook(

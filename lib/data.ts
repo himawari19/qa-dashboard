@@ -7,26 +7,6 @@ export function makePublicToken() {
   return randomBytes(8).toString("base64url");
 }
 
-export function normalizeTestCaseScenarioRow(item: Record<string, unknown>) {
-  const id = String(item.id ?? "");
-  const projectName = String(item.projectName ?? item.projectname ?? "");
-  const moduleName = String(item.moduleName ?? item.modulename ?? "");
-  const referenceDocument = String(item.referenceDocument ?? item.referencedocument ?? "");
-  const traceability = String(item.traceability ?? "");
-  const createdBy = String(item.createdBy ?? item.createdby ?? "");
-
-  return {
-    ...item,
-    id,
-    projectName,
-    moduleName,
-    referenceDocument,
-    traceability,
-    createdBy,
-    code: `${projectName.slice(0, 8)} / ${moduleName}`,
-  };
-}
-
 export function normalizeTestPlanRow(item: Record<string, unknown>) {
   return {
     ...item,
@@ -51,7 +31,7 @@ export function normalizeTestCaseRow(item: Record<string, unknown>) {
   return {
     ...item,
     id: Number(item.id ?? 0),
-    testSuiteId: String(item.testSuiteId ?? item.scenarioId ?? ""),
+    testSuiteId: String(item.testSuiteId ?? ""),
     publicToken: String(item.publicToken ?? ""),
     priority: String(item.priority ?? "Medium"),
     evidence: String(item.evidence ?? ""),
@@ -73,22 +53,8 @@ export function getTableName(module: ModuleKey) {
       return "TestSession";
     case "test-suites":
       return "TestSuite";
-    case "api-testing":
-      return "ApiEndpoint";
-    case "env-config":
-      return "EnvConfig";
-    case "performance":
-      return "PerformanceBenchmark";
-    case "meeting-notes":
-      return "MeetingNote";
-    case "daily-logs":
-      return "DailyLog";
-    case "sql-snippets":
-      return "SqlSnippet";
-    case "testing-assets":
-      return "TestingAsset";
     default:
-      console.warn(`getTableName: unhandled module key`);
+      console.warn(`getTableName: unhandled module key: ${module}`);
       return "";
   }
 }
@@ -98,13 +64,9 @@ export async function getDashboardData() {
     tasks, 
     bugs, 
     testCases, 
-    meetings, 
-    logs,
     taskCount,
     bugCount,
     caseCount,
-    meetingCount,
-    logCount,
     taskStatus,
     bugSeverity,
     sprint,
@@ -120,14 +82,10 @@ export async function getDashboardData() {
   ] = await Promise.all([
     selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5'),
     selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5'),
-    selectAll('SELECT * FROM "TestCaseScenario" ORDER BY "updatedAt" DESC LIMIT 5'),
-    selectAll('SELECT * FROM "MeetingNote" ORDER BY "date" DESC LIMIT 3'),
-    selectAll('SELECT * FROM "DailyLog" ORDER BY "date" DESC LIMIT 3'),
+    selectAll('SELECT * FROM "TestCase" ORDER BY "updatedAt" DESC LIMIT 5'),
     countRows("Task"),
     countRows("Bug"),
-    countRows("TestCaseScenario"),
-    countRows("MeetingNote"),
-    countRows("DailyLog"),
+    countRows("TestCase"),
     selectAll('SELECT status, COUNT(*) as count FROM "Task" GROUP BY status'),
     selectAll('SELECT severity, COUNT(*) as count FROM "Bug" GROUP BY severity'),
     db.get("SELECT * FROM \"Sprint\" WHERE status = 'active' LIMIT 1") as Promise<any>,
@@ -168,8 +126,6 @@ export async function getDashboardData() {
       { label: "Open Tasks", value: taskCount, caption: "Daily QA tasks currently being managed." },
       { label: "Bug Entries", value: bugCount, caption: "Defects with severity, priority, and evidence." },
       { label: "Test Cases", value: caseCount, caption: "Positive and negative scenarios ready for use." },
-      { label: "Meeting Notes", value: meetingCount, caption: "Decision logs and meeting action items." },
-      { label: "Daily Logs", value: logCount, caption: "Daily testing summaries and blockers." },
     ],
     distribution: {
       tasks: taskStatus.map(r => ({ name: String(r.status), value: Number(r.count) })),
@@ -194,23 +150,11 @@ export async function getDashboardData() {
         status: String(item.status ?? ""),
       })),
       testCases: testCases.map((item) => ({
-        id: String(item.id),
-        code: `TCS-${String(item.id).substring(0, 8)}`,
-        title: String(item.moduleName ?? ""),
-        priority: "N/A",
-        status: String(item.projectName ?? ""),
-      })),
-      meetings: meetings.map((item) => ({
         id: Number(item.id),
-        code: codeFromId("MTG", Number(item.id)),
-        title: String(item.title ?? ""),
-        date: String(item.date ?? ""),
-      })),
-      logs: logs.map((item) => ({
-        id: Number(item.id),
-        code: codeFromId("LOG", Number(item.id)),
-        project: String(item.project ?? ""),
-        date: String(item.date ?? ""),
+        code: codeFromId("TC", Number(item.id)),
+        title: String(item.caseName ?? ""),
+        priority: String(item.priority ?? "Medium"),
+        status: String(item.status ?? "Pending"),
       })),
     },
     spotlight: {
@@ -339,28 +283,10 @@ export async function getModuleRows(module: ModuleKey) {
       return await selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC');
     case "tasks":
       return await selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC');
-    case "meeting-notes":
-      return await selectAll('SELECT * FROM "MeetingNote" ORDER BY "updatedAt" DESC');
-    case "daily-logs":
-      return await selectAll('SELECT * FROM "DailyLog" ORDER BY "updatedAt" DESC');
-    case "api-testing":
-      return await selectAll('SELECT * FROM "ApiEndpoint" ORDER BY "updatedAt" DESC');
-    case "env-config":
-      return await selectAll('SELECT * FROM "EnvConfig" ORDER BY "updatedAt" DESC');
     case "test-suites":
       return (await selectAll('SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item, index) => ({
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", index + 1),
-      }));
-    case "sql-snippets":
-      return (await selectAll('SELECT * FROM "SqlSnippet" ORDER BY "updatedAt" DESC')).map((item) => ({
-        ...item,
-        code: codeFromId("SQL", Number(item.id)),
-      }));
-    case "testing-assets":
-      return (await selectAll('SELECT * FROM "TestingAsset" ORDER BY "updatedAt" DESC')).map((item) => ({
-        ...item,
-        code: codeFromId("ASSET", Number(item.id)),
       }));
     default:
       return [];
@@ -396,18 +322,6 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems],
       );
-    case "performance":
-      return await runInsert(
-        `INSERT INTO "PerformanceBenchmark" (date, title, "targetUrl", "loadTime", score, notes)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [data.date, data.title, data.targetUrl, data.loadTime, data.score, data.notes]
-      );
-    case "env-config":
-      return await runInsert(
-        `INSERT INTO "EnvConfig" (envName, label, url, username, password, notes)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [data.envName, data.label, data.url, data.username, data.password, data.notes]
-      );
     case "test-sessions":
       return await runInsert(
         `INSERT INTO "TestSession" (date, project, sprint, tester, scope, totalCases, passed, failed, blocked, result, notes, evidence)
@@ -419,18 +333,6 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         `INSERT INTO "TestSuite" ("publicToken", "testPlanId", title, assignee, status, notes)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
-      );
-    case "sql-snippets":
-      return await runInsert(
-        `INSERT INTO "SqlSnippet" (title, project, query, notes)
-         VALUES (?, ?, ?, ?)`,
-        [data.title, data.project, data.query, data.notes ?? ""]
-      );
-    case "testing-assets":
-      return await runInsert(
-        `INSERT INTO "TestingAsset" (title, project, url, type, notes)
-         VALUES (?, ?, ?, ?, ?)`,
-        [data.title, data.project, data.url, data.type, data.notes ?? ""]
       );
     default:
       return null;
@@ -482,20 +384,6 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE id = ?`,
         [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id]
       );
-    case "sql-snippets":
-      return await db.run(
-        `UPDATE "SqlSnippet"
-         SET title = ?, project = ?, query = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
-        [data.title, data.project, data.query, data.notes, id]
-      );
-    case "testing-assets":
-      return await db.run(
-        `UPDATE "TestingAsset"
-         SET title = ?, project = ?, url = ?, type = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
-        [data.title, data.project, data.url, data.type, data.notes, id]
-      );
     default:
       return null;
   }
@@ -525,8 +413,6 @@ export async function getTestSuitesByPlanId(planId: string) {
   const rows = await selectAll('SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL ORDER BY "updatedAt" DESC', [planId]);
   return rows.map(item => normalizeTestSuiteRow(item));
 }
-
-
 
 export async function getReleaseNotes() {
   const bugs = await selectAll('SELECT * FROM "Bug" WHERE status IN (\'fixed\', \'closed\') ORDER BY "updatedAt" DESC LIMIT 20');
@@ -578,6 +464,52 @@ export async function getTestCasesByIdStrings(idStrings: string) {
     [idStrings.trim()],
   );
   return rows.map((r) => ({ ...normalizeTestCaseRow(r), code: codeFromId("TC", Number(r.id)) }));
+}
+
+
+export async function getProjectData(projectName: string) {
+  const [plans, bugs, tasks, sessions] = await Promise.all([
+    selectAll('SELECT * FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL', [projectName]),
+    selectAll('SELECT * FROM "Bug" WHERE project = ?', [projectName]),
+    selectAll('SELECT * FROM "Task" WHERE project = ?', [projectName]),
+    selectAll('SELECT * FROM "TestSession" WHERE project = ?', [projectName]),
+  ]);
+
+  // For stats, we need suites and cases too
+  const planIds = plans.map(p => String(p.id));
+  let suites: any[] = [];
+  if (planIds.length > 0) {
+    const placeholders = planIds.map(() => '?').join(',');
+    suites = await selectAll(`SELECT * FROM "TestSuite" WHERE testPlanId IN (${placeholders}) AND "deletedAt" IS NULL`, planIds);
+  }
+
+  const suiteIds = suites.map(s => String(s.id));
+  let cases: any[] = [];
+  if (suiteIds.length > 0) {
+    const placeholders = suiteIds.map(() => '?').join(',');
+    cases = await selectAll(`SELECT * FROM "TestCase" WHERE testSuiteId IN (${placeholders}) AND "deletedAt" IS NULL`, suiteIds);
+  }
+
+  const totalCases = cases.length;
+  const passed = cases.filter(c => String(c.status).toLowerCase() === 'passed').length;
+  const failed = cases.filter(c => String(c.status).toLowerCase() === 'failed').length;
+
+  return {
+    projectName,
+    plans: plans.map(normalizeTestPlanRow),
+    bugs: bugs.map(b => ({ ...b, code: codeFromId('BUG', Number(b.id)) })),
+    tasks: tasks.map(t => ({ ...t, code: codeFromId('TASK', Number(t.id)) })),
+    sessions: sessions.map(s => ({ ...s, code: codeFromId('SES', Number(s.id)) })),
+    stats: {
+      totalPlans: plans.length,
+      totalBugs: bugs.length,
+      totalTasks: tasks.length,
+      totalCases,
+      passed,
+      failed,
+      successRate: totalCases > 0 ? Math.round((passed / totalCases) * 100) : 0
+    }
+  };
 }
 
 async function countRows(table: string) {

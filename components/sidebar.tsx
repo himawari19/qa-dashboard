@@ -37,7 +37,6 @@ const groups = [
       { href: "/test-plans", label: "Test Plans", icon: ClipboardText },
       { href: "/test-suites", label: "Test Suites", icon: Table },
       { href: "/test-execution", label: "Test Execution", icon: PlayCircle },
-      { href: "/reports/rtm", label: "RTM Matrix", icon: Checks },
     ],
   },
   {
@@ -45,22 +44,6 @@ const groups = [
     items: [
       { href: "/bugs", label: "Bugs", icon: Bug },
       { href: "/tasks", label: "Tasks", icon: Kanban },
-    ],
-  },
-  {
-    title: "Logs & Notes",
-    items: [
-      { href: "/daily-logs", label: "Daily Logs", icon: File },
-      { href: "/meeting-notes", label: "Meeting Notes", icon: Note },
-    ],
-  },
-  {
-    title: "Technical QA",
-    items: [
-      { href: "/api-testing", label: "API Testing", icon: GlobeSimple },
-      { href: "/performance", label: "Performance", icon: Speedometer },
-      { href: "/env-config", label: "Env Config", icon: Lock },
-      { href: "/tools", label: "QA Toolbox", icon: Wrench },
     ],
   },
 ];

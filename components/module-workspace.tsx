@@ -36,6 +36,7 @@ import { HighlightText } from "@/components/highlight-text";
 import { ModernDatePicker } from "@/components/date-picker";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
 
 function linkifyToMarkdown(text: string) {
   if (!text) return "-";
@@ -45,8 +46,6 @@ function linkifyToMarkdown(text: string) {
     if (match.startsWith("TASK")) href = "/tasks";
     else if (match.startsWith("BUG")) href = "/bugs";
     else if (match.startsWith("TC")) href = "/test-cases";
-    else if (match.startsWith("MTG")) href = "/meeting-notes";
-    else if (match.startsWith("LOG")) href = "/daily-logs";
     else if (match.startsWith("SUITE")) href = "/test-suites";
     else if (match.startsWith("PLAN")) href = "/test-plans";
     return `[${match}](${href})`;
@@ -489,7 +488,7 @@ export function ModuleWorkspace({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb crumbs={[{ label: "Workspace" }, { label: config.title }]} />
+      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: config.title }]} />
       <section className="border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-900">
         <div className="border-b border-[#d9e2ea] dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -701,31 +700,17 @@ export function ModuleWorkspace({
                             value={editingRow ? String(editingRow[field.name] || "") : ""}
                             required={field.required}
                           />
-                        ) : field.kind === "textarea" ? (
-                          <textarea
+                        ) : (
+                          <AutoResizeTextarea
                             name={field.name}
-                            rows={field.rows ?? 4}
                             defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
                             required={field.required}
                             placeholder={field.placeholder ?? `Enter ${field.label}`}
                             disabled={module === "test-plans" && field.name === "scope"}
+                            error={!!fieldError}
                             className={cn(
-                              "w-full rounded-md border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
-                              field.name === "scope" && module === "test-plans"
-                                ? "min-h-[120px] bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                                : "min-h-[120px]",
-                              fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300",
+                              field.name === "scope" && module === "test-plans" && "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                             )}
-                          />
-                        ) : (
-                          <input
-                            type={field.kind}
-                            name={field.name}
-                            defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
-                            required={field.required}
-                            placeholder={field.placeholder ?? `Enter ${field.label}`}
-                            className={cn("h-12 w-full rounded-md border bg-slate-50 dark:bg-slate-800 px-4 text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
-                              fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300")}
                           />
                         )}
                         {fieldError && <p className="text-xs font-semibold text-rose-600">{fieldError}</p>}
@@ -819,7 +804,7 @@ export function ModuleWorkspace({
                       key={String(row.id)} 
                       className={cn("bg-white dark:bg-slate-900 align-top transition-colors even:bg-slate-50/70 dark:even:bg-slate-800/50", pendingDeleteId === row.id && "opacity-40 pointer-events-none")}
                     >
-                      <td className="relative border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-center text-xs font-bold text-slate-400 align-middle">
+                      <td className="relative border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-center text-xs font-bold text-slate-400 align-top">
                         {(safePage - 1) * PAGE_SIZE + index + 1}
                         {module === "bugs" && row.status !== "fixed" && row.status !== "closed" && row.createdAt && !isNaN(new Date(String(row.createdAt)).getTime()) && (() => {
                           const days = Math.floor((new Date().getTime() - new Date(String(row.createdAt)).getTime()) / (24 * 60 * 60 * 1000));
@@ -840,17 +825,17 @@ export function ModuleWorkspace({
                             <td
                               key={column.key}
                               rowSpan={rowSpan}
-                              className="max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-middle"
+                              className="max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-top whitespace-pre-wrap break-words"
                             >
                               {column.internalLink && value ? (
                                 <Link
                                   href={column.internalLink(row)}
                                   className="break-all text-sky-700 font-semibold hover:underline"
                                 >
-                                  {String(value)}
+                                  <HighlightText text={String(value)} query={searchQuery} linkify={false} />
                                 </Link>
                               ) : (
-                                String(value || "-")
+                                <HighlightText text={String(value || "-")} query={searchQuery} linkify={!column.internalLink} />
                               )}
                             </td>
                           );
@@ -859,7 +844,7 @@ export function ModuleWorkspace({
                           <td
                             key={column.key}
                             className={cn(
-                              "max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300"
+                              "max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-top whitespace-pre-wrap break-words"
                             )}
                           >
                             {column.internalLink && value ? (
@@ -867,7 +852,7 @@ export function ModuleWorkspace({
                                 href={column.internalLink(row)}
                                 className="break-all text-sky-700 font-semibold hover:underline"
                               >
-                                {String(value)}
+                                <HighlightText text={String(value)} query={searchQuery} linkify={false} />
                               </Link>
                             ) : column.link && value ? (
                               <a
@@ -876,7 +861,7 @@ export function ModuleWorkspace({
                                 rel="noreferrer"
                                 className="break-all text-sky-700 hover:underline"
                               >
-                                {String(value)}
+                                <HighlightText text={String(value)} query={searchQuery} linkify={false} />
                               </a>
                             ) : column.tone === "status" && statusOptions.length > 0 && ["tasks","bugs","test-plans","test-sessions","test-suites"].includes(module) ? (
                               <div className="relative" data-status-dropdown>
@@ -932,17 +917,17 @@ export function ModuleWorkspace({
                                   <span>-</span>
                                 )}
                               </div>
-                            ) : column.multiline ? (
-                              <div className="max-h-24 overflow-auto rounded-sm bg-slate-50 dark:bg-slate-800 p-2 text-xs leading-relaxed whitespace-pre-wrap break-words">
-                                {String(value || "-")}
-                              </div>
-                            ) : (
+                              ) : column.multiline ? (
+                                <div className="max-h-24 overflow-auto rounded-sm bg-slate-50 dark:bg-slate-800 p-2 text-xs leading-relaxed whitespace-pre-wrap break-words">
+                                  <HighlightText text={String(value || "-")} query={searchQuery} />
+                                </div>
+                              ) : (
                               <HighlightText text={String(value || "-")} query={searchQuery} />
                             )}
                           </td>
                         );
                       })}
-                      <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2">
+                      <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 align-top">
                         <div className="flex items-center gap-2">
                           {/* Upgrade 6: copy row as text for all modules */}
                           {module === "bugs" ? (
@@ -953,19 +938,6 @@ export function ModuleWorkspace({
                                 const text = formatBugForClipboard(row);
                                 navigator.clipboard.writeText(text).then(() => {
                                   toast(`${row.code} formatted & copied to clipboard`);
-                                });
-                              }}
-                              className="rounded-sm border border-violet-200 px-2 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
-                            >
-                              <CopySimple size={13} weight="bold" />
-                            </button>
-                          ) : module === "sql-snippets" ? (
-                            <button
-                              type="button"
-                              title="Copy SQL query"
-                              onClick={() => {
-                                navigator.clipboard.writeText(String(row.query)).then(() => {
-                                  toast("SQL Query copied to clipboard!", "success");
                                 });
                               }}
                               className="rounded-sm border border-violet-200 px-2 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"

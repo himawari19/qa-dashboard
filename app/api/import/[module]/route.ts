@@ -28,20 +28,20 @@ export async function POST(
   const moduleKey = assertModule(rawModule);
 
   if (!moduleKey) {
-    return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
+    return NextResponse.json({ error: "Unknown module." }, { status: 404 });
   }
 
   const formData = await request.formData();
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "File .xlsx wajib diunggah." }, { status: 400 });
+    return NextResponse.json({ error: "An .xlsx file is required." }, { status: 400 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const worksheet = await parseWorkbook(buffer);
 
   if (!worksheet) {
-    return NextResponse.json({ error: "Worksheet tidak ditemukan." }, { status: 400 });
+    return NextResponse.json({ error: "Worksheet not found." }, { status: 400 });
   }
 
   const expectedFields = moduleConfigs[moduleKey].fields.map((field) => ({
@@ -76,7 +76,7 @@ export async function POST(
     const parsed = safeParseModuleEntry(moduleKey, entry);
     if (!parsed.success) {
       errors.push(
-        `Baris ${rowNumber}: ${parsed.error.issues.map((issue) => issue.message).join(", ")}`,
+        `Row ${rowNumber}: ${parsed.error.issues.map((issue) => issue.message).join(", ")}`,
       );
       return;
     }
@@ -94,6 +94,6 @@ export async function POST(
   revalidatePath(`/${moduleKey}`);
 
   return NextResponse.json({
-    message: `${rows.length} baris ${moduleConfigs[moduleKey].shortTitle} berhasil diimport.`,
+    message: `${rows.length} rows of ${moduleConfigs[moduleKey].shortTitle} imported successfully.`,
   });
 }
