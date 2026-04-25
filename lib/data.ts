@@ -288,6 +288,11 @@ export async function getModuleRows(module: ModuleKey) {
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", index + 1),
       }));
+    case "meeting-notes":
+      return (await selectAll('SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ORDER BY "date" DESC, "updatedAt" DESC')).map((item, index) => ({
+        ...item,
+        code: codeFromId("MEET", index + 1),
+      }));
     default:
       return [];
   }

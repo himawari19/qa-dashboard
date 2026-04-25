@@ -7,7 +7,8 @@ export type ModuleKey =
   | "test-cases"
   | "test-plans"
   | "test-sessions"
-  | "test-suites";
+  | "test-suites"
+  | "meeting-notes";
 
 type Option = {
   label: string;
@@ -208,6 +209,15 @@ const suiteSchema = z.object({
   assignee: optionalText,
   notes: optionalText,
   status: z.enum(["draft", "active", "archived"]),
+});
+
+const meetingNoteSchema = z.object({
+  date: z.string().min(1, "Date is required"),
+  project: requiredText("Project"),
+  title: requiredText("Meeting Title"),
+  attendees: optionalText,
+  content: requiredText("Meeting Content"),
+  actionItems: optionalText,
 });
 
 function normalizeEntry(entry: Record<string, string>) {
@@ -490,6 +500,41 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "status", label: "Status", tone: "status" },
     ],
   },
+  "meeting-notes": {
+    title: "Meeting Notes",
+    shortTitle: "Meetings",
+    description: "Keep track of daily meetings, decisions made, and follow-up action items.",
+    prefix: "MEET",
+    sheetName: "Meetings",
+    schema: meetingNoteSchema,
+    coerce: (entry) => ({ ...normalizeEntry(entry), date: new Date(entry.date) }),
+    toRow: (item) => ({
+      ID: codeFromId("MEET", Number(item.id)),
+      Date: item.date ? new Date(String(item.date)).toISOString().slice(0, 10) : "",
+      Project: String(item.project),
+      Title: String(item.title),
+      Attendees: String(item.attendees),
+      Content: String(item.content),
+      "Action Items": String(item.actionItems),
+    }),
+    fields: [
+      { name: "date", label: "Date", kind: "date", required: true },
+      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Mobile App", required: true },
+      { name: "title", label: "Meeting Title", kind: "text", placeholder: "e.g. Daily Standup", required: true },
+      { name: "attendees", label: "Attendees", kind: "text", placeholder: "e.g. Wahyu, Budi, Siti" },
+      { name: "content", label: "Meeting Content", kind: "textarea", placeholder: "Key discussion points...", required: true },
+      { name: "actionItems", label: "Action Items", kind: "textarea", placeholder: "Tasks to follow up on..." },
+    ],
+    columns: [
+      { key: "code", label: "ID" },
+      { key: "date", label: "Date" },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
+      { key: "title", label: "Meeting Title" },
+      { key: "attendees", label: "Attendees" },
+      { key: "content", label: "Content", multiline: true },
+      { key: "actionItems", label: "Action Items", multiline: true },
+    ],
+  },
 };
 
 export const moduleOrder: ModuleKey[] = [
@@ -499,6 +544,7 @@ export const moduleOrder: ModuleKey[] = [
   "test-plans",
   "test-sessions",
   "test-suites",
+  "meeting-notes",
 ];
 
 export const moduleLabels = Object.fromEntries(

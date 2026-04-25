@@ -46,6 +46,12 @@ const groups = [
       { href: "/tasks", label: "Tasks", icon: Kanban },
     ],
   },
+  {
+    title: "Documentation",
+    items: [
+      { href: "/meeting-notes", label: "Meeting Notes", icon: Note },
+    ],
+  },
 ];
 
 export function Sidebar({

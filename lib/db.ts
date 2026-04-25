@@ -149,6 +149,22 @@ const tables = [
       summary TEXT NOT NULL,
       createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
+  },
+  {
+    name: "MeetingNote",
+    schema: `
+      id SERIAL_OR_PK,
+      publicToken TEXT NOT NULL DEFAULT '',
+      date DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      project TEXT NOT NULL,
+      title TEXT NOT NULL,
+      attendees TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      actionItems TEXT NOT NULL DEFAULT '',
+      deletedAt DATE_TYPE,
+      createdAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
   }
 ];
 
@@ -281,6 +297,7 @@ async function backfillPublicTokens() {
     { table: "TestPlan", column: "publicToken" },
     { table: "TestSuite", column: "publicToken" },
     { table: "TestCase", column: "publicToken" },
+    { table: "MeetingNote", column: "publicToken" },
   ];
   for (const { table, column } of tablesToFill) {
     if (useSqlite) {
