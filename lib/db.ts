@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
-const isPostgres = !!databaseUrl.startsWith("postgres");
+export const isPostgres = !!databaseUrl.startsWith("postgres");
 const useSqlite = !isPostgres;
 
 // Core QA Tables Definition
@@ -197,9 +197,9 @@ type SqliteDatabase = {
 };
 
 function normalizePostgresQuery(queryStr: string) {
-  // Strip quotes to let Postgres handle identifiers case-insensitively (lowercasing them automatically)
-  // This ensures compatibility even if tables were created as lowercase.
-  return queryStr.replace(/"/g, "");
+  // We should NOT strip all quotes, as Postgres table names can be case-sensitive if quoted during creation.
+  // We only normalize known Postgres-specific syntax replacements here if needed.
+  return queryStr;
 }
 
 function toPostgresQuery(queryStr: string) {

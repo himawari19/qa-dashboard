@@ -63,14 +63,18 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
   const successRate = totalCases > 0 ? Math.round((totalPassed / totalCases) * 100) : 0;
 
   return (
-    <PageShell eyebrow="Test Plans" title={plan.title || "Untitled Plan"} description="Comprehensive suite tracking and execution readiness.">
-      <Breadcrumb crumbs={[{ label: "Test Plans", href: "/test-plans" }, { label: plan.title || "Plan Detail" }]} className="mb-6" />
+    <PageShell 
+      eyebrow="Test Plans" 
+      title={plan.title || "Untitled Plan"} 
+      description="Comprehensive suite tracking and execution readiness."
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Plans", href: "/test-plans" }, { label: plan.title || "Plan Detail" }]}
+    >
       
       {/* Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
-            <FolderSimple size={20} weight="bold" className="text-sky-500" />
+            <FolderSimple size={20} weight="bold" className="text-blue-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Project Info</h3>
           </div>
           <div className="text-lg font-bold text-slate-900 dark:text-white truncate">
@@ -83,28 +87,28 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
 
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
-            <Target size={20} weight="bold" className="text-amber-500" />
+            <Target size={20} weight="bold" className="text-blue-600" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Goal Progress</h3>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
             {successRate}% 
-            <span className="text-sm font-semibold text-slate-500 ml-2">Pass Rate</span>
+            <span className="text-sm font-semibold text-slate-500 ml-2">Success Rate</span>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-md mt-3 overflow-hidden flex">
-            <div style={{ width: `${totalCases ? (totalPassed/totalCases)*100 : 0}%` }} className="bg-emerald-500 h-full transition-all"></div>
-            <div style={{ width: `${totalCases ? (totalFailed/totalCases)*100 : 0}%` }} className="bg-rose-500 h-full transition-all"></div>
+            <div style={{ width: `${totalCases ? (totalPassed/totalCases)*100 : 0}%` }} className="bg-blue-600 h-full transition-all"></div>
+            <div style={{ width: `${totalCases ? (totalFailed/totalCases)*100 : 0}%` }} className="bg-sky-400 h-full transition-all"></div>
           </div>
         </div>
 
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
-            <CheckCircle size={20} weight="bold" className="text-emerald-500" />
+            <CheckCircle size={20} weight="bold" className="text-blue-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Passed / Total</h3>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
             {totalPassed} <span className="text-slate-400 font-medium">/</span> {totalCases}
           </div>
-          <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+          <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-1">
             Cases verified
           </div>
         </div>

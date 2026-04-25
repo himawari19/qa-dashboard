@@ -4,12 +4,13 @@ import { PageShell } from "@/components/page-shell";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Badge } from "@/components/badge";
 import Link from "next/link";
-import { 
-  FolderSimple, 
-  Target, 
-  Bug, 
-  ListChecks, 
+import {
+  FolderSimple,
+  Target,
+  Bug,
+  ListChecks,
   CheckCircle,
+  XCircle,
   Clock,
   ArrowRight,
   Note
@@ -36,7 +37,7 @@ interface BugEntity {
 export default async function ProjectDetailPage({ params }: { params: Promise<{ name: string }> }) {
   const { name: encodedName } = await params;
   const projectName = decodeURIComponent(encodedName);
-  
+
   const rawData = await getProjectData(projectName);
   const data = JSON.parse(JSON.stringify(rawData));
 
@@ -45,14 +46,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const bugs = data.bugs as BugEntity[];
 
   return (
-    <PageShell eyebrow="Project Name" title={projectName} description="Comprehensive project quality overview and activity tracking.">
-      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Plan", href: "/test-plans" }, { label: projectName }]} className="mb-6" />
-      
+    <PageShell 
+      eyebrow="Project Name" 
+      title={projectName} 
+      description="Comprehensive project quality overview and activity tracking."
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Plan", href: "/test-plans" }, { label: projectName }]}
+    >
+
       {/* Executive Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
-            <Target size={20} weight="bold" className="text-sky-500" />
+            <Target size={20} weight="bold" className="text-blue-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Quality Score</h3>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
@@ -65,8 +70,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
-            <Bug size={20} weight="bold" className="text-rose-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wider">Open Defects</h3>
+            <XCircle size={20} weight="bold" className="text-slate-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider">Failed Cases</h3>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
             {stats.totalBugs}
@@ -78,7 +83,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
-            <ListChecks size={20} weight="bold" className="text-amber-500" />
+            <ListChecks size={20} weight="bold" className="text-blue-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider">Active Tasks</h3>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
@@ -91,8 +96,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mb-2">
-            <Clock size={20} weight="bold" className="text-emerald-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wider">Test Plans</h3>
+            <CheckCircle size={20} weight="bold" className="text-blue-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider">Passed Total</h3>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
             {stats.totalPlans}
@@ -108,24 +113,31 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <section>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FolderSimple size={22} weight="bold" className="text-sky-500" />
+              <FolderSimple size={22} weight="bold" className="text-blue-500" />
               Test Plans
             </h3>
-            <Link href="/test-plans" className="text-xs font-bold text-sky-600 hover:underline">View All</Link>
+            <Link href="/test-plans" className="text-xs font-bold text-blue-600 hover:underline">View All</Link>
           </div>
           <div className="space-y-3">
             {plans.map(plan => (
-              <Link 
-                key={plan.id} 
-                href={`/test-plans/${plan.publicToken}`}
-                className="flex items-center justify-between p-4 rounded-md border border-slate-200 bg-white hover:border-sky-300 hover:shadow-sm transition-all dark:border-slate-700 dark:bg-slate-800 dark:hover:border-sky-500"
+              <div
+                key={plan.id}
+                className="flex items-center justify-between p-4 rounded-md border border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm transition-all dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500"
               >
                 <div>
                   <div className="font-bold text-slate-900 dark:text-white">{plan.title}</div>
                   <div className="text-xs text-slate-500 mt-1">Sprint: {plan.sprint}</div>
                 </div>
-                <Badge value={plan.status} />
-              </Link>
+                <div className="flex items-center gap-3">
+                  <Badge value={plan.status} />
+                  <Link 
+                    href={`/test-plans/detail/${plan.publicToken}`}
+                    className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-bold text-white transition hover:bg-blue-600 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-50"
+                  >
+                    View Plan
+                  </Link>
+                </div>
+              </div>
             ))}
             {plans.length === 0 && <p className="text-sm text-slate-400 py-4">No test plans found.</p>}
           </div>
@@ -142,8 +154,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
           <div className="space-y-3">
             {bugs.slice(0, 5).map(bug => (
-              <div 
-                key={bug.id} 
+              <div
+                key={bug.id}
                 className="flex items-center justify-between p-4 rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
               >
                 <div className="flex gap-3 items-start">
@@ -171,7 +183,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Recent Meeting Notes</h2>
           </div>
           <Link href="/meeting-notes" className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
-            Documentation Center <ArrowRight size={14} />
+            meeting notes <ArrowRight size={14} />
           </Link>
         </div>
 

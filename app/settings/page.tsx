@@ -13,6 +13,7 @@ export default function SettingsPage() {
       eyebrow="Settings"
       title="Environment Setup"
       description="No hardcode. Local uses SQLite automatically when DATABASE_URL is empty. Production uses Neon/Postgres when DATABASE_URL is set."
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]}
     >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">

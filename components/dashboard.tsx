@@ -142,7 +142,7 @@ export function Dashboard({
           </button>
           <button 
             onClick={() => setShowStandup(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-indigo-600 px-4 text-xs font-bold text-white transition-all hover:bg-indigo-700 shadow-lg shadow-indigo-500/20"
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-blue-600 px-4 text-xs font-bold text-white transition-all hover:bg-blue-700 shadow-lg shadow-blue-500/20"
           >
             <Note size={16} weight="bold" />
             Generate Standup
@@ -160,15 +160,15 @@ export function Dashboard({
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.slice(0, 4).map((metric) => (
           <div key={metric.label} className="glass-card p-5 group transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-indigo-600 transition">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400 group-hover:text-blue-600 transition">
               {metric.label}
             </p>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{metric.value}</span>
-              <span className="text-[10px] font-bold text-emerald-500">+12%</span>
+              <span className="text-[10px] font-bold text-blue-500 uppercase">Live</span>
             </div>
             <div className="mt-4 h-1 w-full bg-slate-100 dark:bg-white/5 rounded-md overflow-hidden">
-               <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: '65%' }} />
+               <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: '100%' }} />
             </div>
           </div>
         ))}
@@ -180,29 +180,29 @@ export function Dashboard({
           {/* SPOTLIGHT PROJECT */}
           {spotlight && (
             <section className="glass-card overflow-hidden animate-in fade-in slide-in-from-left-4 duration-700 fill-mode-both">
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-8 text-white">
+              <div className="bg-gradient-to-r from-blue-600 to-sky-500 px-6 py-8 text-white">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-2xl font-black tracking-tight">{spotlight.projectName}</h2>
-                    <p className="text-xs font-bold text-indigo-100 uppercase tracking-widest mt-1">Project Spotlight</p>
+                    <p className="text-xs font-bold text-blue-100 uppercase tracking-widest mt-1">Project Spotlight</p>
                   </div>
                   <div className="text-right">
                     <span className="text-4xl font-black tracking-tighter">{spotlight.completionRate}%</span>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-200">Execution Rate</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200">Execution Rate</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4 mt-6">
                   <div className="bg-white/10 backdrop-blur-md rounded-md p-4 border border-white/10">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Total Scenarios</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">Total Scenarios</p>
                     <p className="text-lg font-black mt-1">{spotlight.totalScenarios}</p>
                   </div>
                   <div className="bg-white/10 backdrop-blur-md rounded-md p-4 border border-white/10">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Open Bugs</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">Open Bugs</p>
                     <p className="text-lg font-black mt-1">{spotlight.totalBugs}</p>
                   </div>
                   <div className="bg-white/10 backdrop-blur-md rounded-md p-4 border border-white/10">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Team Velocity</p>
-                    <p className="text-lg font-black mt-1">2.4x</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-100">Project Health</p>
+                    <p className="text-lg font-black mt-1">{spotlight.completionRate > 80 ? 'Good' : 'At Risk'}</p>
                   </div>
                 </div>
               </div>
@@ -225,7 +225,7 @@ export function Dashboard({
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-3 flex items-center gap-2">
+                    <h3 className="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-3 flex items-center gap-2">
                       <Checks size={14} weight="bold" />
                       Priority Tasks
                     </h3>
@@ -261,7 +261,7 @@ export function Dashboard({
                       contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", fontSize: 11 }}
                       itemStyle={{ fontWeight: 'bold' }}
                     />
-                    <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: "#3b82f6", strokeWidth: 0 }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : <div className="h-[150px] flex items-center justify-center text-xs text-slate-400 italic">No trend data</div>}
@@ -332,22 +332,22 @@ export function Dashboard({
         {/* SIDEBAR AREA */}
         <div className="space-y-6">
           {/* PERSONAL QUALITY SHIELD */}
-          <section className="bg-slate-900 dark:bg-indigo-950 rounded-md p-6 text-white shadow-xl relative overflow-hidden animate-in fade-in slide-in-from-right-4 duration-700 fill-mode-both">
-            <div className="absolute -right-4 -bottom-4 h-32 w-32 rounded-md bg-indigo-500/10 blur-2xl" />
+          <section className="bg-slate-900 dark:bg-blue-950 rounded-md p-6 text-white shadow-xl relative overflow-hidden animate-in fade-in slide-in-from-right-4 duration-700 fill-mode-both">
+            <div className="absolute -right-4 -bottom-4 h-32 w-32 rounded-md bg-blue-500/10 blur-2xl" />
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-md bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <div className="h-10 w-10 rounded-md bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
                   <Checks size={20} weight="bold" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold">Quality Shield</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Personal Score</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Personal Score</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-5xl font-black tracking-tighter">{personalSuccessRate}%</span>
                 <div className="flex-1 h-2 rounded-md bg-white/10 overflow-hidden">
-                  <div className="h-full bg-indigo-500" style={{ width: `${personalSuccessRate}%` }} />
+                  <div className="h-full bg-blue-500" style={{ width: `${personalSuccessRate}%` }} />
                 </div>
               </div>
             </div>
@@ -363,7 +363,7 @@ export function Dashboard({
               {activity.length > 0 ? activity.slice(0, 5).map((log) => (
                 <div key={log.id} className="relative pl-8">
                   <div className="absolute left-0 top-1.5 h-[22px] w-[22px] rounded-md border-2 border-white dark:border-slate-800 bg-slate-50 dark:bg-slate-700 flex items-center justify-center z-10">
-                    {log.entityType === 'Bug' ? <Bug size={10} className="text-rose-500" /> : <Tag size={10} className="text-indigo-500" />}
+                    {log.entityType === 'Bug' ? <Bug size={10} className="text-rose-500" /> : <Tag size={10} className="text-blue-500" />}
                   </div>
                   <div>
                     <p className="text-xs font-black text-slate-800 dark:text-white line-clamp-1">{log.summary}</p>
@@ -421,7 +421,7 @@ export function Dashboard({
             <div className="flex gap-3">
               <button 
                 onClick={copyStandup}
-                className="flex-1 h-12 rounded-md bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20"
+                className="flex-1 h-12 rounded-md bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
               >
                 Copy to Clipboard
               </button>
@@ -443,7 +443,7 @@ function QuickActionBtn({ href, icon: Icon, label }: { href: string; icon: any; 
   return (
     <Link 
       href={href} 
-      className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:-translate-y-0.5 shadow-sm"
+      className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:-translate-y-0.5 shadow-sm"
     >
       <Icon size={16} weight="bold" />
       {label}

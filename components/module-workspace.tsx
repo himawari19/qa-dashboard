@@ -492,12 +492,14 @@ export function ModuleWorkspace({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: config.title }]} />
-      <section className="border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+        <Breadcrumb crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: config.title }]} />
+      </div>
+      <section className="border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden rounded-md">
         <div className="border-b border-[#d9e2ea] dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700 dark:text-sky-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700 dark:text-blue-400">
                 {config.shortTitle}
               </p>
               <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
@@ -599,7 +601,7 @@ export function ModuleWorkspace({
             </div>
             <div className="flex items-center gap-3 w-full xl:ml-auto xl:w-auto shrink-0">
               {(pending || refreshing) && (
-                <span role="status" className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-600">
+                <span role="status" className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600">
                   <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
@@ -668,7 +670,7 @@ export function ModuleWorkspace({
                               onClick={() => setOpenSelectField(openSelectField === field.name ? null : field.name)}
                               className={cn(
                                 "flex min-h-12 w-full items-center justify-between gap-3 rounded-md border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-left text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
-                                fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-sky-300",
+                                fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-blue-300",
                               )}
                             >
                               <span className="whitespace-normal break-words">
@@ -690,7 +692,7 @@ export function ModuleWorkspace({
                                       setSelectValues((s) => ({ ...s, [field.name]: option.value }));
                                       setOpenSelectField(null);
                                     }}
-                                    className="block w-full whitespace-normal break-words px-4 py-3 text-left text-sm text-slate-700 hover:bg-sky-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                                    className="block w-full whitespace-normal break-words px-4 py-3 text-left text-sm text-slate-700 hover:bg-blue-50 dark:text-slate-200 dark:hover:bg-slate-700"
                                   >
                                     {option.label}
                                   </button>
@@ -724,12 +726,12 @@ export function ModuleWorkspace({
 
               </div>
 
-              <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 md:flex-row md:items-center md:justify-between">
+              <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-10 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="submit"
                     disabled={pending}
-                    style={{ backgroundColor: editingRow ? '#16a34a' : '#0369a1' }}
+                    style={{ backgroundColor: editingRow ? '#16a34a' : '#2563eb' }}
                     className={cn(
                       "h-12 rounded-md px-8 text-sm font-bold text-white transition duration-200 shadow-md hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-400",
                     )}
@@ -794,7 +796,7 @@ export function ModuleWorkspace({
                               document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
                             }, 50);
                           }}
-                          className="mt-1 inline-flex h-9 items-center gap-2 rounded-md border border-sky-200 bg-white px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-600 hover:text-white"
+                          className="mt-1 inline-flex h-9 items-center gap-2 rounded-md border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-600 hover:text-white"
                         >
                           <Plus size={14} weight="bold" />
                           Add {config.shortTitle}
@@ -834,7 +836,7 @@ export function ModuleWorkspace({
                               {column.internalLink && value ? (
                                 <Link
                                   href={column.internalLink(row)}
-                                  className="break-all text-sky-700 font-semibold hover:underline"
+                                  className="break-all text-blue-700 font-semibold hover:underline"
                                 >
                                   <HighlightText text={String(value)} query={searchQuery} linkify={false} />
                                 </Link>
@@ -854,7 +856,7 @@ export function ModuleWorkspace({
                             {column.internalLink && value ? (
                               <Link
                                 href={column.internalLink(row)}
-                                className="break-all text-sky-700 font-semibold hover:underline"
+                                className="break-all text-blue-700 font-semibold hover:underline"
                               >
                                 <HighlightText text={String(value)} query={searchQuery} linkify={false} />
                               </Link>
@@ -863,7 +865,7 @@ export function ModuleWorkspace({
                                 href={String(value)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="break-all text-sky-700 hover:underline"
+                                className="break-all text-blue-600 hover:underline"
                               >
                                 <HighlightText text={String(value)} query={searchQuery} linkify={false} />
                               </a>

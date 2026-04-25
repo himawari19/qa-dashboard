@@ -7,6 +7,7 @@ import Link from "next/link";
 import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/badge";
+import { Breadcrumb } from "@/components/breadcrumb";
 
 type TestCase = {
   id: string | number;
@@ -114,17 +115,21 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="mx-auto max-w-7xl px-4 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
+      <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+        <Breadcrumb crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Execution", href: "/test-execution" }, { label: "Execute Session" }]} />
+      </div>
+      
       {/* Interactive Header */}
-      <div className="mb-8 rounded-md bg-white p-2 shadow-sm dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <div className="rounded-md bg-white p-2 shadow-sm dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-6 py-5">
           <div className="flex items-center gap-5">
-            <Link href="/test-execution" className="flex h-11 w-11 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition hover:bg-sky-600 hover:text-white active:scale-90 dark:bg-slate-800">
+            <Link href="/test-execution" className="flex h-11 w-11 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition hover:bg-blue-600 hover:text-white active:scale-90 dark:bg-slate-800">
                <ArrowLeft size={20} weight="bold" />
             </Link>
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <Link href="/test-suites" className="text-xs font-semibold text-sky-700 hover:text-sky-600 uppercase tracking-widest transition-colors">Test Suites</Link>
+                <Link href="/test-suites" className="text-xs font-semibold text-blue-700 hover:text-blue-600 uppercase tracking-widest transition-colors">Test Suites</Link>
                 <div className="h-1 w-1 rounded-md bg-slate-300" />
                 <span className="text-xs font-semibold tracking-widest text-slate-500 uppercase">{suite.project}</span>
               </div>
@@ -135,7 +140,7 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
           <div className="flex items-center gap-3">
             <Link 
               href={`/test-cases/detail/${suiteToken}`}
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 transition hover:bg-sky-50 hover:border-sky-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 hover:border-blue-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
             >
               Add Test Case
             </Link>
@@ -155,7 +160,7 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
         {total > 0 && (
           <div className="px-6 pb-2">
              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden">
-                <div style={{ width: `${progress}%` }} className="bg-sky-600 h-full transition-all duration-1000" />
+                <div style={{ width: `${progress}%` }} className="bg-blue-600 h-full transition-all duration-1000" />
              </div>
              <div className="flex justify-between mt-2 mb-2">
                 <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Progress: {progress}%</div>
@@ -176,7 +181,7 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
             This test suite doesn't have any scenarios yet. To start the execution process, you need to add at least one test case.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
-            <Link href={`/test-cases/detail/${suiteToken}`} className="inline-flex h-11 items-center gap-2 rounded-md bg-sky-600 px-6 font-semibold text-white shadow-sm transition duration-200 hover:bg-sky-700 active:scale-95">
+            <Link href={`/test-cases/detail/${suiteToken}`} className="inline-flex h-11 items-center gap-2 rounded-md bg-blue-600 px-6 font-semibold text-white shadow-sm transition duration-200 hover:bg-blue-700 active:scale-95">
               Add Test Case <FastForward size={16} weight="bold" />
             </Link>
             <Link href="/test-execution" className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-6 font-semibold text-slate-600 shadow-sm transition duration-200 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
@@ -209,8 +214,8 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
                   className={cn(
                     "group relative cursor-pointer overflow-hidden rounded-md border p-3.5 transition-all duration-200",
                     selectedId === item.id 
-                      ? "border-sky-600 bg-sky-50/50 ring-1 ring-sky-600 shadow-sm dark:bg-sky-950/20" 
-                      : "border-slate-200 bg-white hover:border-sky-300 dark:border-slate-800 dark:bg-slate-900"
+                      ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600 shadow-sm dark:bg-blue-950/20" 
+                      : "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-800 dark:bg-slate-900"
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -226,7 +231,7 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
                       </div>
                       <h4 className={cn(
                         "truncate text-sm font-semibold transition-colors",
-                        selectedId === item.id ? "text-sky-900 dark:text-white" : "text-slate-700 dark:text-slate-300"
+                        selectedId === item.id ? "text-blue-900 dark:text-white" : "text-slate-700 dark:text-slate-300"
                       )}>{item.caseName}</h4>
                     </div>
                     {item.status && (
@@ -263,7 +268,7 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
                 <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800/80">
                     <div className="flex items-center gap-4">
-                       <div className="flex h-12 w-12 items-center justify-center rounded-md bg-sky-600 text-white shadow-sm animate-pulse">
+                       <div className="flex h-12 w-12 items-center justify-center rounded-md bg-blue-600 text-white shadow-sm animate-pulse">
                          <Play size={24} weight="fill" />
                        </div>
                        <div>
@@ -308,10 +313,10 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
                       
                       <section>
                         <div className="flex items-center gap-2 mb-2.5">
-                           <div className="h-1.5 w-1.5 rounded-md bg-sky-500" />
-                           <h5 className="text-xs font-semibold uppercase tracking-widest text-sky-600">Steps to Reproduce</h5>
+                           <div className="h-1.5 w-1.5 rounded-md bg-blue-500" />
+                           <h5 className="text-xs font-semibold uppercase tracking-widest text-blue-600">Steps to Reproduce</h5>
                         </div>
-                        <div className="text-sm font-medium leading-relaxed text-slate-700 dark:text-slate-200 bg-sky-50/50 dark:bg-sky-950/10 p-5 rounded-md border border-sky-100 dark:border-sky-900/30 whitespace-pre-line shadow-inner">
+                        <div className="text-sm font-medium leading-relaxed text-slate-700 dark:text-slate-200 bg-blue-50/50 dark:bg-blue-950/10 p-5 rounded-md border border-blue-100 dark:border-blue-900/30 whitespace-pre-line shadow-inner">
                           {selectedCase.testStep}
                         </div>
                       </section>
@@ -362,10 +367,10 @@ export function SuiteExecutionView({ suite, cases, scenarioId, suiteToken }: { s
 
                 {/* Navigation Helpers */}
                 <div className="flex items-center justify-between px-4 py-2">
-                   <button onClick={goToPrev} disabled={selectedIndex === 0} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-sky-600 disabled:opacity-30 transition-colors">
+                   <button onClick={goToPrev} disabled={selectedIndex === 0} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 disabled:opacity-30 transition-colors">
                      <ArrowLeft size={16} weight="bold" /> PREVIOUS CASE
                    </button>
-                   <button onClick={goToNext} disabled={selectedIndex === items.length - 1} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-sky-600 disabled:opacity-30 transition-colors">
+                   <button onClick={goToNext} disabled={selectedIndex === items.length - 1} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 disabled:opacity-30 transition-colors">
                      NEXT CASE <FastForward size={16} weight="bold" />
                    </button>
                 </div>

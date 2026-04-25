@@ -143,13 +143,16 @@ export default async function ModulePage({
         const key = String(row.project ?? "");
         const group = groupedProj.get(key);
         return { ...row, projectRowSpan: group && group.start === index ? group.count : 0 };
+      });
     }
     
     // Always fetch projects for modules that have a project select field
     if (["meeting-notes", "tasks", "bugs"].includes(moduleKey)) {
       const plans = await getModuleRows("test-plans");
-      const projects = Array.from(new Set(plans.map((p: any) => p.project).filter(Boolean)));
-      relatedOptions.project = projects.map(p => ({ value: String(p), label: String(p) }));
+      // Fallback for case sensitivity in database results (project vs Project)
+      const projectNames = plans.map((p: any) => p.project || p.Project).filter(Boolean);
+      const uniqueProjects = Array.from(new Set(projectNames));
+      relatedOptions.project = uniqueProjects.map(p => ({ value: String(p), label: String(p) }));
     }
   } catch (error) {
     console.error(`Failed to load module rows for ${moduleKey}:`, error);

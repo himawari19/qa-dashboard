@@ -54,8 +54,8 @@ export default async function TestExecutionPage() {
       eyebrow="Execution" 
       title="Execution Center" 
       description="Select a test suite to begin your execution session. All results are tracked automatically."
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Execution" }]}
     >
-      <Breadcrumb crumbs={[{ label: "Test Execution" }]} className="mb-6" />
 
       {planGroups.length === 0 ? (
         <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/50 p-20 text-center dark:border-slate-800 dark:bg-slate-900/50">
@@ -74,7 +74,7 @@ export default async function TestExecutionPage() {
             <div key={gIdx} className="space-y-4">
               <div className="flex items-end justify-between px-1">
                 <div>
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-500 mb-1">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-500 mb-1">
                     <ClipboardText size={14} weight="bold" />
                     {group.project}
                   </div>
@@ -91,16 +91,16 @@ export default async function TestExecutionPage() {
                 {group.suites.map((suite: any) => (
                   <div 
                     key={suite.id} 
-                    className="group relative flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white p-5 transition-all hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-900"
+                    className="group relative flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white p-5 transition-all hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-900"
                   >
                     <div className="mb-4 flex items-start justify-between">
-                      <div className="h-10 w-10 rounded-md bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors dark:bg-slate-800 dark:group-hover:bg-indigo-950/30">
+                      <div className="h-10 w-10 rounded-md bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors dark:bg-slate-800 dark:group-hover:bg-blue-950/30">
                         <Table size={20} weight="bold" />
                       </div>
                       <Badge value={suite.status} />
                     </div>
 
-                    <h4 className="mb-1 text-base font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h4 className="mb-1 text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {suite.title}
                     </h4>
                     <p className="mb-6 text-sm text-slate-500 line-clamp-2 min-h-[40px]">
@@ -121,7 +121,7 @@ export default async function TestExecutionPage() {
                       
                       <Link 
                         href={`/test-suites/execute/${suite.publicToken}`}
-                        className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-black uppercase tracking-wider text-white transition-all hover:bg-indigo-600 hover:pr-5 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-50"
+                        className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-black uppercase tracking-wider text-white transition-all hover:bg-blue-600 hover:pr-5 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-50"
                       >
                         Execute
                         <Play size={14} weight="fill" />

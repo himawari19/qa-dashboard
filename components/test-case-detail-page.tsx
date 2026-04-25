@@ -83,7 +83,7 @@ export function TestCaseDetailPage({
     <button 
       onClick={handleSubmitExecution} 
       disabled={isPending || rows.length === 0}
-      className="flex h-10 items-center gap-2 rounded-md bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-700 disabled:opacity-50"
+      className="flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
     >
       <PlayCircle size={18} weight="bold" />
       Submit for Test Execution

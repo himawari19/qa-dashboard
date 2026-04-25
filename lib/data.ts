@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, isPostgres } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 import { randomBytes } from "crypto";
@@ -78,7 +78,10 @@ export async function getDashboardData() {
     bugByModule,
     todayTasks,
     todayBugs,
-    todaySessions
+    todaySessions,
+    critBugs,
+    prioTasks,
+    suiteCount
   ] = await Promise.all([
     selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5'),
     selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5'),
@@ -98,6 +101,9 @@ export async function getDashboardData() {
     selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now')`),
     selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now')`),
     selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now')`),
+    selectAll('SELECT title FROM "Bug" WHERE severity IN ("critical", "high", "P0", "P1") AND status != "closed" ORDER BY "createdAt" DESC LIMIT 3'),
+    selectAll('SELECT title FROM "Task" WHERE priority IN ("High", "Urgent", "P0", "P1") AND status != "done" ORDER BY "createdAt" DESC LIMIT 3'),
+    countRows("TestSuite"),
   ]);
 
   const todayActivity = [...(todayTasks || []), ...(todayBugs || []), ...(todaySessions || [])];
@@ -120,12 +126,17 @@ export async function getDashboardData() {
   }
 
   const successRate = (bugCount + taskCount) > 0 ? Math.round(((Number(bugFixed.count) + Number(taskCompleted.count)) / (bugCount + taskCount)) * 100) : 0;
+  
+  // Dynamic spotlight project
+  const mostActiveProject = await db.get('SELECT project as name FROM "TestPlan" GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1') as any;
+  const spotlightName = mostActiveProject?.name || (taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project");
 
   return {
     metrics: [
       { label: "Open Tasks", value: taskCount, caption: "Daily QA tasks currently being managed." },
       { label: "Bug Entries", value: bugCount, caption: "Defects with severity, priority, and evidence." },
       { label: "Test Cases", value: caseCount, caption: "Positive and negative scenarios ready for use." },
+      { label: "Test Suites", value: suiteCount, caption: "Organized collections of test scenarios." },
     ],
     distribution: {
       tasks: taskStatus.map(r => ({ name: String(r.status), value: Number(r.count) })),
@@ -158,13 +169,13 @@ export async function getDashboardData() {
       })),
     },
     spotlight: {
-       projectName: taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project",
+       projectName: spotlightName,
        projectDescription: "Track and monitor QA progress across modules.",
        totalScenarios: caseCount,
        totalBugs: bugCount,
        completionRate: successRate,
-       criticalBugs: [],
-       priorityTasks: []
+       criticalBugs: (critBugs || []).map((b: any) => ({ title: String(b.title) })),
+       priorityTasks: (prioTasks || []).map((t: any) => ({ title: String(t.title) }))
     },
     sprintInfo: sprintInfo ? {
        ...sprintInfo,
@@ -289,6 +300,17 @@ export async function getModuleRows(module: ModuleKey) {
         code: codeFromId("SUITE", index + 1),
       }));
     case "meeting-notes":
+      // Emergency check to ensure table exists (fixes "no such table" errors)
+      await db.exec(`CREATE TABLE IF NOT EXISTS "MeetingNote" (
+        id ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        "publicToken" TEXT NOT NULL DEFAULT '',
+        date ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        project TEXT NOT NULL,
+        title TEXT NOT NULL,
+        deletedAt ${isPostgres ? "TIMESTAMP" : "TEXT"},
+        createdAt ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`);
       return (await selectAll('SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ORDER BY "date" DESC, "updatedAt" DESC')).map((item, index) => ({
         ...item,
         code: codeFromId("MEET", index + 1),

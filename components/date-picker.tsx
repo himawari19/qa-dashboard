@@ -19,17 +19,24 @@ export function ModernDatePicker({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [currentDate, setCurrentDate] = useState(() => {
-    return value ? new Date(value) : new Date();
-  });
-  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
-    return value ? new Date(value) : null;
-  });
+  // Start with a dummy date, but it won't be rendered due to the !mounted check below
+  const [currentDate, setCurrentDate] = useState(new Date()); 
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
+    
+    // Sync with value or set to now only on client side
+    if (value) {
+      const d = new Date(value);
+      setCurrentDate(d);
+      setSelectedDate(d);
+    } else {
+      setCurrentDate(new Date());
+    }
+
     function handleClickOutside(event: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -37,7 +44,7 @@ export function ModernDatePicker({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [value]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -70,12 +77,18 @@ export function ModernDatePicker({
     if (onChange) onChange(`${yyyy}-${mm}-${dd}`);
   };
 
+  if (!mounted) {
+    return (
+      <div className="h-12 w-full animate-pulse rounded-md border border-slate-200 bg-slate-100 dark:bg-slate-800" />
+    );
+  }
+
   return (
     <div className="relative w-full" ref={popoverRef}>
       {/* Hidden native input so forms continue to work without changing module-workspace logic significantly */}
       <input type="hidden" name={name} value={selectedDate ? selectedDate.toISOString().split('T')[0] : ""} />
       
-      <div className="group relative flex h-12 w-full items-center rounded-md border border-slate-200 bg-slate-50 transition focus-within:border-sky-300 focus-within:bg-white hover:bg-white">
+      <div className="group relative flex h-12 w-full items-center rounded-md border border-slate-200 bg-slate-50 transition focus-within:border-blue-300 focus-within:bg-white hover:bg-white">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
@@ -85,7 +98,7 @@ export function ModernDatePicker({
           )}
         >
           <span>
-            {!mounted ? "Select a date..." : selectedDate 
+            {selectedDate 
               ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
               : "Select a date..."}
           </span>
@@ -98,14 +111,14 @@ export function ModernDatePicker({
               e.stopPropagation();
               handleSelect(new Date());
             }}
-            className="flex h-8 items-center rounded bg-sky-100 px-2 text-[10px] font-black uppercase tracking-wider text-sky-700 transition hover:bg-sky-200"
+            className="flex h-8 items-center rounded bg-blue-100 px-2 text-[10px] font-black uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
           >
             Now
           </button>
           <button 
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="flex h-8 w-8 items-center justify-center text-slate-500 hover:text-sky-600"
+            className="flex h-8 w-8 items-center justify-center text-slate-500 hover:text-blue-600"
           >
             <CalendarBlank size={18} />
           </button>
@@ -157,17 +170,15 @@ export function ModernDatePicker({
                   type="button"
                   onClick={() => handleSelect(day)}
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-md text-sm transition-all hover:bg-sky-100",
-                    isSelected ? "bg-sky-600 text-white font-semibold shadow-md hover:bg-sky-700" : "text-slate-700",
-                    isToday && !isSelected && "text-sky-600 font-bold bg-sky-50"
+                    "flex h-8 w-8 items-center justify-center rounded-md text-sm transition-all hover:bg-blue-100",
+                    isSelected ? "bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700" : "text-slate-700",
+                    isToday && !isSelected && "text-blue-600 font-bold bg-blue-50"
                   )}
                 >
                   {day.getDate()}
                 </button>
               );
             })}
-          </div>
-
           </div>
         </div>
       )}
