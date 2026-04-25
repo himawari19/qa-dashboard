@@ -203,9 +203,9 @@ export async function getDashboardData() {
 
 export async function getReportsData() {
   const [bugSeverity, bugStatus, testCaseStatus, bugTrend] = await Promise.all([
-    selectAll('SELECT severity as name, COUNT(*) as value FROM "Bug" GROUP BY severity'),
-    selectAll('SELECT status as name, COUNT(*) as value FROM "Bug" GROUP BY status'),
-    selectAll('SELECT status as name, COUNT(*) as value FROM "TestCase" GROUP BY status'),
+    selectAll('SELECT "severity" as name, COUNT(*) as value FROM "Bug" GROUP BY "severity"'),
+    selectAll('SELECT "status" as name, COUNT(*) as value FROM "Bug" GROUP BY "status"'),
+    selectAll('SELECT "status" as name, COUNT(*) as value FROM "TestCase" GROUP BY "status"'),
     selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" GROUP BY DATE("createdAt") ORDER BY date ASC`),
   ]);
 
@@ -219,10 +219,10 @@ export async function getReportsData() {
 
 export async function getExecutiveData() {
   const [critRes, totalBugs, openT, tcPass, testCaseTotal] = await Promise.all([
-    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE severity IN ('critical', 'high', 'P0', 'P1') AND status != 'closed'") as Promise<any>,
+    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE \"severity\" IN ('critical', 'high', 'P0', 'P1') AND \"status\" != 'closed'") as Promise<any>,
     countRows("Bug"),
-    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status != 'done'") as Promise<any>,
-    db.get("SELECT COUNT(*) as count FROM \"TestCase\" WHERE status IN ('Passed', 'Success')") as Promise<any>,
+    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"status\" != 'done'") as Promise<any>,
+    db.get("SELECT COUNT(*) as count FROM \"TestCase\" WHERE \"status\" IN ('Passed', 'Success')") as Promise<any>,
     countRows("TestCase"),
   ]);
 
@@ -244,8 +244,8 @@ export async function getExecutiveData() {
     getQualityTrend(),
     getReleaseNotes(),
     countRows("Task"),
-    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE status IN ('fixed', 'closed')") as Promise<any>,
-    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'") as Promise<any>
+    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE \"status\" IN ('fixed', 'closed')") as Promise<any>,
+    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"status\" = 'completed'") as Promise<any>
   ]);
 
   const fixedBugs = Number(fBugs.count);
@@ -269,8 +269,8 @@ export async function getExecutiveData() {
         : (isHealthy 
            ? "The project is currently in a stable state with a high pass rate." 
            : "Action required: Several high-severity defects are pending or pass rate is low."),
-      planName: (await db.get('SELECT title FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.title || "Master Test Strategy",
-      projectName: (await db.get('SELECT project FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.project || "All Active Projects"
+      planName: (await db.get('SELECT "title" FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.title || "Master Test Strategy",
+      projectName: (await db.get('SELECT "project" FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.project || "All Active Projects"
     }
   };
 }
@@ -302,14 +302,14 @@ export async function getModuleRows(module: ModuleKey) {
     case "meeting-notes":
       // Emergency check to ensure table exists (fixes "no such table" errors)
       await db.exec(`CREATE TABLE IF NOT EXISTS "MeetingNote" (
-        id ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
         "publicToken" TEXT NOT NULL DEFAULT '',
-        date ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        project TEXT NOT NULL,
-        title TEXT NOT NULL,
-        deletedAt ${isPostgres ? "TIMESTAMP" : "TEXT"},
-        createdAt ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
+        "date" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "project" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "deletedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"},
+        "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`);
       return (await selectAll('SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ORDER BY "date" DESC, "updatedAt" DESC')).map((item, index) => ({
         ...item,
@@ -324,40 +324,40 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
   switch (module) {
     case "test-plans": {
       return await runInsert(
-        `INSERT INTO "TestPlan" ("publicToken", title, project, sprint, scope, status, "startDate", "endDate", notes)
+        `INSERT INTO "TestPlan" ("publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? ""]
       );
     }
     case "test-cases":
       return await runInsert(
-        `INSERT INTO "TestCase" ("publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", status, evidence, priority)
+        `INSERT INTO "TestCase" ("publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.publicToken || makePublicToken(), data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
     case "bugs":
-      const lastDev = await db.get('SELECT suggestedDev FROM "Bug" WHERE module = ? ORDER BY id DESC LIMIT 1', [data.module]) as any;
+      const lastDev = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? ORDER BY "id" DESC LIMIT 1', [data.module]) as any;
       const suggestedDev = lastDev?.suggestedDev || "";
       return await runInsert(
-        `INSERT INTO "Bug" (project, module, "bugType", title, preconditions, "stepsToReproduce", "expectedResult", "actualResult", severity, priority, status, evidence, "relatedItems", "suggestedDev")
+        `INSERT INTO "Bug" ("project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
       );
     case "tasks":
       return await runInsert(
-        `INSERT INTO "Task" (title, project, "relatedFeature", category, status, priority, "dueDate", description, notes, evidence, "relatedItems")
+        `INSERT INTO "Task" ("title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "notes", "evidence", "relatedItems")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems],
       );
     case "test-sessions":
       return await runInsert(
-        `INSERT INTO "TestSession" (date, project, sprint, tester, scope, totalCases, passed, failed, blocked, result, notes, evidence)
+        `INSERT INTO "TestSession" ("date", "project", "sprint", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "evidence")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
     case "test-suites":
       return await runInsert(
-        `INSERT INTO "TestSuite" ("publicToken", "testPlanId", title, assignee, status, notes)
+        `INSERT INTO "TestSuite" ("publicToken", "testPlanId", "title", "assignee", "status", "notes")
          VALUES (?, ?, ?, ?, ?, ?)`,
         [data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
       );
@@ -371,29 +371,29 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "tasks":
       return await db.run(
         `UPDATE "Task"
-         SET title = ?, project = ?, "relatedFeature" = ?, category = ?, status = ?, priority = ?, "dueDate" = ?, description = ?, notes = ?, evidence = ?, "relatedItems" = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+         SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "dueDate" = ?, "description" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?`,
         [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, id]
       );
     case "bugs":
       return await db.run(
         `UPDATE "Bug"
-         SET project = ?, module = ?, "bugType" = ?, title = ?, preconditions = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, severity = ?, priority = ?, status = ?, evidence = ?, "relatedItems" = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+         SET "project" = ?, "module" = ?, "bugType" = ?, "title" = ?, "preconditions" = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, "severity" = ?, "priority" = ?, "status" = ?, "evidence" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?`,
         [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, id]
       );
     case "test-plans":
       return await db.run(
         `UPDATE "TestPlan"
-         SET title = ?, project = ?, sprint = ?, scope = ?, startDate = ?, endDate = ?, status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+         SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?`,
         [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, id]
       );
     case "test-sessions":
       return await db.run(
         `UPDATE "TestSession"
-         SET date = ?, project = ?, sprint = ?, tester = ?, scope = ?, totalCases = ?, passed = ?, failed = ?, blocked = ?, result = ?, notes = ?, evidence = ?, updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+         SET "date" = ?, "project" = ?, "sprint" = ?, "tester" = ?, "scope" = ?, "totalCases" = ?, "passed" = ?, "failed" = ?, "blocked" = ?, "result" = ?, "notes" = ?, "evidence" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?`,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id]
       );
     case "test-cases":
@@ -442,8 +442,8 @@ export async function getTestSuitesByPlanId(planId: string) {
 }
 
 export async function getReleaseNotes() {
-  const bugs = await selectAll('SELECT * FROM "Bug" WHERE status IN (\'fixed\', \'closed\') ORDER BY "updatedAt" DESC LIMIT 20');
-  const tasks = await selectAll('SELECT * FROM "Task" WHERE status = \'completed\' ORDER BY "updatedAt" DESC LIMIT 20');
+  const bugs = await selectAll('SELECT * FROM "Bug" WHERE "status" IN (\'fixed\', \'closed\') ORDER BY "updatedAt" DESC LIMIT 20');
+  const tasks = await selectAll('SELECT * FROM "Task" WHERE "status" = \'completed\' ORDER BY "updatedAt" DESC LIMIT 20');
   
   return {
     fixedBugs: bugs.map(b => ({ code: codeFromId("BUG", Number(b.id)), title: b.title, severity: b.severity })),
@@ -565,7 +565,7 @@ export async function getTestCasesByScenario(suiteId: string | number) {
 export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string) {
   const table = getTableName(module);
   if (!table) return null;
-  return await db.run(`UPDATE "${table}" SET status = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`, [status, id]);
+  return await db.run(`UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`, [status, id]);
 }
 
 export async function clearModuleRecords(module: ModuleKey) {
