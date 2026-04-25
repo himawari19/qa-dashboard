@@ -5,7 +5,7 @@ export const isPostgres = !!databaseUrl.startsWith("postgres");
 const useSqlite = !isPostgres;
 
 // Core QA Tables Definition
-const tables = [
+export const tables = [
   {
     name: "Sprint",
     schema: `
