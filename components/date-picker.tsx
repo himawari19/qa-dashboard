@@ -75,21 +75,42 @@ export function ModernDatePicker({
       {/* Hidden native input so forms continue to work without changing module-workspace logic significantly */}
       <input type="hidden" name={name} value={selectedDate ? selectedDate.toISOString().split('T')[0] : ""} />
       
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "flex h-12 w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition focus-within:border-sky-300 focus-within:bg-white hover:bg-white",
-          !selectedDate ? "text-slate-400" : "text-slate-800"
-        )}
-      >
-        <span>
-          {!mounted ? "Select a date..." : selectedDate 
-            ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-            : "Select a date..."}
-        </span>
-        <CalendarBlank size={18} className="text-slate-500" />
-      </button>
+      <div className="group relative flex h-12 w-full items-center rounded-md border border-slate-200 bg-slate-50 transition focus-within:border-sky-300 focus-within:bg-white hover:bg-white">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "flex h-full flex-grow items-center px-4 text-sm outline-none",
+            !selectedDate ? "text-slate-400" : "text-slate-800"
+          )}
+        >
+          <span>
+            {!mounted ? "Select a date..." : selectedDate 
+              ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+              : "Select a date..."}
+          </span>
+        </button>
+
+        <div className="flex h-full items-center gap-1 pr-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSelect(new Date());
+            }}
+            className="flex h-8 items-center rounded bg-sky-100 px-2 text-[10px] font-black uppercase tracking-wider text-sky-700 transition hover:bg-sky-200"
+          >
+            Now
+          </button>
+          <button 
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex h-8 w-8 items-center justify-center text-slate-500 hover:text-sky-600"
+          >
+            <CalendarBlank size={18} />
+          </button>
+        </div>
+      </div>
 
       {isOpen && (
         <div className="absolute left-0 top-14 z-50 w-72 rounded-md border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
@@ -147,14 +168,6 @@ export function ModernDatePicker({
             })}
           </div>
 
-          <div className="mt-4 border-t border-slate-100 pt-3">
-            <button
-              type="button"
-              onClick={() => handleSelect(new Date())}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-slate-50 py-2 text-xs font-bold text-sky-700 transition hover:bg-sky-50"
-            >
-              Today (Now)
-            </button>
           </div>
         </div>
       )}
