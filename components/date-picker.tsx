@@ -113,7 +113,7 @@ export function ModernDatePicker({
             }}
             className="flex h-8 items-center rounded bg-blue-100 px-2 text-[10px] font-black uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
           >
-            Now
+            Today
           </button>
           <button 
             type="button"
