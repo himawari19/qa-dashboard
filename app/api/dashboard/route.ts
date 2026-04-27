@@ -38,15 +38,25 @@ function emptyDashboardData() {
 
 export async function GET() {
   try {
+    const timeoutMs = 2500;
+    let timedOut = false;
     const data = await Promise.race([
       getDashboardData(),
       new Promise<any>((resolve) => {
-        setTimeout(() => resolve(emptyDashboardData()), 2500);
+        setTimeout(() => {
+          timedOut = true;
+          resolve(emptyDashboardData());
+        }, timeoutMs);
       }),
     ]);
+    if (timedOut) {
+      return NextResponse.json(data, {
+        headers: { "X-Dashboard-Timeout": "true" },
+      });
+    }
     return NextResponse.json(data);
   } catch (error) {
     console.error("Dashboard API error:", error);
-    return NextResponse.json(emptyDashboardData());
+    return NextResponse.json(emptyDashboardData(), { status: 500 });
   }
 }

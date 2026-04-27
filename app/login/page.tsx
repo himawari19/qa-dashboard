@@ -1,101 +1,216 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LockKey, ArrowRight, Database, Sparkle } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get("next") || "/";
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [formData, setFormData] = useState({
+    name: "",
+    username: "",
+    password: ""
+  });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setPending(true);
     setError("");
+
+    if (mode === "forgot") {
+      setTimeout(() => {
+        toast("If an account exists with that email, a reset link has been sent.", "info");
+        setPending(false);
+        setMode("signin");
+      }, 1000);
+      return;
+    }
+
+    const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login";
+
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          name: formData.name,
+          username: formData.username,
+          password: formData.password
+        }),
       });
       const data = await res.json();
+      
       if (!res.ok) {
-        setError(data.error || "Login failed.");
+        setError(data.error || `${mode === "signup" ? "Registration" : "Login"} failed.`);
         return;
       }
+
+      toast(mode === "signup" ? "Account created successfully!" : "Welcome back!", "success");
       router.replace(nextUrl);
       router.refresh();
+    } catch (err) {
+      setError("An unexpected error occurred.");
     } finally {
       setPending(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f0f9ff] via-white to-[#e0f2fe] flex items-center justify-center p-6">
-      <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-16 items-center">
-        {/* Left Side: Info */}
-        <section className="space-y-6">
-          <h1 className="text-xl lg:text-5xl font-black tracking-tight text-slate-900 leading-[1.1]">
-            Quick access for <br /> daily QA workflow.
-          </h1>
-          <p className="text-lg text-slate-500 max-w-lg leading-relaxed">
-            All-in-one hub for bugs, tasks, test cases, and reports. Zero hardcoding, fully environment-driven.
+    <div className="flex min-h-screen w-full bg-slate-50 font-sans">
+      {/* Left Side: Visual/Branding */}
+      <div className="hidden lg:flex w-1/2 bg-[#2563eb] relative overflow-hidden items-center justify-center p-12">
+        {/* Animated Background Shapes */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-400/20 rounded-full blur-3xl animate-pulse delay-700" />
+        
+        <div className="relative z-10 text-white max-w-md">
+          <h1 className="text-6xl font-black mb-6 leading-tight tracking-tight">QA Daily Hub.</h1>
+          <p className="text-xl text-blue-100 leading-relaxed mb-8 font-medium">
+            Master your software quality journey. The all-in-one platform for modern QA teams to collaborate and excel.
           </p>
-        </section>
+        </div>
 
-        {/* Right Side: Login Form */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.06)] p-10 lg:p-14">
-          <div className="mb-10">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2">Sign In</p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">Access dashboard</h2>
+        {/* Decorative Graphic */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/20 to-transparent" />
+      </div>
+
+      {/* Right Side: Auth Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 md:p-20 bg-white">
+        <div className="w-full max-w-md">
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">
+              {mode === "signup" ? "Get started now" : 
+               mode === "forgot" ? "Reset password" :
+               "Welcome back"}
+            </h2>
+            <p className="text-slate-500 font-medium">
+              {mode === "signup" ? "Create your account and join our platform." : 
+               mode === "forgot" ? "Enter your email address and we'll send you a link to reset your password." :
+               "Enter your credentials to access your dashboard."}
+            </p>
           </div>
 
-          <form onSubmit={submit} className="space-y-6">
+          <form onSubmit={submit} className="space-y-5">
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                <input 
+                  type="text" 
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="John Doe" 
+                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
+                  required
+                />
+              </div>
+            )}
+            
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block ml-1">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                className="w-full h-14 px-4 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all"
-                required
+              <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+              <input 
+                type="text" 
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+                placeholder="name@company.com" 
+                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
+                required 
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block ml-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full h-14 px-4 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all"
-                required
-              />
-            </div>
-
+            {mode !== "forgot" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between ml-1">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Password</label>
+                  {mode === "signin" && (
+                    <button 
+                      type="button"
+                      onClick={() => setMode("forgot")}
+                      className="text-[11px] font-black text-blue-600 hover:underline uppercase tracking-widest"
+                    >
+                      Forgot?
+                    </button>
+                  )}
+                </div>
+                <input 
+                  type="password" 
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="••••••••" 
+                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
+                  required 
+                />
+              </div>
+            )}
+            
             {error && (
-              <p className="text-xs font-bold text-rose-500 bg-rose-50 p-3 rounded-md border border-rose-100">
-                {error}
-              </p>
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
+                <p className="text-sm font-semibold text-rose-600">{error}</p>
+              </div>
             )}
 
-            <button
+            <button 
               type="submit"
               disabled={pending}
-              className="w-full h-14 bg-[#006ca3] hover:bg-[#005a89] active:scale-[0.98] text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2 disabled:opacity-70"
+              className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4 text-sm uppercase tracking-widest"
             >
-              {pending ? "Authenticating..." : "Login"}
+              <span>{pending ? "Processing..." : 
+                    mode === "signup" ? "Create Account" : 
+                    mode === "forgot" ? "Send Reset Link" :
+                    "Sign In"}</span>
+              {!pending && <ArrowRight size={18} weight="bold" />}
             </button>
+
+            {mode === "forgot" && (
+              <button 
+                type="button"
+                onClick={() => setMode("signin")}
+                className="w-full flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors pt-2"
+              >
+                <ArrowLeft size={16} weight="bold" />
+                <span>Back to sign in</span>
+              </button>
+            )}
           </form>
-        </section>
+
+          {mode !== "forgot" && (
+            <p className="text-center mt-10 text-sm text-slate-500 font-medium">
+              {mode === "signup" ? "Already a member?" : "New to the platform?"}{" "}
+              <button 
+                onClick={() => {
+                  setMode(mode === "signup" ? "signin" : "signup");
+                  setError("");
+                }}
+                className="text-blue-600 font-bold hover:underline"
+              >
+                {mode === "signup" ? "Sign in instead" : "Create an account"}
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center font-black text-3xl text-blue-600 tracking-tighter">QA Daily Hub.</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -56,6 +56,8 @@ export function getTableName(module: ModuleKey) {
       return "TestSuite";
     case "assignees":
       return "Assignee";
+    case "meeting-notes":
+      return "MeetingNote";
     default:
       console.warn(`getTableName: unhandled module key: ${module}`);
       return "";
@@ -104,8 +106,8 @@ export async function getDashboardData() {
     selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now')`),
     selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now')`),
     selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now')`),
-    selectAll('SELECT title FROM "Bug" WHERE severity IN ("critical", "high", "P0", "P1") AND status != "closed" ORDER BY "createdAt" DESC LIMIT 3'),
-    selectAll('SELECT title FROM "Task" WHERE priority IN ("High", "Urgent", "P0", "P1") AND status != "done" ORDER BY "createdAt" DESC LIMIT 3'),
+    selectAll(`SELECT "title" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ORDER BY "createdAt" DESC LIMIT 3`),
+    selectAll(`SELECT "title" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ORDER BY "createdAt" DESC LIMIT 3`),
     countRows("TestSuite"),
   ]);
 
@@ -234,7 +236,7 @@ export async function getExecutiveData() {
   const testCasePass = Number(tcPass.count);
   
   const readiness = testCaseTotal > 0 ? Math.round((testCasePass / testCaseTotal) * 100) : 0;
-  const bugDensity = totalBugs > 0 ? (criticalBugs / totalBugs).toFixed(2) : 0;
+  const bugDensity = totalBugs > 0 ? parseFloat((criticalBugs / totalBugs).toFixed(2)) : 0;
 
   const metrics = [
     { label: "Critical Defects", value: criticalBugs, trend: "down", status: criticalBugs > 5 ? "danger" : "warning" },
@@ -281,11 +283,11 @@ export async function getExecutiveData() {
 export async function getModuleRows(module: ModuleKey) {
   switch (module) {
     case "test-plans":
-      return (await selectAll('SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item, index) => {
+      return (await selectAll('SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => {
         const normalized = normalizeTestPlanRow(item);
         return {
           ...normalized,
-          code: codeFromId("PLAN", index + 1),
+          code: codeFromId("PLAN", Number(item.id)),
           publicToken: normalized.publicToken || "",
         };
       });
@@ -298,9 +300,24 @@ export async function getModuleRows(module: ModuleKey) {
     case "tasks":
       return await selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC');
     case "test-suites":
-      return (await selectAll('SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item, index) => ({
+      return (await selectAll('SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => ({
         ...normalizeTestSuiteRow(item),
-        code: codeFromId("SUITE", index + 1),
+        code: codeFromId("SUITE", Number(item.id)),
+      }));
+    case "assignees":
+      // Emergency check to ensure table exists
+      await db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
+        "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        "name" TEXT NOT NULL,
+        "role" TEXT,
+        "email" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'active',
+        "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`);
+      return (await selectAll('SELECT * FROM "Assignee" ORDER BY "name" ASC')).map((item) => ({
+        ...item,
+        id: String(item.id),
       }));
     case "meeting-notes":
       // Emergency check to ensure table exists (fixes "no such table" errors)
@@ -314,9 +331,9 @@ export async function getModuleRows(module: ModuleKey) {
         "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`);
-      return (await selectAll('SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ORDER BY "date" DESC, "updatedAt" DESC')).map((item, index) => ({
+      return (await selectAll('SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ORDER BY "date" DESC, "updatedAt" DESC')).map((item) => ({
         ...item,
-        code: codeFromId("MEET", index + 1),
+        code: codeFromId("MEET", Number(item.id)),
       }));
     default:
       return [];
@@ -338,7 +355,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.publicToken || makePublicToken(), data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
-    case "bugs":
+    case "bugs": {
       const lastDev = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? ORDER BY "id" DESC LIMIT 1', [data.module]) as any;
       const suggestedDev = lastDev?.suggestedDev || "";
       return await runInsert(
@@ -346,6 +363,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
       );
+    }
     case "tasks":
       return await runInsert(
         `INSERT INTO "Task" ("title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "notes", "evidence", "relatedItems")
@@ -365,6 +383,16 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
       );
     case "assignees":
+      // Emergency check
+      await db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
+        "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        "name" TEXT NOT NULL,
+        "role" TEXT,
+        "email" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'active',
+        "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`);
       return await runInsert(
         `INSERT INTO "Assignee" ("name", "role", "email", "status")
          VALUES (?, ?, ?, ?)`,
@@ -436,7 +464,7 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
   const table = getTableName(module);
   if (!table) return null;
   
-  if (["TestCase", "TestPlan", "TestSuite"].includes(table)) {
+  if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
     return await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = ?`, [id]);
   }
   
@@ -445,8 +473,8 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
 
 export async function getTestPlanByToken(token: string) {
   const item = await db.get(
-    'SELECT * FROM "TestPlan" WHERE ("publicToken" = ? OR CAST(id AS TEXT) = ?) AND "deletedAt" IS NULL',
-    [token, token],
+    'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
+    [token],
   ) as Record<string, unknown> | undefined;
   if (!item) return null;
   return normalizeTestPlanRow(item);
@@ -467,6 +495,10 @@ export async function getReleaseNotes() {
   };
 }
 
+function toSqliteDatetime(d: Date): string {
+  return d.toISOString().replace("T", " ").slice(0, 19);
+}
+
 export async function getQualityTrend() {
   const weeks = [];
   for (let i = 0; i < 4; i++) {
@@ -476,21 +508,22 @@ export async function getQualityTrend() {
     start.setDate(start.getDate() - 7);
     weeks.push({
       label: `Week -${i}`,
-      start: start.toISOString(),
-      end: d.toISOString()
+      start: toSqliteDatetime(start),
+      end: toSqliteDatetime(d),
     });
   }
 
-  const trend = [];
-  for(const w of weeks.reverse()) {
-    const bugsRes = await db.get('SELECT COUNT(*) as count FROM "Bug" WHERE "createdAt" BETWEEN ? AND ?', [w.start, w.end]) as any;
-    const fixedRes = await db.get('SELECT COUNT(*) as count FROM "Bug" WHERE status = \'fixed\' AND "updatedAt" BETWEEN ? AND ?', [w.start, w.end]) as any;
-    trend.push({
+  const trend = await Promise.all(weeks.reverse().map(async (w) => {
+    const [bugsRes, fixedRes] = await Promise.all([
+      db.get('SELECT COUNT(*) as count FROM "Bug" WHERE "createdAt" BETWEEN ? AND ?', [w.start, w.end]) as Promise<any>,
+      db.get('SELECT COUNT(*) as count FROM "Bug" WHERE "status" = \'fixed\' AND "updatedAt" BETWEEN ? AND ?', [w.start, w.end]) as Promise<any>,
+    ]);
+    return {
       label: w.label,
       bugs: Number(bugsRes.count),
-      fixed: Number(fixedRes.count)
-    });
-  }
+      fixed: Number(fixedRes.count),
+    };
+  }));
   return trend;
 }
 

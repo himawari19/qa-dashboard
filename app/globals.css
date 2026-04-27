@@ -47,9 +47,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-lato);
-  --font-mono: var(--font-lato);
-  --font-serif: var(--font-lato);
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "Inter", monospace;
+  --font-serif: "Inter", serif;
 }
 
 * {
@@ -59,7 +59,7 @@
 body {
   background: var(--bg-app);
   color: var(--foreground);
-  font-family: var(--font-lato), sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* ── Global dark mode overrides ─────────────────────────────── */
@@ -356,4 +356,18 @@ select {
 
 .print-only {
   display: none;
+}
+@keyframes show {
+  0%, 49.99% {
+    opacity: 0;
+    z-index: 1;
+  }
+  50%, 100% {
+    opacity: 1;
+    z-index: 5;
+  }
+}
+
+.animate-show {
+  animation: show 0.7s;
 }

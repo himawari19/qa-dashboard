@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken } from "@/lib/auth-core";
+import { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken, registerUser } from "@/lib/auth-core";
 
-export { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken };
+export { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken, registerUser };
 
 export async function getSessionCookie() {
   return (await cookies()).get(sessionCookieName())?.value;

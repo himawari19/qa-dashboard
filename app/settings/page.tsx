@@ -1,52 +1,104 @@
 import { PageShell } from "@/components/page-shell";
-import { authEnabled } from "@/lib/auth";
+import { Users, Gear, CaretRight, UserPlus, Info } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
-const dbMode = process.env.DATABASE_URL?.startsWith("postgres") ? "Neon/Postgres" : "SQLite local";
-const dbHint = process.env.DATABASE_URL?.startsWith("postgres")
-  ? "DATABASE_URL points to Neon/Postgres."
-  : "DATABASE_URL is empty, so the app uses local SQLite.";
-
 export default function SettingsPage() {
+  const settingsGroups = [
+    {
+      title: "User Management",
+      description: "Manage people, roles, and permissions in your workspace.",
+      items: [
+        {
+          title: "Assignees / Team Members",
+          description: "Manage the list of people available for task assignments and test execution.",
+          href: "/assignees",
+          icon: Users,
+          color: "text-blue-600 dark:text-blue-400",
+          bg: "bg-blue-50 dark:bg-blue-900/20",
+          disabled: false,
+        },
+      ],
+    },
+    {
+        title: "Application",
+        description: "General workspace configuration and metadata.",
+        items: [
+            {
+                title: "General Settings",
+                description: "Configure workspace name, timezone, and regional preferences.",
+                href: "#",
+                icon: Gear,
+                color: "text-slate-600 dark:text-slate-400",
+                bg: "bg-slate-50 dark:bg-slate-900/20",
+                disabled: true
+            },
+            {
+                title: "About QA Daily",
+                description: "Version information, documentation, and system status.",
+                href: "#",
+                icon: Info,
+                color: "text-sky-600 dark:text-sky-400",
+                bg: "bg-sky-50 dark:bg-sky-900/20",
+                disabled: true
+            }
+        ]
+    }
+  ];
+
   return (
-    <PageShell
-      eyebrow="Settings"
-      title="Environment Setup"
-      description="No hardcode. Local uses SQLite automatically when DATABASE_URL is empty. Production uses Neon/Postgres when DATABASE_URL is set."
-      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]}
+    <PageShell 
+      title="Settings" 
+      eyebrow="Configure your workspace"
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">Database</p>
-          <h3 className="mt-2 text-xl font-bold text-slate-900">{dbMode}</h3>
-          <p className="mt-2 text-sm text-slate-500">{dbHint}</p>
-          <div className="mt-4 rounded-md bg-slate-50 p-4 text-sm text-slate-600">
-            <p className="font-semibold text-slate-900">Local</p>
-            <p>Leave `DATABASE_URL` empty.</p>
-            <p className="mt-2 font-semibold text-slate-900">Production</p>
-            <p>Set `DATABASE_URL` to your Neon connection string.</p>
+      <div className="max-w-4xl space-y-12">
+        {settingsGroups.map((group, groupIdx) => (
+          <div key={groupIdx} className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">{group.title}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{group.description}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {group.items.map((item, itemIdx) => (
+                <div 
+                  key={itemIdx}
+                  className={`relative group p-4 rounded-xl border border-slate-200/60 dark:border-white/5 bg-white dark:bg-black/20 transition-all duration-300 ${item.disabled ? 'opacity-50 grayscale' : 'hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10'}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${item.bg}`}>
+                      <item.icon size={24} weight="bold" className={item.color} />
+                    </div>
+                    
+                    <div className="flex-1 space-y-1">
+                      <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        {item.title}
+                        {item.disabled && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-slate-500">Soon</span>
+                        )}
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    {!item.disabled && (
+                        <div className="self-center">
+                            <CaretRight size={18} weight="bold" className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                        </div>
+                    )}
+                  </div>
+                  
+                  {!item.disabled && (
+                    <Link href={item.href} className="absolute inset-0">
+                      <span className="sr-only">Go to {item.title}</span>
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">Login</p>
-          <h3 className="mt-2 text-xl font-bold text-slate-900">{authEnabled() ? "Enabled" : "Disabled"}</h3>
-          <p className="mt-2 text-sm text-slate-500">
-            Use `AUTH_USERNAME`, `AUTH_PASSWORD`, and `AUTH_SECRET`. If any are missing, login is disabled.
-          </p>
-        </div>
-        <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-700">Export</p>
-          <h3 className="mt-2 text-xl font-bold text-slate-900">Export All Data</h3>
-          <p className="mt-2 text-sm text-slate-500">Download all modules as a single Excel workbook.</p>
-          <div className="mt-4">
-            <Link
-              href="/api/export/all"
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-5 text-sm font-semibold text-sky-700 transition hover:bg-sky-600 hover:text-white hover:shadow-md"
-            >
-              Export All Data
-            </Link>
-          </div>
-        </div>
+        ))}
+
       </div>
     </PageShell>
   );

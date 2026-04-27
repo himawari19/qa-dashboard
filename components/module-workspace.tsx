@@ -40,7 +40,7 @@ import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
 
 function linkifyToMarkdown(text: string) {
   if (!text) return "-";
-  const regex = /\b((?:TASK|BUG|TC|MTG|LOG|SUITE|PLAN)-\d+)\b/g;
+  const regex = /\b((?:TASK|BUG|TC|MTG|SUITE|PLAN)-\d+)\b/g;
   return text.replace(regex, (match) => {
     let href = "/";
     if (match.startsWith("TASK")) href = "/tasks";
@@ -48,6 +48,7 @@ function linkifyToMarkdown(text: string) {
     else if (match.startsWith("TC")) href = "/test-cases";
     else if (match.startsWith("SUITE")) href = "/test-suites";
     else if (match.startsWith("PLAN")) href = "/test-plans";
+    else if (match.startsWith("MTG")) href = "/meeting-notes";
     return `[${match}](${href})`;
   });
 }
@@ -451,7 +452,14 @@ export function ModuleWorkspace({
   }
 
   function requestDelete(id: string | number) {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    if (undoTimerRef.current !== null && pendingDeleteId !== null && pendingDeleteId !== id) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+      void onDelete(pendingDeleteId);
+    } else if (undoTimerRef.current !== null) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
     setPendingDeleteId(id);
     toast("Item deleted. Undo available for", "info", {
       duration: 4000,
@@ -459,11 +467,13 @@ export function ModuleWorkspace({
       actionLabel: "Undo",
       onAction: () => {
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = null;
         setPendingDeleteId(null);
         toast("Delete cancelled.", "success");
       },
     });
     undoTimerRef.current = setTimeout(() => {
+      undoTimerRef.current = null;
       setPendingDeleteId(null);
       void onDelete(id);
     }, 4000);
@@ -936,34 +946,36 @@ export function ModuleWorkspace({
                       <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 align-top">
                         <div className="flex items-center gap-2">
                           {/* Upgrade 6: copy row as text for all modules */}
-                          {module === "bugs" ? (
-                            <button
-                              type="button"
-                              title="Copy bug report to clipboard"
-                              onClick={() => {
-                                const text = formatBugForClipboard(row);
-                                navigator.clipboard.writeText(text).then(() => {
-                                  toast(`${row.code} formatted & copied to clipboard`);
-                                });
-                              }}
-                              className="rounded-sm border border-violet-200 px-2 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
-                            >
-                              <CopySimple size={13} weight="bold" />
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              title="Copy row as text"
-                              onClick={() => {
-                                const text = formatRowForClipboard(row);
-                                navigator.clipboard.writeText(text).then(() => {
-                                  toast("Copied to clipboard");
-                                });
-                              }}
-                              className="rounded-sm border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50"
-                            >
-                              <CopySimple size={13} weight="bold" />
-                            </button>
+                          {module !== "assignees" && (
+                            module === "bugs" ? (
+                              <button
+                                type="button"
+                                title="Copy bug report to clipboard"
+                                onClick={() => {
+                                  const text = formatBugForClipboard(row);
+                                  navigator.clipboard.writeText(text).then(() => {
+                                    toast(`${row.code} formatted & copied to clipboard`);
+                                  });
+                                }}
+                                className="rounded-sm border border-violet-200 px-2 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
+                              >
+                                <CopySimple size={13} weight="bold" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                title="Copy row as text"
+                                onClick={() => {
+                                  const text = formatRowForClipboard(row);
+                                  navigator.clipboard.writeText(text).then(() => {
+                                    toast("Copied to clipboard");
+                                  });
+                                }}
+                                className="rounded-sm border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50"
+                              >
+                                <CopySimple size={13} weight="bold" />
+                              </button>
+                            )
                           )}
                           {module === "test-suites" && (
                             <Link

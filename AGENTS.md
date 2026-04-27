@@ -41,6 +41,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Routing refresh**: use `router.refresh()` not `window.location.reload()`
 - **Toast**: `toast(message, "success" | "error" | "info")` from `@/components/ui/toast`
 
+## File Roles (jangan keliru)
+
+| File/Folder | Dibaca oleh | Fungsi |
+|-------------|-------------|--------|
+| `CLAUDE.md` | Claude (otomatis) | Entry point — hanya berisi `@AGENTS.md` |
+| `AGENTS.md` | Claude (otomatis) | **Aturan utama** — ini yang harus diikuti |
+| `.claude/settings.local.json` | Claude Code CLI | Permission allow/deny, hooks — bukan aturan coding |
+| `.vscode/settings.json` | VS Code | Editor config — Claude tidak baca ini |
+| `.claude/memory/` (user-level) | Claude (manual) | Long-term memory antar sesi |
+
 ## Do NOT
 
 - Add npm packages without checking `package.json` first

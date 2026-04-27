@@ -21,6 +21,7 @@ import {
   PlayCircle,
   SignOut,
   Wrench,
+  Gear,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +56,7 @@ const groups = [
   {
     title: "System Settings",
     items: [
-      { href: "/assignees", label: "Assignees", icon: Wrench },
+      { href: "/settings", label: "Settings", icon: Gear },
     ],
   },
 ];

@@ -74,8 +74,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={cn(
-      "flex min-h-screen bg-slate-50 dark:bg-[#020617] mesh-gradient overflow-x-hidden",
-      !mounted && "opacity-0" // Hide briefly during hydration to prevent flash
+      "flex min-h-screen bg-slate-50 dark:bg-[#020617] mesh-gradient overflow-x-hidden"
     )}>
       {isAuthScreen ? (
         children

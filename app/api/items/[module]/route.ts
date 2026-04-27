@@ -44,6 +44,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ module: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
   const { module: rawModule } = await params;
   const moduleKey = assertModule(rawModule);
 
@@ -84,6 +89,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ module: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
   const { module: rawModule } = await params;
   const moduleKey = assertModule(rawModule);
   const id = request.nextUrl.searchParams.get("id");
@@ -129,6 +139,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ module: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
   const { module: rawModule } = await params;
   const moduleKey = assertModule(rawModule);
   

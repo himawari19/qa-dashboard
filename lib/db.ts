@@ -177,6 +177,19 @@ export const tables = [
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
+  },
+  {
+    name: "User",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "name" TEXT,
+      "username" TEXT NOT NULL UNIQUE,
+      "email" TEXT UNIQUE,
+      "password" TEXT NOT NULL,
+      "role" TEXT NOT NULL DEFAULT 'viewer',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
   }
 ];
 

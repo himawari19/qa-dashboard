@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   const username = body?.username?.trim() || "";
   const password = body?.password || "";
 
-  if (!validateCredentials(username, password)) {
+  if (!(await validateCredentials(username, password))) {
     return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
   }
 
