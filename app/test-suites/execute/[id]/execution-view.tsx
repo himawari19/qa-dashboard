@@ -371,22 +371,6 @@ export function SuiteExecutionView({
               <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Scenarios ({items.length})
               </h3>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setAllStatus("Passed")}
-                  className="p-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                  title="Mark All Pass"
-                >
-                  <CheckCircle size={14} weight="bold" />
-                </button>
-                <button
-                  onClick={() => setAllStatus("Failed")}
-                  className="p-1.5 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
-                  title="Mark All Fail"
-                >
-                  <XCircle size={14} weight="bold" />
-                </button>
-              </div>
             </div>
 
             <div className="max-h-[65vh] overflow-y-auto space-y-2 pr-2 scrollbar-thin">
@@ -458,44 +442,6 @@ export function SuiteExecutionView({
               ))}
             </div>
 
-            <div className="rounded-md bg-slate-50 p-4 border border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase mb-3">
-                <Keyboard size={16} weight="bold" />
-                Shortcuts
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-                <div className="flex items-center gap-2">
-                  <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200 dark:bg-slate-800 dark:border-slate-700 font-mono text-slate-700 dark:text-slate-300">
-                    P
-                  </span>{" "}
-                  Pass
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200 dark:bg-slate-800 dark:border-slate-700 font-mono text-slate-700 dark:text-slate-300">
-                    F
-                  </span>{" "}
-                  Fail
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200 dark:bg-slate-800 dark:border-slate-700 font-mono text-slate-700 dark:text-slate-300">
-                    B
-                  </span>{" "}
-                  Block
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200 dark:bg-slate-800 dark:border-slate-700 font-mono text-slate-700 dark:text-slate-300">
-                    ↓
-                  </span>{" "}
-                  Next
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200 dark:bg-slate-800 dark:border-slate-700 font-mono text-slate-700 dark:text-slate-300">
-                    ↑
-                  </span>{" "}
-                  Prev
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="lg:col-span-8">
@@ -517,41 +463,6 @@ export function SuiteExecutionView({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => updateStatus(selectedCase.id, "Passed", true)}
-                        className={cn(
-                          "flex h-11 w-24 items-center justify-center gap-2 rounded-md font-semibold text-sm transition-all active:scale-95",
-                          selectedCase.status === "Passed"
-                            ? "bg-emerald-500 text-white shadow-sm"
-                            : "bg-emerald-50 hover:bg-emerald-500 hover:text-white text-emerald-600 border border-emerald-100",
-                        )}
-                      >
-                        <CheckCircle size={18} weight="bold" /> PASS
-                      </button>
-                      <button
-                        onClick={() => updateStatus(selectedCase.id, "Failed", true)}
-                        className={cn(
-                          "flex h-11 w-24 items-center justify-center gap-2 rounded-md font-semibold text-sm transition-all active:scale-95",
-                          selectedCase.status === "Failed"
-                            ? "bg-rose-500 text-white shadow-sm"
-                            : "bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-600 border border-rose-100",
-                        )}
-                      >
-                        <XCircle size={18} weight="bold" /> FAIL
-                      </button>
-                      <button
-                        onClick={() => updateStatus(selectedCase.id, "Blocked", true)}
-                        className={cn(
-                          "flex h-11 w-24 items-center justify-center gap-2 rounded-md font-semibold text-sm transition-all active:scale-95",
-                          selectedCase.status === "Blocked"
-                            ? "bg-amber-500 text-white shadow-sm"
-                            : "bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-600 border border-amber-100",
-                        )}
-                      >
-                        <Warning size={18} weight="bold" /> BLOCK
-                      </button>
-                    </div>
                   </div>
 
                   <div className="grid gap-8 md:grid-cols-2">
@@ -563,7 +474,7 @@ export function SuiteExecutionView({
                             Pre-conditions
                           </h5>
                         </div>
-                        <div className="text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-md border border-slate-200 dark:border-slate-700">
+                        <div className="text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-md border border-slate-200 dark:border-slate-700 break-words overflow-hidden">
                           {selectedCase.preCondition || "No specific preconditions."}
                         </div>
                       </section>
@@ -575,7 +486,7 @@ export function SuiteExecutionView({
                             Steps to Reproduce
                           </h5>
                         </div>
-                        <div className="text-sm font-medium leading-relaxed text-slate-700 dark:text-slate-200 bg-blue-50/50 dark:bg-blue-950/10 p-5 rounded-md border border-blue-100 dark:border-blue-900/30 whitespace-pre-line shadow-inner">
+                        <div className="text-sm font-medium leading-relaxed text-slate-700 dark:text-slate-200 bg-blue-50/50 dark:bg-blue-950/10 p-5 rounded-md border border-blue-100 dark:border-blue-900/30 whitespace-pre-line shadow-inner break-words overflow-hidden">
                           {selectedCase.testStep}
                         </div>
                       </section>
@@ -589,7 +500,7 @@ export function SuiteExecutionView({
                             Expected Outcome
                           </h5>
                         </div>
-                        <div className="text-sm font-medium leading-relaxed text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/10 p-5 rounded-md border border-emerald-100 dark:border-emerald-900/30">
+                        <div className="text-sm font-medium leading-relaxed text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/10 p-5 rounded-md border border-emerald-100 dark:border-emerald-900/30 break-words overflow-hidden">
                           {selectedCase.expectedResult}
                         </div>
                       </section>

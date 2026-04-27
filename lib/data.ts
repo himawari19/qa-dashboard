@@ -65,6 +65,13 @@ export function getTableName(module: ModuleKey) {
 }
 
 export async function getDashboardData() {
+  // Ensure Task table has assignee column
+  try {
+    await db.exec(`ALTER TABLE "Task" ADD COLUMN "assignee" TEXT`);
+  } catch (e) {
+    // Column might already exist
+  }
+
   const [
     tasks, 
     bugs, 
@@ -86,7 +93,8 @@ export async function getDashboardData() {
     todaySessions,
     critBugs,
     prioTasks,
-    suiteCount
+    suiteCount,
+    heatmapRes
   ] = await Promise.all([
     selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5'),
     selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5'),
@@ -109,6 +117,28 @@ export async function getDashboardData() {
     selectAll(`SELECT "title" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ORDER BY "createdAt" DESC LIMIT 3`),
     selectAll(`SELECT "title" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ORDER BY "createdAt" DESC LIMIT 3`),
     countRows("TestSuite"),
+    selectAll(`
+      WITH AllAssignees AS (
+        SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done'
+        UNION
+        SELECT suggestedDev as name FROM "Bug" WHERE suggestedDev != '' AND status != 'closed'
+        UNION
+        SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived'
+        UNION
+        SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed'
+        UNION
+        SELECT name FROM "Assignee" WHERE status = 'active'
+      )
+      SELECT 
+        name,
+        (SELECT COUNT(*) FROM "Task" t WHERE t.assignee = AllAssignees.name AND t.status != 'done') as taskCount,
+        (SELECT COUNT(*) FROM "Bug" b WHERE b.suggestedDev = AllAssignees.name AND b.status != 'closed') as bugCount,
+        (SELECT COUNT(*) FROM "TestSuite" s WHERE s.assignee = AllAssignees.name AND s.status != 'archived') as suiteCount,
+        (SELECT COUNT(*) FROM "TestPlan" p WHERE p.assignee = AllAssignees.name AND p.status != 'closed') as planCount
+      FROM AllAssignees
+      WHERE name IS NOT NULL AND name != ''
+      ORDER BY name ASC
+    `),
   ]);
 
   const todayActivity = [...(todayTasks || []), ...(todayBugs || []), ...(todaySessions || [])];
@@ -187,6 +217,14 @@ export async function getDashboardData() {
        goal: "Complete all planned tasks for the current cycle."
     } : null,
     personalSuccessRate: successRate,
+    heatmap: (heatmapRes || []).map((r: any) => ({
+      name: String(r.name),
+      taskCount: Number(r.taskCount),
+      bugCount: Number(r.bugCount),
+      suiteCount: Number(r.suiteCount),
+      planCount: Number(r.planCount),
+      total: Number(r.taskCount) + Number(r.bugCount) + Number(r.suiteCount) + Number(r.planCount)
+    })),
     activity: (activity as Array<Record<string, unknown>>).map((item) => ({
       id: Number(item.id),
       entityType: String(item.entityType ?? ""),
@@ -219,6 +257,21 @@ export async function getReportsData() {
     bugStatusData: bugStatus.map((row) => ({ name: String(row.name), value: Number(row.value) })),
     testCaseStatusData: testCaseStatus.map((row) => ({ name: String(row.name), value: Number(row.value) })),
     bugTrendData: bugTrend.map((row) => ({ date: String(row.date), count: Number(row.count) })),
+  };
+}
+
+
+export async function getResourceDetails(name: string) {
+  const [tasks, bugs, suites] = await Promise.all([
+    selectAll(`SELECT id, title, status, priority FROM "Task" WHERE assignee = ? AND status != 'done' ORDER BY createdAt DESC`, [name]),
+    selectAll(`SELECT id, title, status, severity as priority FROM "Bug" WHERE suggestedDev = ? AND status != 'closed' ORDER BY createdAt DESC`, [name]),
+    selectAll(`SELECT id, title, status, 'N/A' as priority FROM "TestSuite" WHERE assignee = ? AND status != 'archived' ORDER BY createdAt DESC`, [name]),
+  ]);
+
+  return {
+    tasks: tasks.map(t => ({ ...t, type: 'Task' })),
+    bugs: bugs.map(b => ({ ...b, type: 'Bug' })),
+    suites: suites.map(s => ({ ...s, type: 'Suite' })),
   };
 }
 
@@ -366,9 +419,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
     }
     case "tasks":
       return await runInsert(
-        `INSERT INTO "Task" ("title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "notes", "evidence", "relatedItems")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems],
+        `INSERT INTO "Task" ("title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "notes", "evidence", "relatedItems", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
       );
     case "test-sessions":
       return await runInsert(
@@ -408,9 +461,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "tasks":
       return await db.run(
         `UPDATE "Task"
-         SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "dueDate" = ?, "description" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "dueDate" = ?, "description" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = ?`,
-        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, id]
+        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id]
       );
     case "bugs":
       return await db.run(

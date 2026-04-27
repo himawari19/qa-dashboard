@@ -6,18 +6,30 @@ import { Badge } from "@/components/badge";
 import { toast } from "@/components/ui/toast";
 import { formatDate, cn } from "@/lib/utils";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { Printer, FileXls, ChartPieSlice, ChartLineUp, Checks, Bug, ClipboardText, Table, PlayCircle, File, Note, SquaresFour, ShieldCheck, Clock, Tag, ArrowRight } from "@phosphor-icons/react";
+import { Printer, FileXls, ChartPieSlice, ChartLineUp, Checks, Bug, ClipboardText, Table, PlayCircle, File, Note, SquaresFour, ShieldCheck, Clock, Tag, ArrowRight, User } from "@phosphor-icons/react";
 import {
-  BarChart,
-  Bar,
   LineChart,
   Line,
   XAxis,
   YAxis,
+  PieChart,
+  Pie,
+  Cell,
   Tooltip,
   ResponsiveContainer,
-  Cell,
+  Legend,
 } from "recharts";
+
+const RESOURCE_COLORS = [
+  "#3b82f6", // Blue
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#6366f1", // Indigo
+  "#8b5cf6", // Violet
+  "#ec4899", // Pink
+  "#06b6d4", // Cyan
+  "#f97316", // Orange
+];
 
 type DashboardProps = {
   metrics: { label: string; value: number; caption: string }[];
@@ -68,6 +80,7 @@ type DashboardProps = {
   bugTrendData?: { date: string; count: number }[];
   sprints?: { id: number; name: string; startDate: string; endDate: string; status: string }[];
   todayActivity?: { type: string; label: string; status: string }[];
+  heatmap?: { name: string; taskCount: number; bugCount: number; total: number }[];
 };
 
 export function Dashboard({ 
@@ -80,12 +93,35 @@ export function Dashboard({
   activity = [],
   bugTrendData = [], 
   sprints = [], 
-  todayActivity = [] 
+  todayActivity = [],
+  heatmap = []
 }: DashboardProps) {
   const [mounted, setMounted] = React.useState(false);
   const [showStandup, setShowStandup] = React.useState(false);
+  const [selectedResource, setSelectedResource] = React.useState<any | null>(null);
+  const [resourceItems, setResourceItems] = React.useState<any[]>([]);
+  const [loadingDetails, setLoadingDetails] = React.useState(false);
   const [selectedSprintId, setSelectedSprintId] = React.useState<number | null>(null);
   const handlePrint = () => { window.print(); };
+
+  React.useEffect(() => {
+    if (selectedResource) {
+      setLoadingDetails(true);
+      fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(selectedResource.name)}`)
+        .then(res => res.json())
+        .then(data => {
+          const all = [...(data.tasks || []), ...(data.bugs || []), ...(data.suites || [])];
+          setResourceItems(all);
+          setLoadingDetails(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoadingDetails(false);
+        });
+    } else {
+      setResourceItems([]);
+    }
+  }, [selectedResource]);
 
   React.useEffect(() => { setMounted(true); }, []);
 
@@ -269,30 +305,67 @@ export function Dashboard({
 
             <div className="glass-card p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Quality Heatmap</h3>
-                <span className="text-[10px] font-bold text-slate-400">By Module</span>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Resource Distribution</h3>
+                <ChartPieSlice size={16} className="text-slate-400" />
               </div>
-              <div className="grid grid-cols-5 gap-2 h-[150px]">
-                {distribution.bugByModule?.length ? (
-                  distribution.bugByModule.slice(0, 10).map((m, i) => {
-                    const intensity = Math.min(Math.max(m.count * 10, 10), 90);
-                    return (
-                      <div 
-                        key={i} 
-                        className="group relative flex items-center justify-center rounded-md transition-all duration-300 hover:scale-110"
-                        style={{ backgroundColor: `rgba(239, 68, 68, ${intensity / 100})` }}
-                      >
-                        <span className="text-[10px] font-black text-white drop-shadow-md">{m.count}</span>
-                        <div className="absolute bottom-full left-1/2 mb-2 w-max -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100 pointer-events-none z-20">
-                          {m.module}
-                        </div>
+              <div className="flex flex-col md:flex-row items-start gap-4">
+                <div className="h-[200px] flex-1 w-full">
+                  {heatmap.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={heatmap}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="total"
+                          nameKey="name"
+                          onClick={(data) => setSelectedResource(data)}
+                          className="cursor-pointer outline-none"
+                        >
+                          {heatmap.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={RESOURCE_COLORS[index % RESOURCE_COLORS.length]} 
+                              className="hover:opacity-80 transition-opacity"
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", fontSize: 11 }}
+                          formatter={(value, name) => [value, `Load: ${name}`]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">No workload data</div>
+                  )}
+                </div>
+                {heatmap.length > 0 && (
+                  <div className="flex flex-col gap-2 min-w-[120px]">
+                    {heatmap.slice(0, 5).map((entry, index) => (
+                      <div key={entry.name} className="flex items-center gap-2">
+                        <div 
+                          className="h-2 w-2 rounded-full shrink-0" 
+                          style={{ backgroundColor: RESOURCE_COLORS[index % RESOURCE_COLORS.length] }} 
+                        />
+                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[80px]">
+                          {entry.name}
+                        </span>
+                        <span className="text-[10px] font-black text-slate-400 ml-auto">
+                          {entry.total}
+                        </span>
                       </div>
-                    );
-                  })
-                ) : (
-                  <div className="col-span-5 flex items-center justify-center text-xs text-slate-400 italic">No module data</div>
+                    ))}
+                    {heatmap.length > 5 && <p className="text-[8px] text-slate-400 italic">+{heatmap.length - 5} more</p>}
+                  </div>
                 )}
               </div>
+              {heatmap.length > 0 && (
+                <p className="text-[10px] text-center text-slate-400 mt-2 font-bold uppercase tracking-widest">Click slices for details</p>
+              )}
             </div>
           </section>
 
@@ -304,26 +377,34 @@ export function Dashboard({
               </div>
               {distribution.bugs.length > 0 ? (
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={distribution.bugs} barCategoryGap="30%">
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                    <YAxis hide />
-                    <Tooltip cursor={{fill: 'transparent'}} />
-                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  <PieChart>
+                    <Pie
+                      data={distribution.bugs}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
                       {distribution.bugs.map((item) => {
                         const name = item.name.toLowerCase();
                         return (
                           <Cell
                             key={item.name}
                             fill={
-                              name === "critical" ? "#ef4444" :
-                              name === "high" ? "#f87171" :
-                              name === "medium" ? "#fbbf24" : "#10b981"
+                              name === "critical" ? "#f43f5e" :
+                              name === "high" ? "#fb7185" :
+                              name === "medium" ? "#f59e0b" : "#10b981"
                             }
                           />
                         );
                       })}
-                    </Bar>
-                  </BarChart>
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", fontSize: 11 }}
+                    />
+                  </PieChart>
                 </ResponsiveContainer>
               ) : <div className="h-[200px] flex items-center justify-center text-xs text-slate-400 italic">No distribution data</div>}
           </section>
@@ -430,6 +511,84 @@ export function Dashboard({
                 className="px-6 h-12 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Resource Detail Modal */}
+      {selectedResource && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-md bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200 ring-1 ring-slate-200 dark:ring-white/10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "h-14 w-14 rounded-md flex items-center justify-center text-white shadow-xl",
+                  selectedResource.total > 5 ? "bg-rose-500 shadow-rose-500/20" : "bg-blue-600 shadow-blue-600/20"
+                )}>
+                  <User size={28} weight="bold" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">{selectedResource.name}</h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Workload Analysis</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedResource(null)} className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                 <ArrowRight size={20} className="rotate-180" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 mb-6 text-center">
+              {[
+                { label: 'Tasks', count: selectedResource.taskCount, color: 'text-blue-500' },
+                { label: 'Bugs', count: selectedResource.bugCount, color: 'text-rose-500' },
+                { label: 'Suites', count: selectedResource.suiteCount, color: 'text-amber-500' },
+                { label: 'Plans', count: selectedResource.planCount, color: 'text-indigo-500' },
+              ].map(stat => (
+                <div key={stat.label} className="p-3 rounded-md bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
+                  <p className={cn("text-lg font-black", stat.color)}>{stat.count}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mb-6">
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Itemized Responsibilities</p>
+               <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+                  {loadingDetails ? (
+                    <div className="py-12 flex flex-col items-center gap-3">
+                       <div className="h-8 w-8 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin" />
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading Items...</p>
+                    </div>
+                  ) : resourceItems.length > 0 ? resourceItems.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-md bg-slate-50/50 dark:bg-white/2 border border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition">
+                       <div className={cn(
+                         "h-6 w-12 rounded flex items-center justify-center text-[8px] font-black uppercase tracking-widest text-white shrink-0",
+                         item.type === 'Bug' ? "bg-rose-500" : item.type === 'Task' ? "bg-blue-500" : "bg-amber-500"
+                       )}>
+                         {item.type}
+                       </div>
+                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex-1 line-clamp-1">{item.title}</span>
+                       <Badge value={item.priority} className="text-[8px] h-5" />
+                    </div>
+                  )) : (
+                    <p className="text-xs text-slate-400 italic text-center py-8">No active items found.</p>
+                  )}
+               </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+               <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Capacity Health</span>
+                  <span className={cn("text-xs font-black uppercase", selectedResource.total > 5 ? "text-rose-500" : "text-emerald-500")}>
+                    {selectedResource.total > 5 ? "Overloaded" : "Healthy Workload"}
+                  </span>
+               </div>
+               <button 
+                onClick={() => setSelectedResource(null)}
+                className="px-6 h-10 rounded-md bg-slate-900 dark:bg-white text-white dark:text-black font-bold hover:opacity-90 transition text-xs shadow-lg"
+              >
+                Close Details
               </button>
             </div>
           </div>

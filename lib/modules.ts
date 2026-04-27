@@ -135,6 +135,7 @@ const taskSchema = z.object({
   description: requiredText("Description"),
   notes: optionalText,
   evidence: urlField,
+  assignee: optionalText,
 });
 
 const bugSchema = z.object({
@@ -259,6 +260,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Description: String(item.description),
       Notes: String(item.notes),
       Evidence: String(item.evidence),
+      Assignee: String(item.assignee ?? ""),
     }),
     fields: [
       { name: "title", label: "Title", kind: "text", placeholder: "e.g. Verify Login Validation", required: true },
@@ -270,6 +272,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "dueDate", label: "Due Date", kind: "date" },
       { name: "description", label: "Description", kind: "textarea", placeholder: "Provide details about the task...", required: true },
       { name: "relatedItems", label: "Linked Items", kind: "textarea", placeholder: "Mention related BUG IDs or Task IDs..." },
+      { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "notes", label: "Notes", kind: "textarea", placeholder: "Any additional context..." },
       { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/screenshot" },
     ],
@@ -284,7 +287,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "dueDate", label: "Due Date" },
       { key: "description", label: "Description", multiline: true },
       { key: "relatedItems", label: "Linked Items", multiline: true },
-      { key: "notes", label: "Notes", multiline: true },
+      { key: "assignee", label: "Assignee" },
       { key: "evidence", label: "Evidence", link: true },
     ],
   },
