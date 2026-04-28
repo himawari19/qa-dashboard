@@ -1,35 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/badge";
 import { toast } from "@/components/ui/toast";
-import { formatDate, cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { Printer, FileXls, ChartPieSlice, ChartLineUp, Checks, Bug, ClipboardText, Table, PlayCircle, File, Note, SquaresFour, ShieldCheck, Clock, Tag, ArrowRight, User } from "@phosphor-icons/react";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
+  Bug, ClipboardText, Table, PlayCircle, Checks, Note, Printer,
+  ArrowRight, X, CheckCircle, XCircle, Warning, Clock, User,
+  ChartBar, TrendUp, CalendarBlank, Kanban, CaretRight,
+} from "@phosphor-icons/react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, AreaChart, Area, CartesianGrid,
 } from "recharts";
 
-const RESOURCE_COLORS = [
-  "#3b82f6", // Blue
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
-  "#6366f1", // Indigo
-  "#8b5cf6", // Violet
-  "#ec4899", // Pink
-  "#06b6d4", // Cyan
-  "#f97316", // Orange
-];
+// ── Types ──────────────────────────────────────────────────────────────────
+
+type Session = { id: number; date: string; tester: string; scope: string; totalCases: number; passed: number; failed: number; blocked: number; result: string };
+type DrawerItem = { label: string; sub?: string; badge?: string; badge2?: string; href: string };
 
 type DashboardProps = {
   metrics: { label: string; value: number; caption: string }[];
@@ -41,627 +31,710 @@ type DashboardProps = {
   personalSuccessRate: number;
   spotlight?: {
     projectName: string;
-    projectDescription?: string;
     totalScenarios: number;
     totalBugs: number;
     completionRate: number;
-    criticalBugs: { code: string; title: string; severity: string }[];
-    priorityTasks: { code: string; title: string; priority: string }[];
+    criticalBugs: { id?: number | string; code: string; title: string; severity: string }[];
+    priorityTasks: { id?: number | string; code: string; title: string; priority: string }[];
   };
   recent: {
     tasks: { id: number; code: string; title: string; priority: string; status: string }[];
-    bugs: {
-      id: number;
-      code: string;
-      title: string;
-      severity: string;
-      priority: string;
-      status: string;
-    }[];
+    bugs: { id: number; code: string; title: string; severity: string; priority: string; status: string }[];
     testCases: { id: string; code: string; title: string; priority: string; status: string }[];
   };
   sprintInfo?: {
-    name: string;
-    startDate: string;
-    endDate: string;
-    progress: number;
-    taskTotal: number;
-    taskDone: number;
-    goal?: string;
+    name: string; startDate: string; endDate: string;
+    progress: number; taskTotal: number; taskDone: number; goal?: string;
   } | null;
-  activity?: {
-    id: number;
-    entityType: string;
-    entityId: string;
-    action: string;
-    summary: string;
-    createdAt: string;
-  }[];
+  activity?: { id: number; entityType: string; entityId: string; action: string; summary: string; createdAt: string }[];
   bugTrendData?: { date: string; count: number }[];
-  sprints?: { id: number; name: string; startDate: string; endDate: string; status: string }[];
   todayActivity?: { type: string; label: string; status: string }[];
   heatmap?: { name: string; taskCount: number; bugCount: number; total: number }[];
-  rolePersona?: string;
-  roleRecommendations?: {
-    title: string;
-    items: { label: string; count: number }[];
-  } | null;
+  recentSessions?: Session[];
 };
 
-export function Dashboard({ 
-  metrics, 
-  distribution, 
-  spotlight, 
-  recent, 
-  sprintInfo, 
-  personalSuccessRate, 
-  activity = [],
-  bugTrendData = [], 
-  sprints = [], 
+// ── Colors ─────────────────────────────────────────────────────────────────
+
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: "#f43f5e", high: "#fb923c", medium: "#f59e0b", low: "#94a3b8",
+};
+const STATUS_COLORS: Record<string, string> = {
+  todo: "#94a3b8", "in-progress": "#3b82f6", done: "#10b981",
+  open: "#f43f5e", closed: "#10b981", "in review": "#8b5cf6",
+};
+const MODULE_COLORS = ["#3b82f6","#10b981","#f59e0b","#6366f1","#8b5cf6","#ec4899","#06b6d4","#f97316"];
+
+// ── Drawer ─────────────────────────────────────────────────────────────────
+
+function Drawer({ title, subtitle, items, loading, onClose, viewAllHref }: {
+  title: string; subtitle?: string; items: DrawerItem[];
+  loading?: boolean; onClose: () => void; viewAllHref?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const keyHandler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", keyHandler);
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", keyHandler); };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
+      <div ref={ref} className="h-full w-full max-w-sm bg-white dark:bg-slate-900 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-5 py-4">
+          <div>
+            <h2 className="text-base font-black text-slate-900 dark:text-white">{title}</h2>
+            {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+          </div>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <X size={16} weight="bold" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-14 rounded-md bg-slate-100 dark:bg-slate-800 animate-pulse" />
+            ))
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 py-16">
+              <Checks size={32} weight="bold" />
+              <p className="text-sm font-semibold">No items found</p>
+            </div>
+          ) : (
+            items.map((item, i) => (
+              <Link key={i} href={item.href} onClick={onClose}
+                className="flex items-center gap-3 rounded-md border border-slate-100 dark:border-slate-800 p-3 hover:border-blue-200 hover:bg-blue-50/40 dark:hover:border-blue-800/40 dark:hover:bg-blue-950/20 transition group">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-700 dark:group-hover:text-blue-400">{item.label}</p>
+                  {item.sub && <p className="text-xs text-slate-400 truncate mt-0.5">{item.sub}</p>}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {item.badge && <Badge value={item.badge} />}
+                  {item.badge2 && <Badge value={item.badge2} />}
+                </div>
+                <CaretRight size={12} className="text-slate-300 group-hover:text-blue-500 transition shrink-0" />
+              </Link>
+            ))
+          )}
+        </div>
+
+        {viewAllHref && (
+          <div className="border-t border-slate-100 dark:border-slate-800 p-4">
+            <Link href={viewAllHref} onClick={onClose}
+              className="flex items-center justify-center gap-2 h-10 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold hover:bg-blue-600 dark:hover:bg-blue-50 transition">
+              View All <ArrowRight size={14} weight="bold" />
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Stat Card ──────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, icon, color, onClick, active }: {
+  label: string; value: number; icon: React.ReactNode;
+  color: string; onClick: () => void; active?: boolean;
+}) {
+  return (
+    <button onClick={onClick}
+      className={cn(
+        "flex flex-col gap-3 rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg group",
+        active
+          ? "border-blue-400 ring-2 ring-blue-400/30 bg-white dark:bg-slate-900"
+          : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-slate-300"
+      )}>
+      <div className="flex items-center justify-between">
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", color)}>{icon}</div>
+        <CaretRight size={14} className={cn("transition", active ? "text-blue-500" : "text-slate-300 group-hover:text-slate-400")} />
+      </div>
+      <div>
+        <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
+        <p className="text-xs font-semibold text-slate-400 mt-0.5">{label}</p>
+      </div>
+    </button>
+  );
+}
+
+// ── Quick action ───────────────────────────────────────────────────────────
+
+function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link href={href} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900">
+      {icon}{label}
+    </Link>
+  );
+}
+
+// ── Custom tooltip ─────────────────────────────────────────────────────────
+
+const ChartTip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-3 shadow-xl text-xs">
+      {label && <p className="font-bold text-slate-500 mb-1.5">{label}</p>}
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.fill }} />
+          <span className="font-semibold text-slate-700 dark:text-slate-300">{p.name}: {p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Main Dashboard ─────────────────────────────────────────────────────────
+
+export function Dashboard({
+  metrics,
+  distribution,
+  recent,
+  sprintInfo,
+  personalSuccessRate,
+  bugTrendData = [],
   todayActivity = [],
   heatmap = [],
-  rolePersona = "User",
-  roleRecommendations = null
+  activity = [],
+  recentSessions = [],
+  spotlight,
 }: DashboardProps) {
   const [mounted, setMounted] = useState(false);
+  const [drawer, setDrawer] = useState<{ title: string; subtitle?: string; items: DrawerItem[]; href?: string } | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
   const [showStandup, setShowStandup] = useState(false);
-  const [selectedResource, setSelectedResource] = useState<any>(null);
-  const [resourceItems, setResourceItems] = useState<any[]>([]);
-  const [burnoutData, setBurnoutData] = useState<any[]>([]);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [selectedSprintId, setSelectedSprintId] = useState<number | null>(null);
 
-  useEffect(() => {
-    setMounted(true);
-    // Fetch burnout data
-    fetch('/api/dashboard/burnout').then(res => res.json()).then(data => setBurnoutData(data));
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
-  const handlePrint = () => { window.print(); };
+  const closeDrawer = () => setDrawer(null);
 
-  useEffect(() => {
-    if (selectedResource) {
-      setLoadingDetails(true);
-      fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(selectedResource.name)}`)
-        .then(res => res.json())
-        .then(data => {
-          const all = [...(data.tasks || []), ...(data.bugs || []), ...(data.suites || [])];
-          setResourceItems(all);
-          setLoadingDetails(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setLoadingDetails(false);
-        });
-    } else {
-      setResourceItems([]);
+  const openStatDrawer = async (metricLabel: string, value: number) => {
+    const labelMap: Record<string, { href: string; fetchKey?: string }> = {
+      "Open Tasks":   { href: "/tasks",         fetchKey: "tasks" },
+      "Bug Entries":  { href: "/bugs",           fetchKey: "bugs" },
+      "Test Cases":   { href: "/test-cases",     fetchKey: "testCases" },
+      "Test Suites":  { href: "/test-suites" },
+      "Sessions":     { href: "/test-sessions" },
+    };
+    const meta = labelMap[metricLabel];
+    if (!meta) return;
+
+    if (metricLabel === "Open Tasks") {
+      setDrawer({
+        title: "Open Tasks", subtitle: `${value} total`,
+        href: "/tasks",
+        items: recent.tasks.map(t => ({ label: t.title, sub: t.code, badge: t.priority, badge2: t.status, href: "/tasks" })),
+      });
+    } else if (metricLabel === "Bug Entries") {
+      setDrawer({
+        title: "Bug Entries", subtitle: `${value} total`,
+        href: "/bugs",
+        items: recent.bugs.map(b => ({ label: b.title, sub: b.code, badge: b.severity, badge2: b.status, href: "/bugs" })),
+      });
+    } else if (metricLabel === "Test Cases") {
+      setDrawer({
+        title: "Test Cases", subtitle: `${value} total`,
+        href: "/test-cases",
+        items: recent.testCases.map(c => ({ label: c.title, sub: c.code, badge: c.priority, badge2: c.status, href: "/test-cases" })),
+      });
+    } else if (metricLabel === "Test Suites") {
+      setDrawerLoading(true);
+      setDrawer({ title: "Test Suites", subtitle: `${value} total`, href: "/test-suites", items: [] });
+      const res = await fetch("/api/dashboard/burnout").then(r => r.json()).catch(() => []);
+      setDrawerLoading(false);
+      setDrawer({ title: "Test Suites", subtitle: `${value} total`, href: "/test-suites", items: [] });
+    } else if (metricLabel === "Sessions") {
+      setDrawer({
+        title: "Recent Sessions", subtitle: `${recentSessions.length} shown`,
+        href: "/test-sessions",
+        items: recentSessions.map(s => ({
+          label: s.scope || "Session",
+          sub: `${formatDate(s.date)} · ${s.tester}`,
+          badge: s.result,
+          href: "/test-sessions",
+        })),
+      });
     }
-  }, [selectedResource]);
+  };
 
+  const openModuleDrawer = (module: string, count: number) => {
+    const bugs = (spotlight?.criticalBugs ?? []).filter(b => b.title.toLowerCase().includes(module.toLowerCase()));
+    setDrawer({
+      title: `Bugs in "${module}"`,
+      subtitle: `${count} defects`,
+      href: "/bugs",
+      items: bugs.length > 0
+        ? bugs.map(b => ({ label: b.title, sub: b.code, badge: b.severity, href: "/bugs" }))
+        : [{ label: `View all bugs in ${module}`, href: "/bugs" }],
+    });
+  };
 
+  const openSeverityDrawer = (severity: string, count: number) => {
+    const bugs = recent.bugs.filter(b => b.severity?.toLowerCase() === severity.toLowerCase());
+    setDrawer({
+      title: `${severity} Bugs`,
+      subtitle: `${count} total`,
+      href: "/bugs",
+      items: bugs.length > 0
+        ? bugs.map(b => ({ label: b.title, sub: b.code, badge2: b.status, href: "/bugs" }))
+        : [{ label: `View all ${severity} bugs`, href: "/bugs" }],
+    });
+  };
+
+  const openTaskStatusDrawer = (status: string, count: number) => {
+    const tasks = recent.tasks.filter(t => t.status?.toLowerCase() === status.toLowerCase());
+    setDrawer({
+      title: `Tasks: ${status}`,
+      subtitle: `${count} total`,
+      href: "/tasks",
+      items: tasks.length > 0
+        ? tasks.map(t => ({ label: t.title, sub: t.code, badge: t.priority, href: "/tasks" }))
+        : [{ label: `View all ${status} tasks`, href: "/tasks" }],
+    });
+  };
 
   const generateStandupText = () => {
-    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    let text = `*Standup Log - ${date}*\n\n`;
-    
-    const tasks = todayActivity.filter(a => a.type === 'Task');
-    const bugs = todayActivity.filter(a => a.type === 'Bug');
-    const sessions = todayActivity.filter(a => a.type === 'Session');
-
-    text += `*Done Today:*\n`;
-    if (tasks.length === 0 && bugs.length === 0 && sessions.length === 0) {
+    const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    let text = `*Standup Log - ${date}*\n\n*Done Today:*\n`;
+    if (todayActivity.length === 0) {
       text += `- Working on various QA activities\n`;
     } else {
-      tasks.forEach(t => text += `- [Task] ${t.label} (${t.status})\n`);
-      bugs.forEach(b => text += `- [Bug] ${b.label} (${b.status})\n`);
-      sessions.forEach(s => text += `- [Test] Executed ${s.label} (Result: ${s.status})\n`);
+      todayActivity.forEach(a => { text += `- [${a.type}] ${a.label} (${a.status})\n`; });
     }
-
-    text += `\n*Blockers:*\n- None\n\n*Next Plan:*\n- Continue testing current sprint items\n- Finalize pending bug verifications`;
+    text += `\n*Blockers:*\n- (fill in)\n\n*Next Plan:*\n- (fill in)`;
     return text;
   };
 
-  const copyStandup = () => {
-    navigator.clipboard.writeText(generateStandupText());
-    toast("Standup log copied to clipboard!", "success");
-    setShowStandup(false);
-  };
+  // Session trend for chart
+  const sessionTrend = recentSessions.slice().reverse().map(s => ({
+    date: s.date ? s.date.slice(5) : "",
+    passed: s.passed,
+    failed: s.failed,
+    blocked: s.blocked,
+    rate: s.totalCases > 0 ? Math.round((s.passed / s.totalCases) * 100) : 0,
+  }));
 
-  const activeSprint = selectedSprintId
-    ? sprints.find((s) => s.id === selectedSprintId) ?? null
-    : null;
-  const displayedSprint = activeSprint
-    ? { ...sprintInfo, name: activeSprint.name, startDate: activeSprint.startDate, endDate: activeSprint.endDate, progress: sprintInfo?.progress ?? 0, taskDone: sprintInfo?.taskDone ?? 0, taskTotal: sprintInfo?.taskTotal ?? 0 }
-    : sprintInfo;
+  const statCards = [
+    { label: "Open Tasks", icon: <Kanban size={20} weight="bold" className="text-blue-600" />, color: "bg-blue-50 dark:bg-blue-950/30" },
+    { label: "Bug Entries", icon: <Bug size={20} weight="bold" className="text-rose-500" />, color: "bg-rose-50 dark:bg-rose-950/30" },
+    { label: "Test Cases", icon: <Checks size={20} weight="bold" className="text-emerald-500" />, color: "bg-emerald-50 dark:bg-emerald-950/30" },
+    { label: "Test Suites", icon: <Table size={20} weight="bold" className="text-indigo-500" />, color: "bg-indigo-50 dark:bg-indigo-950/30" },
+    { label: "Sessions", icon: <PlayCircle size={20} weight="bold" className="text-amber-500" />, color: "bg-amber-50 dark:bg-amber-950/30" },
+  ];
+
+  const ENTITY_ICON: Record<string, React.ReactNode> = {
+    Task: <Kanban size={14} weight="bold" className="text-blue-500" />,
+    Bug: <Bug size={14} weight="bold" className="text-rose-500" />,
+    TestCase: <Checks size={14} weight="bold" className="text-emerald-500" />,
+    TestSuite: <Table size={14} weight="bold" className="text-indigo-500" />,
+    Session: <PlayCircle size={14} weight="bold" className="text-amber-500" />,
+  };
 
   return (
     <div className="space-y-6 pb-12">
+      {drawer && (
+        <Drawer
+          title={drawer.title}
+          subtitle={drawer.subtitle}
+          items={drawer.items}
+          loading={drawerLoading}
+          onClose={closeDrawer}
+          viewAllHref={drawer.href}
+        />
+      )}
+
       <Breadcrumb crumbs={[{ label: "Dashboard" }]} />
-      {/* HEADER & QUICK ACTIONS */}
-      <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between no-print">
+
+      {/* Header */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Overview</h1>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Welcome back! Here's your QA activity summary.</p>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button 
-            onClick={handlePrint}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-black shadow-sm"
-          >
-            <Printer size={16} weight="bold" />
-            Print Report
+          <button onClick={() => setShowStandup(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-700 transition shadow-sm shadow-blue-500/20">
+            <Note size={15} weight="bold" /> Standup
           </button>
-          <button 
-            onClick={() => setShowStandup(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-blue-600 px-4 text-xs font-bold text-white transition-all hover:bg-blue-700 shadow-lg shadow-blue-500/20"
-          >
-            <Note size={16} weight="bold" />
-            Generate Standup
+          <button onClick={() => window.print()}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition">
+            <Printer size={15} weight="bold" /> Print
           </button>
-          <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 self-center" />
-          <QuickActionBtn href="/bugs" icon={Bug} label="Bugs" />
-          <QuickActionBtn href="/test-plans" icon={ClipboardText} label="Plans" />
-          <QuickActionBtn href="/test-suites" icon={Table} label="Suites" />
-          <QuickActionBtn href="/test-cases" icon={SquaresFour} label="Cases" />
-          <QuickActionBtn href="/test-sessions" icon={PlayCircle} label="Execs" />
+          <div className="h-9 w-px bg-slate-200 dark:bg-slate-700 self-center" />
+          <QuickBtn href="/bugs" icon={<Bug size={14} weight="bold" />} label="Bugs" />
+          <QuickBtn href="/test-plans" icon={<ClipboardText size={14} weight="bold" />} label="Plans" />
+          <QuickBtn href="/test-cases" icon={<Checks size={14} weight="bold" />} label="Cases" />
+          <QuickBtn href="/test-sessions" icon={<PlayCircle size={14} weight="bold" />} label="Sessions" />
         </div>
       </header>
 
-      {/* COMPACT STATS GRID */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.slice(0, 4).map((metric) => (
-          <div key={metric.label} className="glass-card p-5 group transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400 group-hover:text-blue-600 transition">
-              {metric.label}
-            </p>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{metric.value}</span>
-              <span className="text-[10px] font-bold text-blue-500 uppercase">Live</span>
-            </div>
-            <div className="mt-4 h-1 w-full bg-slate-100 dark:bg-white/5 rounded-md overflow-hidden">
-               <div 
-                 className="h-full bg-blue-500 transition-all duration-1000" 
-                 style={{ width: `${Math.min(100, (metric.value / 20) * 100)}%` }} 
-               />
-            </div>
-          </div>
-        ))}
+      {/* ── Stat cards ── */}
+      <section className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {statCards.map((card) => {
+          const metric = metrics.find(m => m.label === card.label);
+          return (
+            <StatCard
+              key={card.label}
+              label={card.label}
+              value={metric?.value ?? 0}
+              icon={card.icon}
+              color={card.color}
+              active={drawer?.title === card.label || drawer?.title === "Open Tasks" && card.label === "Open Tasks"}
+              onClick={() => openStatDrawer(card.label, metric?.value ?? 0)}
+            />
+          );
+        })}
       </section>
 
-      {/* ROLE-BASED FOCUS AREA */}
-      {roleRecommendations && (
-        <section className="animate-in fade-in slide-in-from-top-4 duration-700 fill-mode-both">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="h-6 w-6 rounded-md bg-blue-600 flex items-center justify-center text-white">
-              <SquaresFour size={14} weight="bold" />
-            </div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">
-              {roleRecommendations.title} <span className="text-blue-500">• {rolePersona}</span>
-            </h2>
+      {/* ── Charts row ── */}
+      <section className="grid gap-4 lg:grid-cols-3">
+
+        {/* Bug by Module */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bugs by Module</h3>
+            <ChartBar size={15} className="text-slate-400" weight="bold" />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {roleRecommendations.items.map((item, idx) => (
-              <div key={idx} className="glass-card p-4 border-l-4 border-l-blue-500">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">{item.count}</span>
-                  <div className="h-8 w-8 rounded-full bg-blue-50 dark:bg-white/5 flex items-center justify-center text-blue-600">
-                    <ArrowRight size={16} weight="bold" />
-                  </div>
-                </div>
-              </div>
-            ))}
+          <p className="text-[10px] text-slate-400 mb-4">Click a bar to see defects</p>
+          <div className="h-44">
+            {mounted && distribution.bugByModule.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <BarChart data={distribution.bugByModule} layout="vertical" barCategoryGap={6}
+                  onClick={(d: any) => d?.activePayload?.[0] && openModuleDrawer(d.activePayload[0].payload.module, d.activePayload[0].value)}>
+                  <XAxis type="number" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="module" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={70} />
+                  <Tooltip content={<ChartTip />} cursor={{ fill: "#f1f5f9" }} />
+                  <Bar dataKey="count" radius={4} className="cursor-pointer">
+                    {distribution.bugByModule.map((_, i) => (
+                      <Cell key={i} fill={MODULE_COLORS[i % MODULE_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChart label="No module data" />
+            )}
           </div>
-        </section>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* MAIN REPORTS */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* PERSONAL QUALITY SHIELD (MOVED TO TOP OF MAIN) */}
-          <section className="bg-slate-900 dark:bg-blue-950 rounded-md p-6 text-white shadow-xl relative overflow-hidden animate-in fade-in slide-in-from-left-4 duration-700 fill-mode-both">
-            <div className="absolute -right-4 -bottom-4 h-32 w-32 rounded-md bg-blue-500/10 blur-2xl" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
-                  <Checks size={24} weight="bold" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black tracking-tight">Personal Quality Shield</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Performance Assessment</p>
-                </div>
-              </div>
-              <div className="flex flex-1 items-center gap-6 max-w-md">
-                <div className="flex flex-col items-end shrink-0">
-                  <span className="text-4xl font-black tracking-tighter">{personalSuccessRate}%</span>
-                  <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">Success Rate</span>
-                </div>
-                <div className="flex-1 h-3 rounded-full bg-white/10 overflow-hidden p-0.5">
-                  <div className="h-full bg-blue-500 rounded-full shadow-[0_0_12px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{ width: `${personalSuccessRate}%` }} />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* SPOTLIGHT PROJECT */}
-          {spotlight && (
-            <section className="glass-card overflow-hidden animate-in fade-in slide-in-from-left-4 duration-700 fill-mode-both">
-              <div className="bg-gradient-to-r from-blue-600 to-sky-500 px-6 py-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-black tracking-tight">{spotlight.projectName}</h2>
-                    <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mt-0.5">Project Spotlight</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-3xl font-black tracking-tighter">{spotlight.completionRate}%</span>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-blue-200">Execution Rate</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-white/10 backdrop-blur-md rounded-md p-3 border border-white/10">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-100">Scenarios</p>
-                    <p className="text-base font-black">{spotlight.totalScenarios}</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-md p-3 border border-white/10">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-100">Open Bugs</p>
-                    <p className="text-base font-black">{spotlight.totalBugs}</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-md p-3 border border-white/10">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-100">Health</p>
-                    <p className="text-base font-black">{spotlight.completionRate > 80 ? 'Good' : 'At Risk'}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 bg-white dark:bg-slate-900">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <h3 className="text-[9px] font-black uppercase text-rose-500 tracking-widest mb-2 flex items-center gap-2">
-                      <Bug size={12} weight="bold" />
-                      Critical Defects
-                    </h3>
-                    <div className="space-y-1.5">
-                      {spotlight.criticalBugs.slice(0, 2).map(bug => (
-                        <div key={bug.code} className="flex items-center gap-2 text-[10px] bg-slate-50 dark:bg-white/5 p-2 rounded-md">
-                          <span className="font-bold text-slate-400 w-10 shrink-0">{bug.code}</span>
-                          <span className="text-slate-700 dark:text-slate-300 line-clamp-1 flex-1">{bug.title}</span>
-                          <Badge value={bug.severity} className="text-[8px] h-4" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-[9px] font-black uppercase text-blue-500 tracking-widest mb-2 flex items-center gap-2">
-                      <Checks size={12} weight="bold" />
-                      Priority Tasks
-                    </h3>
-                    <div className="space-y-1.5">
-                      {spotlight.priorityTasks.slice(0, 2).map(task => (
-                        <div key={task.code} className="flex items-center gap-2 text-[10px] bg-slate-50 dark:bg-white/5 p-2 rounded-md">
-                          <span className="font-bold text-slate-400 w-10 shrink-0">{task.code}</span>
-                          <span className="text-slate-700 dark:text-slate-300 line-clamp-1 flex-1">{task.title}</span>
-                          <Badge value={task.priority} className="text-[8px] h-4" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* CHARTS GRID */}
-          <section className="grid gap-6 md:grid-cols-3">
-            {/* BUG TREND */}
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Bug Trend</h3>
-                <span className="text-[9px] font-bold text-slate-400">7D</span>
-              </div>
-              <div className="h-[120px]">
-                {mounted && bugTrendData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={bugTrendData}>
-                      <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                      <Tooltip contentStyle={{ fontSize: 10, borderRadius: 8 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-[10px] text-slate-400 italic">No trend data</div>}
-              </div>
-            </div>
-
-            {/* RESOURCE DISTRIBUTION */}
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Resources</h3>
-                <ChartPieSlice size={14} className="text-slate-400" />
-              </div>
-              <div className="h-[120px]">
-                {mounted && heatmap.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={heatmap} cx="50%" cy="50%" innerRadius={35} outerRadius={50} dataKey="total">
-                        {heatmap.map((_, index) => <Cell key={index} fill={RESOURCE_COLORS[index % RESOURCE_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip contentStyle={{ fontSize: 10, borderRadius: 8 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-[10px] text-slate-400 italic">No data</div>}
-              </div>
-            </div>
-
-            {/* SEVERITY DISTRIBUTION */}
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Severity</h3>
-                <ShieldCheck size={14} className="text-slate-400" />
-              </div>
-              <div className="h-[120px]">
-                {mounted && distribution.bugs.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={distribution.bugs} cx="50%" cy="50%" innerRadius={35} outerRadius={50} dataKey="value">
-                        {distribution.bugs.map((item) => (
-                          <Cell key={item.name} fill={item.name.toLowerCase() === 'critical' ? '#f43f5e' : item.name.toLowerCase() === 'high' ? '#fb7185' : '#f59e0b'} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ fontSize: 10, borderRadius: 8 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : <div className="h-full flex items-center justify-center text-[10px] text-slate-400 italic">No data</div>}
-              </div>
-            </div>
-          </section>
-
-          {/* TEAM BURNOUT HEATMAP (FULL WIDTH) */}
-          <section className="glass-card p-6">
-             <div className="flex items-center justify-between mb-8">
-               <div>
-                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Team Workload & Burnout Heatmap</h3>
-                 <p className="text-[10px] font-medium text-slate-400 mt-1">Real-time mental load assessment based on task complexity and deadlines.</p>
-               </div>
-               <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 px-2.5 py-1 rounded-full border border-slate-100 dark:border-white/10">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-[8px] font-bold uppercase text-slate-500">Light</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 px-2.5 py-1 rounded-full border border-slate-100 dark:border-white/10">
-                    <div className="h-2 w-2 rounded-full bg-amber-500" />
-                    <span className="text-[8px] font-bold uppercase text-slate-500">Heavy</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 px-2.5 py-1 rounded-full border border-slate-100 dark:border-white/10">
-                    <div className="h-2 w-2 rounded-full bg-rose-500" />
-                    <span className="text-[8px] font-bold uppercase text-slate-500">Burnout</span>
-                  </div>
-               </div>
-             </div>
-             
-             <div className="grid gap-x-12 gap-y-8 md:grid-cols-2">
-               {burnoutData.length > 0 ? burnoutData.map((user) => (
-                 <div key={user.name} className="relative">
-                   <div className="flex items-center justify-between mb-2.5">
-                     <div className="flex items-center gap-3">
-                       <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-xs font-black text-slate-500 border border-slate-200 dark:border-white/10">
-                         {user.name.charAt(0)}
-                       </div>
-                       <div className="flex flex-col">
-                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{user.name}</span>
-                         <span className={cn(
-                           "text-[8px] font-black uppercase tracking-tighter",
-                           user.level === 'burnout' ? "text-rose-500" :
-                           user.level === 'heavy' ? "text-orange-500" :
-                           user.level === 'optimal' ? "text-amber-500" : "text-emerald-500"
-                         )}>
-                           {user.level} risk
-                         </span>
-                       </div>
-                     </div>
-                     <div className="flex items-center gap-4 text-[9px] font-bold text-slate-400">
-                       <div className="flex flex-col items-end">
-                         <span>{user.itemCount} Items</span>
-                         <span>{user.projectCount} Projects</span>
-                       </div>
-                       <div className="h-8 w-px bg-slate-100 dark:bg-white/5" />
-                       <span className="text-xl font-black text-slate-900 dark:text-white w-10 text-right">{user.points}</span>
-                     </div>
-                   </div>
-                   <div className="relative h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                      <div 
-                        className={cn(
-                          "absolute left-0 top-0 h-full transition-all duration-1000 ease-out rounded-full",
-                          user.level === 'burnout' ? "bg-gradient-to-r from-rose-500 to-red-600 shadow-[0_0_8px_rgba(244,63,94,0.4)]" :
-                          user.level === 'heavy' ? "bg-gradient-to-r from-orange-400 to-rose-500" :
-                          user.level === 'optimal' ? "bg-gradient-to-r from-amber-400 to-orange-400" :
-                          "bg-gradient-to-r from-emerald-400 to-teal-500"
-                        )}
-                        style={{ width: `${Math.min(100, (user.points / 60) * 100)}%` }}
-                      />
-                   </div>
-                 </div>
-               )) : (
-                 <div className="col-span-2 py-12 text-center text-xs text-slate-400 italic bg-slate-50/50 dark:bg-white/2 rounded-xl border border-dashed border-slate-200 dark:border-white/5">
-                   No team activity data found for current cycle.
-                 </div>
-               )}
-             </div>
-          </section>
         </div>
 
-        {/* SIDEBAR AREA */}
-        <div className="space-y-6">
+        {/* Bug Severity donut */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bug Severity</h3>
+            <Bug size={15} className="text-slate-400" weight="bold" />
+          </div>
+          <p className="text-[10px] text-slate-400 mb-4">Click a slice to see bugs</p>
+          <div className="h-44">
+            {mounted && distribution.bugs.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <PieChart onClick={(d: any) => d?.activePayload?.[0] && openSeverityDrawer(d.activePayload[0].payload.name, d.activePayload[0].value)}>
+                  <Pie data={distribution.bugs} cx="50%" cy="50%" innerRadius={42} outerRadius={62}
+                    dataKey="value" nameKey="name" className="cursor-pointer">
+                    {distribution.bugs.map((item) => (
+                      <Cell key={item.name} fill={SEVERITY_COLORS[item.name.toLowerCase()] ?? "#94a3b8"} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTip />} />
+                  <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChart label="No severity data" />
+            )}
+          </div>
+        </div>
 
+        {/* Task Status donut */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Task Status</h3>
+            <Kanban size={15} className="text-slate-400" weight="bold" />
+          </div>
+          <p className="text-[10px] text-slate-400 mb-4">Click a slice to see tasks</p>
+          <div className="h-44">
+            {mounted && distribution.tasks.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                <PieChart onClick={(d: any) => d?.activePayload?.[0] && openTaskStatusDrawer(d.activePayload[0].payload.name, d.activePayload[0].value)}>
+                  <Pie data={distribution.tasks} cx="50%" cy="50%" innerRadius={42} outerRadius={62}
+                    dataKey="value" nameKey="name" className="cursor-pointer">
+                    {distribution.tasks.map((item) => (
+                      <Cell key={item.name} fill={STATUS_COLORS[item.name.toLowerCase()] ?? "#94a3b8"} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTip />} />
+                  <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChart label="No task data" />
+            )}
+          </div>
+        </div>
+      </section>
 
-          <section className="glass-card p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Live Activity</h3>
-              <Clock size={16} className="text-slate-400 animate-pulse" />
-            </div>
-            <div className="relative space-y-6 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-16px)] before:w-px before:bg-slate-200 dark:before:bg-white/10">
-              {activity.length > 0 ? activity.slice(0, 3).map((log) => (
-                <Link 
-                  key={log.id} 
-                  href={
-                    log.entityType === 'Bug' ? '/bugs' : 
-                    log.entityType === 'Task' ? '/tasks' : 
-                    log.entityType === 'TestPlan' ? '/test-plans' : 
-                    log.entityType === 'TestSuite' ? '/test-suites' : 
-                    log.entityType === 'MeetingNote' ? '/meeting-notes' : 
-                    log.entityType === 'Sprint' ? '/sprints' : '#'
-                  }
-                  className="relative pl-8 block group hover:bg-slate-50 dark:hover:bg-white/5 p-2 rounded-md -ml-2 transition"
-                >
-                  <div className="absolute left-0 top-3.5 h-[22px] w-[22px] rounded-md border-2 border-white dark:border-slate-800 bg-slate-50 dark:bg-slate-700 flex items-center justify-center z-10 group-hover:border-blue-500 transition">
-                    {log.entityType === 'Bug' ? <Bug size={10} className="text-rose-500" /> : 
-                     log.entityType === 'Task' ? <Tag size={10} className="text-blue-500" /> :
-                     log.entityType === 'Sprint' ? <Clock size={10} className="text-emerald-500" /> :
-                     log.entityType === 'MeetingNote' ? <Note size={10} className="text-amber-500" /> :
-                     log.entityType === 'TestPlan' ? <ClipboardText size={10} className="text-indigo-500" /> :
-                     log.entityType === 'TestSuite' ? <Table size={10} className="text-sky-500" /> :
-                     log.entityType === 'TestCase' ? <Checks size={10} className="text-emerald-600" /> :
-                     log.entityType === 'TestSession' ? <PlayCircle size={10} className="text-rose-600" /> :
-                     <ShieldCheck size={10} className="text-slate-500" />}
+      {/* ── Session trend + Sprint ── */}
+      <section className="grid gap-4 lg:grid-cols-3">
+
+        {/* Session execution trend */}
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Execution Trend</h3>
+            <TrendUp size={15} className="text-slate-400" weight="bold" />
+          </div>
+          <p className="text-[10px] text-slate-400 mb-4">Pass / Fail per session (last 10)</p>
+          <div className="h-48">
+            {mounted && sessionTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+                <AreaChart data={sessionTrend}>
+                  <defs>
+                    <linearGradient id="gPass" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gFail" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTip />} />
+                  <Area type="monotone" dataKey="passed" name="Passed" stroke="#10b981" strokeWidth={2} fill="url(#gPass)" dot={{ r: 3, fill: "#10b981" }} />
+                  <Area type="monotone" dataKey="failed" name="Failed" stroke="#f43f5e" strokeWidth={2} fill="url(#gFail)" dot={{ r: 3, fill: "#f43f5e" }} />
+                  <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: 10 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChart label="No session data yet. Execute a suite to see trends." />
+            )}
+          </div>
+        </div>
+
+        {/* Sprint */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Active Sprint</h3>
+            <CalendarBlank size={15} className="text-slate-400" weight="bold" />
+          </div>
+          {sprintInfo ? (
+            <>
+              <div className="flex-1">
+                <p className="text-lg font-black text-slate-900 dark:text-white leading-tight">{sprintInfo.name}</p>
+                {sprintInfo.goal && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{sprintInfo.goal}</p>}
+                <div className="mt-6">
+                  <div className="flex justify-between text-xs font-bold mb-2">
+                    <span className="text-slate-400">Progress</span>
+                    <span className="text-emerald-600">{sprintInfo.progress}%</span>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-800 dark:text-white line-clamp-1 group-hover:text-blue-600 transition">{log.summary}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">{log.action}</span>
-                      <span className="text-[8px] font-medium text-slate-400 opacity-60">•</span>
-                      <span className="text-[8px] font-medium text-slate-400">{formatDate(log.createdAt)}</span>
-                    </div>
+                  <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div style={{ width: `${sprintInfo.progress}%` }} className="h-full bg-emerald-500 rounded-full transition-all duration-1000" />
                   </div>
-                </Link>
-              )) : <p className="text-xs text-slate-400 italic text-center py-4">No recent activity.</p>}
+                  <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-2">
+                    <span>{sprintInfo.taskDone} done</span>
+                    <span>{sprintInfo.taskTotal} total</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-[10px] text-slate-400">
+                <div><span className="block font-bold uppercase tracking-widest">Start</span><span>{formatDate(sprintInfo.startDate)}</span></div>
+                <div className="text-right"><span className="block font-bold uppercase tracking-widest">End</span><span>{formatDate(sprintInfo.endDate)}</span></div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2">
+              <CalendarBlank size={32} weight="bold" />
+              <p className="text-xs font-semibold text-center">No active sprint.<br />Create one in Sprints.</p>
+              <Link href="/sprints" className="mt-2 text-xs font-bold text-blue-500 hover:underline">Go to Sprints →</Link>
             </div>
-          </section>
-
-
-
-          {/* SPRINT PROGRESS */}
-          {displayedSprint && (
-            <section className="glass-card p-6">
-               <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">{displayedSprint.name}</h3>
-                  <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md ring-1 ring-emerald-100">{displayedSprint.progress}%</span>
-               </div>
-               <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-md overflow-hidden mb-3">
-                  <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${displayedSprint.progress}%` }} />
-               </div>
-               <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <span>{displayedSprint.taskDone} Done</span>
-                  <span>{displayedSprint.taskTotal} Total</span>
-               </div>
-            </section>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Standup Modal */}
-      {showStandup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-md bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200 ring-1 ring-slate-200 dark:ring-white/10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-md bg-indigo-600 flex items-center justify-center text-white">
-                <Note size={24} weight="bold" />
+      {/* ── Quality + Critical ── */}
+      <section className="grid gap-4 lg:grid-cols-3">
+
+        {/* Quality shield */}
+        <div className="rounded-xl bg-slate-900 dark:bg-blue-950 p-5 text-white relative overflow-hidden">
+          <div className="absolute -right-6 -bottom-6 h-32 w-32 rounded-full bg-blue-500/10 blur-2xl" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-lg bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <Checks size={20} weight="bold" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white">Daily Standup Log</h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Drafted from today's activity</p>
+                <p className="text-xs font-black uppercase tracking-widest text-blue-300">Quality Index</p>
+                <p className="text-sm font-bold text-white">Personal Shield</p>
               </div>
             </div>
-            
-            <div className="bg-slate-50 dark:bg-white/5 rounded-md p-5 mb-8 font-mono text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap border border-slate-100 dark:border-white/5 max-h-[300px] overflow-y-auto">
-              {generateStandupText()}
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className="text-5xl font-black tracking-tighter">{personalSuccessRate}%</span>
+              <span className="text-blue-400 text-xs font-bold">success rate</span>
             </div>
-
-            <div className="flex gap-3">
-              <button 
-                onClick={copyStandup}
-                className="flex-1 h-12 rounded-md bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
-              >
-                Copy to Clipboard
-              </button>
-              <button 
-                onClick={() => setShowStandup(false)}
-                className="px-6 h-12 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition"
-              >
-                Close
-              </button>
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div style={{ width: `${personalSuccessRate}%` }} className="h-full bg-blue-400 rounded-full transition-all duration-1000" />
             </div>
+            <p className="text-[10px] text-blue-300 mt-2">
+              {personalSuccessRate >= 80 ? "Excellent — keep it up!" : personalSuccessRate >= 60 ? "Good progress" : "Needs improvement"}
+            </p>
           </div>
         </div>
-      )}
-      {/* Resource Detail Modal */}
-      {selectedResource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-md bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200 ring-1 ring-slate-200 dark:ring-white/10">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
-                <div className={cn(
-                  "h-14 w-14 rounded-md flex items-center justify-center text-white shadow-xl",
-                  selectedResource.total > 5 ? "bg-rose-500 shadow-rose-500/20" : "bg-blue-600 shadow-blue-600/20"
-                )}>
-                  <User size={28} weight="bold" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white">{selectedResource.name}</h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Workload Analysis</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedResource(null)} className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/5 transition">
-                 <ArrowRight size={20} className="rotate-180" />
-              </button>
-            </div>
 
-            <div className="grid grid-cols-4 gap-2 mb-6 text-center">
-              {[
-                { label: 'Tasks', count: selectedResource.taskCount, color: 'text-blue-500' },
-                { label: 'Bugs', count: selectedResource.bugCount, color: 'text-rose-500' },
-                { label: 'Suites', count: selectedResource.suiteCount, color: 'text-amber-500' },
-                { label: 'Plans', count: selectedResource.planCount, color: 'text-indigo-500' },
-              ].map(stat => (
-                <div key={stat.label} className="p-3 rounded-md bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
-                  <p className={cn("text-lg font-black", stat.color)}>{stat.count}</p>
+        {/* Critical bugs */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-black uppercase tracking-widest text-rose-500">Critical Bugs</h3>
+            <Link href="/bugs" className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
+          </div>
+          <div className="space-y-2">
+            {(spotlight?.criticalBugs ?? []).length === 0
+              ? <p className="text-xs text-slate-400 py-4 text-center">No critical bugs 🎉</p>
+              : (spotlight?.criticalBugs ?? []).slice(0, 4).map((bug, i) => (
+                  <Link key={i} href={bug.id ? `/bugs?viewId=${bug.id}` : "/bugs"}
+                    className="flex w-full items-center gap-2 rounded-md bg-slate-50 dark:bg-slate-800/50 p-2.5 text-left hover:bg-rose-50 dark:hover:bg-rose-950/20 transition group">
+                    <XCircle size={14} weight="fill" className="text-rose-500 shrink-0" />
+                    <span className="flex-1 text-xs font-semibold text-slate-700 dark:text-slate-300 truncate group-hover:text-rose-700">{bug.title}</span>
+                    <Badge value={bug.severity} />
+                  </Link>
+              ))
+            }
+          </div>
+        </div>
+
+        {/* Priority tasks */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-black uppercase tracking-widest text-blue-500">Priority Tasks</h3>
+            <Link href="/tasks" className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
+          </div>
+          <div className="space-y-2">
+            {(spotlight?.priorityTasks ?? []).length === 0
+              ? <p className="text-xs text-slate-400 py-4 text-center">No priority tasks</p>
+              : (spotlight?.priorityTasks ?? []).slice(0, 4).map((task, i) => (
+                  <Link key={i} href={task.id ? `/tasks?viewId=${task.id}` : "/tasks"}
+                    className="flex w-full items-center gap-2 rounded-md bg-slate-50 dark:bg-slate-800/50 p-2.5 text-left hover:bg-blue-50 dark:hover:bg-blue-950/20 transition group">
+                    <CheckCircle size={14} weight="fill" className="text-blue-500 shrink-0" />
+                    <span className="flex-1 text-xs font-semibold text-slate-700 dark:text-slate-300 truncate group-hover:text-blue-700">{task.title}</span>
+                    <Badge value={task.priority} />
+                  </Link>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      {/* ── Activity + Workload ── */}
+      <section className="grid gap-4 lg:grid-cols-2">
+
+        {/* Activity timeline */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Recent Activity</h3>
+            <Clock size={15} className="text-slate-400" weight="bold" />
+          </div>
+          {activity.length === 0 ? (
+            <div className="py-10 text-center text-xs text-slate-400">No activity yet.</div>
+          ) : (
+            <div className="relative space-y-0">
+              <div className="absolute left-[22px] top-0 bottom-0 w-px bg-slate-100 dark:bg-slate-800" />
+              {activity.slice(0, 8).map((item, i) => (
+                <div key={i} className="relative flex items-start gap-3 pb-4">
+                  <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    {ENTITY_ICON[item.entityType] ?? <Clock size={14} className="text-slate-400" weight="bold" />}
+                  </div>
+                  <div className="flex-1 min-w-0 pt-2">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-snug line-clamp-2">{item.summary}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{item.entityType} · {item.action} · {item.createdAt?.slice(0, 16).replace("T", " ")}</p>
+                  </div>
                 </div>
               ))}
             </div>
+          )}
+        </div>
 
-            <div className="mb-6">
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Itemized Responsibilities</p>
-               <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-                  {loadingDetails ? (
-                    <div className="py-12 flex flex-col items-center gap-3">
-                       <div className="h-8 w-8 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin" />
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading Items...</p>
+        {/* Team workload */}
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Team Workload</h3>
+            <User size={15} className="text-slate-400" weight="bold" />
+          </div>
+          {heatmap.length === 0 ? (
+            <div className="py-10 text-center text-xs text-slate-400">No team data.</div>
+          ) : (
+            <div className="space-y-4">
+              {heatmap.slice(0, 6).map((member) => {
+                const score = member.total;
+                const heat = score >= 8 ? "bg-rose-500" : score >= 4 ? "bg-amber-400" : "bg-emerald-500";
+                const pct = Math.min(100, Math.round((score / 12) * 100));
+                return (
+                  <button key={member.name}
+                    onClick={async () => {
+                      setDrawerLoading(true);
+                      setDrawer({ title: member.name, subtitle: `${score} active items`, href: "/tasks", items: [] });
+                      const res = await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(member.name)}`).then(r => r.json()).catch(() => ({}));
+                      setDrawerLoading(false);
+                      const items: DrawerItem[] = [
+                        ...(res.tasks || []).map((t: any) => ({ label: t.title, sub: "Task · " + t.status, badge: t.priority, href: "/tasks" })),
+                        ...(res.bugs || []).map((b: any) => ({ label: b.title, sub: "Bug · " + b.status, badge: b.priority, href: "/bugs" })),
+                        ...(res.suites || []).map((s: any) => ({ label: s.title, sub: "Suite · " + s.status, href: "/test-suites" })),
+                      ];
+                      setDrawer({ title: member.name, subtitle: `${score} active items`, href: "/tasks", items });
+                    }}
+                    className="w-full text-left group"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-500">
+                          {member.name[0]?.toUpperCase() ?? "?"}
+                        </div>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition">{member.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                        <span className="flex items-center gap-0.5"><Kanban size={10} />{(member as any).taskCount ?? 0}</span>
+                        <span className="flex items-center gap-0.5"><Bug size={10} />{(member as any).bugCount ?? 0}</span>
+                        <span className={cn("h-2 w-2 rounded-full", heat)} />
+                      </div>
                     </div>
-                  ) : resourceItems.length > 0 ? resourceItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3 rounded-md bg-slate-50/50 dark:bg-white/2 border border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition">
-                       <div className={cn(
-                         "h-6 w-12 rounded flex items-center justify-center text-[8px] font-black uppercase tracking-widest text-white shrink-0",
-                         item.type === 'Bug' ? "bg-rose-500" : item.type === 'Task' ? "bg-blue-500" : "bg-amber-500"
-                       )}>
-                         {item.type}
-                       </div>
-                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex-1 line-clamp-1">{item.title}</span>
-                       <Badge value={item.priority} className="text-[8px] h-5" />
+                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div style={{ width: `${pct}%` }} className={cn("h-full rounded-full transition-all", heat)} />
                     </div>
-                  )) : (
-                    <p className="text-xs text-slate-400 italic text-center py-8">No active items found.</p>
-                  )}
-               </div>
+                  </button>
+                );
+              })}
             </div>
+          )}
+        </div>
+      </section>
 
-            <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-               <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Capacity Health</span>
-                  <span className={cn("text-xs font-black uppercase", selectedResource.total > 5 ? "text-rose-500" : "text-emerald-500")}>
-                    {selectedResource.total > 5 ? "Overloaded" : "Healthy Workload"}
-                  </span>
-               </div>
-               <button 
-                onClick={() => setSelectedResource(null)}
-                className="px-6 h-10 rounded-md bg-slate-900 dark:bg-white text-white dark:text-black font-bold hover:opacity-90 transition text-xs shadow-lg"
-              >
-                Close Details
+      {/* Standup modal */}
+      {showStandup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-base font-black text-slate-900 dark:text-white">Standup Log</h2>
+              <button onClick={() => setShowStandup(false)} className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <X size={15} weight="bold" />
+              </button>
+            </div>
+            <div className="p-5">
+              <pre className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-md p-4 whitespace-pre-wrap leading-relaxed">{generateStandupText()}</pre>
+            </div>
+            <div className="flex gap-3 p-5 pt-0">
+              <button onClick={() => setShowStandup(false)} className="flex-1 h-10 rounded-md border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Cancel</button>
+              <button onClick={() => { navigator.clipboard.writeText(generateStandupText()); toast("Copied!", "success"); setShowStandup(false); }}
+                className="flex-1 h-10 rounded-md bg-slate-900 dark:bg-white text-sm font-bold text-white dark:text-slate-900 hover:bg-blue-600 dark:hover:bg-blue-50 transition">
+                Copy to Clipboard
               </button>
             </div>
           </div>
@@ -671,14 +744,6 @@ export function Dashboard({
   );
 }
 
-function QuickActionBtn({ href, icon: Icon, label }: { href: string; icon: any; label: string }) {
-  return (
-    <Link 
-      href={href} 
-      className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:-translate-y-0.5 shadow-sm"
-    >
-      <Icon size={16} weight="bold" />
-      {label}
-    </Link>
-  );
+function EmptyChart({ label }: { label: string }) {
+  return <div className="flex h-full items-center justify-center text-[11px] text-slate-400 italic text-center">{label}</div>;
 }

@@ -57,15 +57,16 @@ const toneMap = {
 } as const;
 
 export function Badge({ value, className }: { value: string; className?: string }) {
+  const safeValue = String(value || "");
   return (
     <span
       className={cn(
         "inline-flex min-w-[80px] justify-center rounded-md px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest shadow-sm",
-        toneMap[value as keyof typeof toneMap] ?? "bg-slate-500 text-white",
+        toneMap[safeValue as keyof typeof toneMap] ?? "bg-slate-500 text-white",
         className
       )}
     >
-      {value.replace(/_/g, " ")}
+      {safeValue.replace(/_/g, " ")}
     </span>
   );
 }

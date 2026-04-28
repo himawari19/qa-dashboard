@@ -1,19 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const company = user.company || "";
+  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+
   try {
     const { ids, status } = await request.json();
-    
+
     if (!Array.isArray(ids) || !status) {
       return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
     }
 
-    const query = `UPDATE "TestCase" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" IN (${ids.map(() => "?").join(",")})`;
-    
-    await db.run(query, [status, ...ids]);
+    const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+    const query = `UPDATE "TestCase" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" IN (${ids.map(() => "?").join(",")})${companyFilter}`;
+    const params = isAdmin ? [status, ...ids] : [status, ...ids, company];
+
+    await db.run(query, params);
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

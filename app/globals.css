@@ -57,6 +57,10 @@
 }
 
 body {
+  overflow-x: hidden;
+}
+
+body {
   background: var(--bg-app);
   color: var(--foreground);
   font-family: "Inter", sans-serif;

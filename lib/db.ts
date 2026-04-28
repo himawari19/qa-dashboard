@@ -15,6 +15,7 @@ export const tables = [
       "startDate" TEXT,
       "endDate" TEXT,
       "status" TEXT NOT NULL DEFAULT 'active',
+      "goal" TEXT DEFAULT '',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -36,6 +37,7 @@ export const tables = [
       "notes" TEXT NOT NULL DEFAULT '',
       "evidence" TEXT NOT NULL DEFAULT '',
       "relatedItems" TEXT DEFAULT '',
+      "assignee" TEXT DEFAULT '',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -53,7 +55,7 @@ export const tables = [
       "preconditions" TEXT NOT NULL,
       "stepsToReproduce" TEXT NOT NULL,
       "expectedResult" TEXT NOT NULL,
-      "actualResult" TEXT NOT NULL,
+      "actualResult" TEXT DEFAULT '',
       "severity" TEXT NOT NULL,
       "priority" TEXT NOT NULL,
       "status" TEXT NOT NULL,
@@ -77,10 +79,10 @@ export const tables = [
       "caseName" TEXT NOT NULL,
       "testStep" TEXT NOT NULL,
       "expectedResult" TEXT NOT NULL,
-      "actualResult" TEXT NOT NULL,
+      "actualResult" TEXT DEFAULT '',
       "status" TEXT NOT NULL DEFAULT 'Pending',
       "automationResult" TEXT,
-      "evidence" TEXT,
+      "evidence" TEXT DEFAULT '',
       "priority" TEXT DEFAULT 'Medium',
       "lastRunAt" TEXT,
       "relatedItems" TEXT DEFAULT '',
@@ -205,21 +207,39 @@ export const tables = [
   }
 ];
 
+const indexSql = `
+CREATE INDEX IF NOT EXISTS "idx_task_company" ON "Task"("company");
+CREATE INDEX IF NOT EXISTS "idx_task_status" ON "Task"("status");
+CREATE INDEX IF NOT EXISTS "idx_task_assignee" ON "Task"("assignee");
+CREATE INDEX IF NOT EXISTS "idx_bug_company" ON "Bug"("company");
+CREATE INDEX IF NOT EXISTS "idx_bug_status" ON "Bug"("status");
+CREATE INDEX IF NOT EXISTS "idx_bug_suggesteddev" ON "Bug"("suggestedDev");
+CREATE INDEX IF NOT EXISTS "idx_testcase_company" ON "TestCase"("company");
+CREATE INDEX IF NOT EXISTS "idx_testcase_status" ON "TestCase"("status");
+CREATE INDEX IF NOT EXISTS "idx_testcase_suite" ON "TestCase"("testSuiteId");
+CREATE INDEX IF NOT EXISTS "idx_testplan_company" ON "TestPlan"("company");
+CREATE INDEX IF NOT EXISTS "idx_testsuite_company" ON "TestSuite"("company");
+CREATE INDEX IF NOT EXISTS "idx_testsuite_assignee" ON "TestSuite"("assignee");
+CREATE INDEX IF NOT EXISTS "idx_activitylog_company" ON "ActivityLog"("company");
+CREATE INDEX IF NOT EXISTS "idx_sprint_company" ON "Sprint"("company");
+`;
+
 function generateSchemaSql(postgres: boolean) {
   let sqlRows = postgres ? "" : "PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;\n";
-  
+
   for (const table of tables) {
     const s = table.schema
       .replace(/SERIAL_OR_PK/g, postgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT")
       .replace(/DATE_TYPE/g, postgres ? "TIMESTAMP" : "TEXT")
       .replace(/FK_INT_SPRINT/g, postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)');
-    
+
     sqlRows += `CREATE TABLE IF NOT EXISTS "${table.name}" (${s});\n`;
   }
+  sqlRows += indexSql;
   return sqlRows;
 }
 
-const schemaSql = generateSchemaSql(isPostgres);
+export const schemaSql = generateSchemaSql(isPostgres);
 
 type PostgresPool = {
   query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
@@ -349,13 +369,13 @@ async function backfillPublicTokens() {
       const sqlite = await getSqlite();
       const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE COALESCE(${column}, '') = ''`).all() as Array<{ id: string | number }>;
       for (const row of rows) {
-        sqlite.prepare(`UPDATE "${table}" SET ${column} = ? WHERE id = ?`).run(randomBytes(8).toString("base64url"), row.id);
+        sqlite.prepare(`UPDATE "${table}" SET ${column} = ? WHERE id = ?`).run(randomBytes(16).toString("base64url"), row.id);
       }
     } else {
       const pool = await getPostgresPool();
       const rows = await pool.query(toPostgresQuery(`SELECT id FROM "${table}" WHERE COALESCE("${column}", '') = ''`));
       for (const row of rows.rows as Array<{ id: string | number }>) {
-        await pool.query(toPostgresQuery(`UPDATE "${table}" SET "${column}" = $1 WHERE id = $2`), [randomBytes(8).toString("base64url"), row.id]);
+        await pool.query(toPostgresQuery(`UPDATE "${table}" SET "${column}" = $1 WHERE id = $2`), [randomBytes(16).toString("base64url"), row.id]);
       }
     }
   }
@@ -437,6 +457,33 @@ export const db = {
           }
           throw err;
         }
+      }
+    }
+  },
+
+  async transaction<T>(fn: () => Promise<T>): Promise<T> {
+    await ensureSchema();
+    if (useSqlite) {
+      const sqlite = await getSqlite();
+      sqlite.exec("BEGIN");
+      try {
+        const result = await fn();
+        sqlite.exec("COMMIT");
+        return result;
+      } catch (err) {
+        sqlite.exec("ROLLBACK");
+        throw err;
+      }
+    } else {
+      const pool = await getPostgresPool();
+      await pool.query("BEGIN");
+      try {
+        const result = await fn();
+        await pool.query("COMMIT");
+        return result;
+      } catch (err) {
+        await pool.query("ROLLBACK");
+        throw err;
       }
     }
   }

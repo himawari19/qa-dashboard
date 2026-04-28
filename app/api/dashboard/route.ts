@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDashboardData } from "@/lib/data";
+import { getCurrentUser } from "@/lib/auth";
 
 function emptyDashboardData() {
   return {
@@ -37,6 +38,9 @@ function emptyDashboardData() {
 }
 
 export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json(emptyDashboardData(), { status: 401 });
+
   try {
     const timeoutMs = 2500;
     let timedOut = false;

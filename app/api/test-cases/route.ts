@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getTestSuite } from "@/lib/data";
+import { getTestSuite, makePublicToken } from "@/lib/data";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const company = user.company || "";
+  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+
   try {
     const formData = await request.formData();
     const testSuiteId = String(formData.get("testSuiteId") || "");
@@ -22,10 +30,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Selesaikan semua form yang wajib diisi." }, { status: 400 });
     }
 
+    if (!isAdmin) {
+      const suite = await db.get('SELECT "company" FROM "TestSuite" WHERE "id" = ? AND "deletedAt" IS NULL', [testSuiteId]) as { company?: string } | undefined;
+      if (!suite || suite.company !== company) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
     await db.run(
-      `INSERT INTO "TestCase" ("testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status, evidence, priority]
+      `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [company, makePublicToken(), testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status, evidence, priority]
     );
 
     revalidatePath("/test-cases");
@@ -42,6 +57,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.role === "viewer" || user.role === "editor") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const company = user.company || "";
+  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+
   const idStr = request.nextUrl.searchParams.get("id");
   const id = idStr ? Number(idStr) : null;
 
@@ -50,11 +74,23 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const tc = await db.get('SELECT "testSuiteId" FROM "TestCase" WHERE id = ?', [id]) as { testSuiteId?: string };
-    await db.run('UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?', [id]);
+    const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+    const companyParam = isAdmin ? [] : [company];
+
+    const tc = await db.get(
+      `SELECT "testSuiteId" FROM "TestCase" WHERE id = ?${companyFilter}`,
+      [id, ...companyParam]
+    ) as { testSuiteId?: string } | undefined;
+
+    if (!tc) return NextResponse.json({ error: "Test case tidak ditemukan." }, { status: 404 });
+
+    await db.run(
+      `UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${companyFilter}`,
+      [id, ...companyParam]
+    );
 
     revalidatePath("/test-cases");
-    if (tc && tc.testSuiteId) {
+    if (tc.testSuiteId) {
       const suite = await getTestSuite(tc.testSuiteId);
       if (suite && (suite as Record<string, unknown>).publicToken) {
         revalidatePath(`/test-suites/execute/${String((suite as Record<string, unknown>).publicToken)}`);
@@ -69,27 +105,37 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const company = user.company || "";
+  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+
   try {
     const data = await request.json();
-    const rows = data.rows as Record<string, any>[];
+    const rows = data.rows as Record<string, unknown>[];
 
     if (!rows || !Array.isArray(rows)) {
       return NextResponse.json({ error: "Data eksekusi tidak valid" }, { status: 400 });
     }
 
+    const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+    const companyParam = isAdmin ? [] : [company];
+
     for (const tc of rows) {
       if (tc.id) {
         await db.run(
-          `UPDATE "TestCase" 
-           SET status = ?, "actualResult" = ?, evidence = ?, priority = ?, "updatedAt" = CURRENT_TIMESTAMP 
-           WHERE id = ?`,
-          [tc.status || "Pending", tc.actualResult || "", tc.evidence || "", tc.priority || "Medium", tc.id]
+          `UPDATE "TestCase"
+           SET status = ?, "actualResult" = ?, evidence = ?, priority = ?, "updatedAt" = CURRENT_TIMESTAMP
+           WHERE id = ?${companyFilter}`,
+          [tc.status || "Pending", tc.actualResult || "", tc.evidence || "", tc.priority || "Medium", tc.id, ...companyParam]
         );
       }
     }
-    
+
     revalidatePath("/test-cases");
-    
+
     return NextResponse.json({ message: "Eksekusi berhasil disimpan!" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Gagal menyimpan eksekusi test case.";

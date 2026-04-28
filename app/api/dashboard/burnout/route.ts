@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     // 1. Get all active items with their assignees, severities, projects, and due dates
     const bugs = await db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
-      `SELECT assignee, severity, project, dueDate FROM "Bug" WHERE status NOT IN ('fixed', 'closed') AND assignee IS NOT NULL AND assignee != ''`
+      `SELECT suggestedDev as assignee, severity, project, NULL as dueDate FROM "Bug" WHERE status NOT IN ('fixed', 'closed', 'rejected') AND suggestedDev IS NOT NULL AND suggestedDev != ''`
     );
     
     const tasks = await db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
@@ -39,8 +42,10 @@ export async function GET() {
       let multiplier = 1.0;
       if (item.dueDate) {
         const due = new Date(item.dueDate).getTime();
-        if (due <= today) multiplier = 2.0;
-        else if (due <= tomorrow) multiplier = 1.5;
+        if (!isNaN(due)) {
+          if (due <= today) multiplier = 2.0;
+          else if (due <= tomorrow) multiplier = 1.5;
+        }
       }
 
       stats.points += (basePoints * multiplier);

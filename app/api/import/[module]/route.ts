@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { clearModuleRecords, replaceModuleRecords } from "@/lib/data";
+import { db } from "@/lib/db";
 import { parseWorkbook } from "@/lib/excel";
 import {
   moduleConfigs,
@@ -8,6 +9,7 @@ import {
   safeParseModuleEntry,
   type ModuleKey,
 } from "@/lib/modules";
+import { getCurrentUser } from "@/lib/auth";
 
 function assertModule(value: string): ModuleKey | null {
   return moduleOrder.includes(value as ModuleKey) ? (value as ModuleKey) : null;
@@ -24,6 +26,10 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ module: string }> },
 ) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { module: rawModule } = await params;
   const moduleKey = assertModule(rawModule);
 
@@ -88,8 +94,10 @@ export async function POST(
     return NextResponse.json({ error: errors.join(" | ") }, { status: 400 });
   }
 
-  await clearModuleRecords(moduleKey);
-  await replaceModuleRecords(moduleKey, rows);
+  await db.transaction(async () => {
+    await clearModuleRecords(moduleKey);
+    await replaceModuleRecords(moduleKey, rows);
+  });
   revalidatePath("/");
   revalidatePath(`/${moduleKey}`);
 

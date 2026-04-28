@@ -81,6 +81,7 @@ export function ModuleWorkspace({
   const [duplicates, setDuplicates] = useState<{ id: number; code: string; title: string; status: string }[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
+  const [viewingRow, setViewingRow] = useState<Row | null>(null);
   const [statusDropdownId, setStatusDropdownId] = useState<string | number | null>(null);
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
@@ -140,15 +141,30 @@ export function ModuleWorkspace({
       }, 50);
     };
     window.addEventListener("qa:open-form", handler);
-    
-    // Auto-open if query has action=new
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "new") {
       handler();
     }
 
     return () => window.removeEventListener("qa:open-form", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-open view modal if ?viewId= is present — reactive to rows so it works after data loads
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewId = params.get("viewId");
+    if (!viewId || rows.length === 0) return;
+    const target = rows.find((r) => String(r.id) === viewId);
+    if (target) {
+      setViewingRow(target);
+      // Clean URL so refreshing doesn't re-open the modal
+      const url = new URL(window.location.href);
+      url.searchParams.delete("viewId");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [rows]);
 
   // Close status dropdown on outside click
   useEffect(() => {
@@ -976,7 +992,7 @@ export function ModuleWorkspace({
                             ) : column.tone ? (
                               <Badge value={String(value)} />
                             ) : column.key.toLowerCase().includes("date") ? (
-                              formatDate(String(value))
+                              formatDate(value == null ? null : String(value))
                             ) : module === "test-plans" && column.key === "scope" && Array.isArray((row as Record<string, unknown>).relatedSuites) ? (
                               <div className="flex flex-col gap-1.5">
                                 {((row as Record<string, unknown>).relatedSuites as Array<{ id: string; title: string; token?: string }>).length > 0 ? (
@@ -1005,14 +1021,30 @@ export function ModuleWorkspace({
                       })}
                       <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 align-top">
                         <div className="flex items-center gap-2">
-                          {/* Upgrade 6: copy row as text for all modules */}
-                          {module === "test-suites" && (
-                            <Link
-                              href={`/test-suites/execute/${String((row as Record<string, unknown>).publicToken ?? "")}`}
-                              className="rounded-sm bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
+                          {!["users", "assignees", "sprints"].includes(module) && (
+                            <button
+                              type="button"
+                              onClick={() => setViewingRow(row)}
+                              className="rounded-sm border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                             >
-                              Execute
-                            </Link>
+                              View
+                            </button>
+                          )}
+                          {module === "test-suites" && (
+                            <>
+                              <Link
+                                href={`/test-suites/${String((row as Record<string, unknown>).publicToken ?? "")}`}
+                                className="rounded-sm border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-blue-600"
+                              >
+                                Detail
+                              </Link>
+                              <Link
+                                href={`/test-suites/execute/${String((row as Record<string, unknown>).publicToken ?? "")}`}
+                                className="rounded-sm bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
+                              >
+                                Execute
+                              </Link>
+                            </>
                           )}
                           <button
                             type="button"
@@ -1088,6 +1120,147 @@ export function ModuleWorkspace({
         onConfirm={performSingleDelete}
         onCancel={() => setDeleteId(null)}
       />
+
+      {viewingRow && (
+        <ViewModal
+          row={viewingRow}
+          config={config}
+          fieldIcons={fieldIcons}
+          onClose={() => setViewingRow(null)}
+          onEdit={() => {
+            setViewingRow(null);
+            setEditingRow(viewingRow);
+            setShowForm(true);
+            setTimeout(() => {
+              document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 50);
+          }}
+          canEdit={canEdit}
+        />
+      )}
+    </div>
+  );
+}
+
+function ViewModal({
+  row,
+  config,
+  fieldIcons,
+  onClose,
+  onEdit,
+  canEdit,
+}: {
+  row: Record<string, string | number>;
+  config: any;
+  fieldIcons: Record<string, any>;
+  onClose: () => void;
+  onEdit: () => void;
+  canEdit: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const keyHandler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", keyHandler);
+    return () => document.removeEventListener("keydown", keyHandler);
+  }, [onClose]);
+
+  const labelFields = config.fields as Array<{ name: string; label: string; kind: string; options?: Array<{ label: string; value: string }> }>;
+  const displayFields = labelFields.filter(
+    (f) => row[f.name] !== undefined && row[f.name] !== null && String(row[f.name]).trim() !== ""
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        ref={ref}
+        className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 duration-300"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+          <div className="flex-1 min-w-0 pr-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">{config.shortTitle}</p>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
+              {String(row.title || row.caseName || row.name || "Detail")}
+            </h2>
+            {row.code && (
+              <p className="text-xs font-semibold text-slate-400 mt-1">{String(row.code)}</p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          >
+            <X size={16} weight="bold" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {displayFields.map((field) => {
+              const raw = row[field.name];
+              let displayValue = String(raw ?? "");
+              if (field.kind === "select" && field.options) {
+                const opt = field.options.find((o) => o.value === displayValue);
+                if (opt) displayValue = opt.label;
+              }
+              const isLong = field.kind === "textarea" || displayValue.length > 80;
+              const Icon = fieldIcons[field.name] || <Note size={14} />;
+
+              return (
+                <div
+                  key={field.name}
+                  className={cn(
+                    "rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3.5",
+                    isLong ? "sm:col-span-2" : ""
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {Icon}
+                    {field.label}
+                  </div>
+                  {field.name === "evidence" && displayValue.startsWith("http") ? (
+                    <a
+                      href={displayValue}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-blue-600 hover:underline break-all"
+                    >
+                      {displayValue}
+                    </a>
+                  ) : (
+                    <p className={cn("text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap break-words", !isLong && "font-semibold")}>
+                      <HighlightText text={displayValue || "-"} query="" />
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 px-6 py-4">
+          <button
+            onClick={onClose}
+            className="h-10 rounded-md border border-slate-200 dark:border-slate-700 px-5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          >
+            Close
+          </button>
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="h-10 rounded-md bg-blue-600 px-5 text-sm font-bold text-white hover:bg-blue-700 transition"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

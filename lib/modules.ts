@@ -296,7 +296,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/screenshot" },
     ],
     columns: [
-      { key: "code", label: "ID" },
       { key: "title", label: "Title" },
       { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "relatedFeature", label: "Feature" },
@@ -339,11 +338,11 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Mobile App", required: true },
       { name: "module", label: "Module", kind: "text", placeholder: "e.g. Checkout", required: true },
       { name: "bugType", label: "Bug Type", kind: "select", options: bugTypeOptions, required: true },
-      { name: "title", label: "Title", kind: "text", placeholder: "e.g. App crashes when clicking Pay", required: true },
-      { name: "preconditions", label: "Preconditions", kind: "textarea", placeholder: "e.g. User is logged in and cart has items", required: true },
-      { name: "stepsToReproduce", label: "Steps to Reproduce", kind: "textarea", placeholder: "1. Open app\n2. Add item\n3. Click pay", required: true },
-      { name: "expectedResult", label: "Expected Result", kind: "textarea", placeholder: "Payment should be processed", required: true },
-      { name: "actualResult", label: "Actual Result", kind: "textarea", placeholder: "App shows white screen", required: true },
+      { name: "title", label: "Title", kind: "text", placeholder: "Title of the bug", required: true },
+      { name: "preconditions", label: "Preconditions", kind: "textarea", placeholder: "Preconditions", required: true },
+      { name: "stepsToReproduce", label: "Steps to Reproduce", kind: "textarea", placeholder: "Step to reproduce the bug", required: true },
+      { name: "expectedResult", label: "Expected Result", kind: "textarea", placeholder: "Expected outcome", required: true },
+      { name: "actualResult", label: "Actual Result", kind: "textarea", placeholder: "Actual outcome", required: true },
       { name: "severity", label: "Severity", kind: "select", options: severityOptions, required: true },
       { name: "priority", label: "Priority", kind: "select", options: priorityOptions, required: true },
       { name: "status", label: "Status", kind: "select", options: bugStatusOptions, required: true },
@@ -352,7 +351,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/log-file" },
     ],
     columns: [
-      { key: "code", label: "ID" },
       { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "module", label: "Module" },
       { key: "bugType", label: "Bug Type" },
@@ -486,7 +484,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://jira.example.com/ticket-123" },
     ],
     columns: [
-      { key: "code", label: "ID" },
       { key: "date", label: "Date" },
       { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "sprint", label: "Sprint" },
@@ -558,7 +555,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "actionItems", label: "Action Items / Decisions", kind: "textarea", placeholder: "Who does what by when...", required: false, span: 3 },
     ],
     columns: [
-      { key: "code", label: "ID" },
       { key: "date", label: "Date" },
       { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
       { key: "title", label: "Topic" },

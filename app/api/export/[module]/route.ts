@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildWorkbook } from "@/lib/excel";
 import { getModuleSheetRows } from "@/lib/data";
 import { moduleConfigs, moduleOrder, type ModuleKey } from "@/lib/modules";
+import { getCurrentUser } from "@/lib/auth";
 
 function assertModule(value: string): ModuleKey | null {
   return moduleOrder.includes(value as ModuleKey) ? (value as ModuleKey) : null;
@@ -11,6 +12,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ module: string }> },
 ) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { module: rawModule } = await params;
   const moduleKey = assertModule(rawModule);
   const template = request.nextUrl.searchParams.get("template") === "1";

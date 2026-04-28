@@ -5,7 +5,7 @@ import { randomBytes } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 
 export function makePublicToken() {
-  return randomBytes(8).toString("base64url");
+  return randomBytes(16).toString("base64url");
 }
 
 export function normalizeTestPlanRow(item: Record<string, unknown>) {
@@ -79,13 +79,6 @@ export async function getDashboardData() {
   const andWhere = isAdmin ? "" : ' AND "company" = ?';
   const qParams = isAdmin ? [] : [company];
 
-  // Ensure Task table has assignee column
-  try {
-    await db.exec(`ALTER TABLE "Task" ADD COLUMN "assignee" TEXT`);
-  } catch (e) {
-    // Column might already exist
-  }
-
   const [
     tasks, 
     bugs, 
@@ -108,6 +101,8 @@ export async function getDashboardData() {
     critBugs,
     prioTasks,
     suiteCount,
+    sessionCount,
+    recentSessions,
     heatmapRes
   ] = await Promise.all([
     selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC LIMIT 5`, qParams),
@@ -128,9 +123,11 @@ export async function getDashboardData() {
     selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
     selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
     selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now') ${andWhere}`, qParams),
-    selectAll(`SELECT "title" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
-    selectAll(`SELECT "title" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
+    selectAll(`SELECT "id", "title", "severity" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
+    selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
     countRows("TestSuite", company),
+    countRows("TestSession", company),
+    selectAll(`SELECT id, date, tester, scope, totalCases, passed, failed, blocked, result FROM "TestSession" ${where} ORDER BY date DESC LIMIT 10`, qParams),
     selectAll(`
       WITH AllAssignees AS (
         SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${andWhere}
@@ -186,7 +183,19 @@ export async function getDashboardData() {
       { label: "Bug Entries", value: bugCount, caption: "Defects with severity, priority, and evidence." },
       { label: "Test Cases", value: caseCount, caption: "Positive and negative scenarios ready for use." },
       { label: "Test Suites", value: suiteCount, caption: "Organized collections of test scenarios." },
+      { label: "Sessions", value: sessionCount, caption: "Test execution sessions recorded." },
     ],
+    recentSessions: (recentSessions || []).map((s: any) => ({
+      id: Number(s.id),
+      date: String(s.date ?? ""),
+      tester: String(s.tester ?? ""),
+      scope: String(s.scope ?? ""),
+      totalCases: Number(s.totalCases ?? 0),
+      passed: Number(s.passed ?? 0),
+      failed: Number(s.failed ?? 0),
+      blocked: Number(s.blocked ?? 0),
+      result: String(s.result ?? ""),
+    })),
     distribution: {
       tasks: taskStatus.map(r => ({ name: String(r.status), value: Number(r.count) })),
       bugs: bugSeverity.map(r => ({ name: String(r.severity), value: Number(r.count) })),
@@ -223,8 +232,18 @@ export async function getDashboardData() {
        totalScenarios: caseCount,
        totalBugs: bugCount,
        completionRate: successRate,
-       criticalBugs: (critBugs || []).map((b: any) => ({ title: String(b.title) })),
-       priorityTasks: (prioTasks || []).map((t: any) => ({ title: String(t.title) }))
+       criticalBugs: (critBugs || []).map((b: any) => ({ 
+         id: b.id,
+         title: String(b.title), 
+         severity: String(b.severity),
+         code: codeFromId("BUG", Number(b.id))
+       })),
+       priorityTasks: (prioTasks || []).map((t: any) => ({ 
+         id: t.id,
+         title: String(t.title), 
+         priority: String(t.priority),
+         code: codeFromId("TASK", Number(t.id))
+       }))
     },
     sprintInfo: sprintInfo ? {
        ...sprintInfo,
@@ -310,10 +329,16 @@ export async function getReportsData() {
 
 
 export async function getResourceDetails(name: string) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = (user?.role === "admin" || user?.role === "Admin (Owner)") && !company;
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const companyParam = isAdmin ? [] : [company];
+
   const [tasks, bugs, suites] = await Promise.all([
-    selectAll(`SELECT id, title, status, priority FROM "Task" WHERE assignee = ? AND status != 'done' ORDER BY createdAt DESC`, [name]),
-    selectAll(`SELECT id, title, status, severity as priority FROM "Bug" WHERE suggestedDev = ? AND status != 'closed' ORDER BY createdAt DESC`, [name]),
-    selectAll(`SELECT id, title, status, 'N/A' as priority FROM "TestSuite" WHERE assignee = ? AND status != 'archived' ORDER BY createdAt DESC`, [name]),
+    selectAll(`SELECT id, title, status, priority FROM "Task" WHERE assignee = ? ${andWhere} AND status != 'done' ORDER BY createdAt DESC`, [name, ...companyParam]),
+    selectAll(`SELECT id, title, status, severity as priority FROM "Bug" WHERE suggestedDev = ? ${andWhere} AND status NOT IN ('closed', 'rejected') ORDER BY createdAt DESC`, [name, ...companyParam]),
+    selectAll(`SELECT id, title, status, 'N/A' as priority FROM "TestSuite" WHERE assignee = ? ${andWhere} AND status != 'archived' ORDER BY createdAt DESC`, [name, ...companyParam]),
   ]);
 
   return {
@@ -408,11 +433,23 @@ export async function getModuleRows(module: ModuleKey) {
       return await selectAll(`SELECT * FROM "Bug" ${where} ORDER BY "updatedAt" DESC`, qParams);
     case "tasks":
       return await selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC`, qParams);
-    case "test-suites":
-      return (await selectAll(`SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams)).map((item) => ({
+    case "test-suites": {
+      const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
+      return (await selectAll(
+        `SELECT ts.*,
+          (SELECT COUNT(*) FROM "TestCase" tc WHERE tc."testSuiteId" = ts.id AND tc."deletedAt" IS NULL AND LOWER(tc."status") = 'passed') AS passed,
+          (SELECT COUNT(*) FROM "TestCase" tc WHERE tc."testSuiteId" = ts.id AND tc."deletedAt" IS NULL AND LOWER(tc."status") = 'failed') AS failed,
+          (SELECT COUNT(*) FROM "TestCase" tc WHERE tc."testSuiteId" = ts.id AND tc."deletedAt" IS NULL AND LOWER(tc."status") = 'blocked') AS blocked
+         FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC`,
+        qParams
+      )).map((item) => ({
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", Number(item.id)),
+        passed: Number(item.passed ?? 0),
+        failed: Number(item.failed ?? 0),
+        blocked: Number(item.blocked ?? 0),
       }));
+    }
     case "assignees":
       // Emergency check to ensure table exists
       await db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
@@ -874,7 +911,13 @@ async function runInsert(sqlStr: string, params: any[]) {
 }
 
 export async function getTestSuiteByToken(token: string) {
-  return await db.get('SELECT * FROM "TestSuite" WHERE "publicToken" = ? AND "deletedAt" IS NULL', [token]) as Record<string, unknown> | undefined;
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = (user?.role === "admin" || user?.role === "Admin (Owner)") && !company;
+  const andCompany = (!user || isAdmin) ? "" : ' AND "company" = ?';
+  const params: unknown[] = token ? [token] : [];
+  if (andCompany) params.push(company);
+  return await db.get(`SELECT * FROM "TestSuite" WHERE "publicToken" = ? AND "deletedAt" IS NULL${andCompany}`, params) as Record<string, unknown> | undefined;
 }
 
 export async function getTestCasesByScenario(suiteId: string | number) {
@@ -885,6 +928,25 @@ export async function getTestCasesByScenario(suiteId: string | number) {
   const qParams = isAdmin ? [] : [company];
 
   return await selectAll(`SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY id ASC`, [suiteId, ...qParams]);
+}
+
+export async function getAllTestCasesWithSuite() {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = (user?.role === "admin" || user?.role === "Admin (Owner)") && !company;
+  const andWhere = isAdmin ? "" : ' AND tc."company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
+  return await selectAll(
+    `SELECT tc.*, ts.title AS suiteTitle, ts.publicToken AS suiteToken, ts.status AS suiteStatus,
+            tp.title AS planTitle, tp.project AS planProject
+     FROM "TestCase" tc
+     LEFT JOIN "TestSuite" ts ON ts.id = tc."testSuiteId" AND ts."deletedAt" IS NULL
+     LEFT JOIN "TestPlan" tp ON tp.id = ts."testPlanId" AND tp."deletedAt" IS NULL
+     WHERE tc."deletedAt" IS NULL${andWhere}
+     ORDER BY tc."testSuiteId" ASC, tc.id ASC`,
+    qParams
+  );
 }
 
 async function logActivity(company: string, type: string, id: string, action: string, summary: string) {
