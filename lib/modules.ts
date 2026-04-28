@@ -9,7 +9,9 @@ export type ModuleKey =
   | "test-sessions"
   | "test-suites"
   | "meeting-notes"
-  | "assignees";
+  | "assignees"
+  | "sprints"
+  | "users";
 
 type Option = {
   label: string;
@@ -99,6 +101,12 @@ const bugStatusOptions: Option[] = [
   ["Rejected", "rejected"],
 ].map(([label, value]) => ({ label, value }));
 
+const sprintStatusOptions: Option[] = [
+  ["Planning", "planning"],
+  ["Active", "active"],
+  ["Completed", "completed"],
+].map(([label, value]) => ({ label, value }));
+
 const taskCategoryOptions: Option[] = [
   ["Testing", "testing"],
   ["Follow-up", "follow-up"],
@@ -184,6 +192,14 @@ const testPlanSchema = z.object({
   notes: optionalText,
 });
 
+const sprintSchema = z.object({
+  name: requiredText("Sprint Name"),
+  startDate: requiredText("Start Date"),
+  endDate: requiredText("End Date"),
+  status: z.enum(["planning", "active", "completed"]),
+  goal: optionalText,
+});
+
 const sessionResultOptions: Option[] = [
   ["Pass", "pass"],
   ["Fail", "fail"],
@@ -217,7 +233,10 @@ const suiteSchema = z.object({
 const meetingNoteSchema = z.object({
   "date": z.string().min(1, "Date is required"),
   "project": requiredText("Project"),
-  "title": requiredText("Meeting Notes"),
+  "title": requiredText("Topic"),
+  "attendees": optionalText,
+  "content": optionalText,
+  "actionItems": optionalText,
 });
 
 const assigneeSchema = z.object({
@@ -435,7 +454,10 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     prefix: "SES",
     sheetName: "Test Sessions",
     schema: testSessionSchema,
-    coerce: (entry) => ({ ...normalizeEntry(entry), date: new Date(entry.date) }),
+    coerce: (entry) => ({ 
+      ...normalizeEntry(entry), 
+      date: entry.date ? new Date(entry.date) : new Date() 
+    }),
     toRow: (item) => ({
       ID: codeFromId("SES", Number(item.id)),
       Date: new Date(String(item.date)).toISOString().slice(0, 10),
@@ -522,18 +544,27 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       ID: codeFromId("MEET", Number(item.id)),
       Date: item.date ? new Date(String(item.date)).toISOString().slice(0, 10) : "",
       Project: String(item.project),
-      Title: String(item.title),
+      Topic: String(item.title),
+      Attendees: String(item.attendees ?? ""),
+      Content: String(item.content ?? ""),
+      "Action Items": String(item.actionItems ?? ""),
     }),
     fields: [
       { name: "date", label: "Date", kind: "date", required: true },
       { name: "project", label: "Project Name", kind: "select", options: [], required: true },
-      { name: "title", label: "Meeting Notes", kind: "textarea", placeholder: "Key discussion points and outcomes...", required: true },
+      { name: "title", label: "Topic", kind: "text", placeholder: "e.g. Daily Standup", required: true },
+      { name: "attendees", label: "Attendees", kind: "text", placeholder: "e.g. John, Sarah, Mike" },
+      { name: "content", label: "Discussion / Summary", kind: "textarea", placeholder: "Key discussion points and outcomes...", required: false, span: 3 },
+      { name: "actionItems", label: "Action Items / Decisions", kind: "textarea", placeholder: "Who does what by when...", required: false, span: 3 },
     ],
     columns: [
       { key: "code", label: "ID" },
       { key: "date", label: "Date" },
       { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
-      { key: "title", label: "Meeting Notes", multiline: true },
+      { key: "title", label: "Topic" },
+      { key: "attendees", label: "Attendees" },
+      { key: "content", label: "Summary", multiline: true },
+      { key: "actionItems", label: "Action Items", multiline: true },
     ],
   },
   assignees: {
@@ -549,12 +580,14 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Name: String(item.name),
       Role: String(item.role ?? ""),
       Email: String(item.email ?? ""),
+      Skills: String(item.skills ?? ""),
       Status: String(item.status),
     }),
     fields: [
       { name: "name", label: "Full Name", kind: "text", placeholder: "e.g. John Doe", required: true },
       { name: "role", label: "Role / Title", kind: "text", placeholder: "e.g. Senior QA Engineer" },
       { name: "email", label: "Email Address", kind: "text", placeholder: "e.g. john@example.com" },
+      { name: "skills", label: "Skills / Specialization", kind: "text", placeholder: "e.g. Automation, Mobile, API" },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Active", value: "active" },
         { label: "Inactive", value: "inactive" },
@@ -564,7 +597,90 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "name", label: "Full Name" },
       { key: "role", label: "Role / Title" },
       { key: "email", label: "Email Address" },
+      { key: "skills", label: "Skills" },
       { key: "status", label: "Status", tone: "status" },
+    ],
+  },
+  users: {
+    title: "User Management",
+    shortTitle: "Users",
+    description: "Manage system user accounts, roles, and access permissions.",
+    prefix: "USER",
+    sheetName: "Users",
+    schema: z.object({
+      name: requiredText("Full Name"),
+      username: requiredText("Email Address"),
+      password: z.string().optional(),
+      role: z.string().min(1, "Role is required"),
+    }),
+    coerce: (entry) => normalizeEntry(entry),
+    toRow: (item) => ({
+      ID: String(item.id),
+      Name: String(item.name),
+      Email: String(item.username),
+      Role: String(item.role),
+    }),
+    fields: [
+      { name: "name", label: "Full Name", kind: "text", placeholder: "e.g. John Doe", required: true },
+      { name: "username", label: "Email Address", kind: "text", placeholder: "e.g. user@example.com", required: true },
+      { name: "password", label: "Password", kind: "text", placeholder: "Leave blank to keep current password" },
+      { name: "role", label: "Role", kind: "select", options: [
+        { label: "Admin (Owner)", value: "admin" },
+        { label: "Lead", value: "lead" },
+        { label: "Editor", value: "editor" },
+        { label: "Viewer", value: "viewer" },
+        { label: "User", value: "user" },
+        { label: "Product Manager", value: "Product Manager" },
+        { label: "Project Manager", value: "Project Manager" },
+        { label: "System Analyst", value: "System Analyst" },
+        { label: "UI/UX Designer", value: "UI/UX Designer" },
+        { label: "Frontend Developer", value: "Frontend Developer" },
+        { label: "Backend Developer", value: "Backend Developer" },
+        { label: "Fullstack Developer", value: "Fullstack Developer" },
+        { label: "Mobile Developer", value: "Mobile Developer" },
+        { label: "QA Engineer", value: "QA Engineer" },
+        { label: "QA Automation Engineer", value: "QA Automation Engineer" },
+        { label: "DevOps Engineer", value: "DevOps Engineer" },
+        { label: "Security Engineer", value: "Security Engineer" },
+        { label: "Database Administrator", value: "Database Administrator" },
+        { label: "Software Architect", value: "Software Architect" },
+      ], required: true },
+    ],
+    columns: [
+      { key: "name", label: "Full Name" },
+      { key: "username", label: "Email Address" },
+      { key: "role", label: "Role", tone: "status" },
+    ],
+  },
+  sprints: {
+    title: "Sprint Management",
+    shortTitle: "Sprints",
+    description: "Define sprint timelines, goals, and tracking status.",
+    prefix: "SPR",
+    sheetName: "Sprints",
+    schema: sprintSchema,
+    coerce: (entry) => normalizeEntry(entry),
+    toRow: (item) => ({
+      ID: codeFromId("SPR", Number(item.id)),
+      Name: String(item.name),
+      "Start Date": item.startDate ? new Date(String(item.startDate)).toISOString().slice(0, 10) : "",
+      "End Date": item.endDate ? new Date(String(item.endDate)).toISOString().slice(0, 10) : "",
+      Status: String(item.status),
+      Goal: String(item.goal ?? ""),
+    }),
+    fields: [
+      { name: "name", label: "Sprint Name", kind: "text", placeholder: "e.g. Sprint 24", required: true },
+      { name: "startDate", label: "Start Date", kind: "date", required: true },
+      { name: "endDate", label: "End Date", kind: "date", required: true },
+      { name: "status", label: "Status", kind: "select", options: sprintStatusOptions, required: true },
+      { name: "goal", label: "Sprint Goal", kind: "textarea", placeholder: "What do we want to achieve?", span: 3 },
+    ],
+    columns: [
+      { key: "name", label: "Sprint Name" },
+      { key: "startDate", label: "Start Date" },
+      { key: "endDate", label: "End Date" },
+      { key: "status", label: "Status", tone: "status" },
+      { key: "goal", label: "Sprint Goal", multiline: true },
     ],
   },
 };
@@ -578,6 +694,8 @@ export const moduleOrder: ModuleKey[] = [
   "test-suites",
   "meeting-notes",
   "assignees",
+  "sprints",
+  "users",
 ];
 
 export const moduleLabels = Object.fromEntries(

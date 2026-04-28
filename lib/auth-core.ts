@@ -22,7 +22,7 @@ function fromBase64UrlBytes(input: string) {
   return atob(normalized);
 }
 
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -75,15 +75,15 @@ export async function validateCredentials(username: string, password: string) {
   }
 }
 
-export async function registerUser(username: string, password: string, name?: string) {
+export async function registerUser(username: string, password: string, name?: string, role: string = 'user', company: string = '') {
   try {
     const { db } = await import("./db");
     const hashedPassword = await hashPassword(password);
-    await db.run('INSERT INTO "User" ("username", "password", "name") VALUES (?, ?, ?)', [username, hashedPassword, name || username]);
+    await db.run('INSERT INTO "User" ("username", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)', [username, hashedPassword, name || username, role, company]);
     return { success: true };
   } catch (err: any) {
     if (err.message?.includes("UNIQUE constraint") || err.code === "23505") {
-      return { error: "Username already exists." };
+      return { error: "Email already exists." };
     }
     return { error: "Registration failed." };
   }
@@ -128,6 +128,50 @@ export async function verifySessionToken(token: string | undefined | null) {
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function getCurrentUser() {
+  const { username: staticUsername } = getAuthConfig();
+  const { cookies } = await import("next/headers");
+  const token = (await cookies()).get(COOKIE_NAME)?.value;
+  if (!token) return null;
+  
+  const [payload] = token.split(".");
+  if (!payload) return null;
+  
+  try {
+    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { username?: string };
+    const username = decoded.username;
+    if (!username) return null;
+
+    const { db } = await import("./db");
+    const user = await db.get<{
+      id: number;
+      name: string;
+      username: string;
+      email: string;
+      role: string;
+      company: string;
+    }>('SELECT id, name, username, email, role, company FROM "User" WHERE "username" = ?', [username]);
+
+    if (user) return user;
+    
+    // Fallback for static admin user
+    if (username === staticUsername) {
+      return {
+        id: 0,
+        name: "Administrator",
+        username: staticUsername,
+        email: "admin@qa-daily.local",
+        role: "admin",
+        company: ""
+      };
+    }
+    
+    return null;
+  } catch {
+    return null;
   }
 }
 

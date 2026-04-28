@@ -1,9 +1,24 @@
 import { PageShell } from "@/components/page-shell";
-import { Users, Gear, CaretRight, UserPlus, Info } from "@phosphor-icons/react/dist/ssr";
+import { Users, Gear, CaretRight, UserPlus, Info, Lock } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 export default function SettingsPage() {
   const settingsGroups = [
+    {
+      title: "Personal",
+      description: "Manage your own account information and preferences.",
+      items: [
+        {
+          title: "My Profile",
+          description: "Update your name, role, and view your account details.",
+          href: "/settings/profile",
+          icon: Gear,
+          color: "text-indigo-600 dark:text-indigo-400",
+          bg: "bg-indigo-50 dark:bg-indigo-900/20",
+          disabled: false,
+        },
+      ],
+    },
     {
       title: "User Management",
       description: "Manage people, roles, and permissions in your workspace.",
@@ -15,6 +30,15 @@ export default function SettingsPage() {
           icon: Users,
           color: "text-blue-600 dark:text-blue-400",
           bg: "bg-blue-50 dark:bg-blue-900/20",
+          disabled: false,
+        },
+        {
+          title: "User Accounts",
+          description: "Manage system access, roles, and credentials for all users.",
+          href: "/settings/users",
+          icon: Lock,
+          color: "text-rose-600 dark:text-rose-400",
+          bg: "bg-rose-50 dark:bg-rose-900/20",
           disabled: false,
         },
       ],

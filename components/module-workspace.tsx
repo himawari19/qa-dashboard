@@ -21,7 +21,6 @@ import {
   CheckCircle,
   WarningCircle,
   Clock,
-  CopySimple,
   CaretUp,
   CaretDown
 } from "@phosphor-icons/react";
@@ -53,24 +52,6 @@ function linkifyToMarkdown(text: string) {
   });
 }
 
-function formatBugForClipboard(row: Row): string {
-  return [
-    `🐛 *${row.code} — ${row.title}*`,
-    ``,
-    `*Project:* ${row.project || "-"}  |  *Module:* ${row.module || "-"}`,
-    `*Severity:* ${String(row.severity).toUpperCase()}  |  *Priority:* ${row.priority}  |  *Status:* ${row.status}`,
-    ``,
-    `*Preconditions:*`,
-    String(row.preconditions || "-"),
-    ``,
-    `*Steps to Reproduce:*`,
-    String(row.stepsToReproduce || "-"),
-    ``,
-    `*Expected Result:* ${row.expectedResult || "-"}`,
-    `*Actual Result:* ${row.actualResult || "-"}`,
-    row.evidence ? `*Evidence:* ${row.evidence}` : "",
-  ].filter(l => l !== undefined).join("\n");
-}
 
 type Row = Record<string, string | number>;
 
@@ -80,12 +61,14 @@ export function ModuleWorkspace({
   relatedOptions = {},
   initialFormValues = {},
   hiddenFields = [],
+  user = null,
 }: {
   module: ModuleKey;
   rows: Row[];
   relatedOptions?: Record<string, Array<{ label: string; value: string }>>;
   initialFormValues?: Record<string, string>;
   hiddenFields?: string[];
+  user?: any;
 }) {
   const config = moduleConfigs[module];
   const router = useRouter();
@@ -112,6 +95,15 @@ export function ModuleWorkspace({
   // Undo delete
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
+  const userRole = (user?.role || "user").toLowerCase();
+  const isAdmin = userRole === "admin";
+  const isLead = userRole === "lead";
+  const isEditor = userRole === "editor";
+  const isViewer = userRole === "viewer";
+
+  const canAdd = isAdmin || isLead || isEditor || userRole === "user";
+  const canEdit = isAdmin || isLead || isEditor || userRole === "user";
+  const canDelete = isAdmin || isLead;
 
   useEffect(() => {
     if (!showForm || !initialFormValues) return;
@@ -193,7 +185,7 @@ export function ModuleWorkspace({
 
   const statusField = config.fields.find((f) => f.name === "status");
   const statusOptions = statusField && "options" in statusField ? statusField.options : [];
-  const hasKanban = statusOptions.length > 0 && (module === "tasks" || module === "bugs" || module === "test-cases");
+  const hasKanban = statusOptions.length > 0 && (module === "tasks" || module === "bugs" || module === "test-cases" || module === "sprints");
 
   const priorityField = config.fields.find((f) => f.name === "priority");
   const priorityOptions = priorityField && "options" in priorityField ? priorityField.options : [];
@@ -268,12 +260,21 @@ export function ModuleWorkspace({
           ]
       : module === "test-cases"
         ? [
-            "testPlanLabel",
-            "suiteTitle",
-            "passed",
-            "failed",
-            "total",
+            "tcId",
+            "caseName",
+            "priority",
+            "status",
           ]
+      : module === "sprints"
+        ? ["name", "startDate", "endDate", "status"]
+      : module === "meeting-notes"
+        ? ["code", "date", "project", "title"]
+      : module === "test-sessions"
+        ? ["date", "project", "sprint", "tester", "result"]
+      : module === "assignees"
+        ? ["name", "role", "email", "status"]
+      : module === "users"
+        ? ["name", "username", "role"]
       : [
           "code",
           "title",
@@ -290,6 +291,8 @@ export function ModuleWorkspace({
           "severity",
           "date",
           "dueDate",
+          "relatedFeature",
+          "category",
           "sprint",
           "startDate",
           "endDate",
@@ -302,6 +305,10 @@ export function ModuleWorkspace({
           "testStep",
           "expectedResult",
           "actualResult",
+          "name",
+          "role",
+          "email",
+          "username",
         ];
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
@@ -313,13 +320,12 @@ export function ModuleWorkspace({
   );
 
   const checkDuplicates = useCallback(async (title: string) => {
-    if ((module !== "bugs" && module !== "tasks") || title.length < 5) {
+    if (title.length < 5) {
       setDuplicates([]);
       return;
     }
     try {
-      const endpoint = module === "tasks" ? "/api/tasks/find-duplicates" : "/api/bugs/find-duplicates";
-      const res = await fetch(`${endpoint}?title=${encodeURIComponent(title)}`);
+      const res = await fetch(`/api/items/${module}/find-duplicates?title=${encodeURIComponent(title)}`);
       const data = await res.json();
       setDuplicates(data.duplicates || []);
     } catch {
@@ -343,11 +349,6 @@ export function ModuleWorkspace({
   }, [showForm]);
 
   // Upgrade 6: format any row as readable text for clipboard
-  const formatRowForClipboard = (row: Row): string => {
-    return visibleColumns
-      .map((col) => `${col.label}: ${String(row[col.key] || "-")}`)
-      .join("\n");
-  };
 
   function parseFieldError(msg: string): Record<string, string> {
     const lower = msg.toLowerCase();
@@ -503,7 +504,17 @@ export function ModuleWorkspace({
   return (
     <div className="space-y-6">
       <div className="animate-in fade-in slide-in-from-top-2 duration-500">
-        <Breadcrumb crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: config.title }]} />
+        <Breadcrumb 
+          crumbs={[
+            { label: "Dashboard", href: "/" },
+            ...(module === "assignees" || module === "users" 
+              ? [{ label: "System Settings", href: "/settings" }] 
+              : module === "meeting-notes" || module === "sprints"
+              ? [{ label: "Documentation", href: "/documentation" }]
+              : [{ label: "Test Management", href: "/test-plans" }]),
+            { label: config.title }
+          ]} 
+        />
       </div>
       <section className="border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden rounded-md">
         <div className="border-b border-[#d9e2ea] dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
@@ -521,27 +532,29 @@ export function ModuleWorkspace({
             </div>
 
             <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingRow(null);
-                  setShowForm((value) => {
-                    const next = !value;
-                    if (next) {
-                      setTimeout(() => {
-                        document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 50);
-                    }
-                    return next;
-                  });
-                }}
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
-              >
-                <Plus size={16} weight="bold" className="shrink-0" />
-                {showForm
-                  ? "Hide form"
-                  : `Add ${config.shortTitle}`}
-              </button>
+              {canAdd && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRow(null);
+                    setShowForm((value) => {
+                      const next = !value;
+                      if (next) {
+                        setTimeout(() => {
+                          document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }, 50);
+                      }
+                      return next;
+                    });
+                  }}
+                  className="inline-flex h-11 items-center gap-2 rounded-md border border-sky-200 bg-white px-5 text-sm font-semibold text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
+                >
+                  <Plus size={16} weight="bold" className="shrink-0" />
+                  {showForm
+                    ? "Hide form"
+                    : `Add ${config.shortTitle}`}
+                </button>
+              )}
               <a
                 href={`/api/export/${module}`}
                 title="Export Excel"
@@ -558,70 +571,74 @@ export function ModuleWorkspace({
               >
                 <DownloadSimple size={18} weight="bold" className="shrink-0" />
               </a>
-              <label
-                title="Import Excel"
-                aria-label="Import Excel"
-                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
-              >
-                <UploadSimple size={18} weight="bold" className="shrink-0" />
-                <input
-                  type="file"
-                  accept=".xlsx"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) return;
-                    startTransition(() => {
-                      void onImport(file);
-                    });
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-        <div className="sticky top-0 z-20 space-y-4 border-b border-[#d9e2ea] dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 px-6 py-5 text-sm text-slate-600 dark:text-slate-400 backdrop-blur lg:px-6">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              {hasKanban ? (
-                <div className="flex h-10 items-center overflow-hidden rounded-md border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("table")}
-                    className={cn(
-                      "px-4 text-sm font-semibold transition h-full",
-                      viewMode === "table" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50",
-                    )}
-                  >
-                    Table
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("kanban")}
-                    className={cn(
-                      "border-l border-[#d9e2ea] dark:border-slate-700 px-4 text-sm font-semibold transition h-full",
-                      viewMode === "kanban" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50",
-                    )}
-                  >
-                    Kanban
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            <div className="flex items-center gap-3 w-full xl:ml-auto xl:w-auto shrink-0">
-              {(pending || refreshing) && (
-                <span role="status" className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600">
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                  Refreshing...
-                </span>
+              {canAdd && (
+                <label
+                  title="Import Excel"
+                  aria-label="Import Excel"
+                  className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-sky-200 bg-white text-sky-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md"
+                >
+                  <UploadSimple size={18} weight="bold" className="shrink-0" />
+                  <input
+                    type="file"
+                    accept=".xlsx"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      startTransition(() => {
+                        void onImport(file);
+                      });
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
               )}
-              </div>
+            </div>
           </div>
         </div>
+        {!showForm && (
+          <div className="sticky top-0 z-20 space-y-4 border-b border-[#d9e2ea] dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 px-6 py-5 text-sm text-slate-600 dark:text-slate-400 backdrop-blur lg:px-6">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                {hasKanban ? (
+                  <div className="flex h-10 items-center overflow-hidden rounded-md border border-[#c9d7e3] dark:border-slate-700 bg-white dark:bg-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      className={cn(
+                        "px-4 text-sm font-semibold transition h-full",
+                        viewMode === "table" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50",
+                      )}
+                    >
+                      Table
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("kanban")}
+                      className={cn(
+                        "border-l border-[#d9e2ea] dark:border-slate-700 px-4 text-sm font-semibold transition h-full",
+                        viewMode === "kanban" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50",
+                      )}
+                    >
+                      Kanban
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-3 w-full xl:ml-auto xl:w-auto shrink-0">
+                {(pending || refreshing) && (
+                  <span role="status" className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600">
+                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Refreshing...
+                  </span>
+                )}
+                </div>
+            </div>
+          </div>
+        )}
 
         {showForm ? (
           <div id="module-form-section" className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
@@ -642,6 +659,8 @@ export function ModuleWorkspace({
               onChange={() => setFormDirty(true)}
               onSubmit={(event) => {
                 event.preventDefault();
+                if (!canAdd && !editingRow) return;
+                if (!canEdit && editingRow) return;
                 const form = event.currentTarget;
                 const data = new FormData(form);
                 startTransition(() => {
@@ -690,18 +709,18 @@ export function ModuleWorkspace({
                                   return current?.label || `Select ${field.label}`;
                                 })()}
                               </span>
-                              <span className="shrink-0 text-slate-400">⌄</span>
+                              <CaretDown size={14} weight="bold" className="shrink-0 text-slate-400" />
                             </button>
                             {openSelectField === field.name && (
-                              <div className="absolute left-0 top-full z-40 mt-1 w-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                              <div className="absolute left-0 top-full z-50 mt-1 w-full overflow-y-auto max-h-64 rounded-md border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                                 {(relatedOptions[field.name] ?? field.options ?? []).map((option) => (
                                   <button
                                     key={option.value}
                                     type="button"
-                                  onClick={() => {
-                                      setSelectValues((s) => ({ ...s, [field.name]: option.value }));
-                                      setOpenSelectField(null);
-                                    }}
+                                   onClick={() => {
+                                       setSelectValues((s) => ({ ...s, [field.name]: option.value }));
+                                       setOpenSelectField(null);
+                                     }}
                                     className="block w-full whitespace-normal break-words px-4 py-3 text-left text-sm text-slate-700 hover:bg-blue-50 dark:text-slate-200 dark:hover:bg-slate-700"
                                   >
                                     {option.label}
@@ -717,17 +736,53 @@ export function ModuleWorkspace({
                             required={field.required}
                           />
                         ) : (
-                          <AutoResizeTextarea
-                            name={field.name}
-                            defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
-                            required={field.required}
-                            placeholder={field.placeholder ?? `Enter ${field.label}`}
-                            disabled={module === "test-plans" && field.name === "scope"}
-                            error={!!fieldError}
-                            className={cn(
-                              field.name === "scope" && module === "test-plans" && "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                          <div className="space-y-3">
+                            <AutoResizeTextarea
+                              name={field.name}
+                              defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
+                              required={field.required}
+                              placeholder={field.placeholder ?? `Enter ${field.label}`}
+                              disabled={module === "test-plans" && field.name === "scope"}
+                              error={!!fieldError}
+                              onChange={(e) => {
+                                if (field.name === "title" || field.name === "caseName") {
+                                  checkDuplicates(e.target.value);
+                                }
+                                setFormDirty(true);
+                              }}
+                              className={cn(
+                                field.name === "scope" && module === "test-plans" && "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                              )}
+                            />
+                            
+                            {(field.name === "title" || field.name === "caseName") && duplicates.length > 0 && (
+                              <div className="rounded-md border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20 animate-in fade-in slide-in-from-top-1 duration-300">
+                                <div className="flex items-center gap-2 mb-3 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                                  <WarningCircle size={14} weight="bold" />
+                                  Potential Duplicates Found ({duplicates.length})
+                                </div>
+                                <div className="space-y-2">
+                                  {duplicates.map((dup) => (
+                                    <Link
+                                      key={dup.id}
+                                      href={`/${module === "tasks" ? "tasks" : "bugs"}?id=${dup.id}`}
+                                      target="_blank"
+                                      className="group flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-white p-2.5 text-xs transition hover:border-amber-400 dark:border-amber-800 dark:bg-slate-900 dark:hover:border-amber-600"
+                                    >
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        <span className="font-black text-amber-600 shrink-0">{dup.code}</span>
+                                        <span className="truncate font-medium text-slate-700 dark:text-slate-300">{dup.title}</span>
+                                      </div>
+                                      <Badge value={dup.status} className="text-[10px] shrink-0" />
+                                    </Link>
+                                  ))}
+                                </div>
+                                <p className="mt-3 text-[10px] text-amber-600 dark:text-amber-500 italic">
+                                  Please check these items before creating a new one to avoid redundancy.
+                                </p>
+                              </div>
                             )}
-                          />
+                          </div>
                         )}
                         {fieldError && <p className="text-xs font-semibold text-rose-600">{fieldError}</p>}
                       </label>
@@ -797,20 +852,22 @@ export function ModuleWorkspace({
                         </div>
                         <p className="text-base font-bold text-slate-700">No {config.shortTitle} yet</p>
                         <p className="text-sm text-slate-400">Add your first {config.shortTitle} to get started</p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingRow(null);
-                            setShowForm(true);
-                            setTimeout(() => {
-                              document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                            }, 50);
-                          }}
-                          className="mt-1 inline-flex h-9 items-center gap-2 rounded-md border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-600 hover:text-white"
-                        >
-                          <Plus size={14} weight="bold" />
-                          Add {config.shortTitle}
-                        </button>
+                        {canAdd && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRow(null);
+                              setShowForm(true);
+                              setTimeout(() => {
+                                document.getElementById("module-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                              }, 50);
+                            }}
+                            className="mt-1 inline-flex h-9 items-center gap-2 rounded-md border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-600 hover:text-white"
+                          >
+                            <Plus size={14} weight="bold" />
+                            Add {config.shortTitle}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -879,13 +936,16 @@ export function ModuleWorkspace({
                               >
                                 <HighlightText text={String(value)} query={searchQuery} linkify={false} />
                               </a>
-                            ) : column.tone === "status" && statusOptions.length > 0 && ["tasks","bugs","test-plans","test-sessions","test-suites"].includes(module) ? (
+                            ) : column.tone === "status" && statusOptions.length > 0 && ["tasks","bugs","test-plans","test-sessions","test-suites","sprints","assignees","users"].includes(module) ? (
                               <div className="relative" data-status-dropdown>
                                 <button
                                   type="button"
-                                  onClick={() => setStatusDropdownId(statusDropdownId === row.id ? null : row.id)}
-                                  className="cursor-pointer"
-                                  title="Click to change status"
+                                  onClick={() => {
+                                    if (!canEdit) return;
+                                    setStatusDropdownId(statusDropdownId === row.id ? null : row.id);
+                                  }}
+                                  className={cn(canEdit ? "cursor-pointer" : "cursor-default")}
+                                  title={canEdit ? "Click to change status" : ""}
                                 >
                                   <Badge value={String(value)} />
                                 </button>
@@ -946,37 +1006,6 @@ export function ModuleWorkspace({
                       <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 align-top">
                         <div className="flex items-center gap-2">
                           {/* Upgrade 6: copy row as text for all modules */}
-                          {module !== "assignees" && (
-                            module === "bugs" ? (
-                              <button
-                                type="button"
-                                title="Copy bug report to clipboard"
-                                onClick={() => {
-                                  const text = formatBugForClipboard(row);
-                                  navigator.clipboard.writeText(text).then(() => {
-                                    toast(`${row.code} formatted & copied to clipboard`);
-                                  });
-                                }}
-                                className="rounded-sm border border-violet-200 px-2 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
-                              >
-                                <CopySimple size={13} weight="bold" />
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                title="Copy row as text"
-                                onClick={() => {
-                                  const text = formatRowForClipboard(row);
-                                  navigator.clipboard.writeText(text).then(() => {
-                                    toast("Copied to clipboard");
-                                  });
-                                }}
-                                className="rounded-sm border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50"
-                              >
-                                <CopySimple size={13} weight="bold" />
-                              </button>
-                            )
-                          )}
                           {module === "test-suites" && (
                             <Link
                               href={`/test-suites/execute/${String((row as Record<string, unknown>).publicToken ?? "")}`}
@@ -1039,17 +1068,15 @@ export function ModuleWorkspace({
               </div>
             )}
           </div>
-        ) : (
+        ) : !showForm ? (
           <div className="overflow-hidden bg-slate-50 dark:bg-slate-800/50 border-t border-[#d9e2ea] dark:border-slate-700 p-5">
-            {!showForm && (
-              <KanbanBoard
-                rows={visibleRows}
-                statusOptions={statusOptions}
-                onUpdateStatus={onUpdateStatus}
-              />
-            )}
+            <KanbanBoard
+              rows={visibleRows}
+              statusOptions={statusOptions}
+              onUpdateStatus={onUpdateStatus}
+            />
           </div>
-        )}
+        ) : null}
       </section>
 
       <ConfirmModal

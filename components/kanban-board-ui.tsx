@@ -56,7 +56,7 @@ export function KanbanBoardUI({ initialItems }: { initialItems: KanbanItem[] }) 
              ))}
              {initialItems.filter(i => i.status.toLowerCase() === col.status).length === 0 && (
                <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-md text-slate-300 dark:text-slate-600">
-                 <Checks size={32} weight="thin" />
+                 <Checks size={32} weight="bold" />
                  <p className="text-[10px] font-bold uppercase mt-2">Column Empty</p>
                </div>
              )}

@@ -10,6 +10,7 @@ export const tables = [
     name: "Sprint",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "name" TEXT NOT NULL,
       "startDate" TEXT,
       "endDate" TEXT,
@@ -22,6 +23,7 @@ export const tables = [
     name: "Task",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "sprintId" FK_INT_SPRINT,
       "title" TEXT NOT NULL,
       "project" TEXT NOT NULL,
@@ -42,6 +44,7 @@ export const tables = [
     name: "Bug",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "sprintId" FK_INT_SPRINT,
       "project" TEXT NOT NULL,
       "module" TEXT NOT NULL,
@@ -65,6 +68,7 @@ export const tables = [
     name: "TestCase",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "publicToken" TEXT NOT NULL DEFAULT '',
       "testSuiteId" TEXT NOT NULL DEFAULT '',
       "tcId" TEXT NOT NULL,
@@ -89,6 +93,7 @@ export const tables = [
     name: "TestPlan",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "publicToken" TEXT NOT NULL DEFAULT '',
       "title" TEXT NOT NULL,
       "project" TEXT NOT NULL,
@@ -108,6 +113,7 @@ export const tables = [
     name: "TestSession",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "date" TEXT NOT NULL,
       "project" TEXT NOT NULL,
       "sprint" TEXT NOT NULL,
@@ -128,6 +134,7 @@ export const tables = [
     name: "TestSuite",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "publicToken" TEXT NOT NULL DEFAULT '',
       "testPlanId" TEXT NOT NULL DEFAULT '',
       "title" TEXT NOT NULL,
@@ -143,6 +150,7 @@ export const tables = [
     name: "ActivityLog",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "entityType" TEXT NOT NULL,
       "entityId" TEXT NOT NULL,
       "action" TEXT NOT NULL,
@@ -154,6 +162,7 @@ export const tables = [
     name: "MeetingNote",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "publicToken" TEXT NOT NULL DEFAULT '',
       "date" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "project" TEXT NOT NULL,
@@ -170,9 +179,11 @@ export const tables = [
     name: "Assignee",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "name" TEXT NOT NULL,
       "role" TEXT,
       "email" TEXT,
+      "skills" TEXT DEFAULT '',
       "status" TEXT NOT NULL DEFAULT 'active',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -182,11 +193,12 @@ export const tables = [
     name: "User",
     schema: `
       "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
       "name" TEXT,
       "username" TEXT NOT NULL UNIQUE,
       "email" TEXT UNIQUE,
       "password" TEXT NOT NULL,
-      "role" TEXT NOT NULL DEFAULT 'viewer',
+      "role" TEXT NOT NULL DEFAULT 'user',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -285,15 +297,19 @@ async function applyMissingColumns() {
       if (def.startsWith("PRIMARY") || def.startsWith("FOREIGN") || def.startsWith("id ")) continue;
       const firstSpace = def.indexOf(" ");
       if (firstSpace <= 0) continue;
-      const rawColumn = def.slice(0, firstSpace).trim();
+      let rawColumn = def.slice(0, firstSpace).trim();
       const rawType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
+      
+      // Strip quotes for checking
+      const columnName = rawColumn.replace(/"/g, "");
+      
       const columnType = rawType
         .replace(/DATE_TYPE/g, useSqlite ? "TEXT" : "TIMESTAMP")
         .replace(/SERIAL_OR_PK/g, useSqlite ? "INTEGER" : "SERIAL");
       try {
-        const exists = sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all(rawColumn) as any[];
+        const exists = sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all(columnName) as any[];
         if (exists.length === 0) {
-          sqlite.prepare(`ALTER TABLE "${table}" ADD COLUMN ${rawColumn} ${columnType}`).run();
+          sqlite.prepare(`ALTER TABLE "${table}" ADD COLUMN "${columnName}" ${columnType}`).run();
         }
       } catch {
         // keep startup resilient
@@ -308,9 +324,13 @@ async function applyMissingColumns() {
     const firstSpace = def.indexOf(" ");
     if (firstSpace <= 0) continue;
     const rawColumn = def.slice(0, firstSpace).trim();
-    const columnType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
+    const rawType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
+    
+    // Strip quotes
+    const columnName = rawColumn.replace(/"/g, "");
+    
     try {
-      await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${rawColumn}" ${columnType}`));
+      await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${columnName}" ${rawType}`));
     } catch {
       // keep startup resilient
     }

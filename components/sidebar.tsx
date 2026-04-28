@@ -21,6 +21,7 @@ import {
   PlayCircle,
   SignOut,
   Wrench,
+  Calendar,
   Gear,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const groups = [
       { href: "/test-plans", label: "Test Plans", icon: ClipboardText },
       { href: "/test-suites", label: "Test Suites", icon: Table },
       { href: "/test-execution", label: "Test Execution", icon: PlayCircle },
+      { href: "/calendar", label: "Shared Calendar", icon: Calendar },
     ],
   },
   {
@@ -50,6 +52,7 @@ const groups = [
   {
     title: "Documentation",
     items: [
+      { href: "/sprints", label: "Sprints", icon: Kanban },
       { href: "/meeting-notes", label: "Meeting Notes", icon: Note },
     ],
   },
@@ -107,7 +110,9 @@ export function Sidebar({
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = item.icon;
-                    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const active = pathname === item.href || 
+                                   pathname.startsWith(`${item.href}/`) ||
+                                   (item.href === "/test-plans" && pathname.startsWith("/test-cases"));
 
                     return (
                       <div key={item.href} className="relative group/tooltip">
@@ -124,10 +129,11 @@ export function Sidebar({
                           {active && !collapsed && <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-sky-600 shadow-[0_0_8px_rgba(14,165,233,0.6)]" />}
                           <Icon 
                             size={20} 
-                            weight={active ? "bold" : "regular"} 
+                            weight="bold" 
                             className={cn(
-                              "shrink-0 transition-transform duration-200 group-hover:scale-110", 
-                              active ? "text-sky-600 dark:text-sky-400" : "text-slate-400 dark:text-slate-500"
+                              "transition-transform duration-200 group-hover:scale-110", 
+                              active ? "text-sky-600 dark:text-sky-400" : "text-slate-400 dark:text-slate-500",
+                              collapsed ? "mx-auto" : "shrink-0"
                             )} 
                           />
                           <span className={cn(

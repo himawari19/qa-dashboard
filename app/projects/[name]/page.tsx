@@ -16,6 +16,8 @@ import {
   Note
 } from "@phosphor-icons/react/dist/ssr";
 
+import { formatDate } from "@/lib/utils";
+
 export const dynamic = "force-dynamic";
 
 interface TestPlan {
@@ -192,7 +194,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div key={meet.id} className="group p-5 rounded-md border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-lg transition-all dark:border-slate-700 dark:bg-slate-800">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">{meet.code}</span>
-                <span className="text-xs font-bold text-slate-400">{meet.date ? new Date(meet.date).toLocaleDateString() : 'N/A'}</span>
+                <span className="text-xs font-bold text-slate-400">{formatDate(meet.date)}</span>
               </div>
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 transition-colors line-clamp-2 min-h-[48px]">
                 {meet.title}

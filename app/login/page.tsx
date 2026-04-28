@@ -2,8 +2,9 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { cn } from "@/lib/utils";
 
 function LoginContent() {
@@ -15,12 +16,16 @@ function LoginContent() {
   const [formData, setFormData] = useState({
     name: "",
     username: "",
-    password: ""
+    password: "",
+    role: "",
+    company: ""
   });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -47,7 +52,9 @@ function LoginContent() {
         body: JSON.stringify({
           name: formData.name,
           username: formData.username,
-          password: formData.password
+          password: formData.password,
+          role: formData.role,
+          company: formData.company
         }),
       });
       const data = await res.json();
@@ -57,7 +64,15 @@ function LoginContent() {
         return;
       }
 
-      toast(mode === "signup" ? "Account created successfully!" : "Welcome back!", "success");
+      if (mode === "signup") {
+        setShowSuccessModal(true);
+        setMode("signin");
+        setFormData({ name: "", username: "", password: "", role: "", company: "" });
+        return;
+      }
+
+      toast("Welcome back!", "success");
+      setFormData({ name: "", username: "", password: "", role: "", company: "" });
       router.replace(nextUrl);
       router.refresh();
     } catch (err) {
@@ -87,7 +102,7 @@ function LoginContent() {
       </div>
 
       {/* Right Side: Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 md:p-20 bg-white">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 md:p-20 bg-white overflow-y-auto max-h-screen">
         <div className="w-full max-w-md">
           <div className="mb-10 text-center lg:text-left">
             <h2 className="text-3xl font-bold text-slate-900 mb-2">
@@ -132,30 +147,84 @@ function LoginContent() {
             </div>
 
             {mode !== "forgot" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Password</label>
-                  {mode === "signin" && (
-                    <button 
+              <>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Password</label>
+                    {mode === "signin" && (
+                      <button 
+                        type="button"
+                        onClick={() => setMode("forgot")}
+                        className="text-[11px] font-black text-blue-600 hover:underline uppercase tracking-widest"
+                      >
+                        Forgot?
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="••••••••" 
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 pr-12 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
+                      required 
+                    />
+                    <button
                       type="button"
-                      onClick={() => setMode("forgot")}
-                      className="text-[11px] font-black text-blue-600 hover:underline uppercase tracking-widest"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
                     >
-                      Forgot?
+                      {showPassword ? <EyeSlash size={20} weight="bold" /> : <Eye size={20} weight="bold" />}
                     </button>
-                  )}
+                  </div>
                 </div>
-                <input 
-                  type="password" 
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="••••••••" 
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
-                  required 
-                />
-              </div>
-            )}
+
+                {mode === "signup" && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">Software Role</label>
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium appearance-none"
+                      required
+                    >
+                      <option value="" disabled>Select your role</option>
+                      <option value="Product Manager">Product Manager</option>
+                      <option value="Project Manager">Project Manager</option>
+                      <option value="System Analyst">System Analyst</option>
+                      <option value="UI/UX Designer">UI/UX Designer</option>
+                      <option value="Frontend Developer">Frontend Developer</option>
+                      <option value="Backend Developer">Backend Developer</option>
+                      <option value="Fullstack Developer">Fullstack Developer</option>
+                      <option value="Mobile Developer">Mobile Developer</option>
+                      <option value="QA Engineer">QA Engineer</option>
+                      <option value="QA Automation Engineer">QA Automation Engineer</option>
+                      <option value="DevOps Engineer">DevOps Engineer</option>
+                      <option value="Security Engineer">Security Engineer</option>
+                      <option value="Database Administrator">Database Administrator</option>
+                      <option value="Software Architect">Software Architect</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">Company Name</label>
+                    <input 
+                      type="text" 
+                      name="company"
+                      value={formData.company}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Acme Corp" 
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
+                      required 
+                    />
+                  </div>
+                </>
+              )}
+            </>)}
             
             {error && (
               <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
@@ -203,6 +272,17 @@ function LoginContent() {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showSuccessModal}
+        title="Registration Successful"
+        message="Your account has been created successfully. You can now sign in with your email and password."
+        confirmText="Sign In Now"
+        cancelText="Close"
+        type="info"
+        onConfirm={() => setShowSuccessModal(false)}
+        onCancel={() => setShowSuccessModal(false)}
+      />
     </div>
   );
 }

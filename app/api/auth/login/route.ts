@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   const password = body?.password || "";
 
   if (!(await validateCredentials(username, password))) {
-    return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
+    return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 
   const token = await createSessionToken(username);

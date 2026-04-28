@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle, XCircle, ArrowLeft, Database, Play, FastForward, Keyboard, Warning } from "@phosphor-icons/react";
+import { CheckCircle, XCircle, ArrowLeft, Database, Play, FastForward, Keyboard, Warning, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast";
@@ -462,7 +462,27 @@ export function SuiteExecutionView({
                         </h2>
                       </div>
                     </div>
-
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={goToPrev}
+                        disabled={selectedIndex === 0}
+                        title="Previous Case"
+                        className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-blue-600 active:scale-90 disabled:opacity-30 dark:bg-slate-800 dark:border-slate-700"
+                      >
+                        <CaretLeft size={18} weight="bold" />
+                      </button>
+                      <div className="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                        {selectedIndex + 1} / {items.length}
+                      </div>
+                      <button
+                        onClick={goToNext}
+                        disabled={selectedIndex === items.length - 1}
+                        title="Next Case"
+                        className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-blue-600 active:scale-90 disabled:opacity-30 dark:bg-slate-800 dark:border-slate-700"
+                      >
+                        <CaretRight size={18} weight="bold" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid gap-8 md:grid-cols-2">
@@ -584,22 +604,7 @@ export function SuiteExecutionView({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between px-4 py-2">
-                  <button
-                    onClick={goToPrev}
-                    disabled={selectedIndex === 0}
-                    className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 disabled:opacity-30 transition-colors"
-                  >
-                    <ArrowLeft size={16} weight="bold" /> PREVIOUS CASE
-                  </button>
-                  <button
-                    onClick={goToNext}
-                    disabled={selectedIndex === items.length - 1}
-                    className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 disabled:opacity-30 transition-colors"
-                  >
-                    NEXT CASE <FastForward size={16} weight="bold" />
-                  </button>
-                </div>
+
               </div>
             )}
           </div>

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { ModuleWorkspace } from "@/components/module-workspace";
 import { getModuleRows } from "@/lib/data";
-import { moduleOrder, type ModuleKey } from "@/lib/modules";
+import { moduleOrder, moduleConfigs, type ModuleKey } from "@/lib/modules";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -155,21 +156,20 @@ export default async function ModulePage({
       relatedOptions.project = uniqueProjects.map(p => ({ value: String(p), label: String(p) }));
     }
 
-    // Always fetch Assignees for any module that has an assignee/tester/suggestedDev field
+    // Populate any field that uses team members
     const team = await getModuleRows("assignees");
     const teamOptions = team.map((member: any) => ({
       value: String(member.name),
       label: String(member.name),
     }));
 
-    if (moduleKey === "test-suites") {
-      relatedOptions.assignee = teamOptions;
-    }
-    if (moduleKey === "test-sessions") {
-      relatedOptions.tester = teamOptions;
-    }
-    if (moduleKey === "bugs") {
-      relatedOptions.suggestedDev = teamOptions;
+    const config = moduleConfigs[moduleKey as ModuleKey];
+    if (config) {
+      config.fields.forEach(field => {
+        if (["assignee", "tester", "suggestedDev"].includes(field.name)) {
+          relatedOptions[field.name] = teamOptions;
+        }
+      });
     }
   } catch (error) {
     console.error(`Failed to load module rows for ${moduleKey}:`, error);
@@ -185,6 +185,7 @@ export default async function ModulePage({
       relatedOptions={plainRelatedOptions} 
       initialFormValues={initialFormValues} 
       hiddenFields={hiddenFields} 
+      user={JSON.parse(JSON.stringify(await getCurrentUser()))}
     />
   );
 }

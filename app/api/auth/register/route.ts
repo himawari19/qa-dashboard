@@ -6,28 +6,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Auth is not configured." }, { status: 500 });
   }
 
-  const body = await request.json().catch(() => null) as { username?: string; password?: string; name?: string } | null;
+  const body = await request.json().catch(() => null) as { username?: string; password?: string; name?: string; role?: string; company?: string } | null;
   const username = body?.username?.trim() || "";
   const password = body?.password || "";
   const name = body?.name?.trim() || "";
+  const role = body?.role?.trim() || "QA Engineer";
+  const company = body?.company?.trim() || "";
 
   if (!username || !password) {
-    return NextResponse.json({ error: "Username and password are required." }, { status: 400 });
+    return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
   }
 
-  const result = await registerUser(username, password, name);
+  if (!company) {
+    return NextResponse.json({ error: "Company name is required." }, { status: 400 });
+  }
+
+  const result = await registerUser(username, password, name, role, company);
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  const token = await createSessionToken(username);
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(sessionCookieName(), token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 6,
-  });
-  return response;
+  return NextResponse.json({ ok: true });
 }

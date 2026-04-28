@@ -4,6 +4,7 @@ import { PageShell } from "@/components/page-shell";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Badge } from "@/components/badge";
 import Link from "next/link";
+import { formatDate } from "@/lib/utils";
 import { 
   FolderSimple, 
   Target, 
@@ -120,11 +121,11 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
           </div>
           <div className="flex items-center justify-between text-sm py-1 border-t border-slate-100 dark:border-slate-700/50 mt-1">
             <span className="text-slate-500">Start:</span>
-            <span className="font-semibold text-slate-700 dark:text-slate-200">{plan.startDate || "-"}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-200">{formatDate(plan.startDate)}</span>
           </div>
           <div className="flex items-center justify-between text-sm py-1">
             <span className="text-slate-500">End:</span>
-            <span className="font-semibold text-slate-700 dark:text-slate-200">{plan.endDate || "-"}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-200">{formatDate(plan.endDate)}</span>
           </div>
         </div>
       </div>

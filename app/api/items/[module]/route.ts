@@ -9,6 +9,7 @@ import {
   safeParseModuleEntry,
   type ModuleKey,
 } from "@/lib/modules";
+import { getCurrentUser } from "@/lib/auth";
 
 function assertModule(value: string): ModuleKey | null {
   return moduleOrder.includes(value as ModuleKey) ? (value as ModuleKey) : null;
@@ -54,6 +55,11 @@ export async function POST(
 
   if (!moduleKey) {
     return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
+  }
+
+  const user = await getCurrentUser();
+  if (moduleKey === "users" && (!user || user.role !== "admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {
@@ -103,6 +109,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
   }
 
+  const user = await getCurrentUser();
+  if (moduleKey === "users" && (!user || user.role !== "admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   try {
     if (ids) {
       const idList = ids.split(",");
@@ -149,6 +160,11 @@ export async function PATCH(
   
   if (!moduleKey) {
     return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
+  }
+
+  const user = await getCurrentUser();
+  if (moduleKey === "users" && (!user || user.role !== "admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {

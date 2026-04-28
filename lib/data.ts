@@ -2,6 +2,7 @@ import { db, isPostgres } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 import { randomBytes } from "crypto";
+import { getCurrentUser } from "@/lib/auth";
 
 export function makePublicToken() {
   return randomBytes(8).toString("base64url");
@@ -58,6 +59,10 @@ export function getTableName(module: ModuleKey) {
       return "Assignee";
     case "meeting-notes":
       return "MeetingNote";
+    case "sprints":
+      return "Sprint";
+    case "users":
+      return "User";
     default:
       console.warn(`getTableName: unhandled module key: ${module}`);
       return "";
@@ -65,6 +70,15 @@ export function getTableName(module: ModuleKey) {
 }
 
 export async function getDashboardData() {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const userRole = user?.role || "user";
+  const isAdmin = (userRole === "admin" || userRole === "Admin (Owner)") && !company;
+  
+  const where = isAdmin ? "" : ' WHERE "company" = ?';
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
   // Ensure Task table has assignee column
   try {
     await db.exec(`ALTER TABLE "Task" ADD COLUMN "assignee" TEXT`);
@@ -96,49 +110,49 @@ export async function getDashboardData() {
     suiteCount,
     heatmapRes
   ] = await Promise.all([
-    selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC LIMIT 5'),
-    selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC LIMIT 5'),
-    selectAll('SELECT * FROM "TestCase" ORDER BY "updatedAt" DESC LIMIT 5'),
-    countRows("Task"),
-    countRows("Bug"),
-    countRows("TestCase"),
-    selectAll('SELECT status, COUNT(*) as count FROM "Task" GROUP BY status'),
-    selectAll('SELECT severity, COUNT(*) as count FROM "Bug" GROUP BY severity'),
-    db.get("SELECT * FROM \"Sprint\" WHERE status = 'active' LIMIT 1") as Promise<any>,
-    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE status IN ('fixed', 'closed')") as Promise<any>,
-    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'") as Promise<any>,
-    selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') GROUP BY DATE("createdAt") ORDER BY date ASC`),
-    selectAll('SELECT id, name, startDate, endDate, status FROM "Sprint" ORDER BY startDate DESC LIMIT 20'),
-    selectAll('SELECT * FROM "ActivityLog" ORDER BY "createdAt" DESC LIMIT 10'),
-    selectAll('SELECT module, COUNT(*) as count FROM "Bug" GROUP BY module LIMIT 10'),
-    selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now')`),
-    selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now')`),
-    selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now')`),
-    selectAll(`SELECT "title" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ORDER BY "createdAt" DESC LIMIT 3`),
-    selectAll(`SELECT "title" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ORDER BY "createdAt" DESC LIMIT 3`),
-    countRows("TestSuite"),
+    selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC LIMIT 5`, qParams),
+    selectAll(`SELECT * FROM "Bug" ${where} ORDER BY "updatedAt" DESC LIMIT 5`, qParams),
+    selectAll(`SELECT * FROM "TestCase" ${where}${isAdmin ? "" : (where ? " AND " : " WHERE ") + '"deletedAt" IS NULL'} ORDER BY "updatedAt" DESC LIMIT 5`, qParams),
+    countRows("Task", company),
+    countRows("Bug", company),
+    countRows("TestCase", company),
+    selectAll(`SELECT status, COUNT(*) as count FROM "Task" ${where} GROUP BY status`, qParams),
+    selectAll(`SELECT severity, COUNT(*) as count FROM "Bug" ${where} GROUP BY severity`, qParams),
+    db.get(`SELECT * FROM "Sprint" WHERE status = 'active' ${andWhere} LIMIT 1`, qParams) as Promise<any>,
+    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${andWhere}`, qParams) as Promise<any>,
+    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${andWhere}`, qParams) as Promise<any>,
+    selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') ${andWhere} GROUP BY DATE("createdAt") ORDER BY date ASC`, qParams),
+    selectAll(`SELECT id, name, startDate, endDate, status FROM "Sprint" ${where} ORDER BY startDate DESC LIMIT 20`, qParams),
+    selectAll(`SELECT * FROM "ActivityLog" ${where} ORDER BY "createdAt" DESC LIMIT 10`, qParams),
+    selectAll(`SELECT module, COUNT(*) as count FROM "Bug" ${where} GROUP BY module LIMIT 10`, qParams),
+    selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
+    selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
+    selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now') ${andWhere}`, qParams),
+    selectAll(`SELECT "title" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
+    selectAll(`SELECT "title" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
+    countRows("TestSuite", company),
     selectAll(`
       WITH AllAssignees AS (
-        SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done'
+        SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${andWhere}
         UNION
-        SELECT suggestedDev as name FROM "Bug" WHERE suggestedDev != '' AND status != 'closed'
+        SELECT suggestedDev as name FROM "Bug" WHERE suggestedDev != '' AND status != 'closed' ${andWhere}
         UNION
-        SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived'
+        SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived' ${andWhere}
         UNION
-        SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed'
+        SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed' ${andWhere}
         UNION
-        SELECT name FROM "Assignee" WHERE status = 'active'
+        SELECT name FROM "Assignee" WHERE status = 'active' ${andWhere}
       )
       SELECT 
         name,
-        (SELECT COUNT(*) FROM "Task" t WHERE t.assignee = AllAssignees.name AND t.status != 'done') as taskCount,
-        (SELECT COUNT(*) FROM "Bug" b WHERE b.suggestedDev = AllAssignees.name AND b.status != 'closed') as bugCount,
-        (SELECT COUNT(*) FROM "TestSuite" s WHERE s.assignee = AllAssignees.name AND s.status != 'archived') as suiteCount,
-        (SELECT COUNT(*) FROM "TestPlan" p WHERE p.assignee = AllAssignees.name AND p.status != 'closed') as planCount
+        (SELECT COUNT(*) FROM "Task" t WHERE t.assignee = AllAssignees.name AND t.status != 'done' ${andWhere}) as taskCount,
+        (SELECT COUNT(*) FROM "Bug" b WHERE b.suggestedDev = AllAssignees.name AND b.status != 'closed' ${andWhere}) as bugCount,
+        (SELECT COUNT(*) FROM "TestSuite" s WHERE s.assignee = AllAssignees.name AND s.status != 'archived' ${andWhere}) as suiteCount,
+        (SELECT COUNT(*) FROM "TestPlan" p WHERE p.assignee = AllAssignees.name AND p.status != 'closed' ${andWhere}) as planCount
       FROM AllAssignees
       WHERE name IS NOT NULL AND name != ''
       ORDER BY name ASC
-    `),
+    `, [...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams]),
   ]);
 
   const todayActivity = [...(todayTasks || []), ...(todayBugs || []), ...(todaySessions || [])];
@@ -146,8 +160,8 @@ export async function getDashboardData() {
   let sprintInfo = null;
   if (sprint) {
     const [tTotal, tDone] = await Promise.all([
-      db.get('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?', [sprint.id]) as Promise<any>,
-      db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'", [sprint.id]) as Promise<any>
+      db.get('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?' + andWhere, [sprint.id, ...qParams]) as Promise<any>,
+      db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'" + andWhere, [sprint.id, ...qParams]) as Promise<any>
     ]);
     
     sprintInfo = {
@@ -241,7 +255,41 @@ export async function getDashboardData() {
       endDate: String(s.endDate),
       status: String(s.status),
     })),
+    rolePersona: userRole,
+    roleRecommendations: getRoleRecommendations(userRole, { bugs, tasks, todayActivity, critBugs, prioTasks })
   };
+}
+
+function getRoleRecommendations(role: string, data: any) {
+  const r = role.toLowerCase();
+  if (r.includes("qa")) {
+    return {
+      title: "QA Focus",
+      items: [
+        { label: "Verify Open Bugs", count: data.bugs.length },
+        { label: "Pending Test Sessions", count: data.todayActivity.filter((a: any) => a.type === 'Session').length }
+      ]
+    };
+  }
+  if (r.includes("developer") || r.includes("backend") || r.includes("frontend")) {
+    return {
+      title: "Development Focus",
+      items: [
+        { label: "Assigned Bugs to Fix", count: data.bugs.filter((b: any) => b.status === 'open' || b.status === 'in_progress').length },
+        { label: "Ready for Retest", count: data.bugs.filter((b: any) => b.status === 'ready_to_retest').length }
+      ]
+    };
+  }
+  if (r.includes("manager") || r.includes("analyst")) {
+    return {
+      title: "Project Health",
+      items: [
+        { label: "Critical Blockers", count: data.critBugs.length },
+        { label: "High Priority Tasks", count: data.prioTasks.length }
+      ]
+    };
+  }
+  return null;
 }
 
 export async function getReportsData() {
@@ -334,9 +382,17 @@ export async function getExecutiveData() {
 }
 
 export async function getModuleRows(module: ModuleKey) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  
+  const where = isAdmin ? "" : ' WHERE "company" = ?';
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
   switch (module) {
     case "test-plans":
-      return (await selectAll('SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => {
+      return (await selectAll(`SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams)).map((item) => {
         const normalized = normalizeTestPlanRow(item);
         return {
           ...normalized,
@@ -345,15 +401,15 @@ export async function getModuleRows(module: ModuleKey) {
         };
       });
     case "test-sessions":
-      return await selectAll('SELECT * FROM "TestSession" ORDER BY "updatedAt" DESC');
+      return await selectAll(`SELECT * FROM "TestSession" ${where} ORDER BY "updatedAt" DESC`, qParams);
     case "test-cases":
-      return (await selectAll('SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => normalizeTestCaseRow(item));
+      return (await selectAll(`SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams)).map((item) => normalizeTestCaseRow(item));
     case "bugs":
-      return await selectAll('SELECT * FROM "Bug" ORDER BY "updatedAt" DESC');
+      return await selectAll(`SELECT * FROM "Bug" ${where} ORDER BY "updatedAt" DESC`, qParams);
     case "tasks":
-      return await selectAll('SELECT * FROM "Task" ORDER BY "updatedAt" DESC');
+      return await selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC`, qParams);
     case "test-suites":
-      return (await selectAll('SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC')).map((item) => ({
+      return (await selectAll(`SELECT * FROM "TestSuite" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams)).map((item) => ({
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", Number(item.id)),
       }));
@@ -361,6 +417,7 @@ export async function getModuleRows(module: ModuleKey) {
       // Emergency check to ensure table exists
       await db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
         "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        "company" TEXT NOT NULL DEFAULT '',
         "name" TEXT NOT NULL,
         "role" TEXT,
         "email" TEXT,
@@ -368,7 +425,7 @@ export async function getModuleRows(module: ModuleKey) {
         "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`);
-      return (await selectAll('SELECT * FROM "Assignee" ORDER BY "name" ASC')).map((item) => ({
+      return (await selectAll(`SELECT * FROM "Assignee" ${where} ORDER BY "name" ASC`, qParams)).map((item) => ({
         ...item,
         id: String(item.id),
       }));
@@ -376,6 +433,7 @@ export async function getModuleRows(module: ModuleKey) {
       // Emergency check to ensure table exists (fixes "no such table" errors)
       await db.exec(`CREATE TABLE IF NOT EXISTS "MeetingNote" (
         "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        "company" TEXT NOT NULL DEFAULT '',
         "publicToken" TEXT NOT NULL DEFAULT '',
         "date" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "project" TEXT NOT NULL,
@@ -384,163 +442,296 @@ export async function getModuleRows(module: ModuleKey) {
         "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`);
-      return (await selectAll('SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ORDER BY "date" DESC, "updatedAt" DESC')).map((item) => ({
+      return (await selectAll(`SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "updatedAt" DESC`, qParams)).map((item) => ({
         ...item,
         code: codeFromId("MEET", Number(item.id)),
       }));
+    case "users":
+      return await selectAll(`SELECT id, name, username, role, company, createdAt FROM "User" ${where} ORDER BY createdAt DESC`, qParams);
+    case "sprints":
+      return await selectAll(`SELECT * FROM "Sprint" ${where} ORDER BY "startDate" DESC`, qParams);
     default:
       return [];
   }
 }
 
 export async function createModuleRecord(module: ModuleKey, data: any) {
+  const user = await getCurrentUser();
+  const company = data.company || user?.company || "";
+
   switch (module) {
     case "test-plans": {
-      return await runInsert(
-        `INSERT INTO "TestPlan" ("publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
+      const res = await runInsert(
+        `INSERT INTO "TestPlan" ("company", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
       );
+      await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`);
+      return res;
     }
-    case "test-cases":
-      return await runInsert(
-        `INSERT INTO "TestCase" ("publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.publicToken || makePublicToken(), data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
+    case "test-cases": {
+      const res = await runInsert(
+        `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.publicToken || makePublicToken(), data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
+      await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
+      return res;
+    }
     case "bugs": {
-      const lastDev = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? ORDER BY "id" DESC LIMIT 1', [data.module]) as any;
-      const suggestedDev = lastDev?.suggestedDev || "";
-      return await runInsert(
-        `INSERT INTO "Bug" ("project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
+      const lastDevRes = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? AND "company" = ? ORDER BY "id" DESC LIMIT 1', [data.module, company]) as any;
+      const suggestedDev = data.suggestedDev || lastDevRes?.suggestedDev || "";
+      const res = await runInsert(
+        `INSERT INTO "Bug" ("company", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
       );
+      await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`);
+      return res;
     }
-    case "tasks":
-      return await runInsert(
-        `INSERT INTO "Task" ("title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "notes", "evidence", "relatedItems", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
+    case "tasks": {
+      const res = await runInsert(
+        `INSERT INTO "Task" ("company", "title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "notes", "evidence", "relatedItems", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
       );
-    case "test-sessions":
-      return await runInsert(
-        `INSERT INTO "TestSession" ("date", "project", "sprint", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "evidence")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
+      await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`);
+      return res;
+    }
+    case "test-sessions": {
+      const res = await runInsert(
+        `INSERT INTO "TestSession" ("company", "date", "project", "sprint", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "evidence")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
-    case "test-suites":
-      return await runInsert(
-        `INSERT INTO "TestSuite" ("publicToken", "testPlanId", "title", "assignee", "status", "notes")
+      await logActivity(company, "Session", data.date, "Executed", `Test execution session by ${data.tester} (${data.result})`);
+      return res;
+    }
+    case "test-suites": {
+      const res = await runInsert(
+        `INSERT INTO "TestSuite" ("company", "publicToken", "testPlanId", "title", "assignee", "status", "notes")
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
+      );
+      await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`);
+      return res;
+    }
+    case "assignees": {
+      const res = await runInsert(
+        `INSERT INTO "Assignee" ("company", "name", "role", "email", "skills", "status")
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
+        [company, data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status]
       );
-    case "assignees":
-      // Emergency check
-      await db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
-        "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
-        "name" TEXT NOT NULL,
-        "role" TEXT,
-        "email" TEXT,
-        "status" TEXT NOT NULL DEFAULT 'active',
-        "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )`);
-      return await runInsert(
-        `INSERT INTO "Assignee" ("name", "role", "email", "status")
-         VALUES (?, ?, ?, ?)`,
-        [data.name, data.role ?? "", data.email ?? "", data.status]
+      await logActivity(company, "Assignee", String(data.name), "Added", `New team member: ${data.name}`);
+      return res;
+    }
+    case "users": {
+      const { hashPassword } = await import("@/lib/auth-core");
+      const hashedPassword = await hashPassword(data.password || "password123");
+      const res = await runInsert(
+        `INSERT INTO "User" ("company", "name", "username", "password", "role")
+         VALUES (?, ?, ?, ?, ?)`,
+        [company, data.name || data.username, data.username, hashedPassword, data.role || "user"]
       );
+      await logActivity(company, "User", String(data.username), "Created", `Access granted for ${data.username}`);
+      return res;
+    }
+    case "sprints": {
+      const res = await runInsert(
+        `INSERT INTO "Sprint" ("company", "name", "startDate", "endDate", "status", "goal")
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [company, data.name, data.startDate, data.endDate, data.status, data.goal ?? ""]
+      );
+      await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`);
+      return res;
+    }
+    case "meeting-notes": {
+      const res = await runInsert(
+        `INSERT INTO "MeetingNote" ("company", "publicToken", "date", "project", "title", "attendees", "content", "actionItems")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.publicToken || makePublicToken(), data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.actionItems ?? ""]
+      );
+      await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`);
+      return res;
+    }
     default:
       return null;
   }
 }
 
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+  const companyParam = isAdmin ? [] : [company];
+
   switch (module) {
-    case "tasks":
-      return await db.run(
+    case "tasks": {
+      const res = await db.run(
         `UPDATE "Task"
          SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "dueDate" = ?, "description" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?`,
-        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id]
+         WHERE "id" = ?${companyFilter}`,
+        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id, ...companyParam]
       );
-    case "bugs":
-      return await db.run(
+      await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`);
+      return res;
+    }
+    case "bugs": {
+      const res = await db.run(
         `UPDATE "Bug"
          SET "project" = ?, "module" = ?, "bugType" = ?, "title" = ?, "preconditions" = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, "severity" = ?, "priority" = ?, "status" = ?, "evidence" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?`,
-        [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, id]
+         WHERE "id" = ?${companyFilter}`,
+        [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, id, ...companyParam]
       );
-    case "test-plans":
-      return await db.run(
+      await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`);
+      return res;
+    }
+    case "test-plans": {
+      const res = await db.run(
         `UPDATE "TestPlan"
          SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?`,
-        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id]
+         WHERE "id" = ?${companyFilter}`,
+        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id, ...companyParam]
       );
-    case "test-sessions":
-      return await db.run(
+      await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`);
+      return res;
+    }
+    case "test-sessions": {
+      const res = await db.run(
         `UPDATE "TestSession"
          SET "date" = ?, "project" = ?, "sprint" = ?, "tester" = ?, "scope" = ?, "totalCases" = ?, "passed" = ?, "failed" = ?, "blocked" = ?, "result" = ?, "notes" = ?, "evidence" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?`,
-        [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id]
+         WHERE "id" = ?${companyFilter}`,
+        [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id, ...companyParam]
       );
-    case "test-cases":
-      return await db.run(
+      await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`);
+      return res;
+    }
+    case "test-cases": {
+      const res = await db.run(
         `UPDATE "TestCase"
          SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?`,
-        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id]
+         WHERE "id" = ?${companyFilter}`,
+        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
       );
-    case "test-suites":
+      await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
+      return res;
+    }
+    case "test-suites": {
       const suitePlanId = String(data.testPlanId ?? "");
-      return await db.run(
+      const res = await db.run(
         `UPDATE "TestSuite"
          SET "testPlanId" = ?, "title" = ?, "assignee" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?`,
-        [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id]
+         WHERE "id" = ?${companyFilter}`,
+        [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id, ...companyParam]
       );
-    case "assignees":
-      return await db.run(
+      await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`);
+      return res;
+    }
+    case "assignees": {
+      const res = await db.run(
         `UPDATE "Assignee"
-         SET "name" = ?, "role" = ?, "email" = ?, "status" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?`,
-        [data.name, data.role ?? "", data.email ?? "", data.status, id]
+         SET "name" = ?, "role" = ?, "email" = ?, "skills" = ?, "status" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?${companyFilter}`,
+        [data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status, id, ...companyParam]
       );
+      await logActivity(company, "Assignee", String(data.name), "Updated", `Profile for ${data.name} updated`);
+      return res;
+    }
+    case "users": {
+      const { hashPassword } = await import("@/lib/auth-core");
+      if (data.password) {
+        const hashedPassword = await hashPassword(data.password);
+        const res = await db.run(
+          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${companyFilter}`,
+          [data.name, data.username, data.role, hashedPassword, id, ...companyParam]
+        );
+        await logActivity(company, "User", String(data.username), "Updated", `Security settings for ${data.username} updated`);
+        return res;
+      } else {
+        const res = await db.run(
+          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${companyFilter}`,
+          [data.name, data.username, data.role, id, ...companyParam]
+        );
+        await logActivity(company, "User", String(data.username), "Updated", `User info for ${data.username} updated`);
+        return res;
+      }
+    }
+    case "sprints": {
+      const res = await db.run(
+        `UPDATE "Sprint"
+         SET "name" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?${companyFilter}`,
+        [data.name, data.startDate, data.endDate, data.status, data.goal ?? "", id, ...companyParam]
+      );
+      await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`);
+      return res;
+    }
+    case "meeting-notes": {
+      const res = await db.run(
+        `UPDATE "MeetingNote"
+         SET "date" = ?, "project" = ?, "title" = ?, "attendees" = ?, "content" = ?, "actionItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?${companyFilter}`,
+        [data.date, data.project, data.title, data.attendees ?? "", data.content ?? "", data.actionItems ?? "", id, ...companyParam]
+      );
+      await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`);
+      return res;
+    }
     default:
       return null;
   }
 }
 
 export async function deleteModuleRecord(module: ModuleKey, id: string | number) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+  const companyParam = isAdmin ? [] : [company];
+
   const table = getTableName(module);
   if (!table) return null;
   
+  const entityId = String(id);
+  
   if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
-    return await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = ?`, [id]);
+    const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = ?${companyFilter}`, [id, ...companyParam]);
+    await logActivity(company, table, entityId, "Deleted", `${table} removed`);
+    return res;
   }
   
-  return await db.run(`DELETE FROM "${table}" WHERE id = ?`, [id]);
+  const res = await db.run(`DELETE FROM "${table}" WHERE id = ?${companyFilter}`, [id, ...companyParam]);
+  await logActivity(company, table, entityId, "Deleted", `${table} permanently deleted`);
+  return res;
 }
 
 export async function getTestPlanByToken(token: string) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
   const item = await db.get(
-    'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
-    [token],
+    'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND ("company" = ? OR ? = \'\')',
+    [token, company, company],
   ) as Record<string, unknown> | undefined;
   if (!item) return null;
   return normalizeTestPlanRow(item);
 }
 
 export async function getTestSuitesByPlanId(planId: string) {
-  const rows = await selectAll('SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL ORDER BY "updatedAt" DESC', [planId]);
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const rows = await selectAll('SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL AND ("company" = ? OR ? = \'\') ORDER BY "updatedAt" DESC', [planId, company, company]);
   return rows.map(item => normalizeTestSuiteRow(item));
 }
 
 export async function getReleaseNotes() {
-  const bugs = await selectAll('SELECT * FROM "Bug" WHERE "status" IN (\'fixed\', \'closed\') ORDER BY "updatedAt" DESC LIMIT 20');
-  const tasks = await selectAll('SELECT * FROM "Task" WHERE "status" = \'completed\' ORDER BY "updatedAt" DESC LIMIT 20');
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const where = isAdmin ? "" : ' AND "company" = ?';
+  const params = isAdmin ? [] : [company];
+
+  const bugs = await selectAll(`SELECT * FROM "Bug" WHERE "status" IN ('fixed', 'closed') ${where} ORDER BY "updatedAt" DESC LIMIT 20`, params);
+  const tasks = await selectAll(`SELECT * FROM "Task" WHERE "status" = 'completed' ${where} ORDER BY "updatedAt" DESC LIMIT 20`, params);
   
   return {
     fixedBugs: bugs.map(b => ({ code: codeFromId("BUG", Number(b.id)), title: b.title, severity: b.severity })),
@@ -553,6 +744,12 @@ function toSqliteDatetime(d: Date): string {
 }
 
 export async function getQualityTrend() {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
   const weeks = [];
   for (let i = 0; i < 4; i++) {
     const d = new Date();
@@ -568,8 +765,8 @@ export async function getQualityTrend() {
 
   const trend = await Promise.all(weeks.reverse().map(async (w) => {
     const [bugsRes, fixedRes] = await Promise.all([
-      db.get('SELECT COUNT(*) as count FROM "Bug" WHERE "createdAt" BETWEEN ? AND ?', [w.start, w.end]) as Promise<any>,
-      db.get('SELECT COUNT(*) as count FROM "Bug" WHERE "status" = \'fixed\' AND "updatedAt" BETWEEN ? AND ?', [w.start, w.end]) as Promise<any>,
+      db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "createdAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]) as Promise<any>,
+      db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "status" = 'fixed' AND "updatedAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]) as Promise<any>,
     ]);
     return {
       label: w.label,
@@ -581,28 +778,46 @@ export async function getQualityTrend() {
 }
 
 export async function getTestSuite(id: string | number) {
-  const item = await db.get('SELECT * FROM "TestSuite" WHERE id = ? AND "deletedAt" IS NULL', [id]) as Record<string, unknown> | undefined;
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
+  const item = await db.get(`SELECT * FROM "TestSuite" WHERE id = ? AND "deletedAt" IS NULL ${andWhere}`, [id, ...qParams]) as Record<string, unknown> | undefined;
   if (!item) return null;
   return { ...item, code: codeFromId("SUITE", Number(id)) };
 }
 
 export async function getTestCasesByIdStrings(idStrings: string) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
   if (!idStrings.trim()) return [];
   const rows = await selectAll(
-    'SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ORDER BY "id" ASC',
-    [idStrings.trim()],
+    `SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "id" ASC`,
+    [idStrings.trim(), ...qParams],
   );
   return rows.map((r) => ({ ...normalizeTestCaseRow(r), code: codeFromId("TC", Number(r.id)) }));
 }
 
 
 export async function getProjectData(projectName: string) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
   const [plans, bugs, tasks, sessions, meetings] = await Promise.all([
-    selectAll('SELECT * FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL', [projectName]),
-    selectAll('SELECT * FROM "Bug" WHERE project = ?', [projectName]),
-    selectAll('SELECT * FROM "Task" WHERE project = ?', [projectName]),
-    selectAll('SELECT * FROM "TestSession" WHERE project = ?', [projectName]),
-    selectAll('SELECT * FROM "MeetingNote" WHERE project = ? AND "deletedAt" IS NULL ORDER BY "date" DESC', [projectName]),
+    selectAll(`SELECT * FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT * FROM "Bug" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT * FROM "Task" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT * FROM "TestSession" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT * FROM "MeetingNote" WHERE project = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC`, [projectName, ...qParams]),
   ]);
 
   // For stats, we need suites and cases too
@@ -610,14 +825,14 @@ export async function getProjectData(projectName: string) {
   let suites: any[] = [];
   if (planIds.length > 0) {
     const placeholders = planIds.map(() => '?').join(',');
-    suites = await selectAll(`SELECT * FROM "TestSuite" WHERE testPlanId IN (${placeholders}) AND "deletedAt" IS NULL`, planIds);
+    suites = await selectAll(`SELECT * FROM "TestSuite" WHERE testPlanId IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`, [...planIds, ...qParams]);
   }
 
   const suiteIds = suites.map(s => String(s.id));
   let cases: any[] = [];
   if (suiteIds.length > 0) {
     const placeholders = suiteIds.map(() => '?').join(',');
-    cases = await selectAll(`SELECT * FROM "TestCase" WHERE testSuiteId IN (${placeholders}) AND "deletedAt" IS NULL`, suiteIds);
+    cases = await selectAll(`SELECT * FROM "TestCase" WHERE testSuiteId IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`, [...suiteIds, ...qParams]);
   }
 
   const totalCases = cases.length;
@@ -643,8 +858,10 @@ export async function getProjectData(projectName: string) {
   };
 }
 
-async function countRows(table: string) {
-  const result = await db.get(`SELECT COUNT(*) as total FROM "${table}"`) as { total: number };
+async function countRows(table: string, company?: string) {
+  const where = company ? ' WHERE "company" = ?' : '';
+  const params = company ? [company] : [];
+  const result = await db.get(`SELECT COUNT(*) as total FROM "${table}"${where}`, params) as { total: number };
   return Number(result?.total || 0);
 }
 
@@ -661,19 +878,51 @@ export async function getTestSuiteByToken(token: string) {
 }
 
 export async function getTestCasesByScenario(suiteId: string | number) {
-  return await selectAll('SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ORDER BY id ASC', [suiteId]);
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
+  return await selectAll(`SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY id ASC`, [suiteId, ...qParams]);
+}
+
+async function logActivity(company: string, type: string, id: string, action: string, summary: string) {
+  try {
+    await db.run(
+      `INSERT INTO "ActivityLog" ("company", "entityType", "entityId", "action", "summary")
+       VALUES (?, ?, ?, ?, ?)`,
+      [company, type, id, action, summary]
+    );
+  } catch (e) {
+    console.error("Activity logging failed:", e);
+  }
 }
 
 export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
   const table = getTableName(module);
   if (!table) return null;
-  return await db.run(`UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`, [status, id]);
+  const res = await db.run(`UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${andWhere}`, [status, id, ...qParams]);
+  await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`);
+  return res;
 }
 
 export async function clearModuleRecords(module: ModuleKey) {
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const where = isAdmin ? "" : ' WHERE "company" = ?';
+  const params = isAdmin ? [] : [company];
+
   const table = getTableName(module);
   if (!table) return null;
-  return await db.run(`DELETE FROM "${table}"`);
+  return await db.run(`DELETE FROM "${table}"${where}`, params);
 }
 
 export async function replaceModuleRecords(module: ModuleKey, rows: any[]) {
