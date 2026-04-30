@@ -6,6 +6,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "next build",
     "test": "vitest run",
+    "precheck": "npx tsc --noEmit && next build",
     "test:watch": "vitest",
     "start": "next start",
     "lint": "eslint",
