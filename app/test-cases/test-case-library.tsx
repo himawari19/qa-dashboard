@@ -14,7 +14,6 @@ import {
   Checks,
   Table,
   ArrowSquareOut,
-  CaretRight,
 } from "@phosphor-icons/react";
 
 type TestCase = {
@@ -73,8 +72,8 @@ const PRIORITY_DOT: Record<string, string> = {
 
 const ALL = "All";
 
-export function TestCaseLibrary({ cases }: { cases: TestCase[] }) {
-  const [search, setSearch] = useState("");
+export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase[]; initialSearch?: string }) {
+  const [search, setSearch] = useState(initialSearch);
   const [filterStatus, setFilterStatus] = useState(ALL);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
@@ -118,7 +117,13 @@ export function TestCaseLibrary({ cases }: { cases: TestCase[] }) {
           filteredCases = filteredCases.filter(
             (c) =>
               c.caseName?.toLowerCase().includes(q) ||
-              c.tcId?.toLowerCase().includes(q)
+              c.tcId?.toLowerCase().includes(q) ||
+              c.suiteTitle?.toLowerCase().includes(q) ||
+              c.planTitle?.toLowerCase().includes(q) ||
+              c.planProject?.toLowerCase().includes(q) ||
+              c.typeCase?.toLowerCase().includes(q) ||
+              c.priority?.toLowerCase().includes(q) ||
+              c.status?.toLowerCase().includes(q)
           );
         }
         return { ...g, filteredCases };

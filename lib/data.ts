@@ -1,83 +1,55 @@
 import { db, isPostgres } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
-import { moduleConfigs, type ModuleKey } from "@/lib/modules";
-import { randomBytes } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
+import { moduleConfigs, type ModuleKey } from "@/lib/modules";
+import {
+  countRows,
+  getAccessScope,
+  getRoleRecommendations,
+  getTableName,
+  getWriteCompany,
+  logActivity,
+  makePublicToken,
+  normalizeTestCaseRow,
+  normalizeTestPlanRow,
+  normalizeTestSuiteRow,
+  runInsert,
+  syncSprintFromTestPlan,
+} from "@/lib/data-helpers";
+import { getQualityTrend, getReleaseNotes } from "@/lib/test-management-data";
 
-export function makePublicToken() {
-  return randomBytes(16).toString("base64url");
+export {
+  makePublicToken,
+  normalizeTestCaseRow,
+  normalizeTestPlanRow,
+  normalizeTestSuiteRow,
+  getTableName,
+} from "@/lib/data-helpers";
+
+async function selectAll(sqlStr: string, params: any[] = []): Promise<Array<Record<string, string | number | null>>> {
+  return db.query<Record<string, string | number | null>>(sqlStr, params);
 }
 
-export function normalizeTestPlanRow(item: Record<string, unknown>) {
-  return {
-    ...item,
-    id: String(item.id ?? ""),
-    code: String(item.code && String(item.code).trim() ? item.code : ""),
-    publicToken: String(item.publicToken ?? ""),
-    assignee: String(item.assignee ?? ""),
-  };
-}
-
-export function normalizeTestSuiteRow(item: Record<string, unknown>) {
-  return {
-    ...item,
-    id: String(item.id ?? ""),
-    testPlanId: String(item.testPlanId ?? ""),
-    title: String(item.title ?? ""),
-    status: String(item.status ?? ""),
-    publicToken: String(item.publicToken ?? ""),
-  };
-}
-
-export function normalizeTestCaseRow(item: Record<string, unknown>) {
-  return {
-    ...item,
-    id: Number(item.id ?? 0),
-    testSuiteId: String(item.testSuiteId ?? ""),
-    publicToken: String(item.publicToken ?? ""),
-    priority: String(item.priority ?? "Medium"),
-    evidence: String(item.evidence ?? ""),
-    status: String(item.status ?? "Pending"),
-  };
-}
-
-export function getTableName(module: ModuleKey) {
-  switch (module) {
-    case "tasks":
-      return "Task";
-    case "bugs":
-      return "Bug";
-    case "test-cases":
-      return "TestCase";
-    case "test-plans":
-      return "TestPlan";
-    case "test-sessions":
-      return "TestSession";
-    case "test-suites":
-      return "TestSuite";
-    case "assignees":
-      return "Assignee";
-    case "meeting-notes":
-      return "MeetingNote";
-    case "sprints":
-      return "Sprint";
-    case "users":
-      return "User";
-    default:
-      console.warn(`getTableName: unhandled module key: ${module}`);
-      return "";
-  }
-}
-
-export async function getDashboardData() {
+export async function getDashboardData(filterProject?: string) {
   const user = await getCurrentUser();
-  const company = user?.company || "";
+  const { company, isAdmin } = getAccessScope(user);
   const userRole = user?.role || "user";
-  const isAdmin = (userRole === "admin" || userRole === "Admin (Owner)") && !company;
-  
-  const where = isAdmin ? "" : ' WHERE "company" = ?';
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
+
+  const projectFilter = filterProject ? ` AND "project" = ?` : "";
+  const projectParam = filterProject ? [filterProject] : [];
+
+  const baseCompany = isAdmin ? "" : ` "company" = ?`;
+  const companyParams = isAdmin ? [] : [company];
+
+  const where = isAdmin
+    ? (filterProject ? ` WHERE "project" = ?` : "")
+    : (filterProject ? ` WHERE "company" = ? AND "project" = ?` : ` WHERE "company" = ?`);
+  const andWhere = isAdmin
+    ? (filterProject ? ` AND "project" = ?` : "")
+    : (filterProject ? ` AND "company" = ? AND "project" = ?` : ` AND "company" = ?`);
+  const qParams = isAdmin
+    ? [...projectParam]
+    : (filterProject ? [company, filterProject] : [company]);
 
   const [
     tasks, 
@@ -123,8 +95,8 @@ export async function getDashboardData() {
     selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
     selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
     selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now') ${andWhere}`, qParams),
-    selectAll(`SELECT "id", "title", "severity" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
-    selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${andWhere} ORDER BY "createdAt" DESC LIMIT 3`, qParams),
+    selectAll(`SELECT "id", "title", "severity" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${andWhere} ORDER BY "createdAt" DESC`, qParams),
+    selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${andWhere} ORDER BY "createdAt" DESC`, qParams),
     countRows("TestSuite", company),
     countRows("TestSession", company),
     selectAll(`SELECT id, date, tester, scope, totalCases, passed, failed, blocked, result FROM "TestSession" ${where} ORDER BY date DESC LIMIT 10`, qParams),
@@ -279,44 +251,17 @@ export async function getDashboardData() {
   };
 }
 
-function getRoleRecommendations(role: string, data: any) {
-  const r = role.toLowerCase();
-  if (r.includes("qa")) {
-    return {
-      title: "QA Focus",
-      items: [
-        { label: "Verify Open Bugs", count: data.bugs.length },
-        { label: "Pending Test Sessions", count: data.todayActivity.filter((a: any) => a.type === 'Session').length }
-      ]
-    };
-  }
-  if (r.includes("developer") || r.includes("backend") || r.includes("frontend")) {
-    return {
-      title: "Development Focus",
-      items: [
-        { label: "Assigned Bugs to Fix", count: data.bugs.filter((b: any) => b.status === 'open' || b.status === 'in_progress').length },
-        { label: "Ready for Retest", count: data.bugs.filter((b: any) => b.status === 'ready_to_retest').length }
-      ]
-    };
-  }
-  if (r.includes("manager") || r.includes("analyst")) {
-    return {
-      title: "Project Health",
-      items: [
-        { label: "Critical Blockers", count: data.critBugs.length },
-        { label: "High Priority Tasks", count: data.prioTasks.length }
-      ]
-    };
-  }
-  return null;
-}
-
 export async function getReportsData() {
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const andWhere = isAdmin ? "" : ' WHERE "company" = ?';
+  const andWhereAnd = isAdmin ? "" : ' AND "company" = ?';
+  const qParams = isAdmin ? [] : [company];
+
   const [bugSeverity, bugStatus, testCaseStatus, bugTrend] = await Promise.all([
-    selectAll('SELECT "severity" as name, COUNT(*) as value FROM "Bug" GROUP BY "severity"'),
-    selectAll('SELECT "status" as name, COUNT(*) as value FROM "Bug" GROUP BY "status"'),
-    selectAll('SELECT "status" as name, COUNT(*) as value FROM "TestCase" GROUP BY "status"'),
-    selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" GROUP BY DATE("createdAt") ORDER BY date ASC`),
+    selectAll(`SELECT "severity" as name, COUNT(*) as value FROM "Bug"${andWhere} GROUP BY "severity"`, qParams),
+    selectAll(`SELECT "status" as name, COUNT(*) as value FROM "Bug"${andWhere} GROUP BY "status"`, qParams),
+    selectAll(`SELECT "status" as name, COUNT(*) as value FROM "TestCase"${andWhere} GROUP BY "status"`, qParams),
+    selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug"${andWhere} GROUP BY DATE("createdAt") ORDER BY date ASC`, qParams),
   ]);
 
   return {
@@ -329,9 +274,7 @@ export async function getReportsData() {
 
 
 export async function getResourceDetails(name: string) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = (user?.role === "admin" || user?.role === "Admin (Owner)") && !company;
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
   const andWhere = isAdmin ? "" : ' AND "company" = ?';
   const companyParam = isAdmin ? [] : [company];
 
@@ -349,12 +292,17 @@ export async function getResourceDetails(name: string) {
 }
 
 export async function getExecutiveData() {
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const andWhere = isAdmin ? "" : ' AND "company" = ?';
+  const whereClause = isAdmin ? "" : ' WHERE "company" = ?';
+  const qp = isAdmin ? [] : [company];
+
   const [critRes, totalBugs, openT, tcPass, testCaseTotal] = await Promise.all([
-    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE \"severity\" IN ('critical', 'high', 'P0', 'P1') AND \"status\" != 'closed'") as Promise<any>,
-    countRows("Bug"),
-    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"status\" != 'done'") as Promise<any>,
-    db.get("SELECT COUNT(*) as count FROM \"TestCase\" WHERE \"status\" IN ('Passed', 'Success')") as Promise<any>,
-    countRows("TestCase"),
+    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed'${andWhere}`, qp) as Promise<any>,
+    countRows("Bug", isAdmin ? undefined : company),
+    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE "status" != 'done'${andWhere}`, qp) as Promise<any>,
+    db.get(`SELECT COUNT(*) as count FROM "TestCase" WHERE "status" IN ('Passed', 'Success')${andWhere}`, qp) as Promise<any>,
+    countRows("TestCase", isAdmin ? undefined : company),
   ]);
 
   const criticalBugs = Number(critRes.count);
@@ -374,9 +322,9 @@ export async function getExecutiveData() {
   const [trend, notes, totalTasks, fBugs, cTasks] = await Promise.all([
     getQualityTrend(),
     getReleaseNotes(),
-    countRows("Task"),
-    db.get("SELECT COUNT(*) as count FROM \"Bug\" WHERE \"status\" IN ('fixed', 'closed')") as Promise<any>,
-    db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"status\" = 'completed'") as Promise<any>
+    countRows("Task", isAdmin ? undefined : company),
+    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "status" IN ('fixed', 'closed')${andWhere}`, qp) as Promise<any>,
+    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE "status" = 'completed'${andWhere}`, qp) as Promise<any>
   ]);
 
   const fixedBugs = Number(fBugs.count);
@@ -400,20 +348,15 @@ export async function getExecutiveData() {
         : (isHealthy 
            ? "The project is currently in a stable state with a high pass rate." 
            : "Action required: Several high-severity defects are pending or pass rate is low."),
-      planName: (await db.get('SELECT "title" FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.title || "Master Test Strategy",
-      projectName: (await db.get('SELECT "project" FROM "TestPlan" WHERE "deletedAt" IS NULL ORDER BY "updatedAt" DESC LIMIT 1') as any)?.project || "All Active Projects"
+      planName: (await db.get(`SELECT "title" FROM "TestPlan" WHERE "deletedAt" IS NULL${andWhere} ORDER BY "updatedAt" DESC LIMIT 1`, qp) as any)?.title || "Master Test Strategy",
+      projectName: (await db.get(`SELECT "project" FROM "TestPlan" WHERE "deletedAt" IS NULL${andWhere} ORDER BY "updatedAt" DESC LIMIT 1`, qp) as any)?.project || "All Active Projects"
     }
   };
 }
 
 export async function getModuleRows(module: ModuleKey) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  
-  const where = isAdmin ? "" : ' WHERE "company" = ?';
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
+  const scope = getAccessScope(await getCurrentUser());
+  const { company, isAdmin, where, andWhere, params: qParams } = scope;
 
   switch (module) {
     case "test-plans":
@@ -485,8 +428,33 @@ export async function getModuleRows(module: ModuleKey) {
       }));
     case "users":
       return await selectAll(`SELECT id, name, username, role, company, createdAt FROM "User" ${where} ORDER BY createdAt DESC`, qParams);
-    case "sprints":
-      return await selectAll(`SELECT * FROM "Sprint" ${where} ORDER BY "startDate" DESC`, qParams);
+    case "sprints": {
+      const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
+      const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
+      const subParams = isAdmin ? [] : [company];
+      return await selectAll(`
+        SELECT s.*,
+          (SELECT tp2."title" FROM "TestPlan" tp2
+            WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
+              OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
+              OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
+            ${tpCompanyFilter}
+            AND tp2."deletedAt" IS NULL
+            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS testPlanTitle,
+          (SELECT tp2."project" FROM "TestPlan" tp2
+            WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
+              OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
+              OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
+            ${tpCompanyFilter}
+            AND tp2."deletedAt" IS NULL
+            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS project
+        FROM "Sprint" s
+        ${sprintWhere}
+        ORDER BY s."startDate" DESC
+      `, [...subParams, ...subParams, ...qParams]);
+    }
+    case "deployments":
+      return await selectAll(`SELECT * FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams);
     default:
       return [];
   }
@@ -494,7 +462,7 @@ export async function getModuleRows(module: ModuleKey) {
 
 export async function createModuleRecord(module: ModuleKey, data: any) {
   const user = await getCurrentUser();
-  const company = data.company || user?.company || "";
+  const company = getWriteCompany(user, data.company);
 
   switch (module) {
     case "test-plans": {
@@ -504,6 +472,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
       );
       await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`);
+      await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
       return res;
     }
     case "test-cases": {
@@ -591,17 +560,23 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`);
       return res;
     }
+    case "deployments": {
+      const res = await runInsert(
+        `INSERT INTO "Deployment" ("company", "date", "version", "project", "environment", "developer", "changelog", "status", "notes")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, data.notes ?? ""]
+      );
+      await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${data.environment}: ${data.status}`);
+      return res;
+    }
     default:
       return null;
   }
 }
 
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-  const companyParam = isAdmin ? [] : [company];
+  const scope = getAccessScope(await getCurrentUser());
+  const { company, where: _where, andWhere: companyFilter, params: companyParam } = scope;
 
   switch (module) {
     case "tasks": {
@@ -632,6 +607,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`);
+      await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
       return res;
     }
     case "test-sessions": {
@@ -714,17 +690,24 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`);
       return res;
     }
+    case "deployments": {
+      const res = await db.run(
+        `UPDATE "Deployment"
+         SET "date" = ?, "version" = ?, "project" = ?, "environment" = ?, "developer" = ?, "changelog" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = ?${companyFilter}`,
+        [data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, data.notes ?? "", id, ...companyParam]
+      );
+      await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`);
+      return res;
+    }
     default:
       return null;
   }
 }
 
 export async function deleteModuleRecord(module: ModuleKey, id: string | number) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-  const companyParam = isAdmin ? [] : [company];
+  const scope = getAccessScope(await getCurrentUser());
+  const { company, andWhere: companyFilter, params: companyParam } = scope;
 
   const table = getTableName(module);
   if (!table) return null;
@@ -742,231 +725,21 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
   return res;
 }
 
-export async function getTestPlanByToken(token: string) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const item = await db.get(
-    'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND ("company" = ? OR ? = \'\')',
-    [token, company, company],
-  ) as Record<string, unknown> | undefined;
-  if (!item) return null;
-  return normalizeTestPlanRow(item);
-}
-
-export async function getTestSuitesByPlanId(planId: string) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const rows = await selectAll('SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL AND ("company" = ? OR ? = \'\') ORDER BY "updatedAt" DESC', [planId, company, company]);
-  return rows.map(item => normalizeTestSuiteRow(item));
-}
-
-export async function getReleaseNotes() {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const where = isAdmin ? "" : ' AND "company" = ?';
-  const params = isAdmin ? [] : [company];
-
-  const bugs = await selectAll(`SELECT * FROM "Bug" WHERE "status" IN ('fixed', 'closed') ${where} ORDER BY "updatedAt" DESC LIMIT 20`, params);
-  const tasks = await selectAll(`SELECT * FROM "Task" WHERE "status" = 'completed' ${where} ORDER BY "updatedAt" DESC LIMIT 20`, params);
-  
-  return {
-    fixedBugs: bugs.map(b => ({ code: codeFromId("BUG", Number(b.id)), title: b.title, severity: b.severity })),
-    completedTasks: tasks.map(t => ({ code: codeFromId("TASK", Number(t.id)), title: t.title }))
-  };
-}
-
-function toSqliteDatetime(d: Date): string {
-  return d.toISOString().replace("T", " ").slice(0, 19);
-}
-
-export async function getQualityTrend() {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
-
-  const weeks = [];
-  for (let i = 0; i < 4; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - (i * 7));
-    const start = new Date(d);
-    start.setDate(start.getDate() - 7);
-    weeks.push({
-      label: `Week -${i}`,
-      start: toSqliteDatetime(start),
-      end: toSqliteDatetime(d),
-    });
-  }
-
-  const trend = await Promise.all(weeks.reverse().map(async (w) => {
-    const [bugsRes, fixedRes] = await Promise.all([
-      db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "createdAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]) as Promise<any>,
-      db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "status" = 'fixed' AND "updatedAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]) as Promise<any>,
-    ]);
-    return {
-      label: w.label,
-      bugs: Number(bugsRes.count),
-      fixed: Number(fixedRes.count),
-    };
-  }));
-  return trend;
-}
-
-export async function getTestSuite(id: string | number) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
-
-  const item = await db.get(`SELECT * FROM "TestSuite" WHERE id = ? AND "deletedAt" IS NULL ${andWhere}`, [id, ...qParams]) as Record<string, unknown> | undefined;
-  if (!item) return null;
-  return { ...item, code: codeFromId("SUITE", Number(id)) };
-}
-
-export async function getTestCasesByIdStrings(idStrings: string) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
-
-  if (!idStrings.trim()) return [];
-  const rows = await selectAll(
-    `SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "id" ASC`,
-    [idStrings.trim(), ...qParams],
-  );
-  return rows.map((r) => ({ ...normalizeTestCaseRow(r), code: codeFromId("TC", Number(r.id)) }));
-}
-
-
-export async function getProjectData(projectName: string) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
-
-  const [plans, bugs, tasks, sessions, meetings] = await Promise.all([
-    selectAll(`SELECT * FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "Bug" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "Task" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "TestSession" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "MeetingNote" WHERE project = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC`, [projectName, ...qParams]),
-  ]);
-
-  // For stats, we need suites and cases too
-  const planIds = plans.map(p => String(p.id));
-  let suites: any[] = [];
-  if (planIds.length > 0) {
-    const placeholders = planIds.map(() => '?').join(',');
-    suites = await selectAll(`SELECT * FROM "TestSuite" WHERE testPlanId IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`, [...planIds, ...qParams]);
-  }
-
-  const suiteIds = suites.map(s => String(s.id));
-  let cases: any[] = [];
-  if (suiteIds.length > 0) {
-    const placeholders = suiteIds.map(() => '?').join(',');
-    cases = await selectAll(`SELECT * FROM "TestCase" WHERE testSuiteId IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`, [...suiteIds, ...qParams]);
-  }
-
-  const totalCases = cases.length;
-  const passed = cases.filter(c => String(c.status).toLowerCase() === 'passed').length;
-  const failed = cases.filter(c => String(c.status).toLowerCase() === 'failed').length;
-
-  return {
-    projectName,
-    plans: plans.map(normalizeTestPlanRow),
-    bugs: bugs.map(b => ({ ...b, code: codeFromId('BUG', Number(b.id)) })),
-    tasks: tasks.map(t => ({ ...t, code: codeFromId('TASK', Number(t.id)) })),
-    sessions: sessions.map(s => ({ ...s, code: codeFromId('SES', Number(s.id)) })),
-    meetings: meetings.map(m => ({ ...m, code: codeFromId('MEET', Number(m.id)) })),
-    stats: {
-      totalPlans: plans.length,
-      totalBugs: bugs.length,
-      totalTasks: tasks.length,
-      totalCases,
-      passed,
-      failed,
-      successRate: totalCases > 0 ? Math.round((passed / totalCases) * 100) : 0
-    }
-  };
-}
-
-async function countRows(table: string, company?: string) {
-  const where = company ? ' WHERE "company" = ?' : '';
-  const params = company ? [company] : [];
-  const result = await db.get(`SELECT COUNT(*) as total FROM "${table}"${where}`, params) as { total: number };
-  return Number(result?.total || 0);
-}
-
-async function selectAll(sqlStr: string, params: any[] = []) {
-  return await db.query(sqlStr, params) as Array<Record<string, string | number | null>>;
-}
-
-async function runInsert(sqlStr: string, params: any[]) {
-  return await db.run(sqlStr, params);
-}
-
-export async function getTestSuiteByToken(token: string) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = (user?.role === "admin" || user?.role === "Admin (Owner)") && !company;
-  const andCompany = (!user || isAdmin) ? "" : ' AND "company" = ?';
-  const params: unknown[] = token ? [token] : [];
-  if (andCompany) params.push(company);
-  return await db.get(`SELECT * FROM "TestSuite" WHERE "publicToken" = ? AND "deletedAt" IS NULL${andCompany}`, params) as Record<string, unknown> | undefined;
-}
-
-export async function getTestCasesByScenario(suiteId: string | number) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
-
-  return await selectAll(`SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY id ASC`, [suiteId, ...qParams]);
-}
-
-export async function getAllTestCasesWithSuite() {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = (user?.role === "admin" || user?.role === "Admin (Owner)") && !company;
-  const andWhere = isAdmin ? "" : ' AND tc."company" = ?';
-  const qParams = isAdmin ? [] : [company];
-
-  return await selectAll(
-    `SELECT tc.*, ts.title AS suiteTitle, ts.publicToken AS suiteToken, ts.status AS suiteStatus,
-            tp.title AS planTitle, tp.project AS planProject
-     FROM "TestCase" tc
-     LEFT JOIN "TestSuite" ts ON ts.id = tc."testSuiteId" AND ts."deletedAt" IS NULL
-     LEFT JOIN "TestPlan" tp ON tp.id = ts."testPlanId" AND tp."deletedAt" IS NULL
-     WHERE tc."deletedAt" IS NULL${andWhere}
-     ORDER BY tc."testSuiteId" ASC, tc.id ASC`,
-    qParams
-  );
-}
-
-async function logActivity(company: string, type: string, id: string, action: string, summary: string) {
-  try {
-    await db.run(
-      `INSERT INTO "ActivityLog" ("company", "entityType", "entityId", "action", "summary")
-       VALUES (?, ?, ?, ?, ?)`,
-      [company, type, id, action, summary]
-    );
-  } catch (e) {
-    console.error("Activity logging failed:", e);
-  }
-}
+export {
+  getTestPlanByToken,
+  getTestSuitesByPlanId,
+  getReleaseNotes,
+  getQualityTrend,
+  getTestSuite,
+  getTestCasesByIdStrings,
+  getProjectData,
+  getTestSuiteByToken,
+  getTestCasesByScenario,
+  getAllTestCasesWithSuite,
+} from "@/lib/test-management-data";
 
 export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const qParams = isAdmin ? [] : [company];
+  const { company, andWhere, params: qParams } = getAccessScope(await getCurrentUser());
 
   const table = getTableName(module);
   if (!table) return null;
@@ -976,15 +749,13 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
 }
 
 export async function clearModuleRecords(module: ModuleKey) {
-  const user = await getCurrentUser();
-  const company = user?.company || "";
-  const isAdmin = user?.role === "admin" && !company;
-  const where = isAdmin ? "" : ' WHERE "company" = ?';
-  const params = isAdmin ? [] : [company];
+  const { company, where, params } = getAccessScope(await getCurrentUser());
 
   const table = getTableName(module);
   if (!table) return null;
-  return await db.run(`DELETE FROM "${table}"${where}`, params);
+  const res = await db.run(`DELETE FROM "${table}"${where}`, params);
+  await logActivity(company, table, "ALL", "Cleared", `${table} records cleared`);
+  return res;
 }
 
 export async function replaceModuleRecords(module: ModuleKey, rows: any[]) {

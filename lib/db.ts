@@ -38,6 +38,7 @@ export const tables = [
       "evidence" TEXT NOT NULL DEFAULT '',
       "relatedItems" TEXT DEFAULT '',
       "assignee" TEXT DEFAULT '',
+      "attachments" TEXT DEFAULT '',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -62,6 +63,7 @@ export const tables = [
       "evidence" TEXT NOT NULL DEFAULT '',
       "relatedItems" TEXT DEFAULT '',
       "suggestedDev" TEXT DEFAULT '',
+      "attachments" TEXT DEFAULT '',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -204,34 +206,69 @@ export const tables = [
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
+  },
+  {
+    name: "Deployment",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "date" TEXT NOT NULL,
+      "version" TEXT NOT NULL,
+      "project" TEXT NOT NULL,
+      "environment" TEXT NOT NULL DEFAULT 'staging',
+      "developer" TEXT NOT NULL,
+      "changelog" TEXT NOT NULL DEFAULT '',
+      "status" TEXT NOT NULL DEFAULT 'success',
+      "notes" TEXT DEFAULT '',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
   }
 ];
 
 const indexSql = `
 CREATE INDEX IF NOT EXISTS "idx_task_company" ON "Task"("company");
+CREATE INDEX IF NOT EXISTS "idx_task_company_updated" ON "Task"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_task_status" ON "Task"("status");
 CREATE INDEX IF NOT EXISTS "idx_task_assignee" ON "Task"("assignee");
 CREATE INDEX IF NOT EXISTS "idx_bug_company" ON "Bug"("company");
+CREATE INDEX IF NOT EXISTS "idx_bug_company_updated" ON "Bug"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_bug_status" ON "Bug"("status");
 CREATE INDEX IF NOT EXISTS "idx_bug_suggesteddev" ON "Bug"("suggestedDev");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company" ON "TestCase"("company");
+CREATE INDEX IF NOT EXISTS "idx_testcase_company_updated" ON "TestCase"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_testcase_status" ON "TestCase"("status");
 CREATE INDEX IF NOT EXISTS "idx_testcase_suite" ON "TestCase"("testSuiteId");
 CREATE INDEX IF NOT EXISTS "idx_testplan_company" ON "TestPlan"("company");
+CREATE INDEX IF NOT EXISTS "idx_testplan_company_updated" ON "TestPlan"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_testsuite_company" ON "TestSuite"("company");
+CREATE INDEX IF NOT EXISTS "idx_testsuite_company_updated" ON "TestSuite"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_testsuite_assignee" ON "TestSuite"("assignee");
 CREATE INDEX IF NOT EXISTS "idx_activitylog_company" ON "ActivityLog"("company");
 CREATE INDEX IF NOT EXISTS "idx_sprint_company" ON "Sprint"("company");
+CREATE INDEX IF NOT EXISTS "idx_sprint_company_updated" ON "Sprint"("company", "updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_updated" ON "MeetingNote"("company", "updatedAt");
 `;
+
+function expandSchemaType(typeName: string, postgres: boolean) {
+  if (typeName === "SERIAL_OR_PK") {
+    return postgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT";
+  }
+  if (typeName === "DATE_TYPE") {
+    return postgres ? "TIMESTAMP" : "TEXT";
+  }
+  if (typeName === "FK_INT_SPRINT") {
+    return postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)';
+  }
+  return typeName;
+}
 
 function generateSchemaSql(postgres: boolean) {
   let sqlRows = postgres ? "" : "PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;\n";
 
   for (const table of tables) {
     const s = table.schema
-      .replace(/SERIAL_OR_PK/g, postgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT")
-      .replace(/DATE_TYPE/g, postgres ? "TIMESTAMP" : "TEXT")
-      .replace(/FK_INT_SPRINT/g, postgres ? "INTEGER" : 'INTEGER REFERENCES "Sprint"(id)');
+      .replace(/SERIAL_OR_PK|DATE_TYPE|FK_INT_SPRINT/g, (match) => expandSchemaType(match, postgres));
 
     sqlRows += `CREATE TABLE IF NOT EXISTS "${table.name}" (${s});\n`;
   }
@@ -324,8 +361,7 @@ async function applyMissingColumns() {
       const columnName = rawColumn.replace(/"/g, "");
       
       const columnType = rawType
-        .replace(/DATE_TYPE/g, useSqlite ? "TEXT" : "TIMESTAMP")
-        .replace(/SERIAL_OR_PK/g, useSqlite ? "INTEGER" : "SERIAL");
+        .replace(/SERIAL_OR_PK|DATE_TYPE|FK_INT_SPRINT/g, (match) => expandSchemaType(match, !useSqlite));
       try {
         const exists = sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all(columnName) as any[];
         if (exists.length === 0) {
@@ -350,7 +386,7 @@ async function applyMissingColumns() {
     const columnName = rawColumn.replace(/"/g, "");
     
     try {
-      await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${columnName}" ${rawType}`));
+      await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${columnName}" ${expandSchemaType(rawType, true)}`));
     } catch {
       // keep startup resilient
     }

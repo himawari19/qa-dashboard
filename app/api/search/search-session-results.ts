@@ -1,0 +1,83 @@
+import { codeFromId } from "@/lib/utils";
+import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
+
+export async function getSessionResults(query: string, companyClause: string, companyParams: unknown[]) {
+  const exactId = extractExactId(query, "SES");
+  if (exactId !== null) {
+    const exactRow = await queryFirst<Row>(
+      `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, updatedAt
+       FROM "TestSession"
+       WHERE id = ?${companyClause}
+       ORDER BY "updatedAt" DESC
+       LIMIT 1`,
+      [exactId, ...companyParams],
+    );
+    if (exactRow) {
+      const exactItem = buildResult({
+        row: exactRow,
+        query,
+        type: "Test Session",
+        group: "Test Management",
+        href: "/test-execution",
+        code: codeFromId("SES", Number(exactRow.id)),
+        label: normalize(exactRow.date),
+        sublabel: [normalize(exactRow.project), normalize(exactRow.sprint), normalize(exactRow.tester), normalize(exactRow.result)].filter(Boolean).join(" · "),
+        snippetSource: exactRow.notes || exactRow.scope,
+        fieldScores: [
+          ["date", 100],
+          ["project", 55],
+          ["sprint", 50],
+          ["tester", 45],
+          ["scope", 28],
+          ["result", 30],
+          ["notes", 18],
+        ],
+      });
+      if (exactItem) return [exactItem];
+    }
+  }
+  const like = `%${escapeLike(query).toLowerCase()}%`;
+  const rows = await queryRows<Row>(
+    `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, updatedAt
+     FROM "TestSession"
+     WHERE (
+       LOWER(COALESCE(date, '')) LIKE ?
+       OR LOWER(COALESCE(project, '')) LIKE ?
+       OR LOWER(COALESCE(sprint, '')) LIKE ?
+       OR LOWER(COALESCE(tester, '')) LIKE ?
+       OR LOWER(COALESCE(scope, '')) LIKE ?
+       OR LOWER(COALESCE(result, '')) LIKE ?
+       OR LOWER(COALESCE(notes, '')) LIKE ?
+       OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
+     )
+     ${companyClause}
+     ORDER BY "updatedAt" DESC
+     LIMIT 8`,
+    Array(8).fill(like).concat(companyParams),
+  );
+
+  return rows
+    .map((row) =>
+      buildResult({
+        row,
+        query,
+        type: "Test Session",
+        group: "Test Management",
+        href: "/test-execution",
+        code: codeFromId("SES", Number(row.id)),
+        label: [normalize(row.project), normalize(row.sprint)].filter(Boolean).join(" / ") || `Session ${row.id}`,
+        sublabel: [normalize(row.date), normalize(row.tester), normalize(row.result)].filter(Boolean).join(" · "),
+        snippetSource: row.scope || row.notes || row.evidence,
+        fieldScores: [
+          ["project", 80],
+          ["sprint", 75],
+          ["tester", 78],
+          ["scope", 60],
+          ["result", 40],
+          ["notes", 20],
+          ["date", 20],
+        ],
+      }),
+    )
+    .filter((item): item is SearchResult => Boolean(item));
+}

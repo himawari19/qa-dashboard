@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTestSuiteByToken, getTestCasesByScenario, getTestPlanByToken } from "@/lib/data";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminUser } from "@/lib/auth-core";
 import { SuiteDetail } from "./suite-detail";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export default async function TestSuiteDetailPage({ params }: { params: Promise<
 
   const user = await getCurrentUser();
   const company = user?.company || "";
-  const isAdmin = (user?.role === "admin" || user?.role === "Admin (Owner)") && !company;
+  const isAdmin = isAdminUser(user?.role, company);
   const andCompany = isAdmin ? "" : ' AND "company" = ?';
   const companyParam = isAdmin ? [] : [company];
 

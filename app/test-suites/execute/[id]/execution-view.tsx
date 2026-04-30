@@ -172,84 +172,72 @@ export function SuiteExecutionView({
     <div className="mx-auto max-w-7xl px-4 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Finish Session</h2>
-              <p className="text-sm text-slate-500 mt-1">Review the results and confirm session details.</p>
+          <div className="w-full max-w-sm rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-sm font-black text-slate-900 dark:text-white">Finish Session</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Confirm details before saving.</p>
             </div>
 
+            {/* Stats */}
             <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
-              <div className="p-4 text-center">
-                <p className="text-2xl font-black text-emerald-600">{passed}</p>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1">Passed</p>
-              </div>
-              <div className="p-4 text-center">
-                <p className="text-2xl font-black text-rose-600">{failed}</p>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1">Failed</p>
-              </div>
-              <div className="p-4 text-center">
-                <p className="text-2xl font-black text-amber-600">{blocked}</p>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1">Blocked</p>
-              </div>
+              {[
+                { label: "Passed", value: passed, color: "text-emerald-600" },
+                { label: "Failed", value: failed, color: "text-red-600" },
+                { label: "Blocked", value: blocked, color: "text-amber-500" },
+              ].map((s) => (
+                <div key={s.label} className="py-3 text-center">
+                  <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{s.label}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="p-6 space-y-4">
+            {/* Form */}
+            <div className="px-4 py-3 space-y-2.5 max-h-[50vh] overflow-y-auto">
+              {[
+                { key: "project", label: "Project", placeholder: "Project name", required: false },
+                { key: "sprint", label: "Sprint", placeholder: "e.g. Sprint 5", required: false },
+                { key: "tester", label: "Tester", placeholder: "Your name", required: true },
+              ].map((f) => (
+                <div key={f.key}>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                    {f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    value={(sessionForm as Record<string, string>)[f.key]}
+                    onChange={(e) => setSessionForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                    className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder={f.placeholder}
+                  />
+                </div>
+              ))}
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Project</label>
-                <input
-                  type="text"
-                  value={sessionForm.project}
-                  onChange={(e) => setSessionForm((p) => ({ ...p, project: e.target.value }))}
-                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Project name"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Sprint</label>
-                <input
-                  type="text"
-                  value={sessionForm.sprint}
-                  onChange={(e) => setSessionForm((p) => ({ ...p, sprint: e.target.value }))}
-                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Sprint 5"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
-                  Tester <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={sessionForm.tester}
-                  onChange={(e) => setSessionForm((p) => ({ ...p, tester: e.target.value }))}
-                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Your name"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Notes</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Notes</label>
                 <textarea
                   value={sessionForm.notes}
                   onChange={(e) => setSessionForm((p) => ({ ...p, notes: e.target.value }))}
                   rows={2}
-                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  placeholder="Optional session notes"
+                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="Optional notes"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-6 pt-0">
+            {/* Footer */}
+            <div className="flex gap-2 px-4 py-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setShowModal(false)}
                 disabled={loading}
-                className="flex-1 h-11 rounded-md border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
+                className="flex-1 h-8 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={saveResults}
                 disabled={loading}
-                className="flex-1 h-11 rounded-md bg-slate-900 dark:bg-white text-sm font-semibold text-white dark:text-slate-900 hover:bg-blue-600 dark:hover:bg-blue-50 transition disabled:opacity-50"
+                className="flex-1 h-8 rounded-md bg-slate-900 dark:bg-white text-xs font-bold text-white dark:text-slate-900 hover:bg-blue-600 transition disabled:opacity-50"
               >
                 {loading ? "Saving..." : "Save Session"}
               </button>

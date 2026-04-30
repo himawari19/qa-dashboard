@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    return NextResponse.json({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      company: user.company,
+    });
+  } catch (error) {
+    console.error("Profile Fetch Error:", error);
+    return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
     const user = await getCurrentUser();

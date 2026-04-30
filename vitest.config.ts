@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
-    include: ["lib/__tests__/**/*.test.ts"],
+    include: ["**/*.test.ts", "**/*.test.tsx"],
+    exclude: ["node_modules", ".next", "coverage", "output"],
   },
   resolve: {
     alias: {

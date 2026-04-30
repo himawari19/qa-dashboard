@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminUser } from "@/lib/auth-core";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
   if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const company = user.company || "";
-  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+  const isAdmin = isAdminUser(user.role, company);
 
   try {
     const { ids, status } = await request.json();

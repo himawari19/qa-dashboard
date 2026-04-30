@@ -46,48 +46,41 @@ export function ConfirmModal({
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onCancel} />
       
       <div className={cn(
-        "relative w-full max-w-md transform overflow-hidden rounded-md bg-white p-8 shadow-2xl transition-all duration-300",
+        "relative w-full max-w-sm transform overflow-hidden rounded-xl bg-white dark:bg-slate-900 shadow-2xl transition-all duration-300 border border-slate-200 dark:border-slate-700",
         isOpen ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
       )}>
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center px-6 pt-6 pb-4">
           <div className={cn(
-            "mb-6 flex h-16 w-16 items-center justify-center rounded-md text-white shadow-lg",
-            type === "danger" ? "bg-rose-500 shadow-rose-200" : 
-            type === "warning" ? "bg-amber-500 shadow-amber-200" : 
-            "bg-sky-500 shadow-sky-200"
+            "mb-3 flex h-10 w-10 items-center justify-center rounded-lg text-white",
+            type === "danger" ? "bg-red-600" :
+            type === "warning" ? "bg-amber-500" :
+            "bg-blue-600"
           )}>
-            {type === "danger" ? <X size={32} weight="bold" /> : 
-             type === "warning" ? <Warning size={32} weight="bold" /> : 
-             <Check size={32} weight="bold" />}
+            {type === "danger" ? <X size={20} weight="bold" /> :
+             type === "warning" ? <Warning size={20} weight="bold" /> :
+             <Check size={20} weight="bold" />}
           </div>
-          
-          <h3 className="mb-2 text-xl font-bold text-slate-900">{title}</h3>
-          <p className="mb-8 text-sm font-medium leading-relaxed text-slate-500">
-            {message}
-          </p>
-          
-          <div className="flex w-full gap-3">
-            <button
-              onClick={onCancel}
-              className="flex-1 h-12 rounded-md border border-slate-200 bg-white text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-95"
-            >
-              {cancelText}
-            </button>
-            <button
-              onClick={() => {
-                onConfirm();
-                onCancel();
-              }}
-              className={cn(
-                "flex-1 h-12 rounded-md text-sm font-bold text-white shadow-md transition active:scale-95",
-                type === "danger" ? "bg-rose-600 hover:bg-rose-700 shadow-rose-200" : 
-                type === "warning" ? "bg-amber-600 hover:bg-amber-700 shadow-amber-200" : 
-                "bg-sky-700 hover:bg-sky-800 shadow-sky-200"
-              )}
-            >
-              {confirmText}
-            </button>
-          </div>
+          <h3 className="mb-1 text-base font-black text-slate-900 dark:text-white">{title}</h3>
+          <p className="text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400">{message}</p>
+        </div>
+        <div className="flex gap-2 px-6 pb-5">
+          <button
+            onClick={onCancel}
+            className="flex-1 h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={() => { onConfirm(); onCancel(); }}
+            className={cn(
+              "flex-1 h-9 rounded-md text-xs font-bold text-white transition active:scale-95",
+              type === "danger" ? "bg-red-600 hover:bg-red-700" :
+              type === "warning" ? "bg-amber-500 hover:bg-amber-600" :
+              "bg-blue-600 hover:bg-blue-700"
+            )}
+          >
+            {confirmText}
+          </button>
         </div>
       </div>
     </div>

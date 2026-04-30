@@ -148,7 +148,7 @@ export default async function ModulePage({
     }
     
     // Always fetch projects for modules that have a project select field
-    if (["meeting-notes", "tasks", "bugs"].includes(moduleKey)) {
+    if (["meeting-notes", "tasks", "bugs", "deployments"].includes(moduleKey)) {
       const plans = await getModuleRows("test-plans");
       // Fallback for case sensitivity in database results (project vs Project)
       const projectNames = plans.map((p: any) => p.project || p.Project).filter(Boolean);

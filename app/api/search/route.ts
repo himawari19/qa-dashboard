@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminUser } from "@/lib/auth-core";
+import {
+  getActivityResults,
+  getAssigneeResults,
+  getBugResults,
+  getDeploymentResults,
+  getMeetingResults,
+  getPlanResults,
+  getSessionResults,
+  getSprintResults,
+  getSuiteResults,
+  getTaskResults,
+  getTestCaseResults,
+  getUserResults,
+} from "./search-query-builders";
+import { getScope, SECTION_LABELS, SCOPE_LABELS } from "./search-helpers";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -10,36 +24,50 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() || "";
   if (!q || q.length < 2) return NextResponse.json({ results: [] });
 
+  const scope = getScope(request.nextUrl.searchParams.get("scope"));
   const company = user.company || "";
-  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
-  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
-  const cp = isAdmin ? [] : [company];
+  const isAdmin = isAdminUser(user.role, company);
+  const companyClause = isAdmin ? "" : ` AND "company" = ?`;
+  const companyParams = isAdmin ? [] : [company];
 
-  const like = `%${q}%`;
-  const results: { id: string; code: string; label: string; sublabel: string; href: string; type: string }[] = [];
+  const queryTasks = scope === "all" || scope === "tasks" ? getTaskResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryBugs = scope === "all" || scope === "bugs" ? getBugResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryPlans = scope === "all" || scope === "test-plans" ? getPlanResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const querySuites = scope === "all" || scope === "test-suites" ? getSuiteResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryCases = scope === "all" || scope === "test-cases" ? getTestCaseResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const querySessions = scope === "all" || scope === "test-sessions" ? getSessionResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryMeetings = scope === "all" || scope === "meeting-notes" ? getMeetingResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const querySprints = scope === "all" || scope === "sprints" ? getSprintResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryAssignees = scope === "all" || scope === "assignees" ? getAssigneeResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryUsers = scope === "all" || scope === "users" ? getUserResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryDeployments = scope === "all" || scope === "deployments" ? getDeploymentResults(q, companyClause, companyParams) : Promise.resolve([]);
+  const queryActivity = scope === "all" || scope === "activity" ? getActivityResults(q, companyClause, companyParams) : Promise.resolve([]);
 
-  const tasks = await db.query(`SELECT id, title, status FROM "Task" WHERE (title LIKE ? OR description LIKE ?)${andCompany} LIMIT 5`, [like, like, ...cp]) as any[];
-  for (const t of tasks) results.push({ id: `task-${t.id}`, code: codeFromId("TASK", Number(t.id)), label: t.title, sublabel: t.status, href: "/tasks", type: "Task" });
+  const arrays = await Promise.all([
+    queryTasks,
+    queryBugs,
+    queryPlans,
+    querySuites,
+    queryCases,
+    querySessions,
+    queryMeetings,
+    querySprints,
+    queryAssignees,
+    queryUsers,
+    queryDeployments,
+    queryActivity,
+  ]);
 
-  const bugs = await db.query(`SELECT id, title, status FROM "Bug" WHERE (title LIKE ? OR module LIKE ?)${andCompany} LIMIT 5`, [like, like, ...cp]) as any[];
-  for (const b of bugs) results.push({ id: `bug-${b.id}`, code: codeFromId("BUG", Number(b.id)), label: b.title, sublabel: b.status, href: "/bugs", type: "Bug" });
+  const results = arrays
+    .flat()
+    .sort((a, b) => b.score - a.score || a.group.localeCompare(b.group) || a.label.localeCompare(b.label))
+    .slice(0, 24);
 
-  const suites = await db.query(`SELECT id, title, "testPlanId", "publicToken" FROM "TestSuite" WHERE (title LIKE ? OR "testPlanId" LIKE ?) AND "deletedAt" IS NULL${andCompany} LIMIT 5`, [like, like, ...cp]) as any[];
-  for (const suite of suites) {
-    results.push({
-      id: `suite-${suite.id}`,
-      code: codeFromId("SUITE", Number(suite.id)),
-      label: String(suite.title ?? ""),
-      sublabel: String(suite.testPlanId ?? ""),
-      href: `/test-suites/execute/${suite.publicToken}`,
-      type: "Test Suite",
-    });
-  }
-
-  const plans = await db.query(`SELECT id, code, title, status, "publicToken" FROM "TestPlan" WHERE (title LIKE ? OR code LIKE ?) AND "deletedAt" IS NULL${andCompany} LIMIT 5`, [like, like, ...cp]) as any[];
-  for (const p of plans) {
-    results.push({ id: `plan-${p.id}`, code: String(p.code || codeFromId("PLAN", Number(p.id))), label: p.title, sublabel: p.status, href: `/test-plans/${p.publicToken}`, type: "Test Plan" });
-  }
-
-  return NextResponse.json({ results: results.slice(0, 12) });
+  return NextResponse.json({
+    query: q,
+    scope,
+    scopeLabel: SCOPE_LABELS[scope] ?? "All",
+    sectionLabels: SECTION_LABELS,
+    results,
+  });
 }

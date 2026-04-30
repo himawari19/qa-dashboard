@@ -6,10 +6,12 @@ import { Badge } from "@/components/badge";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { DashboardDrawer } from "@/components/dashboard-drawer";
+import { DashboardStandupModal } from "@/components/dashboard-standup-modal";
 import {
   Bug, ClipboardText, Table, PlayCircle, Checks, Note, Printer,
   ArrowRight, X, CheckCircle, XCircle, Warning, Clock, User,
-  ChartBar, TrendUp, CalendarBlank, Kanban, CaretRight,
+  ChartBar, TrendUp, CalendarBlank, Kanban, CaretRight, Timer,
 } from "@phosphor-icons/react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -56,11 +58,16 @@ type DashboardProps = {
 // ── Colors ─────────────────────────────────────────────────────────────────
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "#f43f5e", high: "#fb923c", medium: "#f59e0b", low: "#94a3b8",
+  critical: "#dc2626", high: "#f97316", medium: "#facc15", low: "#0ea5e9",
+  p0: "#dc2626", p1: "#f97316", p2: "#facc15", p3: "#0ea5e9",
 };
 const STATUS_COLORS: Record<string, string> = {
-  todo: "#94a3b8", "in-progress": "#3b82f6", done: "#10b981",
-  open: "#f43f5e", closed: "#10b981", "in review": "#8b5cf6",
+  todo: "#94a3b8", "in-progress": "#2563eb", in_progress: "#2563eb",
+  doing: "#2563eb", done: "#059669", completed: "#059669",
+  open: "#dc2626", closed: "#059669", rejected: "#475569",
+  ready_to_retest: "#7c3aed", "in review": "#7c3aed",
+  planning: "#6366f1", active: "#2563eb",
+  draft: "#94a3b8", deferred: "#475569",
 };
 const MODULE_COLORS = ["#3b82f6","#10b981","#f59e0b","#6366f1","#8b5cf6","#ec4899","#06b6d4","#f97316"];
 
@@ -208,6 +215,14 @@ export function Dashboard({
   const [mounted, setMounted] = useState(false);
   const [drawer, setDrawer] = useState<{ title: string; subtitle?: string; items: DrawerItem[]; href?: string } | null>(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
+  const [bottlenecks, setBottlenecks] = useState<{ id: string; code: string; title: string; module: string; status: string; days: number; href: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/bottlenecks")
+      .then(r => r.json())
+      .then(d => setBottlenecks(d.bottlenecks || []))
+      .catch(() => {});
+  }, []);
   const [showStandup, setShowStandup] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -339,7 +354,7 @@ export function Dashboard({
   return (
     <div className="space-y-6 pb-12">
       {drawer && (
-        <Drawer
+        <DashboardDrawer
           title={drawer.title}
           subtitle={drawer.subtitle}
           items={drawer.items}
@@ -406,7 +421,7 @@ export function Dashboard({
           <p className="text-[10px] text-slate-400 mb-4">Click a bar to see defects</p>
           <div className="h-44">
             {mounted && distribution.bugByModule.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <BarChart data={distribution.bugByModule} layout="vertical" barCategoryGap={6}
                   onClick={(d: any) => d?.activePayload?.[0] && openModuleDrawer(d.activePayload[0].payload.module, d.activePayload[0].value)}>
@@ -435,7 +450,7 @@ export function Dashboard({
           <p className="text-[10px] text-slate-400 mb-4">Click a slice to see bugs</p>
           <div className="h-44">
             {mounted && distribution.bugs.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <PieChart onClick={(d: any) => d?.activePayload?.[0] && openSeverityDrawer(d.activePayload[0].payload.name, d.activePayload[0].value)}>
                   <Pie data={distribution.bugs} cx="50%" cy="50%" innerRadius={42} outerRadius={62}
@@ -463,7 +478,7 @@ export function Dashboard({
           <p className="text-[10px] text-slate-400 mb-4">Click a slice to see tasks</p>
           <div className="h-44">
             {mounted && distribution.tasks.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <PieChart onClick={(d: any) => d?.activePayload?.[0] && openTaskStatusDrawer(d.activePayload[0].payload.name, d.activePayload[0].value)}>
                   <Pie data={distribution.tasks} cx="50%" cy="50%" innerRadius={42} outerRadius={62}
@@ -495,7 +510,7 @@ export function Dashboard({
           <p className="text-[10px] text-slate-400 mb-4">Pass / Fail per session (last 10)</p>
           <div className="h-48">
             {mounted && sessionTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <AreaChart data={sessionTrend}>
                   <defs>
                     <linearGradient id="gPass" x1="0" y1="0" x2="0" y2="1">
@@ -597,10 +612,10 @@ export function Dashboard({
             <h3 className="text-xs font-black uppercase tracking-widest text-rose-500">Critical Bugs</h3>
             <Link href="/bugs" className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
             {(spotlight?.criticalBugs ?? []).length === 0
               ? <p className="text-xs text-slate-400 py-4 text-center">No critical bugs 🎉</p>
-              : (spotlight?.criticalBugs ?? []).slice(0, 4).map((bug, i) => (
+              : (spotlight?.criticalBugs ?? []).map((bug, i) => (
                   <Link key={i} href={bug.id ? `/bugs?viewId=${bug.id}` : "/bugs"}
                     className="flex w-full items-center gap-2 rounded-md bg-slate-50 dark:bg-slate-800/50 p-2.5 text-left hover:bg-rose-50 dark:hover:bg-rose-950/20 transition group">
                     <XCircle size={14} weight="fill" className="text-rose-500 shrink-0" />
@@ -618,10 +633,10 @@ export function Dashboard({
             <h3 className="text-xs font-black uppercase tracking-widest text-blue-500">Priority Tasks</h3>
             <Link href="/tasks" className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
             {(spotlight?.priorityTasks ?? []).length === 0
               ? <p className="text-xs text-slate-400 py-4 text-center">No priority tasks</p>
-              : (spotlight?.priorityTasks ?? []).slice(0, 4).map((task, i) => (
+              : (spotlight?.priorityTasks ?? []).map((task, i) => (
                   <Link key={i} href={task.id ? `/tasks?viewId=${task.id}` : "/tasks"}
                     className="flex w-full items-center gap-2 rounded-md bg-slate-50 dark:bg-slate-800/50 p-2.5 text-left hover:bg-blue-50 dark:hover:bg-blue-950/20 transition group">
                     <CheckCircle size={14} weight="fill" className="text-blue-500 shrink-0" />
@@ -717,29 +732,52 @@ export function Dashboard({
         </div>
       </section>
 
-      {/* Standup modal */}
-      {showStandup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
-              <h2 className="text-base font-black text-slate-900 dark:text-white">Standup Log</h2>
-              <button onClick={() => setShowStandup(false)} className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                <X size={15} weight="bold" />
-              </button>
+      {/* Bottleneck detector */}
+      {bottlenecks.length > 0 && (
+        <section className="mt-6">
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50/40 dark:bg-amber-950/10 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-7 w-7 rounded-md bg-amber-500 flex items-center justify-center text-white shrink-0">
+                <Timer size={14} weight="bold" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-amber-800 dark:text-amber-400">Bottleneck Detector</h3>
+                <p className="text-[10px] text-amber-600 dark:text-amber-500">{bottlenecks.length} item{bottlenecks.length !== 1 ? "s" : ""} stuck in a status too long</p>
+              </div>
             </div>
-            <div className="p-5">
-              <pre className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-md p-4 whitespace-pre-wrap leading-relaxed">{generateStandupText()}</pre>
-            </div>
-            <div className="flex gap-3 p-5 pt-0">
-              <button onClick={() => setShowStandup(false)} className="flex-1 h-10 rounded-md border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Cancel</button>
-              <button onClick={() => { navigator.clipboard.writeText(generateStandupText()); toast("Copied!", "success"); setShowStandup(false); }}
-                className="flex-1 h-10 rounded-md bg-slate-900 dark:bg-white text-sm font-bold text-white dark:text-slate-900 hover:bg-blue-600 dark:hover:bg-blue-50 transition">
-                Copy to Clipboard
-              </button>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {bottlenecks.slice(0, 9).map(b => (
+                <Link key={b.id} href={b.href} className="flex items-start gap-2.5 rounded-md border border-amber-200 dark:border-amber-800/30 bg-white dark:bg-slate-900 px-3 py-2.5 hover:border-amber-400 transition group">
+                  <div className="shrink-0 mt-0.5">
+                    <span className={cn(
+                      "inline-flex h-5 items-center rounded px-1.5 text-[9px] font-black uppercase tracking-wider",
+                      b.module === "Bug" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                    )}>{b.module}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-slate-800 dark:text-white truncate group-hover:text-amber-700 transition">{b.title}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      <span className="font-semibold">{b.code}</span> · {b.status} · <span className="text-amber-600 font-bold">{b.days}d stuck</span>
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
       )}
+
+      {/* Standup modal */}
+      <DashboardStandupModal
+        open={showStandup}
+        text={generateStandupText()}
+        onClose={() => setShowStandup(false)}
+        onCopy={() => {
+          navigator.clipboard.writeText(generateStandupText());
+          toast("Copied!", "success");
+          setShowStandup(false);
+        }}
+      />
     </div>
   );
 }

@@ -102,94 +102,94 @@ function LoginContent() {
       </div>
 
       {/* Right Side: Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 md:p-20 bg-white overflow-y-auto max-h-screen">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 md:p-12 bg-white overflow-y-auto max-h-screen">
         <div className="w-full max-w-md">
-          <div className="mb-10 text-center lg:text-left">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">
-              {mode === "signup" ? "Get started now" : 
+          <div className="mb-6 text-center lg:text-left">
+            <h2 className="text-2xl font-bold text-slate-900 mb-1">
+              {mode === "signup" ? "Get started now" :
                mode === "forgot" ? "Reset password" :
                "Welcome back"}
             </h2>
-            <p className="text-slate-500 font-medium">
-              {mode === "signup" ? "Create your account and join our platform." : 
-               mode === "forgot" ? "Enter your email address and we'll send you a link to reset your password." :
+            <p className="text-sm text-slate-500 font-medium">
+              {mode === "signup" ? "Create your account and join our platform." :
+               mode === "forgot" ? "Enter your email and we'll send you a reset link." :
                "Enter your credentials to access your dashboard."}
             </p>
           </div>
 
-          <form onSubmit={submit} className="space-y-5">
+          <form onSubmit={submit} className="space-y-3">
             {mode === "signup" && (
-              <div className="space-y-2">
-                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
-                <input 
-                  type="text" 
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                <input
+                  type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="John Doe" 
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
+                  placeholder="John Doe"
+                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
                   required
                 />
               </div>
             )}
-            
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
-              <input 
-                type="text" 
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+              <input
+                type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                placeholder="name@company.com" 
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
-                required 
+                placeholder="name@company.com"
+                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
+                required
               />
             </div>
 
             {mode !== "forgot" && (
               <>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="flex items-center justify-between ml-1">
-                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Password</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Password</label>
                     {mode === "signin" && (
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setMode("forgot")}
-                        className="text-[11px] font-black text-blue-600 hover:underline uppercase tracking-widest"
+                        className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest"
                       >
                         Forgot?
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <input 
-                      type={showPassword ? "text" : "password"} 
+                    <input
+                      type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      placeholder="••••••••" 
-                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 pr-12 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
-                      required 
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 pr-11 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
+                      required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
                     >
-                      {showPassword ? <EyeSlash size={20} weight="bold" /> : <Eye size={20} weight="bold" />}
+                      {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
                     </button>
                   </div>
                 </div>
 
                 {mode === "signup" && (
                 <>
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">Software Role</label>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Software Role</label>
                     <select
                       name="role"
                       value={formData.role}
                       onChange={handleInputChange}
-                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium appearance-none"
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium appearance-none text-sm"
                       required
                     >
                       <option value="" disabled>Select your role</option>
@@ -210,56 +210,56 @@ function LoginContent() {
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">Company Name</label>
-                    <input 
-                      type="text" 
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Company Name</label>
+                    <input
+                      type="text"
                       name="company"
                       value={formData.company}
                       onChange={handleInputChange}
-                      placeholder="e.g. Acme Corp" 
-                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white p-4 rounded-2xl outline-none transition-all text-slate-900 font-medium" 
-                      required 
+                      placeholder="e.g. Acme Corp"
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
+                      required
                     />
                   </div>
                 </>
               )}
             </>)}
-            
+
             {error && (
-              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
-                <p className="text-sm font-semibold text-rose-600">{error}</p>
+              <div className="px-4 py-2.5 bg-rose-50 border border-rose-100 rounded-xl">
+                <p className="text-xs font-semibold text-rose-600">{error}</p>
               </div>
             )}
 
-            <button 
+            <button
               type="submit"
               disabled={pending}
-              className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4 text-sm uppercase tracking-widest"
+              className="w-full bg-blue-600 text-white font-black py-3 rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2 text-sm uppercase tracking-widest"
             >
-              <span>{pending ? "Processing..." : 
-                    mode === "signup" ? "Create Account" : 
+              <span>{pending ? "Processing..." :
+                    mode === "signup" ? "Create Account" :
                     mode === "forgot" ? "Send Reset Link" :
                     "Sign In"}</span>
-              {!pending && <ArrowRight size={18} weight="bold" />}
+              {!pending && <ArrowRight size={16} weight="bold" />}
             </button>
 
             {mode === "forgot" && (
-              <button 
+              <button
                 type="button"
                 onClick={() => setMode("signin")}
-                className="w-full flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors pt-2"
+                className="w-full flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors pt-1"
               >
-                <ArrowLeft size={16} weight="bold" />
+                <ArrowLeft size={14} weight="bold" />
                 <span>Back to sign in</span>
               </button>
             )}
           </form>
 
           {mode !== "forgot" && (
-            <p className="text-center mt-10 text-sm text-slate-500 font-medium">
+            <p className="text-center mt-6 text-sm text-slate-500 font-medium">
               {mode === "signup" ? "Already a member?" : "New to the platform?"}{" "}
-              <button 
+              <button
                 onClick={() => {
                   setMode(mode === "signup" ? "signin" : "signup");
                   setError("");

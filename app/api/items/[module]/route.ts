@@ -10,6 +10,7 @@ import {
   type ModuleKey,
 } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminUser } from "@/lib/auth-core";
 
 function assertModule(value: string): ModuleKey | null {
   return moduleOrder.includes(value as ModuleKey) ? (value as ModuleKey) : null;
@@ -58,7 +59,7 @@ export async function POST(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || user.role !== "admin")) {
+  if (moduleKey === "users" && (!user || !isAdminUser(user.role, user.company))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -110,7 +111,7 @@ export async function DELETE(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || user.role !== "admin")) {
+  if (moduleKey === "users" && (!user || !isAdminUser(user.role, user.company))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -163,7 +164,7 @@ export async function PATCH(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || user.role !== "admin")) {
+  if (moduleKey === "users" && (!user || !isAdminUser(user.role, user.company))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

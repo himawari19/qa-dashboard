@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminUser } from "@/lib/auth-core";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'admin') {
+  if (!user || !isAdminUser(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -40,7 +41,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'admin') {
+  if (!user || !isAdminUser(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

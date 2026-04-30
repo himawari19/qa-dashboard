@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getTestSuite, makePublicToken } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminUser } from "@/lib/auth-core";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const company = user.company || "";
-  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+  const isAdmin = isAdminUser(user.role, company);
 
   try {
     const formData = await request.formData();
@@ -64,7 +65,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   const company = user.company || "";
-  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+  const isAdmin = isAdminUser(user.role, company);
 
   const idStr = request.nextUrl.searchParams.get("id");
   const id = idStr ? Number(idStr) : null;
@@ -110,7 +111,7 @@ export async function PUT(request: NextRequest) {
   if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const company = user.company || "";
-  const isAdmin = (user.role === "admin" || user.role === "Admin (Owner)") && !company;
+  const isAdmin = isAdminUser(user.role, company);
 
   try {
     const data = await request.json();

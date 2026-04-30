@@ -15,6 +15,7 @@
 | `lib/modules.ts` | Module configs & Zod schemas |
 | `components/module-workspace.tsx` | Main CRUD UI & Role Handling |
 | `app/[module]/page.tsx` | Dynamic Module Entry |
+| `**/*.test.ts[x]` | Vitest suites (mock-based, no token needed) |
 
 ## Conventions & Rules
 - **Activity Log**: MUST call `logActivity(company, type, id, action, summary)` in `lib/data.ts` for all CRUD.
@@ -33,6 +34,9 @@
 - Commit or push unless explicitly asked.
 
 ## Troubleshooting
+- Run `pnpm test`.
+- Mock auth/data; do not use tokens or live credentials for tests.
+- After big changes, rerun `pnpm test`.
 - Run `npx tsc --noEmit` for types.
 - Run `next build` to catch Turbopack issues early.
 - Inspect `lib/modules.ts` first when adding/modifying fields.

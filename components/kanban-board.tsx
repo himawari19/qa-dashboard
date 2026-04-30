@@ -7,15 +7,15 @@ import { cn } from "@/lib/utils";
 type Row = Record<string, string | number>;
 
 const columnAccents: Record<string, { border: string; header: string; dot: string; drop: string }> = {
-  todo:             { border: "border-slate-300 dark:border-slate-600",   header: "text-slate-500 dark:text-slate-400",   dot: "bg-slate-400",    drop: "border-sky-400 bg-sky-50/40 dark:bg-sky-900/20" },
-  doing:            { border: "border-sky-300 dark:border-sky-700",       header: "text-sky-600 dark:text-sky-400",       dot: "bg-sky-500",      drop: "border-sky-400 bg-sky-50/40 dark:bg-sky-900/20" },
-  done:             { border: "border-emerald-300 dark:border-emerald-700",header: "text-emerald-600 dark:text-emerald-400",dot: "bg-emerald-500", drop: "border-emerald-400 bg-emerald-50/40 dark:bg-emerald-900/20" },
-  deferred:         { border: "border-fuchsia-300 dark:border-fuchsia-700",header: "text-fuchsia-600 dark:text-fuchsia-400",dot: "bg-fuchsia-500", drop: "border-fuchsia-400 bg-fuchsia-50/40 dark:bg-fuchsia-900/20" },
-  open:             { border: "border-rose-300 dark:border-rose-700",     header: "text-rose-600 dark:text-rose-400",     dot: "bg-rose-500",     drop: "border-rose-400 bg-rose-50/40 dark:bg-rose-900/20" },
-  in_progress:      { border: "border-sky-300 dark:border-sky-700",       header: "text-sky-600 dark:text-sky-400",       dot: "bg-sky-500",      drop: "border-sky-400 bg-sky-50/40 dark:bg-sky-900/20" },
-  ready_to_retest:  { border: "border-orange-300 dark:border-orange-700", header: "text-orange-600 dark:text-orange-400", dot: "bg-orange-500",   drop: "border-orange-400 bg-orange-50/40 dark:bg-orange-900/20" },
-  closed:           { border: "border-emerald-300 dark:border-emerald-700",header: "text-emerald-600 dark:text-emerald-400",dot: "bg-emerald-500", drop: "border-emerald-400 bg-emerald-50/40 dark:bg-emerald-900/20" },
-  rejected:         { border: "border-slate-300 dark:border-slate-600",   header: "text-slate-500 dark:text-slate-400",   dot: "bg-slate-400",    drop: "border-slate-400 bg-slate-50/40 dark:bg-slate-800/40" },
+  todo:             { border: "border-slate-300 dark:border-slate-600",    header: "text-slate-500 dark:text-slate-400",    dot: "bg-slate-400",     drop: "border-slate-400 bg-slate-50/40 dark:bg-slate-800/40" },
+  doing:            { border: "border-blue-400 dark:border-blue-600",      header: "text-blue-600 dark:text-blue-400",      dot: "bg-blue-600",      drop: "border-blue-400 bg-blue-50/40 dark:bg-blue-900/20" },
+  done:             { border: "border-emerald-400 dark:border-emerald-600", header: "text-emerald-600 dark:text-emerald-400", dot: "bg-emerald-600",   drop: "border-emerald-400 bg-emerald-50/40 dark:bg-emerald-900/20" },
+  deferred:         { border: "border-slate-400 dark:border-slate-600",    header: "text-slate-600 dark:text-slate-400",    dot: "bg-slate-500",     drop: "border-slate-400 bg-slate-50/40 dark:bg-slate-800/40" },
+  open:             { border: "border-red-400 dark:border-red-700",        header: "text-red-600 dark:text-red-400",        dot: "bg-red-500",       drop: "border-red-400 bg-red-50/40 dark:bg-red-900/20" },
+  in_progress:      { border: "border-blue-400 dark:border-blue-600",      header: "text-blue-600 dark:text-blue-400",      dot: "bg-blue-600",      drop: "border-blue-400 bg-blue-50/40 dark:bg-blue-900/20" },
+  ready_to_retest:  { border: "border-violet-400 dark:border-violet-600",  header: "text-violet-600 dark:text-violet-400",  dot: "bg-violet-600",    drop: "border-violet-400 bg-violet-50/40 dark:bg-violet-900/20" },
+  closed:           { border: "border-emerald-400 dark:border-emerald-600", header: "text-emerald-600 dark:text-emerald-400", dot: "bg-emerald-600",   drop: "border-emerald-400 bg-emerald-50/40 dark:bg-emerald-900/20" },
+  rejected:         { border: "border-slate-400 dark:border-slate-600",    header: "text-slate-600 dark:text-slate-400",    dot: "bg-slate-500",     drop: "border-slate-400 bg-slate-50/40 dark:bg-slate-800/40" },
 };
 
 function getAccent(value: string) {
@@ -71,7 +71,7 @@ export function KanbanBoard({
             <div
               key={status.value}
               className={cn(
-                "flex min-h-[24rem] flex-col rounded-md border-2 bg-white dark:bg-slate-800/60 p-4 shadow-sm transition-all duration-200",
+                "flex flex-col rounded-md border-2 bg-white dark:bg-slate-800/60 p-4 shadow-sm transition-all duration-200",
                 isDropTarget ? accent.drop + " shadow-lg scale-[1.01]" : accent.border,
               )}
               onDragOver={(e) => handleDragOver(e, status.value)}
@@ -96,8 +96,8 @@ export function KanbanBoard({
                 </span>
               </div>
 
-              {/* Cards */}
-              <div className="flex flex-1 flex-col gap-2.5">
+              {/* Cards — scrollable, max 10 cards visible */}
+              <div className="flex flex-col gap-2.5 overflow-y-auto max-h-[calc(5*7.5rem)] pr-0.5 flex-1">
                 {columnCards.map((card) => (
                   <div
                     key={String(card.id)}
@@ -105,7 +105,7 @@ export function KanbanBoard({
                     onDragStart={() => setDraggedId(Number(card.id))}
                     onDragEnd={() => setDraggedId(null)}
                     className={cn(
-                      "group cursor-grab rounded-md border bg-white dark:bg-slate-800 p-3.5 shadow-sm transition-all duration-150",
+                      "group cursor-grab rounded-md border bg-white dark:bg-slate-800 p-3.5 shadow-sm transition-all duration-150 shrink-0",
                       "hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing active:scale-95",
                       draggedId === Number(card.id)
                         ? "opacity-40 scale-95 rotate-1"
@@ -131,21 +131,21 @@ export function KanbanBoard({
                     )}
                   </div>
                 ))}
+              </div>
 
-                {/* Drop zone */}
-                <div className={cn(
-                  "flex min-h-[5rem] flex-1 items-center justify-center rounded-md border-2 border-dashed transition-all duration-200",
-                  isDropTarget
-                    ? "border-sky-400 bg-sky-50/60 dark:bg-sky-900/20"
-                    : "border-slate-200 dark:border-slate-700 bg-transparent",
+              {/* Drop zone — always visible at bottom */}
+              <div className={cn(
+                "mt-2.5 flex min-h-[4rem] shrink-0 items-center justify-center rounded-md border-2 border-dashed transition-all duration-200",
+                isDropTarget
+                  ? "border-sky-400 bg-sky-50/60 dark:bg-sky-900/20"
+                  : "border-slate-200 dark:border-slate-700 bg-transparent",
+              )}>
+                <p className={cn(
+                  "text-[10px] font-bold uppercase tracking-[0.18em] transition-colors",
+                  isDropTarget ? "text-sky-500" : "text-slate-300 dark:text-slate-600"
                 )}>
-                  <p className={cn(
-                    "text-[10px] font-bold uppercase tracking-[0.18em] transition-colors",
-                    isDropTarget ? "text-sky-500" : "text-slate-300 dark:text-slate-600"
-                  )}>
-                    {isDropTarget ? "Release to move" : columnCards.length === 0 ? "Empty" : "Drop here"}
-                  </p>
-                </div>
+                  {isDropTarget ? "Release to move" : columnCards.length === 0 ? "Empty" : "Drop here"}
+                </p>
               </div>
             </div>
           );

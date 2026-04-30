@@ -1,5 +1,16 @@
 const COOKIE_NAME = "qa_daily_session";
 
+export function normalizeRole(role: string | null | undefined) {
+  const value = String(role ?? "").trim();
+  if (!value) return "";
+  if (value === "Admin (Owner)") return "admin";
+  return value.toLowerCase();
+}
+
+export function isAdminUser(role: string | null | undefined, company: string | null | undefined) {
+  return normalizeRole(role) === "admin" && !String(company ?? "").trim();
+}
+
 function getAuthConfig() {
   const username = process.env.AUTH_USERNAME || "";
   const password = process.env.AUTH_PASSWORD || "";
@@ -155,7 +166,12 @@ export async function getCurrentUser() {
       company: string;
     }>('SELECT id, name, username, email, role, company FROM "User" WHERE "username" = ?', [username]);
 
-    if (user) return user;
+    if (user) {
+      return {
+        ...user,
+        role: normalizeRole(user.role),
+      };
+    }
     
     // Fallback for static admin user
     if (username === staticUsername) {

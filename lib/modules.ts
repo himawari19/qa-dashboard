@@ -11,7 +11,8 @@ export type ModuleKey =
   | "meeting-notes"
   | "assignees"
   | "sprints"
-  | "users";
+  | "users"
+  | "deployments";
 
 type Option = {
   label: string;
@@ -25,6 +26,7 @@ type Field =
       kind: "text" | "url" | "date";
       placeholder?: string;
       required?: boolean;
+      readonly?: boolean;
       span?: 1 | 2 | 3;
     }
   | {
@@ -99,6 +101,20 @@ const bugStatusOptions: Option[] = [
   ["Ready to Retest", "ready_to_retest"],
   ["Closed", "closed"],
   ["Rejected", "rejected"],
+].map(([label, value]) => ({ label, value }));
+
+const deploymentStatusOptions: Option[] = [
+  ["Success", "success"],
+  ["Failed", "failed"],
+  ["Rollback", "rollback"],
+  ["In Progress", "in_progress"],
+].map(([label, value]) => ({ label, value }));
+
+const deploymentEnvOptions: Option[] = [
+  ["Production", "production"],
+  ["Staging", "staging"],
+  ["Development", "development"],
+  ["UAT", "uat"],
 ].map(([label, value]) => ({ label, value }));
 
 const sprintStatusOptions: Option[] = [
@@ -648,6 +664,54 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "role", label: "Role", tone: "status" },
     ],
   },
+  deployments: {
+    title: "Deployment Log",
+    shortTitle: "Deployment",
+    description: "Track deployments, changelog, and release history.",
+    prefix: "DEP",
+    sheetName: "Deployments",
+    schema: z.object({
+      date: requiredText("Date"),
+      version: requiredText("Version"),
+      project: requiredText("Project"),
+      environment: requiredText("Environment"),
+      developer: requiredText("Developer"),
+      changelog: requiredText("Changelog"),
+      status: requiredText("Status"),
+      notes: optionalText,
+    }),
+    coerce: (entry) => normalizeEntry(entry),
+    toRow: (item) => ({
+      Date: String(item.date ?? ""),
+      Version: String(item.version ?? ""),
+      Project: String(item.project ?? ""),
+      Environment: String(item.environment ?? ""),
+      Developer: String(item.developer ?? ""),
+      Changelog: String(item.changelog ?? ""),
+      Status: String(item.status ?? ""),
+      Notes: String(item.notes ?? ""),
+    }),
+    fields: [
+      { name: "date", label: "Deployment Date", kind: "date", required: true },
+      { name: "version", label: "Version / Tag", kind: "text", placeholder: "e.g. v1.3.0", required: true },
+      { name: "project", label: "Project", kind: "select", options: [], required: true },
+      { name: "environment", label: "Environment", kind: "select", options: deploymentEnvOptions, required: true },
+      { name: "developer", label: "Developer Name", kind: "text", placeholder: "e.g. John Doe", required: true },
+      { name: "status", label: "Status", kind: "select", options: deploymentStatusOptions, required: true },
+      { name: "changelog", label: "Changelog", kind: "textarea", placeholder: "List changes, fixes, and new features...", required: true, span: 3 },
+      { name: "notes", label: "Notes", kind: "textarea", placeholder: "Additional notes or rollback instructions...", span: 3 },
+    ],
+    columns: [
+      { key: "date", label: "Date" },
+      { key: "version", label: "Version" },
+      { key: "project", label: "Project" },
+      { key: "environment", label: "Environment", tone: "severity" },
+      { key: "developer", label: "Developer" },
+      { key: "status", label: "Status", tone: "status" },
+      { key: "changelog", label: "Changelog", multiline: true },
+      { key: "notes", label: "Notes", multiline: true },
+    ],
+  },
   sprints: {
     title: "Sprint Management",
     shortTitle: "Sprints",
@@ -666,6 +730,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "name", label: "Sprint Name", kind: "text", placeholder: "e.g. Sprint 24", required: true },
+      { name: "project", label: "Project Name", kind: "text", placeholder: "Auto-filled from Test Plan", readonly: true },
+      { name: "testPlanTitle", label: "Test Plan Name", kind: "text", placeholder: "Linked from Test Plan", readonly: true },
       { name: "startDate", label: "Start Date", kind: "date", required: true },
       { name: "endDate", label: "End Date", kind: "date", required: true },
       { name: "status", label: "Status", kind: "select", options: sprintStatusOptions, required: true },
@@ -673,10 +739,11 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "name", label: "Sprint Name" },
+      { key: "project", label: "Project Name" },
+      { key: "testPlanTitle", label: "Test Plan Name" },
       { key: "startDate", label: "Start Date" },
       { key: "endDate", label: "End Date" },
       { key: "status", label: "Status", tone: "status" },
-      { key: "goal", label: "Sprint Goal", multiline: true },
     ],
   },
 };
@@ -692,6 +759,7 @@ export const moduleOrder: ModuleKey[] = [
   "assignees",
   "sprints",
   "users",
+  "deployments",
 ];
 
 export const moduleLabels = Object.fromEntries(

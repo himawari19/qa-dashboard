@@ -37,15 +37,18 @@ function emptyDashboardData() {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json(emptyDashboardData(), { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const project = searchParams.get("project") || "";
 
   try {
     const timeoutMs = 2500;
     let timedOut = false;
     const data = await Promise.race([
-      getDashboardData(),
+      getDashboardData(project),
       new Promise<any>((resolve) => {
         setTimeout(() => {
           timedOut = true;

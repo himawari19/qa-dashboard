@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { GlobalSearch } from "./global-search";
-import { List, Sun, Moon } from "@phosphor-icons/react";
+import { NotificationPanel } from "./sidebar";
+import { Bell, List, Sun, Moon } from "@phosphor-icons/react";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,9 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
   const [dark, setDark] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
+  const notifRef = useRef<HTMLDivElement | null>(null);
   
   const pathname = usePathname();
   const router = useRouter();
@@ -40,6 +44,13 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle("dark", dark);
     window.localStorage.setItem("qa-theme", dark ? "dark" : "light");
   }, [dark, mounted]);
+
+  useEffect(() => {
+    fetch("/api/notifications")
+      .then((r) => r.json())
+      .then((d) => setNotifCount((d.notifications || []).length))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
@@ -70,7 +81,6 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
   };
 
   const sidebarWidth = !mounted ? "240px" : (collapsed ? "72px" : "240px");
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
     <div className={cn(
@@ -116,7 +126,22 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                   >
                     {dark ? <Sun size={18} weight="bold" /> : <Moon size={18} weight="bold" />}
                   </button>
-                  <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-1" />
+                  <div ref={notifRef} className="relative">
+                    {notifOpen && <NotificationPanel anchorRef={notifRef} onClose={() => setNotifOpen(false)} />}
+                    <button
+                      type="button"
+                      onClick={() => setNotifOpen((v) => !v)}
+                      title="Notifications"
+                      className="relative flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 shadow-sm transition-all hover:scale-105 active:scale-95"
+                    >
+                      <Bell size={18} weight="bold" />
+                      {notifCount > 0 && (
+                        <span className="absolute -left-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-sm">
+                          {notifCount > 9 ? "9+" : notifCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                   <GlobalSearch />
                 </div>
               </header>
