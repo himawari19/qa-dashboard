@@ -169,7 +169,7 @@ describe("home page", () => {
     const loadedMarkup = await renderHome();
 
     expect(loadedMarkup).toContain("dashboard");
-    expect(mocks.dashboard).toHaveBeenCalledTimes(2);
+    expect(mocks.dashboard).toHaveBeenCalledTimes(1);
     expect((mocks.dashboard as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls.at(-1)![0]).toEqual(
       expect.objectContaining({
         metrics: [{ label: "Open Tasks", value: 3, caption: "" }],

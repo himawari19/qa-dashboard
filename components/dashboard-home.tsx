@@ -6,7 +6,7 @@ import { Dashboard } from "@/components/dashboard";
 import { DashboardSkeleton } from "@/components/skeleton";
 
 type Props = {
-  initialData: any;
+  initialData: any | null;
   initialProjects: string[];
 };
 
@@ -16,13 +16,11 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
   const [projects, setProjects] = useState<string[]>(initialProjects);
   const [selectedProject, setSelectedProject] = useState("");
   const [open, setOpen] = useState(false);
-  const firstLoad = useRef(true);
+  const hydrated = useRef(Boolean(initialData && initialProjects.length));
 
   useEffect(() => {
-    if (firstLoad.current) {
-      firstLoad.current = false;
-      return;
-    }
+    if (hydrated.current && initialData) return;
+    hydrated.current = true;
 
     let active = true;
     setData(null);
@@ -30,13 +28,18 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
 
     const load = async () => {
       try {
-        const url = selectedProject
-          ? `/api/dashboard?project=${encodeURIComponent(selectedProject)}`
-          : "/api/dashboard";
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error(`Failed to load dashboard (${res.status})`);
-        const json = await res.json();
-        if (active) setData(json);
+        const [projectsRes, dataRes] = await Promise.all([
+          fetch("/api/dashboard/projects", { cache: "no-store" }),
+          fetch(selectedProject ? `/api/dashboard?project=${encodeURIComponent(selectedProject)}` : "/api/dashboard", { cache: "no-store" }),
+        ]);
+
+        if (!projectsRes.ok) throw new Error(`Failed to load projects (${projectsRes.status})`);
+        if (!dataRes.ok) throw new Error(`Failed to load dashboard (${dataRes.status})`);
+
+        const [projectsJson, dataJson] = await Promise.all([projectsRes.json(), dataRes.json()]);
+        if (!active) return;
+        setProjects(projectsJson.projects || []);
+        setData(dataJson);
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Failed to load dashboard");
       }
@@ -44,7 +47,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
 
     load();
     return () => { active = false; };
-  }, [selectedProject]);
+  }, [selectedProject, initialData, initialProjects.length]);
 
   if (error) {
     return (

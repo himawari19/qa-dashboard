@@ -142,6 +142,7 @@ export function NotificationPanel({
             <Link
               key={n.id}
               href={n.href}
+              prefetch={false}
               onClick={onClose}
               className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 transition group"
             >
@@ -196,6 +197,7 @@ function SidebarNavItem({
     <Link
       ref={linkRef}
       href={item.href}
+      prefetch={false}
       onMouseEnter={(e) => showTooltip(e, item.label)}
       onMouseLeave={hideTooltip}
       className={cn(

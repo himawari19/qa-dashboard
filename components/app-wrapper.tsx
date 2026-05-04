@@ -50,6 +50,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
   }, [dark, mounted]);
 
   useEffect(() => {
+    if (isAuthScreen) return;
     fetch("/api/notifications")
       .then((r) => r.json())
       .then((d) => setNotifCount((d.notifications || []).length))
@@ -58,7 +59,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
       .then((r) => r.json())
       .then((d) => setUser(d.user || null))
       .catch(() => {});
-  }, []);
+  }, [isAuthScreen]);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -220,11 +221,11 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                         </div>
 
                         <div className="mt-4 space-y-1">
-                          <Link href="/settings/profile" onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
+                          <Link href="/settings/profile" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
                             <UserCircle size={16} weight="bold" />
                             Profile
                           </Link>
-                          <Link href="/settings/users" onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
+                          <Link href="/settings/users" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
                             <Gear size={16} weight="bold" />
                             Account settings
                           </Link>
