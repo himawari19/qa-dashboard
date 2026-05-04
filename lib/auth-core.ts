@@ -12,10 +12,8 @@ export function isAdminUser(role: string | null | undefined, company: string | n
 }
 
 function getAuthConfig() {
-  const username = process.env.AUTH_USERNAME || "";
-  const password = process.env.AUTH_PASSWORD || "";
   const secret = process.env.AUTH_SECRET || "";
-  return { username, password, secret };
+  return { secret };
 }
 
 function toBase64UrlBytes(input: string) {
@@ -62,23 +60,15 @@ async function sign(value: string, secret: string) {
 }
 
 export function authEnabled() {
-  const { username, password, secret } = getAuthConfig();
-  return Boolean(username && password && secret);
+  const { secret } = getAuthConfig();
+  return Boolean(secret);
 }
 
-export async function validateCredentials(username: string, password: string) {
-  const config = getAuthConfig();
-  
-  // Try static credentials first
-  if (config.username && config.password && username === config.username && password === config.password) {
-    return true;
-  }
-
-  // Then try database
+export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
     const hashedPassword = await hashPassword(password);
-    const user = await db.get('SELECT * FROM "User" WHERE "username" = ? AND "password" = ?', [username, hashedPassword]);
+    const user = await db.get('SELECT * FROM "User" WHERE "email" = ? AND "password" = ?', [email, hashedPassword]);
     return !!user;
   } catch (err) {
     console.error("Auth DB error:", err);
@@ -86,11 +76,11 @@ export async function validateCredentials(username: string, password: string) {
   }
 }
 
-export async function registerUser(username: string, password: string, name?: string, role: string = 'user', company: string = '') {
+export async function registerUser(email: string, password: string, name?: string, role: string = 'user', company: string = '') {
   try {
     const { db } = await import("./db");
     const hashedPassword = await hashPassword(password);
-    await db.run('INSERT INTO "User" ("username", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)', [username, hashedPassword, name || username, role, company]);
+    await db.run('INSERT INTO "User" ("email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)', [email, hashedPassword, name || email, role, company]);
     return { success: true };
   } catch (err: any) {
     if (err.message?.includes("UNIQUE constraint") || err.code === "23505") {
@@ -100,31 +90,27 @@ export async function registerUser(username: string, password: string, name?: st
   }
 }
 
-export async function createSessionToken(username: string) {
+export async function createSessionToken(email: string) {
   const { secret } = getAuthConfig();
   if (!secret) {
     throw new Error("AUTH_SECRET is required.");
   }
-  const payload = toBase64UrlBytes(JSON.stringify({ username, ts: Date.now() }));
+  const payload = toBase64UrlBytes(JSON.stringify({ email, ts: Date.now() }));
   const signature = await sign(payload, secret);
   return `${payload}.${signature}`;
 }
 
 export async function verifySessionToken(token: string | undefined | null) {
-  const { secret, username } = getAuthConfig();
-  if (!token || !secret || !username) return false;
+  const { secret } = getAuthConfig();
+  if (!token || !secret) return false;
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return false;
   if ((await sign(payload, secret)) !== signature) return false;
   try {
-    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { username?: string; ts?: number };
-    
-    // Check static username or DB
-    if (decoded.username === username) return true;
-    
+    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { email?: string; ts?: number };
     try {
       const { db } = await import("./db");
-      const user = await db.get('SELECT id FROM "User" WHERE "username" = ?', [decoded.username]);
+      const user = await db.get('SELECT id FROM "User" WHERE "email" = ?', [decoded.email]);
       if (!user) return false;
     } catch {
       return false;
@@ -143,7 +129,6 @@ export async function verifySessionToken(token: string | undefined | null) {
 }
 
 export async function getCurrentUser() {
-  const { username: staticUsername } = getAuthConfig();
   const { cookies } = await import("next/headers");
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -152,19 +137,18 @@ export async function getCurrentUser() {
   if (!payload) return null;
   
   try {
-    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { username?: string };
-    const username = decoded.username;
-    if (!username) return null;
+    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { email?: string };
+    const email = decoded.email;
+    if (!email) return null;
 
     const { db } = await import("./db");
     const user = await db.get<{
       id: number;
       name: string;
-      username: string;
       email: string;
       role: string;
       company: string;
-    }>('SELECT id, name, username, email, role, company FROM "User" WHERE "username" = ?', [username]);
+    }>('SELECT id, name, email, role, company FROM "User" WHERE "email" = ?', [email]);
 
     if (user) {
       return {
@@ -172,19 +156,6 @@ export async function getCurrentUser() {
         role: normalizeRole(user.role),
       };
     }
-    
-    // Fallback for static admin user
-    if (username === staticUsername) {
-      return {
-        id: 0,
-        name: "Administrator",
-        username: staticUsername,
-        email: "admin@qa-daily.local",
-        role: "admin",
-        company: ""
-      };
-    }
-    
     return null;
   } catch {
     return null;

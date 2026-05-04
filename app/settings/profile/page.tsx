@@ -51,7 +51,7 @@ export default async function ProfilePage() {
                    <div>
                       <h4 className="text-sm font-bold text-slate-800 dark:text-white">Security & Access</h4>
                       <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                         Your account is linked to the <strong>{user.username}</strong> identifier. 
+                         Your account is linked to the <strong>{user.email}</strong> address. 
                          Email updates are currently restricted to administrator-only actions to maintain audit log integrity.
                       </p>
                    </div>

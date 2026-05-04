@@ -6,6 +6,27 @@ const mocks = vi.hoisted(() => ({
   dashboard: vi.fn(() => <div data-testid="dashboard" />),
   skeleton: vi.fn(() => <div data-testid="dashboard-skeleton" />),
   fetch: vi.fn(),
+  getCurrentUser: vi.fn(async () => ({ id: 1, role: "lead", company: "acme", email: "lead@example.com" })),
+  getDashboardData: vi.fn(async () => ({
+    metrics: [{ label: "Open Tasks", value: 3, caption: "" }],
+    distribution: { tasks: [], bugs: [], bugByModule: [] },
+    personalSuccessRate: 80,
+    recent: { tasks: [], bugs: [], testCases: [] },
+    recentSessions: [],
+    spotlight: {
+      projectName: "QA Hub",
+      totalScenarios: 0,
+      totalBugs: 0,
+      completionRate: 0,
+      criticalBugs: [],
+      priorityTasks: [],
+    },
+    bugTrendData: [],
+    todayActivity: [],
+    heatmap: [],
+    activity: [],
+  })),
+  dbQuery: vi.fn(async () => [{ project: "Alpha" }, { project: "Beta" }]),
 }));
 
 const reactMocks = vi.hoisted(() => ({
@@ -35,6 +56,20 @@ vi.mock("@/components/skeleton", () => ({
   DashboardSkeleton: mocks.skeleton,
 }));
 
+vi.mock("@/lib/auth", () => ({
+  getCurrentUser: mocks.getCurrentUser,
+}));
+
+vi.mock("@/lib/data", () => ({
+  getDashboardData: mocks.getDashboardData,
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    query: mocks.dbQuery,
+  },
+}));
+
 import Home from "@/app/page";
 
 let stateValues: unknown[] = [];
@@ -48,9 +83,10 @@ function resetHooks() {
   effectRuns = 0;
 }
 
-function renderHome() {
+async function renderHome() {
   hookIndex = 0;
-  return renderToStaticMarkup(<Home />);
+  const element = await Home();
+  return renderToStaticMarkup(element);
 }
 
 beforeEach(() => {
@@ -124,19 +160,17 @@ afterEach(() => {
 
 describe("home page", () => {
   it("loads project options and dashboard data without live credentials", async () => {
-    const initialMarkup = renderHome();
+    const initialMarkup = await renderHome();
 
-    expect(initialMarkup).toContain("dashboard-skeleton");
-    expect(mocks.fetch).toHaveBeenNthCalledWith(1, "/api/dashboard/projects");
-    expect(mocks.fetch).toHaveBeenNthCalledWith(2, "/api/dashboard", { cache: "no-store" });
+    expect(initialMarkup).toContain("dashboard");
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const loadedMarkup = renderHome();
+    const loadedMarkup = await renderHome();
 
     expect(loadedMarkup).toContain("dashboard");
-    expect(mocks.dashboard).toHaveBeenCalledTimes(1);
-    expect((mocks.dashboard as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0]).toEqual(
+    expect(mocks.dashboard).toHaveBeenCalledTimes(2);
+    expect((mocks.dashboard as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls.at(-1)![0]).toEqual(
       expect.objectContaining({
         metrics: [{ label: "Open Tasks", value: 3, caption: "" }],
       }),

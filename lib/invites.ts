@@ -56,7 +56,7 @@ export async function createInvite(input: InviteInput) {
   const expiresAt = addDays(Math.max(1, Math.min(expiresInDays, 30)));
   await db.run(
     'INSERT INTO "Invite" ("token", "company", "role", "status", "createdBy", "expiresAt") VALUES (?, ?, ?, ?, ?, ?)',
-    [token, company, role, "pending", user.username, expiresAt],
+    [token, company, role, "pending", user.email || "", expiresAt],
   );
 
   return {
@@ -76,7 +76,7 @@ export async function revokeInvite(token: string) {
   return { ok: true } as const;
 }
 
-export async function acceptInvite(token: string, username: string) {
+export async function acceptInvite(token: string, email: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Unauthorized" } as const;
 
@@ -88,14 +88,14 @@ export async function acceptInvite(token: string, username: string) {
     return { error: "Invite expired." } as const;
   }
 
-  const existingUser = await db.get<{ id: number; username: string }>('SELECT id, username FROM "User" WHERE "username" = ?', [username]);
+  const existingUser = await db.get<{ id: number; email: string }>('SELECT id, email FROM "User" WHERE "email" = ?', [email]);
   if (!existingUser) {
     return { error: "User not found." } as const;
   }
 
   await db.run(
-    'UPDATE "User" SET "company" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "username" = ?',
-    [invite.company, invite.role, username],
+    'UPDATE "User" SET "company" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "email" = ?',
+    [invite.company, invite.role, email],
   );
   await db.run(
     'UPDATE "Invite" SET "status" = ?, "acceptedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "token" = ?',

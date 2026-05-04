@@ -39,7 +39,7 @@ describe("users page", () => {
       id: 1,
       role: "admin",
       company: "",
-      username: "admin@example.com",
+      email: "admin@example.com",
     });
     mocks.isAdminUser.mockReturnValueOnce(true);
     mocks.getModuleRows.mockResolvedValueOnce([{ id: 1, name: "Alice" }]);
@@ -63,11 +63,11 @@ describe("users page", () => {
       id: 2,
       role: "viewer",
       company: "acme",
-      username: "viewer@example.com",
+      email: "viewer@example.com",
     });
     mocks.isAdminUser.mockReturnValueOnce(false);
 
     await expect(UserManagementPage()).rejects.toThrow("REDIRECT");
-    expect(mocks.redirect).toHaveBeenCalledWith("/dashboard");
+    expect(mocks.redirect).toHaveBeenCalledWith("/");
   });
 });

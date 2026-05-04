@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 export default async function UserManagementPage() {
   const currentUser = await getCurrentUser();
   if (!currentUser || !isAdminUser(currentUser.role, currentUser.company)) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   const rows = await getModuleRows("users");

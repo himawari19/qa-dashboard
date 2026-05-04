@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   ClipboardText,
   PlayCircle,
-  SignOut,
   Gear,
   Rows,
   X,
@@ -373,15 +372,6 @@ export function Sidebar({
               label="Collapse Menu"
             />
 
-            <SidebarActionButton
-              collapsed={collapsed}
-              onClick={onLogout ?? (() => {})}
-              onMouseEnter={(e) => showTooltip(e, "Logout")}
-              onMouseLeave={hideTooltip}
-              tone="text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-600"
-              icon={<SignOut size={18} weight="bold" className="shrink-0" />}
-              label="Logout"
-            />
           </div>
         </div>
       </aside>

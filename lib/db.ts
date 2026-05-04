@@ -199,7 +199,6 @@ export const tables = [
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
       "name" TEXT,
-      "username" TEXT NOT NULL UNIQUE,
       "email" TEXT UNIQUE,
       "password" TEXT NOT NULL,
       "role" TEXT NOT NULL DEFAULT 'user',

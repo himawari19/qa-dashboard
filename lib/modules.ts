@@ -624,7 +624,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     sheetName: "Users",
     schema: z.object({
       name: requiredText("Full Name"),
-      username: requiredText("Email Address"),
+      email: requiredText("Email Address"),
       password: z.string().optional(),
       role: z.string().min(1, "Role is required"),
     }),
@@ -632,12 +632,12 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     toRow: (item) => ({
       ID: String(item.id),
       Name: String(item.name),
-      Email: String(item.username),
+      Email: String(item.email ?? ""),
       Role: String(item.role),
     }),
     fields: [
       { name: "name", label: "Full Name", kind: "text", placeholder: "e.g. John Doe", required: true },
-      { name: "username", label: "Email Address", kind: "text", placeholder: "e.g. user@example.com", required: true },
+      { name: "email", label: "Email Address", kind: "text", placeholder: "e.g. user@example.com", required: true },
       { name: "password", label: "Password", kind: "text", placeholder: "Leave blank to keep current password" },
       { name: "role", label: "Role", kind: "select", options: [
         { label: "Admin (Owner)", value: "admin" },
@@ -663,7 +663,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "name", label: "Full Name" },
-      { key: "username", label: "Email Address" },
+      { key: "email", label: "Email Address" },
       { key: "role", label: "Role", tone: "status" },
     ],
   },

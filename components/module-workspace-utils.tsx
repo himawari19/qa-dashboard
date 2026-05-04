@@ -90,7 +90,7 @@ export function getPreferredColumnOrder(module: ModuleKey) {
     return ["name", "role", "email", "status"];
   }
   if (module === "users") {
-    return ["name", "username", "role"];
+    return ["name", "email", "role"];
   }
   if (module === "deployments") {
     return ["date", "version", "project", "environment", "developer", "status", "changelog", "notes"];

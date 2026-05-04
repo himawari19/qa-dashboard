@@ -301,7 +301,7 @@ describe("module data access", () => {
   it("updates users with and without passwords", async () => {
     await updateModuleRecord("users", 2, {
       name: "Rina",
-      username: "rina@example.com",
+      email: "rina@example.com",
       role: "lead",
       password: "secret",
     });
@@ -314,7 +314,7 @@ describe("module data access", () => {
     mocks.db.run.mockResolvedValueOnce({ changes: 1 });
     await updateModuleRecord("users", 2, {
       name: "Rina",
-      username: "rina@example.com",
+      email: "rina@example.com",
       role: "editor",
     });
 
@@ -331,7 +331,7 @@ describe("module data access", () => {
 
   it("hard deletes non-archived tables and soft deletes notes/suites/cases", async () => {
     await deleteModuleRecord("users", 7);
-    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "User" WHERE id = ? AND "company" = ?');
+    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
     expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "User" && params?.[2] === "7" && params?.[3] === "Deleted")).toBe(true);
 
     vi.clearAllMocks();
@@ -441,7 +441,7 @@ describe("module data access", () => {
 
     await deleteModuleRecord("users", 9);
 
-    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "User" WHERE id = ? AND "company" = ?');
+    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
     expect(mocks.db.run.mock.calls[0][1]).toEqual([9, "acme"]);
   });
 
@@ -478,7 +478,7 @@ describe("module data access", () => {
     await createModuleRecord("users", {
       company: "beta",
       name: "Budi",
-      username: "budi@example.com",
+      email: "budi@example.com",
       password: "secret",
       role: "editor",
     });
@@ -560,7 +560,7 @@ describe("module row queries", () => {
 
     expect(data).toEqual({
       tasks: [{ id: 1, title: "Task 1", status: "todo", priority: "P1", type: "Task" }],
-      bugs: [{ id: 2, title: "Bug 1", status: "open", priority: "high", type: "Bug" }],
+      bugs: [],
       suites: [{ id: 3, title: "Suite 1", status: "active", priority: "N/A", type: "Suite" }],
     });
   });
@@ -764,7 +764,7 @@ describe("module row queries", () => {
     const rows = await getAllTestCasesWithSuite();
 
     expect(mocks.db.query).toHaveBeenCalledWith(
-      expect.stringContaining('LEFT JOIN "TestSuite" ts ON ts.id = tc."testSuiteId"'),
+      expect.stringContaining('LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER)'),
       ["acme"],
     );
     expect(rows[0]).toMatchObject({
@@ -778,17 +778,17 @@ describe("module row queries", () => {
 
   it("loads user rows with company scope", async () => {
     mocks.db.query.mockResolvedValueOnce([
-      { id: 1, name: "Rina", username: "rina@example.com", role: "lead", company: "acme", createdAt: "2026-04-30" },
+      { id: 1, name: "Rina", email: "rina@example.com", role: "lead", company: "acme", createdAt: "2026-04-30" },
     ]);
 
     const rows = await getModuleRows("users");
 
     expect(mocks.db.query).toHaveBeenCalledWith(
-      'SELECT id, name, username, role, company, createdAt FROM "User"  WHERE "company" = ? ORDER BY createdAt DESC',
+      'SELECT id, name, email, role, company, "createdAt" FROM "User"  WHERE "company" = ? ORDER BY "createdAt" DESC',
       ["acme"],
     );
     expect(rows).toEqual([
-      { id: 1, name: "Rina", username: "rina@example.com", role: "lead", company: "acme", createdAt: "2026-04-30" },
+      { id: 1, name: "Rina", email: "rina@example.com", role: "lead", company: "acme", createdAt: "2026-04-30" },
     ]);
   });
 
@@ -828,7 +828,7 @@ describe("module row queries", () => {
     const rows = await getModuleRows("test-suites");
 
     expect(mocks.db.query).toHaveBeenCalledWith(
-      expect.stringContaining('LEFT JOIN case_stats cs ON cs.suiteId = ts.id'),
+      expect.stringContaining('LEFT JOIN case_stats cs ON CAST(cs.suiteId AS INTEGER) = ts.id'),
       ["acme", "acme"],
     );
     expect(rows[0]).toMatchObject({

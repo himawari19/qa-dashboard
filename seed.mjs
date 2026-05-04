@@ -189,7 +189,6 @@ db.exec(`CREATE TABLE IF NOT EXISTS "User" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "name" TEXT,
-  "username" TEXT NOT NULL UNIQUE,
   "email" TEXT UNIQUE,
   "password" TEXT NOT NULL,
   "role" TEXT NOT NULL DEFAULT 'user',
@@ -417,10 +416,10 @@ console.log("✓ Activity Logs (20)");
 
 // ── USER ───────────────────────────────────────────────────────
 const pwHash = await hashPassword("@Anakjaman1");
-db.prepare(`INSERT INTO "User" ("company","name","username","email","password","role") VALUES (?,?,?,?,?,?)`).run(
-  C, "Wahyu Simbolon", "admin", "wsherwin.simbolon@magnusdigital.co.id", pwHash, "admin"
+db.prepare(`INSERT INTO "User" ("company","name","email","password","role") VALUES (?,?,?,?,?)`).run(
+  C, "Wahyu Simbolon", "wsherwin.simbolon@magnusdigital.co.id", pwHash, "admin"
 );
-console.log("✓ User: admin / @Anakjaman1");
+console.log("✓ User: wsherwin.simbolon@magnusdigital.co.id / @Anakjaman1");
 
 db.close();
 console.log("\n✅ Seed selesai! → prisma/dev.db");

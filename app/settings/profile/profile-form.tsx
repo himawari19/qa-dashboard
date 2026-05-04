@@ -8,7 +8,6 @@ import { toast } from "@/components/ui/toast";
 interface UserProfile {
   id: number;
   name: string;
-  username: string;
   email: string;
   role: string;
 }
@@ -102,7 +101,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
             <IdentificationCard size={12} weight="bold" /> Username
           </label>
           <div className="w-full h-11 px-4 rounded-lg bg-slate-100 dark:bg-white/2 border border-slate-200 dark:border-white/5 flex items-center text-sm font-bold text-slate-500 opacity-70 cursor-not-allowed">
-            {user.username}
+            {user.email}
           </div>
         </div>
 

@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
     if (module === "users") {
       return {
         rows: [
-          { id: 1, name: "Alice", username: "alice@example.com", role: "lead", company: "acme" },
+          { id: 1, name: "Alice", email: "alice@example.com", role: "lead", company: "acme" },
         ],
         total: 1,
       };
@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => ({
   getModuleRows: vi.fn(async (module: string) => {
     if (module === "users") {
       return [
-        { id: 1, name: "Alice", username: "alice@example.com", role: "lead", company: "acme" },
+        { id: 1, name: "Alice", email: "alice@example.com", role: "lead", company: "acme" },
       ];
     }
     if (module === "assignees") {
@@ -39,7 +39,7 @@ const mocks = vi.hoisted(() => ({
     }
     return [];
   }),
-  getCurrentUser: vi.fn(async () => ({ id: 1, role: "lead", company: "acme", username: "lead@example.com" })),
+  getCurrentUser: vi.fn(async () => ({ id: 1, role: "lead", company: "acme", email: "lead@example.com" })),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -102,7 +102,7 @@ describe("module route", () => {
     const props = moduleWorkspaceMock.mock.calls[0]![0];
     expect(props.module).toBe("users");
     expect(props.rows).toEqual([
-      { id: 1, name: "Alice", username: "alice@example.com", role: "lead", company: "acme" },
+      { id: 1, name: "Alice", email: "alice@example.com", role: "lead", company: "acme" },
     ]);
     expect(props.initialFormValues).toEqual({
       company: "acme",
@@ -112,7 +112,7 @@ describe("module route", () => {
       id: 1,
       role: "lead",
       company: "acme",
-      username: "lead@example.com",
+      email: "lead@example.com",
     });
   });
 

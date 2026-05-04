@@ -10,8 +10,8 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { token } = await params;
-  const body = await request.json().catch(() => null) as { username?: string } | null;
-  const result = await acceptInvite(token, body?.username?.trim() || user.username);
+  const body = await request.json().catch(() => null) as { email?: string } | null;
+  const result = await acceptInvite(token, body?.email?.trim() || user.email);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

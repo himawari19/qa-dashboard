@@ -171,11 +171,11 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                       className="flex h-10 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-2.5 text-left shadow-sm transition hover:scale-[1.02]"
                     >
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white dark:bg-white dark:text-slate-900">
-                        {String(user?.name || user?.username || "U").slice(0, 1).toUpperCase()}
+                        {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
                       </span>
                       <span className="hidden max-w-28 flex-col leading-tight md:flex">
                         <span className="truncate text-xs font-bold text-slate-800 dark:text-slate-100">
-                          {user?.name || user?.username || "Account"}
+                          {user?.name || user?.email || "Account"}
                         </span>
                         <span className="truncate text-xs text-slate-500 dark:text-slate-400">
                           {user?.role || "viewer"}{user?.company ? ` · ${user.company}` : ""}
@@ -188,11 +188,11 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                       <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-slate-950">
                         <div className="flex items-start gap-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white dark:bg-white dark:text-slate-900">
-                            {String(user?.name || user?.username || "U").slice(0, 1).toUpperCase()}
+                            {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-black text-slate-900 dark:text-white">{user?.name || user?.username || "Account"}</p>
-                            <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.email || user?.username || "-"}</p>
+                            <p className="truncate text-sm font-black text-slate-900 dark:text-white">{user?.name || user?.email || "Account"}</p>
+                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.email || "-"}</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-slate-600 dark:bg-white/5 dark:text-slate-300">
                                 {user?.role || "viewer"}
@@ -206,8 +206,8 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
                         <div className="mt-4 grid gap-2 rounded-2xl bg-slate-50 p-3 text-xs dark:bg-white/5">
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Username</span>
-                            <span className="font-bold text-slate-800 dark:text-slate-100">{user?.username || "-"}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Email</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-100">{user?.email || "-"}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-slate-500 dark:text-slate-400">Role</span>

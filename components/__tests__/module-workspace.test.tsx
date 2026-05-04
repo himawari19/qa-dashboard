@@ -104,7 +104,7 @@ function renderWorkspace(module: ModuleKey, userRole: string) {
         {
           id: 1,
           name: "Alice",
-          username: "alice@example.com",
+          email: "alice@example.com",
           role: "lead",
         },
       ]}

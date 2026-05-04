@@ -104,7 +104,7 @@ export default function GanttPage() {
       .then((response) => response.ok ? response.json() : null)
       .then((profile) => {
         if (cancelled || !profile) return;
-        const scopeParts = [profile.username, profile.company, profile.id].filter(Boolean);
+const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
         setStorageScopeKey(scopeParts.join(":") || "global");
       })
       .catch(() => {

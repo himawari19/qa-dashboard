@@ -25,8 +25,6 @@ import {
 
 beforeEach(() => {
   vi.unstubAllEnvs();
-  vi.stubEnv("AUTH_USERNAME", "");
-  vi.stubEnv("AUTH_PASSWORD", "");
   vi.stubEnv("AUTH_SECRET", "");
   vi.clearAllMocks();
   mocks.db.get.mockResolvedValue(undefined);
@@ -43,8 +41,6 @@ describe("auth-core", () => {
 
   it("detects auth config availability", () => {
     expect(authEnabled()).toBe(false);
-    vi.stubEnv("AUTH_USERNAME", "admin");
-    vi.stubEnv("AUTH_PASSWORD", "secret");
     vi.stubEnv("AUTH_SECRET", "topsecret");
     expect(authEnabled()).toBe(true);
   });
@@ -55,8 +51,8 @@ describe("auth-core", () => {
   });
 
   it("creates and verifies session tokens", async () => {
-    vi.stubEnv("AUTH_USERNAME", "admin");
     vi.stubEnv("AUTH_SECRET", "topsecret");
+    mocks.db.get.mockResolvedValueOnce({ id: 1 });
 
     const token = await createSessionToken("admin");
 
@@ -65,14 +61,13 @@ describe("auth-core", () => {
   });
 
   it("verifies database-backed sessions and rejects expired ones", async () => {
-    vi.stubEnv("AUTH_USERNAME", "admin-static");
     vi.stubEnv("AUTH_SECRET", "topsecret");
     mocks.db.get.mockResolvedValueOnce({ id: 1 });
 
     const token = await createSessionToken("user@example.com");
 
     expect(await verifySessionToken(token)).toBe(true);
-    expect(mocks.db.get).toHaveBeenCalledWith('SELECT id FROM "User" WHERE "username" = ?', ["user@example.com"]);
+    expect(mocks.db.get).toHaveBeenCalledWith('SELECT id FROM "User" WHERE "email" = ?', ["user@example.com"]);
 
     vi.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 60 * 1000 + 1);
     expect(await verifySessionToken(token)).toBe(false);
@@ -80,17 +75,10 @@ describe("auth-core", () => {
   });
 
   it("validates static and database credentials", async () => {
-    vi.stubEnv("AUTH_USERNAME", "admin");
-    vi.stubEnv("AUTH_PASSWORD", "secret");
     vi.stubEnv("AUTH_SECRET", "topsecret");
-
-    expect(await validateCredentials("admin", "secret")).toBe(true);
-
-    vi.stubEnv("AUTH_USERNAME", "");
-    vi.stubEnv("AUTH_PASSWORD", "");
     mocks.db.get.mockResolvedValueOnce({ id: 1 });
     expect(await validateCredentials("user@example.com", "secret")).toBe(true);
-    expect(mocks.db.get).toHaveBeenCalledWith('SELECT * FROM "User" WHERE "username" = ? AND "password" = ?', [
+    expect(mocks.db.get).toHaveBeenCalledWith('SELECT * FROM "User" WHERE "email" = ? AND "password" = ?', [
       "user@example.com",
       expect.any(String),
     ]);
@@ -99,7 +87,7 @@ describe("auth-core", () => {
   it("registers users and maps unique errors", async () => {
     await expect(registerUser("user@example.com", "secret", "User", "editor", "acme")).resolves.toEqual({ success: true });
     expect(mocks.db.run).toHaveBeenCalledWith(
-      'INSERT INTO "User" ("username", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO "User" ("email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)',
       ["user@example.com", expect.any(String), "User", "editor", "acme"],
     );
 

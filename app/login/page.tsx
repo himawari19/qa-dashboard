@@ -15,7 +15,7 @@ function LoginContent() {
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [formData, setFormData] = useState({
     name: "",
-    username: "",
+    email: "",
     password: "",
     role: "",
     company: ""
@@ -49,13 +49,13 @@ function LoginContent() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          username: formData.username,
-          password: formData.password,
-          role: formData.role,
-          company: formData.company
-        }),
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        company: formData.company
+      }),
       });
       const data = await res.json();
       
@@ -67,12 +67,12 @@ function LoginContent() {
       if (mode === "signup") {
         setShowSuccessModal(true);
         setMode("signin");
-        setFormData({ name: "", username: "", password: "", role: "", company: "" });
+        setFormData({ name: "", email: "", password: "", role: "", company: "" });
         return;
       }
 
       toast("Welcome back!", "success");
-      setFormData({ name: "", username: "", password: "", role: "", company: "" });
+      setFormData({ name: "", email: "", password: "", role: "", company: "" });
       router.replace(nextUrl);
       router.refresh();
     } catch (err) {
@@ -137,8 +137,8 @@ function LoginContent() {
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
               <input
                 type="text"
-                name="username"
-                value={formData.username}
+                      name="email"
+                      value={formData.email}
                 onChange={handleInputChange}
                 placeholder="name@company.com"
                 className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"

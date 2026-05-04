@@ -14,20 +14,20 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { name, username, role, password } = body;
+    const { name, email, role, password } = body;
 
   try {
     if (password) {
       const { hashPassword } = await import("@/lib/auth-core");
       const hashedPassword = await hashPassword(password);
       await db.run(
-        'UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name, username, role, hashedPassword, id]
+        'UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+        [name, email, role, hashedPassword, id]
       );
     } else {
       await db.run(
-        'UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name, username, role, id]
+        'UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+        [name, email, role, id]
       );
     }
     return NextResponse.json({ ok: true });
@@ -47,8 +47,6 @@ export async function DELETE(
 
   const { id } = await params;
   
-  // Prevent deleting self? id 0 is static admin, but DB users have real IDs.
-  // We should check if they are deleting their own DB account.
   if (parseInt(id) === user.id) {
     return NextResponse.json({ error: "Cannot delete your own account." }, { status: 400 });
   }

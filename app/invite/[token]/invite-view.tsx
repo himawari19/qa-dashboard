@@ -13,7 +13,7 @@ type Invite = {
 };
 
 type CurrentUser = {
-  username?: string;
+  email?: string;
   company?: string;
   role?: string;
 } | null;
@@ -21,7 +21,7 @@ type CurrentUser = {
 export function InviteView({ invite, currentUser, token }: { invite: Invite; currentUser: CurrentUser; token: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [username, setUsername] = useState(currentUser?.username || "");
+  const [email, setEmail] = useState(currentUser?.email || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -44,7 +44,7 @@ export function InviteView({ invite, currentUser, token }: { invite: Invite; cur
       let res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ email, password }),
       });
 
       if (!res.ok) {
@@ -52,8 +52,8 @@ export function InviteView({ invite, currentUser, token }: { invite: Invite; cur
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: name || username,
-            username,
+            name: name || email,
+            email,
             password,
             company: invite.company,
             role: invite.role,
@@ -66,7 +66,7 @@ export function InviteView({ invite, currentUser, token }: { invite: Invite; cur
         const loginRes = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
         });
         if (!loginRes.ok) {
           throw new Error("Login failed after registration");
@@ -76,7 +76,7 @@ export function InviteView({ invite, currentUser, token }: { invite: Invite; cur
       const acceptRes = await fetch(`/api/invites/${encodeURIComponent(token)}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ email }),
       });
       if (!acceptRes.ok) {
         const data = await acceptRes.json().catch(() => null);
@@ -93,7 +93,7 @@ export function InviteView({ invite, currentUser, token }: { invite: Invite; cur
   };
 
   const handleAccept = async () => {
-    if (!currentUser?.username) return;
+  if (!currentUser?.email) return;
     setLoading(true);
     setMessage("");
     try {
@@ -131,10 +131,10 @@ export function InviteView({ invite, currentUser, token }: { invite: Invite; cur
           <p>Expires: <span className="font-bold">{new Date(invite.expiresAt).toLocaleString()}</span></p>
         </div>
 
-        {currentUser?.username ? (
+        {currentUser?.email ? (
           <div className="mt-6">
             <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-              Signed in as <span className="font-bold">{currentUser.username}</span>. Click join to move this account into the company.
+              Signed in as <span className="font-bold">{currentUser.email}</span>. Click join to move this account into the company.
             </p>
             <button
               onClick={handleAccept}
@@ -149,7 +149,7 @@ export function InviteView({ invite, currentUser, token }: { invite: Invite; cur
           <form onSubmit={handleJoin} className="mt-6 grid gap-3">
             <div className="grid gap-3 md:grid-cols-2">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white" />
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white" />
+              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white" />
             </div>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white" />
             <button

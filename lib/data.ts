@@ -620,7 +620,7 @@ export async function getModuleRows(module: ModuleKey) {
         code: codeFromId("MEET", Number(item.id)),
       }));
     case "users":
-      return await selectAll(`SELECT id, name, username, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC`, qParams);
+      return await selectAll(`SELECT id, name, email, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC`, qParams);
     case "sprints": {
       const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
       const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
@@ -739,7 +739,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     }
     case "users": {
       const total = await countRows("User", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT id, name, username, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC${limitClause}`, qParams);
+      const rows = await selectAll(`SELECT id, name, email, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC${limitClause}`, qParams);
       return { rows, total };
     }
     case "sprints": {
@@ -860,11 +860,11 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       const { hashPassword } = await import("@/lib/auth-core");
       const hashedPassword = await hashPassword(data.password || "password123");
       const res = await runInsert(
-        `INSERT INTO "User" ("company", "name", "username", "password", "role")
+        `INSERT INTO "User" ("company", "name", "email", "password", "role")
          VALUES (?, ?, ?, ?, ?)`,
-        [company, data.name || data.username, data.username, hashedPassword, data.role || "user"]
+        [company, data.name || data.email, data.email, hashedPassword, data.role || "user"]
       );
-      await logActivity(company, "User", String(data.username), "Created", `Access granted for ${data.username}`);
+      await logActivity(company, "User", String(data.email), "Created", `Access granted for ${data.email}`);
       invalidateDashboardCache(company);
       return res;
     }
@@ -991,18 +991,18 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       if (data.password) {
         const hashedPassword = await hashPassword(data.password);
         const res = await db.run(
-          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-          [data.name, data.username, data.role, hashedPassword, id, ...companyParam]
+          `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+          [data.name, data.email, data.role, hashedPassword, id, ...companyParam]
         );
-        await logActivity(company, "User", String(data.username), "Updated", `Security settings for ${data.username} updated`);
+        await logActivity(company, "User", String(data.email), "Updated", `Security settings for ${data.email} updated`);
         invalidateDashboardCache(company);
         return res;
       } else {
         const res = await db.run(
-          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-          [data.name, data.username, data.role, id, ...companyParam]
+          `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+          [data.name, data.email, data.role, id, ...companyParam]
         );
-        await logActivity(company, "User", String(data.username), "Updated", `User info for ${data.username} updated`);
+        await logActivity(company, "User", String(data.email), "Updated", `User info for ${data.email} updated`);
         invalidateDashboardCache(company);
         return res;
       }

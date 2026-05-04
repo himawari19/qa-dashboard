@@ -33,7 +33,6 @@ describe("profile page", () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 1,
       name: "Rina",
-      username: "rina@example.com",
       email: "rina@example.com",
       role: "lead",
     });
