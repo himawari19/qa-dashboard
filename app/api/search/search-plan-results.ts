@@ -4,7 +4,7 @@ export async function getPlanResults(query: string, companyClause: string, compa
   const exactId = extractExactId(query, "PLAN");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, title, project, sprint, scope, status, startDate, endDate, notes, assignee, publicToken, updatedAt
+      `SELECT id, title, project, sprint, scope, status, startDate, endDate, notes, assignee, "publicToken", updatedAt
        FROM "TestPlan"
        WHERE "deletedAt" IS NULL AND id = ?${companyClause}
        ORDER BY "updatedAt" DESC
