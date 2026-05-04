@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
+const burnoutCache = new Map<string, { expiresAt: number; data: unknown }>();
+
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const company = user.company || "";
+  const cacheKey = `${company}|${user.role || "user"}`;
+  const cached = burnoutCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return NextResponse.json(cached.data);
+  }
   try {
     // 1. Get all active items with their assignees, severities, projects, and due dates
     const bugs = await db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
@@ -74,6 +82,7 @@ export async function GET() {
       };
     }).sort((a, b) => b.points - a.points);
 
+    burnoutCache.set(cacheKey, { data: result, expiresAt: Date.now() + 30000 });
     return NextResponse.json(result);
   } catch (err) {
     console.error(err);

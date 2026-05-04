@@ -10,12 +10,14 @@ export function ModernDatePicker({
   name,
   value,
   onChange,
-  required
+  required,
+  disabled
 }: {
   name: string;
   value?: string;
   onChange?: (date: string) => void;
   required?: boolean;
+  disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -27,6 +29,7 @@ export function ModernDatePicker({
 
   useEffect(() => {
     setMounted(true);
+    if (disabled) setIsOpen(false);
     
     // Sync with value or set to now only on client side
     if (value) {
@@ -44,7 +47,7 @@ export function ModernDatePicker({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [value]);
+  }, [disabled, value]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -92,8 +95,10 @@ export function ModernDatePicker({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
+          disabled={disabled}
           className={cn(
             "flex h-full flex-grow items-center px-4 text-sm outline-none",
+            disabled && "cursor-not-allowed",
             !selectedDate ? "text-slate-400" : "text-slate-800"
           )}
         >
@@ -109,8 +114,10 @@ export function ModernDatePicker({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              if (disabled) return;
               handleSelect(new Date());
             }}
+            disabled={disabled}
             className="flex h-8 items-center rounded bg-blue-100 px-2 text-[10px] font-black uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
           >
             Today
@@ -118,6 +125,7 @@ export function ModernDatePicker({
           <button 
             type="button"
             onClick={() => setIsOpen(!isOpen)}
+            disabled={disabled}
             className="flex h-8 w-8 items-center justify-center text-slate-500 hover:text-blue-600"
           >
             <CalendarBlank size={18} />
@@ -125,7 +133,7 @@ export function ModernDatePicker({
         </div>
       </div>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute left-0 top-14 z-50 w-72 rounded-md border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
           <div className="flex items-center justify-between mb-4">
             <button

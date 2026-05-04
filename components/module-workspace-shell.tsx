@@ -22,6 +22,7 @@ type WorkspaceConfig = {
 type Props = {
   module: string;
   config: WorkspaceConfig;
+  topContent?: ReactNode;
   showForm: boolean;
   viewMode: "table" | "kanban";
   hasKanban: boolean;
@@ -62,12 +63,14 @@ type Props = {
   onSubmit: (formData: FormData) => void;
   onCancelForm: () => void;
   checkDuplicates: (title: string) => void;
+  checkSprintDuplicate: (sprint: string) => void;
   setOpenSelectField: Dispatch<SetStateAction<string | null>>;
   setSelectValues: Dispatch<SetStateAction<Record<string, string>>>;
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   setDateWarnings: Dispatch<SetStateAction<Record<string, "past" | "future">>>;
   setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
   setStatusDropdownId: Dispatch<SetStateAction<string | number | null>>;
+  versionSequenceLabel?: string;
   onAdd: () => void;
   onEditRow: (row: any) => void;
   onViewRow: (row: any) => void;
@@ -88,6 +91,7 @@ type Props = {
 export function ModuleWorkspaceShell({
   module,
   config,
+  topContent,
   showForm,
   viewMode,
   hasKanban,
@@ -128,12 +132,14 @@ export function ModuleWorkspaceShell({
   onSubmit,
   onCancelForm,
   checkDuplicates,
+  checkSprintDuplicate,
   setOpenSelectField,
   setSelectValues,
   setAttachments,
   setDateWarnings,
   setSprintDuplicate,
   setStatusDropdownId,
+  versionSequenceLabel,
   onAdd,
   onEditRow,
   onViewRow,
@@ -159,6 +165,7 @@ export function ModuleWorkspaceShell({
           shortTitle={config.shortTitle}
           description={config.description}
           canAdd={canAdd}
+          topContent={topContent}
           showForm={showForm}
           viewMode={viewMode}
           hasKanban={hasKanban}
@@ -170,6 +177,7 @@ export function ModuleWorkspaceShell({
         />
         {showForm ? (
           <ModuleWorkspaceForm
+            key={`${module}-${editingRow?.id ?? "new"}`}
             module={module as any}
             shortTitle={config.shortTitle}
             fields={config.fields}
@@ -197,7 +205,9 @@ export function ModuleWorkspaceShell({
             onSubmit={onSubmit}
             onCancel={onCancelForm}
             checkDuplicates={checkDuplicates}
+            checkSprintDuplicate={checkSprintDuplicate}
             setSprintDuplicate={setSprintDuplicate}
+            versionSequenceLabel={versionSequenceLabel}
           />
         ) : null}
 

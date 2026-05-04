@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useTransition, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition, useRef, useMemo, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ModuleKey, moduleConfigs } from "@/lib/modules";
 import { toast } from "@/components/ui/toast";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { type Attachment } from "@/components/attachment-uploader";
-import { PAGE_SIZE, getFieldIcons, getModuleWorkspaceCrumbs, getModuleWorkspacePermissions, getPreferredColumnOrder } from "@/components/module-workspace-utils";
+import { getFieldIcons, getModuleWorkspaceCrumbs, getModuleWorkspacePermissions, getPreferredColumnOrder } from "@/components/module-workspace-utils";
 import { useModuleWorkspaceActions } from "@/components/use-module-workspace-actions";
 import { ModuleWorkspaceShell } from "@/components/module-workspace-shell";
+import { PAGE_SIZE } from "@/lib/pagination";
 
 
 type Row = Record<string, string | number> & { id: string | number };
@@ -16,21 +17,32 @@ type Row = Record<string, string | number> & { id: string | number };
 export function ModuleWorkspace({
   module,
   rows,
+  currentPage,
+  totalPages,
+  totalItems,
   relatedOptions = {},
   initialFormValues = {},
   hiddenFields = [],
   user = null,
+  topContent = null,
 }: {
   module: ModuleKey;
-  rows: Row[];
+  rows: Row[]; 
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
   relatedOptions?: Record<string, Array<{ label: string; value: string }>>;
   initialFormValues?: Record<string, string>;
   hiddenFields?: string[];
   user?: any;
+  topContent?: ReactNode;
 }) {
   const config = moduleConfigs[module];
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [localRows, setLocalRows] = useState(rows);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [editingRow, setEditingRow] = useState<Row | null>(null);
@@ -49,7 +61,6 @@ export function ModuleWorkspace({
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [page, setPage] = useState(1);
   // Undo delete
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
@@ -57,6 +68,10 @@ export function ModuleWorkspace({
     () => getModuleWorkspacePermissions(String(user?.role || "user")),
     [user?.role],
   );
+
+  useEffect(() => {
+    setLocalRows(rows);
+  }, [rows]);
 
   // Reset page when search/filter changes
   const statusField = config.fields.find((f) => f.name === "status");
@@ -70,11 +85,8 @@ export function ModuleWorkspace({
 
   const fieldIcons = useMemo(() => getFieldIcons(), []);
 
-  const filteredRows = useMemo(() => rows, [rows]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const visibleRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const safePage = Math.min(currentPage, totalPages);
+  const visibleRows = localRows;
   const preferredColumnOrder = useMemo(() => getPreferredColumnOrder(module), [module]);
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
@@ -84,12 +96,23 @@ export function ModuleWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [module]
   );
+  const versionSequenceField = config.fields.find((field) => field.helperKind === "version-sequence");
+  const versionSequenceLabel =
+    versionSequenceField && versionSequenceField.name
+      ? String(editingRow?.[versionSequenceField.name] ?? localRows[0]?.[versionSequenceField.name] ?? "").trim()
+      : "";
   const crumbs = useMemo(() => getModuleWorkspaceCrumbs(module, config.title), [config.title, module]);
+
+  function goToPage(nextPage: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(nextPage));
+    router.push(`${pathname}?${params.toString()}`);
+  }
 
   const actionArgs = {
     module,
     configFields: config.fields,
-    rows,
+    rows: localRows,
     initialFormValues,
     router,
     toast,
@@ -104,6 +127,7 @@ export function ModuleWorkspace({
     openSelectField,
     setSelectValues,
     setRefreshing,
+    setRows: setLocalRows,
     setShowForm,
     setEditingRow,
     setViewingRow,
@@ -129,6 +153,7 @@ export function ModuleWorkspace({
     onUpdateStatus,
     performSingleDelete,
     checkDuplicates,
+    checkSprintDuplicate,
   } = useModuleWorkspaceActions(actionArgs);
 
   return (
@@ -139,6 +164,7 @@ export function ModuleWorkspace({
       <ModuleWorkspaceShell
         module={module}
         config={config as any}
+        topContent={topContent}
         showForm={showForm}
         viewMode={viewMode}
         hasKanban={hasKanban}
@@ -164,7 +190,7 @@ export function ModuleWorkspace({
         visibleColumns={visibleColumns}
         safePage={safePage}
         totalPages={totalPages}
-        totalItems={filteredRows.length}
+        totalItems={totalItems}
         statusOptions={statusOptions}
         statusDropdownId={statusDropdownId}
         pendingDeleteId={pendingDeleteId}
@@ -186,11 +212,13 @@ export function ModuleWorkspace({
         onSubmit={handleFormSubmit}
         onCancelForm={closeFormEditor}
         checkDuplicates={checkDuplicates}
+        checkSprintDuplicate={checkSprintDuplicate}
         setOpenSelectField={setOpenSelectField}
         setSelectValues={setSelectValues}
         setAttachments={setAttachments as any}
         setDateWarnings={setDateWarnings}
         setSprintDuplicate={setSprintDuplicate}
+        versionSequenceLabel={versionSequenceLabel}
         setStatusDropdownId={setStatusDropdownId}
         onAdd={() => openFormEditor()}
         onEditRow={(row) => openFormEditor(row as Row)}
@@ -200,8 +228,8 @@ export function ModuleWorkspace({
           setReopenId(Number(row.id as string | number));
           setReopenReason("");
         }}
-        onPrevPage={() => setPage((p) => Math.max(1, p - 1))}
-        onNextPage={() => setPage((p) => Math.min(totalPages, p + 1))}
+        onPrevPage={() => goToPage(Math.max(1, safePage - 1))}
+        onNextPage={() => goToPage(Math.min(totalPages, safePage + 1))}
         onUpdateStatus={onUpdateStatus}
         onDeleteConfirm={performSingleDelete}
         onDeleteCancel={() => setDeleteId(null)}

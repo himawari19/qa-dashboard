@@ -6,6 +6,25 @@ const mocks = vi.hoisted(() => ({
     throw new Error("NEXT_NOT_FOUND");
   }),
   moduleWorkspace: vi.fn(() => <div data-testid="module-workspace" />),
+  getModuleRowsPage: vi.fn(async (module: string) => {
+    if (module === "users") {
+      return {
+        rows: [
+          { id: 1, name: "Alice", username: "alice@example.com", role: "lead", company: "acme" },
+        ],
+        total: 1,
+      };
+    }
+    return { rows: [], total: 0 };
+  }),
+  getAssigneeOptions: vi.fn(async () => [
+    { value: "Rina", label: "Rina" },
+    { value: "Budi", label: "Budi" },
+  ]),
+  getProjectOptions: vi.fn(async () => []),
+  getTestPlanReferenceRows: vi.fn(async () => [
+    { id: "1", title: "Plan A", project: "Acme", publicToken: "tok", sprint: "Sprint 1" },
+  ]),
   getModuleRows: vi.fn(async (module: string) => {
     if (module === "users") {
       return [
@@ -33,6 +52,10 @@ vi.mock("@/components/module-workspace", () => ({
 
 vi.mock("@/lib/data", () => ({
   getModuleRows: mocks.getModuleRows,
+  getModuleRowsPage: mocks.getModuleRowsPage,
+  getAssigneeOptions: mocks.getAssigneeOptions,
+  getProjectOptions: mocks.getProjectOptions,
+  getTestPlanReferenceRows: mocks.getTestPlanReferenceRows,
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -61,17 +84,20 @@ describe("module route", () => {
 
     renderToStaticMarkup(element);
 
-    expect(mocks.getModuleRows).toHaveBeenCalledWith("users");
-    expect(mocks.getModuleRows).toHaveBeenCalledWith("assignees");
+    expect(mocks.getModuleRowsPage).toHaveBeenCalledWith("users", 1, 10);
+    expect(mocks.getAssigneeOptions).toHaveBeenCalled();
     expect(mocks.moduleWorkspace).toHaveBeenCalled();
 
     const moduleWorkspaceMock = mocks.moduleWorkspace as unknown as {
       mock: { calls: Array<[{
-        module: string;
-        rows: Array<Record<string, unknown>>;
-        initialFormValues: Record<string, string>;
-        user: Record<string, unknown>;
-      }]> };
+      module: string;
+      rows: Array<Record<string, unknown>>;
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      initialFormValues: Record<string, string>;
+      user: Record<string, unknown>;
+    }]> };
     };
     const props = moduleWorkspaceMock.mock.calls[0]![0];
     expect(props.module).toBe("users");

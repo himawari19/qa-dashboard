@@ -1,6 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
-export async function getTaskResults(query: string, companyClause: string, companyParams: unknown[]) {
+import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+export async function getTaskResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "TASK");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
@@ -38,6 +38,7 @@ export async function getTaskResults(query: string, companyClause: string, compa
     }
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
+  const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"assignee"', dateColumn: '"dueDate"' });
   const rows = await queryRows<Row>(
     `SELECT id, title, project, relatedFeature, category, status, priority, description, updatedAt
      FROM "Task"
@@ -54,11 +55,11 @@ export async function getTaskResults(query: string, companyClause: string, compa
          "assignee",
          "CAST(id AS TEXT)",
        ],
-       companyClause,
+       companyClause + filter.clause,
      )}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(10).fill(like).concat(companyParams),
+    Array(10).fill(like).concat(companyParams, filter.params),
   );
 
   return rows

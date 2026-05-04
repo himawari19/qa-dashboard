@@ -1,6 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
-export async function getSprintResults(query: string, companyClause: string, companyParams: unknown[]) {
+import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+export async function getSprintResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "SPR");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
@@ -34,6 +34,7 @@ export async function getSprintResults(query: string, companyClause: string, com
     }
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
+  const filter = buildFilterClause(filters, { statusColumn: '"status"', dateColumn: '"startDate"' });
   const rows = await queryRows<Row>(
     `SELECT id, name, startDate, endDate, status, goal, updatedAt
      FROM "Sprint"
@@ -45,10 +46,10 @@ export async function getSprintResults(query: string, companyClause: string, com
        OR LOWER(COALESCE(goal, '')) LIKE ?
        OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
      )
-     ${companyClause}
+     ${companyClause + filter.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(6).fill(like).concat(companyParams),
+    Array(6).fill(like).concat(filter.params, companyParams),
   );
 
   return rows

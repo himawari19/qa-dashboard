@@ -15,12 +15,25 @@ type Props = {
 };
 
 export function ModuleWorkspaceFormDate({ field, editingRow, dateWarnings, setDateWarnings }: Props) {
+  const value = editingRow ? String(editingRow[field.name] || "") : "";
+  const isLocked = Boolean(field.readonly);
+
+  if (isLocked) {
+    return (
+      <div className="flex min-h-12 w-full items-center rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed select-none">
+        {value || "—"}
+        <input type="hidden" name={field.name} value={value} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
       <ModernDatePicker
         name={field.name}
-        value={editingRow ? String(editingRow[field.name] || "") : ""}
+        value={value}
         required={field.required}
+        disabled={isLocked}
         onChange={(val) => {
           if (!val) {
             setDateWarnings((p) => {

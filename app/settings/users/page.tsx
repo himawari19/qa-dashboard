@@ -1,4 +1,4 @@
-import { PageShell } from "@/components/page-shell";
+import { InviteManager } from "@/components/invite-manager";
 import { ModuleWorkspace } from "@/components/module-workspace";
 import { getModuleRows } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
@@ -15,10 +15,14 @@ export default async function UserManagementPage() {
   const serializedRows = JSON.parse(JSON.stringify(rows));
 
   return (
-    <ModuleWorkspace 
-      module="users" 
-      rows={serializedRows} 
+    <ModuleWorkspace
+      module="users"
+      rows={serializedRows}
+      currentPage={1}
+      totalPages={1}
+      totalItems={serializedRows.length}
       user={JSON.parse(JSON.stringify(currentUser))}
+      topContent={<InviteManager embedded />}
     />
   );
 }

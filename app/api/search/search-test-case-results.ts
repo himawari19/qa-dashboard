@@ -1,6 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
-export async function getTestCaseResults(query: string, companyClause: string, companyParams: unknown[]) {
+import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+export async function getTestCaseResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "TC");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
@@ -48,6 +48,7 @@ export async function getTestCaseResults(query: string, companyClause: string, c
     }
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
+  const filter = buildFilterClause(filters, { statusColumn: 'tc."status"', assigneeColumn: 'ts."assignee"', dateColumn: 'tc."updatedAt"' });
   const rows = await queryRows<Row>(
     `SELECT tc.id, tc.tcId, tc.caseName, tc.typeCase, tc.status, tc.priority,
             tc.preCondition, tc.testStep, tc.expectedResult, tc.actualResult, tc.evidence,
@@ -71,10 +72,10 @@ export async function getTestCaseResults(query: string, companyClause: string, c
          OR LOWER(COALESCE(tp.title, '')) LIKE ?
          OR LOWER(COALESCE(CAST(tc.id AS TEXT), '')) LIKE ?
        )
-       ${companyClause.replace(/"company"/g, 'tc."company"')}
+       ${companyClause.replace(/"company"/g, 'tc."company"') + filter.clause.replace(/"status"/g, 'tc."status"').replace(/"assignee"/g, 'ts."assignee"').replace(/"updatedAt"/g, 'tc."updatedAt"')}
      ORDER BY tc."updatedAt" DESC
      LIMIT 8`,
-    Array(12).fill(like).concat(companyParams),
+    Array(12).fill(like).concat(filter.params, companyParams),
   );
 
   return rows

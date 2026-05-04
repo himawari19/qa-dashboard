@@ -22,6 +22,8 @@ import {
   ArrowSquareOut,
   MagnifyingGlass,
   FunnelSimple,
+  Share,
+  Check,
 } from "@phosphor-icons/react";
 
 type TestCase = {
@@ -58,6 +60,7 @@ type Plan = {
   endDate: string;
   notes: string;
   scope: string;
+  publicToken?: string;
 };
 
 const STATUS_PILL: Record<string, string> = {
@@ -101,6 +104,16 @@ export function TestPlanDetail({
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState(ALL);
   const [activeTab, setActiveTab] = useState<"all" | "attention" | "empty">("all");
+  const [copied, setCopied] = useState(false);
+
+  const copyReportLink = () => {
+    if (!plan.publicToken) return;
+    const url = `${window.location.origin}/report/${plan.publicToken}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const toggleSuite = (id: string) =>
     setOpenSuites((p) => ({ ...p, [id]: !p[id] }));
@@ -182,6 +195,15 @@ export function TestPlanDetail({
                     <ArrowLeft size={15} weight="bold" />
                   </Link>
                   <Badge value={plan.status} />
+                  {plan.publicToken && (
+                    <button
+                      onClick={copyReportLink}
+                      className="flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-800/40 px-3 h-8 text-xs font-bold text-violet-600 dark:text-violet-400 hover:bg-violet-100 transition"
+                    >
+                      {copied ? <Check size={13} weight="bold" /> : <Share size={13} weight="bold" />}
+                      {copied ? "Copied!" : "Share Report"}
+                    </button>
+                  )}
                 </div>
                 <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white leading-tight mb-4">
                   {plan.title || "Untitled Plan"}

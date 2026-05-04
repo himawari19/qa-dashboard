@@ -28,9 +28,25 @@ export function ModuleWorkspaceFormSelect({
   setOpenSelectField,
   setSelectValues,
 }: Props) {
+  const selectedValue = selectValues[field.name] ?? String(editingRow?.[field.name] ?? "");
+  const isLocked = Boolean(field.readonly);
+
+  if (isLocked) {
+    return (
+      <div className="flex min-h-12 w-full items-center rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed select-none">
+        {(() => {
+          const options = relatedOptions[field.name] ?? field.options ?? [];
+          const current = options.find((opt) => opt.value === selectedValue);
+          return current?.label || String(editingRow?.[field.name] ?? "—") || "—";
+        })()}
+        <input type="hidden" name={field.name} value={selectedValue} readOnly />
+      </div>
+    );
+  }
+
   return (
     <div className="relative" data-custom-select>
-      <input type="hidden" name={field.name} value={selectValues[field.name] ?? ""} readOnly />
+      <input type="hidden" name={field.name} value={selectedValue} readOnly />
       <button
         type="button"
         onClick={() => setOpenSelectField(openSelectField === field.name ? null : field.name)}
@@ -38,11 +54,11 @@ export function ModuleWorkspaceFormSelect({
           "flex min-h-12 w-full items-center justify-between gap-3 rounded-md border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-left text-sm text-slate-800 dark:text-slate-200 outline-none transition focus:bg-white dark:focus:bg-slate-700 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)]",
           fieldError ? "border-rose-400 focus:border-rose-400" : "border-slate-200 dark:border-slate-600 focus:border-blue-300",
         )}
-      >
+        >
         <span className="whitespace-normal break-words">
           {(() => {
             const options = relatedOptions[field.name] ?? field.options ?? [];
-            const current = options.find((opt) => opt.value === String(selectValues[field.name] ?? ""));
+            const current = options.find((opt) => opt.value === selectedValue);
             return current?.label || `Select ${field.label}`;
           })()}
         </span>
@@ -60,7 +76,7 @@ export function ModuleWorkspaceFormSelect({
               }}
               className={cn(
                 "block w-full px-4 py-2 text-left text-sm hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700",
-                selectValues[field.name] === option.value && "bg-slate-100 dark:bg-slate-700",
+                selectedValue === option.value && "bg-slate-100 dark:bg-slate-700",
               )}
             >
               {option.label}

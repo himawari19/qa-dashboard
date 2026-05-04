@@ -21,39 +21,66 @@ export async function GET() {
   const andCompany = isAdmin ? "" : ` AND "company" = ?`;
   const cp = isAdmin ? [] : [company];
 
-  const bottlenecks: { id: string; code: string; title: string; module: string; status: string; days: number; href: string }[] = [];
+  const staleStatuses = Object.keys(THRESHOLDS);
+  const placeholders = staleStatuses.map(() => "?").join(", ");
+  const thresholdCase = `CASE LOWER(COALESCE(status, ''))
+    ${staleStatuses.map((status) => `WHEN '${status}' THEN ${THRESHOLDS[status]}`).join(" ")}
+    ELSE 0 END`;
 
-  // Bugs
-  for (const [status, threshold] of Object.entries(THRESHOLDS)) {
-    const rows = await db.query(
-      `SELECT id, title, status FROM "Bug" WHERE status = ? AND DATE(updatedAt) <= DATE('now', '-${threshold} days')${andCompany} LIMIT 5`,
-      [status, ...cp]
-    ) as any[];
-    for (const r of rows) {
-      const days = await db.get(
-        `SELECT CAST(julianday('now') - julianday(updatedAt) AS INTEGER) as d FROM "Bug" WHERE id = ?`,
-        [r.id]
-      ) as any;
-      bottlenecks.push({ id: `bug-${r.id}`, code: codeFromId("BUG", Number(r.id)), title: r.title, module: "Bug", status: r.status, days: Number(days?.d ?? threshold), href: "/bugs" });
-    }
-  }
+  const bugRows = await db.query<{
+    id: number | string;
+    title: string;
+    status: string;
+    days: number | string;
+  }>(
+    `SELECT id, title, status,
+      CAST(julianday('now') - julianday(updatedAt) AS INTEGER) as days
+     FROM "Bug"
+     WHERE LOWER(COALESCE(status, '')) IN (${placeholders})${andCompany}
+       AND CAST(julianday('now') - julianday(updatedAt) AS INTEGER) >= ${thresholdCase}
+     ORDER BY days DESC, updatedAt ASC
+     LIMIT 15`,
+    [...staleStatuses, ...cp],
+  );
 
-  // Tasks
-  for (const [status, threshold] of Object.entries(THRESHOLDS)) {
-    const rows = await db.query(
-      `SELECT id, title, status FROM "Task" WHERE status = ? AND DATE(updatedAt) <= DATE('now', '-${threshold} days')${andCompany} LIMIT 5`,
-      [status, ...cp]
-    ) as any[];
-    for (const r of rows) {
-      const days = await db.get(
-        `SELECT CAST(julianday('now') - julianday(updatedAt) AS INTEGER) as d FROM "Task" WHERE id = ?`,
-        [r.id]
-      ) as any;
-      bottlenecks.push({ id: `task-${r.id}`, code: codeFromId("TASK", Number(r.id)), title: r.title, module: "Task", status: r.status, days: Number(days?.d ?? threshold), href: "/tasks" });
-    }
-  }
+  const taskRows = await db.query<{
+    id: number | string;
+    title: string;
+    status: string;
+    days: number | string;
+  }>(
+    `SELECT id, title, status,
+      CAST(julianday('now') - julianday(updatedAt) AS INTEGER) as days
+     FROM "Task"
+     WHERE LOWER(COALESCE(status, '')) IN (${placeholders})${andCompany}
+       AND CAST(julianday('now') - julianday(updatedAt) AS INTEGER) >= ${thresholdCase}
+     ORDER BY days DESC, updatedAt ASC
+     LIMIT 15`,
+    [...staleStatuses, ...cp],
+  );
 
-  bottlenecks.sort((a, b) => b.days - a.days);
+  const mapped = [
+    ...bugRows.map((r) => ({
+      id: `bug-${r.id}`,
+      code: codeFromId("BUG", Number(r.id)),
+      title: r.title,
+      module: "Bug",
+      status: r.status,
+      days: Number(r.days ?? 0),
+      href: "/bugs",
+    })),
+    ...taskRows.map((r) => ({
+      id: `task-${r.id}`,
+      code: codeFromId("TASK", Number(r.id)),
+      title: r.title,
+      module: "Task",
+      status: r.status,
+      days: Number(r.days ?? 0),
+      href: "/tasks",
+    })),
+  ];
 
-  return NextResponse.json({ bottlenecks: bottlenecks.slice(0, 15) });
+  mapped.sort((a, b) => b.days - a.days);
+
+  return NextResponse.json({ bottlenecks: mapped.slice(0, 15) });
 }

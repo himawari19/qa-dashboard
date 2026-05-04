@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySessionToken } from "@/lib/auth-core";
 
-const publicPaths = ["/login", "/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/auth/me", "/favicon.ico", "/_next", "/api/upload"];
+const publicPaths = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/logout",
+  "/api/auth/me",
+  "/favicon.ico",
+  "/_next",
+  "/api/upload",
+  "/invite/",
+  "/report/",
+  "/test-plans/",
+  "/test-suites/",
+  "/test-cases/detail/",
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

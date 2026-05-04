@@ -1,5 +1,4 @@
-import { getTestSuiteByToken, getTestCasesByIdStrings } from "@/lib/data";
-import { db } from "@/lib/db";
+import { getTestSuiteByToken, getTestCasesByIdStrings, getTestPlanById } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { SuiteExecutionView } from "./execution-view";
 
@@ -24,12 +23,9 @@ export default async function SuiteExecutePage({ params }: { params: Promise<{ i
   let project = "";
   let sprint = "";
   if (suiteRaw.testPlanId) {
-    const plan = (await db.get(
-      'SELECT "project", "sprint" FROM "TestPlan" WHERE "id" = ? AND "deletedAt" IS NULL',
-      [suiteRaw.testPlanId],
-    )) as { project?: string; sprint?: string } | undefined;
-    project = plan?.project ?? "";
-    sprint = plan?.sprint ?? "";
+    const plan = await getTestPlanById(suiteRaw.testPlanId) as Record<string, unknown> | null;
+    project = String(plan?.project ?? "");
+    sprint = String(plan?.sprint ?? "");
   }
 
   const suite = { ...JSON.parse(JSON.stringify(suiteRaw)), project, sprint };

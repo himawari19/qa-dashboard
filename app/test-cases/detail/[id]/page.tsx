@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTestCasesByScenario, getTestSuiteByToken, getTestPlanByToken } from "@/lib/data";
+import { getTestCasesByScenario, getTestSuiteByToken, getTestPlanById } from "@/lib/data";
 import { TestCaseDetailPage } from "@/components/test-case-detail-page";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export default async function TestCaseDetailPageRoute({ params }: { params: Prom
   const suiteToken = String((suite as Record<string, unknown>).publicToken ?? token);
   const planId = String((suite as Record<string, unknown>).testPlanId ?? "");
   
-  const plan = planId ? await getTestPlanByToken(planId) : null;
+  const plan = planId ? await getTestPlanById(planId) : null;
   const testCases = suiteId ? await getTestCasesByScenario(suiteId) : [];
 
   const rows = JSON.parse(JSON.stringify(testCases)).map((row: Record<string, string | number>) => ({ ...row, id: Number(row.id) }));

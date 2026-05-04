@@ -55,7 +55,7 @@ export async function POST(
   const moduleKey = assertModule(rawModule);
 
   if (!moduleKey) {
-    return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
+    return NextResponse.json({ error: "Unknown module." }, { status: 404 });
   }
 
   const user = await getCurrentUser();
@@ -107,7 +107,7 @@ export async function DELETE(
   const ids = request.nextUrl.searchParams.get("ids");
 
   if (!moduleKey) {
-    return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
+    return NextResponse.json({ error: "Unknown module." }, { status: 404 });
   }
 
   const user = await getCurrentUser();
@@ -130,7 +130,7 @@ export async function DELETE(
     }
 
     if (!id) {
-      return NextResponse.json({ error: "ID tidak valid." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid ID." }, { status: 400 });
     }
 
     await deleteModuleRecord(moduleKey, id as string);
@@ -160,7 +160,7 @@ export async function PATCH(
   const moduleKey = assertModule(rawModule);
   
   if (!moduleKey) {
-    return NextResponse.json({ error: "Module tidak dikenal." }, { status: 404 });
+    return NextResponse.json({ error: "Unknown module." }, { status: 404 });
   }
 
   const user = await getCurrentUser();
@@ -187,7 +187,7 @@ export async function PATCH(
     }
 
     if (!id) {
-      return NextResponse.json({ error: "ID tidak valid." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid ID." }, { status: 400 });
     }
 
     if (entry && typeof entry === "object") {
@@ -217,7 +217,7 @@ export async function PATCH(
     }
 
     if (!status) {
-      return NextResponse.json({ error: "Status tidak valid." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
     }
 
     const { updateModuleStatus } = await import("@/lib/data");

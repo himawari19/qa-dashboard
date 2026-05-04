@@ -36,11 +36,13 @@ import {
   getModuleRows,
   deleteModuleRecord,
   getTestPlanByToken,
+  getTestPlanById,
   getTestSuitesByPlanId,
   getTestSuite,
   getTestCasesByIdStrings,
   getTestSuiteByToken,
   getTestCasesByScenario,
+  getTestCasesByScenarioIds,
   getAllTestCasesWithSuite,
   getProjectData,
   getDashboardData,
@@ -143,14 +145,21 @@ describe("module data access", () => {
         assignee: "Rina",
       })
       .mockResolvedValueOnce({
-        id: 20,
+        id: 10,
+        title: "Plan A",
+        project: "QA Hub",
+        publicToken: "plan-token",
+        assignee: "Rina",
+      })
+      .mockResolvedValueOnce({
+        id: "20",
         title: "Suite A",
         testPlanId: "10",
         publicToken: "suite-token",
         status: "active",
       })
       .mockResolvedValueOnce({
-        id: "20",
+        id: 20,
         title: "Suite A",
         testPlanId: "10",
         publicToken: "suite-token",
@@ -165,6 +174,9 @@ describe("module data access", () => {
       ])
       .mockResolvedValueOnce([
         { id: 2, testSuiteId: "20", tcId: "TC-2", caseName: "Case 2", status: "Passed", priority: "High", publicToken: "case-token" },
+      ])
+      .mockResolvedValueOnce([
+        { id: 2, testSuiteId: "20", tcId: "TC-2", caseName: "Case 2", status: "Passed", priority: "High", publicToken: "case-token" },
       ]);
 
     expect(await getTestPlanByToken("plan-token")).toMatchObject({
@@ -173,8 +185,13 @@ describe("module data access", () => {
       publicToken: "plan-token",
       assignee: "Rina",
     });
+    expect(await getTestPlanById("10")).toMatchObject({
+      id: "10",
+      title: "Plan A",
+      publicToken: "plan-token",
+    });
     expect(await getTestSuiteByToken("suite-token")).toMatchObject({
-      id: 20,
+      id: "20",
       title: "Suite A",
       testPlanId: "10",
       publicToken: "suite-token",
@@ -191,6 +208,9 @@ describe("module data access", () => {
     expect(await getTestCasesByScenario("20")).toMatchObject([
       { id: 2, testSuiteId: "20", tcId: "TC-2" },
     ]);
+    expect(await getTestCasesByScenarioIds(["20"])).toMatchObject({
+      "20": [{ id: 2, testSuiteId: "20", tcId: "TC-2", code: "TC-002" }],
+    });
   });
 
   it("creates and updates tasks with activity logs", async () => {
@@ -677,6 +697,36 @@ describe("module row queries", () => {
     expect(dashboard.rolePersona).toBe("lead");
   });
 
+  it("keeps project filters off company-only dashboard tables", async () => {
+    mocks.db.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('FROM "ActivityLog"')) return [];
+      if (sql.includes('FROM "Sprint"')) return [];
+      if (sql.includes('FROM "Assignee"')) return [];
+      if (sql.includes('FROM "Task"')) return [];
+      if (sql.includes('FROM "Bug"')) return [];
+      if (sql.includes('FROM "TestCase"')) return [];
+      if (sql.includes('FROM "TestSession"')) return [];
+      if (sql.includes('SELECT project as name FROM "TestPlan" GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1')) return [{ name: "EcoShop Web" }];
+      return [];
+    });
+    mocks.db.get.mockImplementation(async (sql: string) => {
+      if (sql.includes('COUNT(*) as total FROM')) return { total: 0 };
+      if (sql.includes('SELECT * FROM "Sprint" WHERE status = \'active\'')) return null;
+      if (sql.includes('COUNT(*) as count FROM "Bug" WHERE status IN')) return { count: 0 };
+      if (sql.includes('COUNT(*) as count FROM "Task" WHERE status = \'completed\'')) return { count: 0 };
+      if (sql.includes('SELECT "title" FROM "TestPlan"')) return null;
+      if (sql.includes('SELECT "project" FROM "TestPlan"')) return null;
+      return null;
+    });
+
+    await getDashboardData("EcoShop Web");
+
+    const sqlCalls = mocks.db.query.mock.calls.map(([sql]) => String(sql));
+    expect(sqlCalls.some((sql) => sql.includes('FROM "ActivityLog"') && sql.includes('WHERE "company" = ?') && !sql.includes('"project" = ?'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM "Sprint"') && sql.includes('WHERE "company" = ?') && !sql.includes('"project" = ?'))).toBe(true);
+    expect(sqlCalls.some((sql) => sql.includes('FROM "ActivityLog"') && sql.includes('"project" = ?'))).toBe(false);
+  });
+
   it("loads project data with stats and nested relations", async () => {
     mocks.db.query
       .mockResolvedValueOnce([{ id: 1, title: "Plan A", project: "QA Hub", sprint: "Sprint 1", assignee: "Rina", status: "active", startDate: "2026-04-01", endDate: "2026-04-30", notes: "", scope: "Regression", publicToken: "plan-1" }])
@@ -778,8 +828,8 @@ describe("module row queries", () => {
     const rows = await getModuleRows("test-suites");
 
     expect(mocks.db.query).toHaveBeenCalledWith(
-      expect.stringContaining('FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL AND ts."company" = ? ORDER BY ts."updatedAt" DESC'),
-      ["acme"],
+      expect.stringContaining('LEFT JOIN case_stats cs ON cs.suiteId = ts.id'),
+      ["acme", "acme"],
     );
     expect(rows[0]).toMatchObject({
       id: "1",

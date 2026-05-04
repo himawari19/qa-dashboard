@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
     throw new Error("NEXT_NOT_FOUND");
   }),
   getTestSuiteByToken: vi.fn(),
-  getTestPlanByToken: vi.fn(),
+  getTestPlanById: vi.fn(),
   getTestCasesByScenario: vi.fn(),
   page: vi.fn(() => <div data-testid="test-case-detail-page" />),
 }));
@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/data", () => ({
   getTestSuiteByToken: mocks.getTestSuiteByToken,
-  getTestPlanByToken: mocks.getTestPlanByToken,
+  getTestPlanById: mocks.getTestPlanById,
   getTestCasesByScenario: mocks.getTestCasesByScenario,
 }));
 
@@ -39,7 +39,7 @@ describe("test case detail route", () => {
       publicToken: "suite-token",
       testPlanId: "plan-1",
     });
-    mocks.getTestPlanByToken.mockResolvedValueOnce({
+    mocks.getTestPlanById.mockResolvedValueOnce({
       id: 1,
       title: "Release Plan",
       publicToken: "plan-token",
@@ -55,7 +55,7 @@ describe("test case detail route", () => {
     renderToStaticMarkup(element);
 
     expect(mocks.getTestSuiteByToken).toHaveBeenCalledWith("suite-token");
-    expect(mocks.getTestPlanByToken).toHaveBeenCalledWith("plan-1");
+    expect(mocks.getTestPlanById).toHaveBeenCalledWith("plan-1");
     expect(mocks.getTestCasesByScenario).toHaveBeenCalledWith("9");
     expect(mocks.page).toHaveBeenCalled();
 

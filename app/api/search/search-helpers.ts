@@ -30,6 +30,13 @@ export type SearchResult = {
 
 export type Row = Record<string, unknown>;
 
+export type SearchFilters = {
+  status?: string;
+  assignee?: string;
+  from?: string;
+  to?: string;
+};
+
 export const SCOPE_ALIASES: Record<string, SearchScope> = {
   all: "all",
   tasks: "tasks",
@@ -192,4 +199,41 @@ export function extractExactId(query: string, prefix: string) {
   if (/^\d+$/.test(trimmed)) return Number(trimmed);
   const match = trimmed.match(new RegExp(`^${prefix}[-\\s]?(\\d+)$`, "i"));
   return match ? Number(match[1]) : null;
+}
+
+export function buildFilterClause(
+  filters: SearchFilters = {},
+  config: { statusColumn?: string; assigneeColumn?: string; dateColumn?: string } = {},
+) {
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+
+  const status = normalize(filters.status).toLowerCase();
+  if (status && config.statusColumn) {
+    clauses.push(`LOWER(COALESCE(${config.statusColumn}, '')) LIKE ?`);
+    params.push(`%${status}%`);
+  }
+
+  const assignee = normalize(filters.assignee).toLowerCase();
+  if (assignee && config.assigneeColumn) {
+    clauses.push(`LOWER(COALESCE(${config.assigneeColumn}, '')) LIKE ?`);
+    params.push(`%${assignee}%`);
+  }
+
+  const from = normalize(filters.from);
+  if (from && config.dateColumn) {
+    clauses.push(`date(${config.dateColumn}) >= date(?)`);
+    params.push(from);
+  }
+
+  const to = normalize(filters.to);
+  if (to && config.dateColumn) {
+    clauses.push(`date(${config.dateColumn}) <= date(?)`);
+    params.push(to);
+  }
+
+  return {
+    clause: clauses.length ? ` AND ${clauses.join(" AND ")}` : "",
+    params,
+  };
 }

@@ -235,28 +235,28 @@ export default function WeeklyReportPage() {
     if (report.summary.passRate !== null && report.summary.passRate < 80) {
       items.push({
         title: "Review execution failures",
-        detail: `Pass rate minggu ini ${report.summary.passRate}% masih di bawah target.`,
+        detail: `This week's pass rate is ${report.summary.passRate}%, which is below the target threshold.`,
         tone: "danger",
       });
     }
     if (report.summary.openBugs > 0) {
       items.push({
         title: "Triage open bugs",
-        detail: `${report.summary.openBugs} bug masih open dan perlu prioritas.`,
+        detail: `${report.summary.openBugs} bug${report.summary.openBugs === 1 ? "" : "s"} still open and need to be prioritized.`,
         tone: "warning",
       });
     }
     if (report.summary.openTasks > 0) {
       items.push({
         title: "Clear task backlog",
-        detail: `${report.summary.openTasks} task belum selesai.`,
+        detail: `${report.summary.openTasks} task${report.summary.openTasks === 1 ? "" : "s"} pending completion.`,
         tone: "info",
       });
     }
     if (!items.length) {
       items.push({
         title: "Weekly status is stable",
-        detail: "Tidak ada issue kritis yang perlu di-escalate minggu ini.",
+        detail: "No critical issues to escalate this week.",
         tone: "info",
       });
     }
@@ -292,8 +292,8 @@ export default function WeeklyReportPage() {
     return (
       <PageShell title="Weekly Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/" }, { label: "Reports" }, { label: "Weekly Report" }]}>
         <div className="glass-card p-8">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">Weekly report gagal dimuat.</p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{error ?? "Tidak ada data."}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">Failed to load weekly report.</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{error ?? "No data available."}</p>
         </div>
       </PageShell>
     );
@@ -308,8 +308,8 @@ export default function WeeklyReportPage() {
         : "bg-rose-600"
     : "bg-slate-400";
   const insightLine = summary.passRate === null
-    ? "Belum ada test session minggu ini."
-    : `Minggu ini ada ${summary.sessions} session dengan pass rate ${summary.passRate}%.`;
+    ? "No test sessions recorded this week."
+    : `${summary.sessions} session${summary.sessions === 1 ? "" : "s"} this week — pass rate ${summary.passRate}%.`;
 
   return (
     <PageShell
@@ -350,7 +350,7 @@ export default function WeeklyReportPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <Panel title="Execution Trend" subtitle="Passed / failed / blocked dari test session minggu ini.">
+        <Panel title="Execution Trend" subtitle="Passed / failed / blocked from this week's test sessions.">
           {sessionTrendData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280} minWidth={1} minHeight={1}>
               <BarChart data={sessionTrendData} margin={{ left: -12, right: 8, top: 8 }}>
@@ -370,7 +370,7 @@ export default function WeeklyReportPage() {
           )}
         </Panel>
 
-        <Panel title="Weekly Focus" subtitle="Prioritas yang perlu ditutup dulu minggu ini.">
+        <Panel title="Weekly Focus" subtitle="Priority items to close out this week.">
           <div className="space-y-3">
             {actionItems.map((item) => (
               <div
@@ -409,7 +409,7 @@ export default function WeeklyReportPage() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        <Panel title="Bug Severity" subtitle="Distribusi bug berdasarkan severity.">
+        <Panel title="Bug Severity" subtitle="Bug distribution by severity level.">
           {severityChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240} minWidth={1} minHeight={1}>
               <BarChart data={severityChartData} margin={{ left: -10, right: 4, top: 8 }}>
@@ -431,7 +431,7 @@ export default function WeeklyReportPage() {
           )}
         </Panel>
 
-        <Panel title="Bug by Project" subtitle="Project yang paling banyak memunculkan bug minggu ini.">
+        <Panel title="Bug by Project" subtitle="Projects with the most bugs this week.">
           {projectChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240} minWidth={1} minHeight={1}>
               <BarChart data={projectChartData} layout="vertical" margin={{ top: 8, right: 16, left: 10 }}>
@@ -451,7 +451,7 @@ export default function WeeklyReportPage() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[0.75fr_0.75fr_0.5fr]">
-        <Panel title="New Bugs" subtitle="Bug yang masuk minggu ini.">
+        <Panel title="New Bugs" subtitle="Bugs reported this week.">
           <div className="space-y-2">
             {(newBugs as WeeklyReportData["newBugs"]).slice(0, 5).map((bug) => (
               <div key={bug.id} className="rounded-2xl border border-slate-200/70 p-3 dark:border-white/10">
@@ -468,7 +468,7 @@ export default function WeeklyReportPage() {
           </div>
         </Panel>
 
-        <Panel title="New Tasks" subtitle="Task yang dibuat minggu ini.">
+        <Panel title="New Tasks" subtitle="Tasks created this week.">
           <div className="space-y-2">
             {(newTasks as WeeklyReportData["newTasks"]).slice(0, 5).map((task) => (
               <div key={task.id} className="rounded-2xl border border-slate-200/70 p-3 dark:border-white/10">
@@ -484,7 +484,7 @@ export default function WeeklyReportPage() {
           </div>
         </Panel>
 
-        <Panel title="Top Assignees" subtitle="Kontributor paling aktif minggu ini.">
+        <Panel title="Top Assignees" subtitle="Most active contributors this week.">
           <div className="space-y-2">
             {assigneeLoad.length > 0 ? assigneeLoad.map((person, idx) => (
               <div key={person.name} className="flex items-center justify-between rounded-2xl border border-slate-200/70 px-3 py-2 dark:border-white/10">
@@ -508,7 +508,7 @@ export default function WeeklyReportPage() {
       <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <Panel
           title="Active Sprints"
-          subtitle="Sprint yang masih berjalan."
+          subtitle="Currently active sprints."
           actions={<span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-600">{activeSprints.length} items</span>}
         >
           <div className="space-y-2">
@@ -530,7 +530,7 @@ export default function WeeklyReportPage() {
           </div>
         </Panel>
 
-        <Panel title={`Recent Activity (${recentActivity.length})`} subtitle="Aktivitas terakhir yang tercatat di sistem.">
+        <Panel title={`Recent Activity (${recentActivity.length})`} subtitle="Latest activity recorded in the system.">
           <div className="max-h-80 space-y-1.5 overflow-y-auto pr-1">
             {(recentActivity as WeeklyReportData["recentActivity"]).map((activity, idx) => (
               <div key={`${activity.createdAt}-${idx}`} className="flex items-start gap-2 rounded-2xl border border-slate-200/70 px-3 py-2 dark:border-white/10">

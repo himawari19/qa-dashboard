@@ -20,6 +20,7 @@ export type FormField =
       rows?: number;
       span?: 1 | 2 | 3;
       options?: FieldOption[];
+      helperKind?: "version-sequence";
     }
   | {
       name: string;
@@ -31,6 +32,7 @@ export type FormField =
       readonly?: boolean;
       span?: 1 | 2 | 3;
       options?: FieldOption[];
+      helperKind?: "version-sequence";
     };
 
 type Row = Record<string, unknown> & { id?: string | number };
@@ -53,7 +55,9 @@ type Props = {
   dateWarnings: Record<string, "past" | "future">;
   setDateWarnings: Dispatch<SetStateAction<Record<string, "past" | "future">>>;
   checkDuplicates: (title: string) => void;
+  checkSprintDuplicate: (sprint: string) => void;
   setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
+  versionSequenceLabel?: string;
 };
 
 export function ModuleWorkspaceFormField({
@@ -73,9 +77,12 @@ export function ModuleWorkspaceFormField({
   dateWarnings,
   setDateWarnings,
   checkDuplicates,
+  checkSprintDuplicate,
   setSprintDuplicate,
+  versionSequenceLabel,
 }: Props) {
   const Icon = fieldIcons[field.name] || <Note size={16} />;
+  const isLocked = Boolean(field.readonly);
 
   return (
     <>
@@ -84,7 +91,7 @@ export function ModuleWorkspaceFormField({
         {field.label}
         {field.required && <span className="text-rose-500">*</span>}
       </span>
-      {"readonly" in field && field.readonly ? (
+      {isLocked ? (
         <div className="flex min-h-12 w-full items-center rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed select-none">
           {editingRow ? String(editingRow[field.name] || "—") : "—"}
           <input type="hidden" name={field.name} value={editingRow ? String(editingRow[field.name] || "") : ""} />
@@ -112,7 +119,9 @@ export function ModuleWorkspaceFormField({
           sprintDuplicate={sprintDuplicate}
           lastSprint={lastSprint}
           checkDuplicates={checkDuplicates}
+          checkSprintDuplicate={checkSprintDuplicate}
           setSprintDuplicate={setSprintDuplicate}
+          versionSequenceLabel={versionSequenceLabel}
         />
       )}
     </>

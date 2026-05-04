@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { ModuleKey } from "@/lib/modules";
 import { type Attachment } from "@/components/attachment-uploader";
+import type { FormField } from "@/components/module-workspace-form-field";
 import { parseFieldError } from "@/components/module-workspace-utils";
 import {
   refreshWorkspace,
@@ -18,7 +19,7 @@ type Row = Record<string, string | number> & { id: string | number };
 
 type ActionArgs = {
   module: ModuleKey;
-  configFields: Array<{ name: string }>;
+  configFields: FormField[];
   rows: Row[];
   initialFormValues: Record<string, string>;
   router: { refresh: () => void };
@@ -34,6 +35,7 @@ type ActionArgs = {
   openSelectField: string | null;
   setSelectValues: Dispatch<SetStateAction<Record<string, string>>>;
   setRefreshing: Dispatch<SetStateAction<boolean>>;
+  setRows: Dispatch<SetStateAction<Row[]>>;
   setShowForm: Dispatch<SetStateAction<boolean>>;
   setEditingRow: Dispatch<SetStateAction<Row | null>>;
   setViewingRow: Dispatch<SetStateAction<Row | null>>;
@@ -82,11 +84,17 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     setStatusDropdownId,
     setOpenSelectField,
     setPendingDeleteId,
-    setDeleteId,
+  setDeleteId,
+  setRows,
   } = args;
 
+  const duplicateCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const duplicateAbortRef = useRef<AbortController | null>(null);
+  const sprintNamesRef = useRef<string[] | null>(null);
+  const sprintNamesPromiseRef = useRef<Promise<string[]> | null>(null);
+
   useEffect(() => {
-    if (!showForm || !initialFormValues) return;
+    if (!showForm || editingRow || !initialFormValues) return;
     const form = document.getElementById(`${module}-form`) as HTMLFormElement | null;
     if (!form) return;
     for (const [key, value] of Object.entries(initialFormValues)) {
@@ -96,7 +104,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
         setSelectValues((prev) => ({ ...prev, [key]: value }));
       }
     }
-  }, [showForm, initialFormValues, module, setSelectValues]);
+  }, [editingRow, initialFormValues, module, setSelectValues, showForm]);
 
   useEffect(() => {
     const handler = () => {
@@ -180,6 +188,23 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
 
   function openFormEditor(row: Row | null = null) {
     setEditingRow(row);
+    setFieldErrors({});
+    setDuplicates([]);
+    setSprintDuplicate(false);
+    setLastSprint(null);
+    setDateWarnings({});
+    setAttachments([]);
+    setOpenSelectField(null);
+    setFormDirty(false);
+    setSelectValues(
+      row
+        ? Object.fromEntries(
+            configFields
+              .filter((field) => field.kind === "select")
+              .map((field) => [field.name, String(row[field.name] ?? "")]),
+          )
+        : {},
+    );
     setShowForm(true);
     scrollToFormSection();
   }
@@ -188,33 +213,76 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     setShowForm(false);
   }
 
-  const checkDuplicates = async (title: string) => {
-    if (title.length < 5) {
+  const loadSprintNames = async () => {
+    if (sprintNamesRef.current) return sprintNamesRef.current;
+    if (!sprintNamesPromiseRef.current) {
+      sprintNamesPromiseRef.current = fetch("/api/items/sprints")
+        .then((r) => r.json())
+        .then((data) => {
+          const names = Array.isArray(data) ? data.map((s) => String(s.name || "").trim()).filter(Boolean) : [];
+          sprintNamesRef.current = names;
+          return names;
+        })
+        .catch(() => {
+          sprintNamesRef.current = [];
+          return [];
+        })
+        .finally(() => {
+          sprintNamesPromiseRef.current = null;
+        });
+    }
+    return sprintNamesPromiseRef.current;
+  };
+
+  const checkDuplicates = (title: string) => {
+    const query = title.trim();
+    if (duplicateCheckTimerRef.current) clearTimeout(duplicateCheckTimerRef.current);
+    duplicateAbortRef.current?.abort();
+    if (query.length < 5) {
       setDuplicates([]);
       return;
     }
-    try {
-      const res = await fetch(`/api/items/${module}/find-duplicates?title=${encodeURIComponent(title)}`);
-      const data = await res.json();
-      setDuplicates(data.duplicates || []);
-    } catch {
-      setDuplicates([]);
+    duplicateCheckTimerRef.current = setTimeout(() => {
+      const controller = new AbortController();
+      duplicateAbortRef.current = controller;
+      fetch(`/api/items/${module}/find-duplicates?title=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!controller.signal.aborted) setDuplicates(data.duplicates || []);
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setDuplicates([]);
+        });
+    }, 220);
+  };
+
+  const checkSprintDuplicate = (sprint: string) => {
+    const query = sprint.trim().toLowerCase();
+    if (query.length <= 2) {
+      setSprintDuplicate(false);
+      return;
     }
+    void loadSprintNames().then((names) => {
+      setSprintDuplicate(names.some((name) => name.trim().toLowerCase() === query));
+    });
   };
 
   useEffect(() => {
     const hasSprintField = configFields.some((field) => field.name === "sprint");
     if (!showForm || !hasSprintField) return;
-    fetch("/api/items/sprints")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const sorted = [...data].sort((a, b) => (b.id as number) - (a.id as number));
-          setLastSprint(String(sorted[0].name || ""));
-        }
-      })
-      .catch(() => {});
+    void loadSprintNames().then((names) => {
+      if (names.length > 0) setLastSprint(names[0]);
+    });
   }, [showForm, configFields, setLastSprint]);
+
+  useEffect(() => {
+    return () => {
+      if (duplicateCheckTimerRef.current) clearTimeout(duplicateCheckTimerRef.current);
+      duplicateAbortRef.current?.abort();
+    };
+  }, []);
 
   function resetCreateFormState() {
     const form = document.getElementById(`${module}-form`) as HTMLFormElement | null;
@@ -240,7 +308,12 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     toast(message ?? "Data updated successfully.", "success");
     setEditingRow(null);
     closeFormEditor();
-    refreshPage();
+  }
+
+  function patchRow(id: string | number, patch: Record<string, string | number>) {
+    setRows((current) =>
+      current.map((row) => (String(row.id) === String(id) ? { ...row, ...patch } : row)),
+    );
   }
 
   function handleFormSubmit(formData: FormData) {
@@ -288,6 +361,9 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
       return;
     }
 
+    patchRow(editingRow.id, Object.fromEntries(
+      Object.entries(entry).map(([key, value]) => [key, String(value ?? "")]),
+    ));
     finishUpdateSuccess(data.message);
   }
 
@@ -317,7 +393,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
       return;
     }
     showApiSuccess(toast, data, "Data deleted successfully.");
-    refreshPage();
+    setRows((current) => current.filter((row) => String(row.id) !== String(id)));
   }
 
   function clearPendingDeleteTimer() {
@@ -371,7 +447,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
       return;
     }
     showApiSuccess(toast, data, "Status updated successfully.");
-    refreshPage();
+    patchRow(id, { status });
   }
 
   return {
@@ -383,5 +459,6 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     onUpdateStatus,
     performSingleDelete,
     checkDuplicates,
+    checkSprintDuplicate,
   };
 }

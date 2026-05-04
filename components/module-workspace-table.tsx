@@ -4,7 +4,7 @@ import { ModuleEmptyState } from "@/components/module-empty-state";
 import { ModulePagination } from "@/components/module-pagination";
 import { ModuleRowActions } from "@/components/module-row-actions";
 import { ModuleWorkspaceCell } from "@/components/module-workspace-cell";
-import { PAGE_SIZE } from "@/components/module-workspace-utils";
+import { PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import type { ModuleKey } from "@/lib/modules";
 

@@ -1,6 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
-export async function getSuiteResults(query: string, companyClause: string, companyParams: unknown[]) {
+import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+export async function getSuiteResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "SUITE");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
@@ -35,6 +35,7 @@ export async function getSuiteResults(query: string, companyClause: string, comp
     }
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
+  const filter = buildFilterClause(filters, { statusColumn: 'ts."status"', assigneeColumn: 'ts."assignee"', dateColumn: 'ts."updatedAt"' });
   const rows = await queryRows<Row>(
     `SELECT ts.id, ts.title, ts.status, ts.assignee, ts.notes, ts."publicToken", ts."testPlanId",
             tp.title AS planTitle, tp.project AS planProject, ts.updatedAt
@@ -51,10 +52,10 @@ export async function getSuiteResults(query: string, companyClause: string, comp
          OR LOWER(COALESCE(tp.title, '')) LIKE ?
          OR LOWER(COALESCE(tp.project, '')) LIKE ?
        )
-       ${companyClause.replace(/"company"/g, 'ts."company"')}
+       ${companyClause.replace(/"company"/g, 'ts."company"') + filter.clause.replace(/"status"/g, 'ts."status"').replace(/"assignee"/g, 'ts."assignee"').replace(/"updatedAt"/g, 'ts."updatedAt"')}
      ORDER BY ts."updatedAt" DESC
      LIMIT 8`,
-    Array(8).fill(like).concat(companyParams),
+    Array(8).fill(like).concat(filter.params, companyParams),
   );
 
   return rows

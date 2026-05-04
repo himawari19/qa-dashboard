@@ -474,7 +474,7 @@ export function TestCaseDetailEditor({
               <EditTextCell
                 value={form.caseName}
                 w={colMap.caseName}
-                placeholder="Login name"
+                placeholder="e.g. Valid Login"
                 multiline
                 onChange={(v) => setNew("caseName", v)}
                 setRef={(el) => { if (el) refs.current.caseName = el; }}
@@ -550,7 +550,7 @@ export function TestCaseDetailEditor({
               <EditTextCell
                 value={form.evidence}
                 w={colMap.evidence}
-                placeholder="Ex: Image URL"
+                placeholder="https://example.com/screenshot"
                 onChange={(v) => setNew("evidence", v)}
                 setRef={(el) => { if (el) refs.current.evidence_new = el; }}
               />

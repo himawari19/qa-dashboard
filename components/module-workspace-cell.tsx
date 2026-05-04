@@ -132,7 +132,7 @@ export function ModuleWorkspaceCell({
       ) : column.key.toLowerCase().includes("date") ? (
         formatDate(value == null ? null : String(value))
       ) : module === "test-plans" && column.key === "scope" && Array.isArray(row.relatedSuites) ? (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto pr-1 scrollbar-thin">
           {row.relatedSuites.length > 0 ? (
             row.relatedSuites.map((suite) => (
               <Link
@@ -148,7 +148,13 @@ export function ModuleWorkspaceCell({
           )}
         </div>
       ) : column.multiline ? (
-        <div className="max-w-[240px] rounded-sm bg-slate-50 dark:bg-slate-800 p-2 text-xs leading-relaxed break-words line-clamp-3 cursor-default" title={String(value || "")}>
+        <div
+          className={cn(
+            "max-w-[240px] rounded-sm bg-slate-50 p-2 text-xs leading-relaxed break-words whitespace-pre-wrap cursor-default dark:bg-slate-800",
+            module === "test-suites" ? "min-h-12" : "h-24 overflow-y-auto",
+          )}
+          title={String(value || "")}
+        >
           <HighlightText text={String(value || "-")} query="" />
         </div>
       ) : (

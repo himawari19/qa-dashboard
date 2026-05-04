@@ -1,7 +1,7 @@
 import { codeFromId } from "@/lib/utils";
-import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
 
-export async function getSessionResults(query: string, companyClause: string, companyParams: unknown[]) {
+export async function getSessionResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "SES");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
@@ -37,6 +37,7 @@ export async function getSessionResults(query: string, companyClause: string, co
     }
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
+  const filter = buildFilterClause(filters, { statusColumn: '"result"', assigneeColumn: '"tester"', dateColumn: '"date"' });
   const rows = await queryRows<Row>(
     `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, updatedAt
      FROM "TestSession"
@@ -50,10 +51,10 @@ export async function getSessionResults(query: string, companyClause: string, co
        OR LOWER(COALESCE(notes, '')) LIKE ?
        OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
      )
-     ${companyClause}
+     ${companyClause + filter.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(8).fill(like).concat(companyParams),
+    Array(8).fill(like).concat(filter.params, companyParams),
   );
 
   return rows

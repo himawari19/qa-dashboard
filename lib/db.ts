@@ -208,6 +208,21 @@ export const tables = [
     `
   },
   {
+    name: "Invite",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "token" TEXT NOT NULL UNIQUE,
+      "company" TEXT NOT NULL,
+      "role" TEXT NOT NULL DEFAULT 'viewer',
+      "status" TEXT NOT NULL DEFAULT 'pending',
+      "createdBy" TEXT NOT NULL DEFAULT '',
+      "expiresAt" DATE_TYPE NOT NULL,
+      "acceptedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
     name: "Deployment",
     schema: `
       "id" SERIAL_OR_PK,
@@ -229,25 +244,60 @@ export const tables = [
 const indexSql = `
 CREATE INDEX IF NOT EXISTS "idx_task_company" ON "Task"("company");
 CREATE INDEX IF NOT EXISTS "idx_task_company_updated" ON "Task"("company", "updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_task_company_status" ON "Task"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_task_company_project" ON "Task"("company", "project");
+CREATE INDEX IF NOT EXISTS "idx_task_company_sprint" ON "Task"("company", "sprintId");
 CREATE INDEX IF NOT EXISTS "idx_task_status" ON "Task"("status");
 CREATE INDEX IF NOT EXISTS "idx_task_assignee" ON "Task"("assignee");
 CREATE INDEX IF NOT EXISTS "idx_bug_company" ON "Bug"("company");
 CREATE INDEX IF NOT EXISTS "idx_bug_company_updated" ON "Bug"("company", "updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_bug_company_status" ON "Bug"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_bug_company_project" ON "Bug"("company", "project");
+CREATE INDEX IF NOT EXISTS "idx_bug_company_module" ON "Bug"("company", "module");
+CREATE INDEX IF NOT EXISTS "idx_bug_company_sprint" ON "Bug"("company", "sprintId");
 CREATE INDEX IF NOT EXISTS "idx_bug_status" ON "Bug"("status");
 CREATE INDEX IF NOT EXISTS "idx_bug_suggesteddev" ON "Bug"("suggestedDev");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company" ON "TestCase"("company");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company_updated" ON "TestCase"("company", "updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_testcase_company_status" ON "TestCase"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_testcase_company_suite" ON "TestCase"("company", "testSuiteId");
 CREATE INDEX IF NOT EXISTS "idx_testcase_status" ON "TestCase"("status");
 CREATE INDEX IF NOT EXISTS "idx_testcase_suite" ON "TestCase"("testSuiteId");
-CREATE INDEX IF NOT EXISTS "idx_testplan_company" ON "TestPlan"("company");
-CREATE INDEX IF NOT EXISTS "idx_testplan_company_updated" ON "TestPlan"("company", "updatedAt");
-CREATE INDEX IF NOT EXISTS "idx_testsuite_company" ON "TestSuite"("company");
-CREATE INDEX IF NOT EXISTS "idx_testsuite_company_updated" ON "TestSuite"("company", "updatedAt");
-CREATE INDEX IF NOT EXISTS "idx_testsuite_assignee" ON "TestSuite"("assignee");
-CREATE INDEX IF NOT EXISTS "idx_activitylog_company" ON "ActivityLog"("company");
-CREATE INDEX IF NOT EXISTS "idx_sprint_company" ON "Sprint"("company");
-CREATE INDEX IF NOT EXISTS "idx_sprint_company_updated" ON "Sprint"("company", "updatedAt");
-CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_updated" ON "MeetingNote"("company", "updatedAt");
+  CREATE INDEX IF NOT EXISTS "idx_testplan_company" ON "TestPlan"("company");
+  CREATE INDEX IF NOT EXISTS "idx_testplan_company_updated" ON "TestPlan"("company", "updatedAt");
+  CREATE INDEX IF NOT EXISTS "idx_testplan_company_project" ON "TestPlan"("company", "project");
+  CREATE INDEX IF NOT EXISTS "idx_testplan_company_sprint" ON "TestPlan"("company", "sprint");
+  CREATE INDEX IF NOT EXISTS "idx_testplan_company_status" ON "TestPlan"("company", "status");
+  CREATE INDEX IF NOT EXISTS "idx_testplan_company_token" ON "TestPlan"("company", "publicToken");
+  CREATE INDEX IF NOT EXISTS "idx_testsuite_company" ON "TestSuite"("company");
+  CREATE INDEX IF NOT EXISTS "idx_testsuite_company_updated" ON "TestSuite"("company", "updatedAt");
+  CREATE INDEX IF NOT EXISTS "idx_testsuite_company_plan" ON "TestSuite"("company", "testPlanId");
+  CREATE INDEX IF NOT EXISTS "idx_testsuite_company_status" ON "TestSuite"("company", "status");
+  CREATE INDEX IF NOT EXISTS "idx_testsuite_assignee" ON "TestSuite"("assignee");
+  CREATE INDEX IF NOT EXISTS "idx_testsuite_company_token" ON "TestSuite"("company", "publicToken");
+  CREATE INDEX IF NOT EXISTS "idx_activitylog_company" ON "ActivityLog"("company");
+  CREATE INDEX IF NOT EXISTS "idx_activitylog_company_created" ON "ActivityLog"("company", "createdAt");
+  CREATE INDEX IF NOT EXISTS "idx_sprint_company" ON "Sprint"("company");
+  CREATE INDEX IF NOT EXISTS "idx_sprint_company_updated" ON "Sprint"("company", "updatedAt");
+  CREATE INDEX IF NOT EXISTS "idx_sprint_company_name" ON "Sprint"("company", "name");
+  CREATE INDEX IF NOT EXISTS "idx_sprint_company_status" ON "Sprint"("company", "status");
+  CREATE INDEX IF NOT EXISTS "idx_sprint_company_start" ON "Sprint"("company", "startDate");
+  CREATE INDEX IF NOT EXISTS "idx_testcase_company_token" ON "TestCase"("company", "publicToken");
+  CREATE INDEX IF NOT EXISTS "idx_testsession_company_scope_date" ON "TestSession"("company", "scope", "date");
+  CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_updated" ON "MeetingNote"("company", "updatedAt");
+  CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_date" ON "MeetingNote"("company", "date");
+  CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_token" ON "MeetingNote"("company", "publicToken");
+  CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_project" ON "MeetingNote"("company", "project");
+CREATE INDEX IF NOT EXISTS "idx_invite_company" ON "Invite"("company");
+CREATE INDEX IF NOT EXISTS "idx_invite_token" ON "Invite"("token");
+CREATE INDEX IF NOT EXISTS "idx_invite_company_status" ON "Invite"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_assignee_company_updated" ON "Assignee"("company", "updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_assignee_company_name" ON "Assignee"("company", "name");
+CREATE INDEX IF NOT EXISTS "idx_assignee_company_status" ON "Assignee"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_deployment_company_updated" ON "Deployment"("company", "updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_deployment_company_project" ON "Deployment"("company", "project");
+CREATE INDEX IF NOT EXISTS "idx_deployment_company_status" ON "Deployment"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_deployment_company_date" ON "Deployment"("company", "date");
 `;
 
 function expandSchemaType(typeName: string, postgres: boolean) {
@@ -298,8 +348,11 @@ function normalizePostgresQuery(queryStr: string) {
 
 function toPostgresQuery(queryStr: string) {
   let pgQuery = normalizePostgresQuery(queryStr);
-  pgQuery = pgQuery.replace(/DATE\('now'\)/gi, "CURRENT_DATE")
-                   .replace(/DATE\('now',\s*'-(\d+)\s+days'\)/gi, (_, d) => `CURRENT_DATE - INTERVAL '${d} days'`);
+  pgQuery = pgQuery
+    .replace(/DATE\('now'\)/gi, "CURRENT_DATE")
+    .replace(/DATE\('now',\s*'-(\d+)\s+days'\)/gi, (_, d) => `CURRENT_DATE - INTERVAL '${d} days'`)
+    .replace(/DATE\('now',\s*'\+(\d+)\s+days'\)/gi, (_, d) => `CURRENT_DATE + INTERVAL '${d} days'`)
+    .replace(/DATE\(([^'()\s][^()]*)\)/gi, (_, col) => `(${col.trim()})::date`);
   if (pgQuery.includes("?")) {
     let count = 0;
     pgQuery = pgQuery.replace(/\?/g, () => `$${++count}`);

@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   }),
   getTestPlanByToken: vi.fn(),
   getTestSuitesByPlanId: vi.fn(),
-  getTestCasesByScenario: vi.fn(),
+  getTestCasesByScenarioIds: vi.fn(),
   detail: vi.fn(() => <div data-testid="test-plan-detail" />),
 }));
 
@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/data", () => ({
   getTestPlanByToken: mocks.getTestPlanByToken,
   getTestSuitesByPlanId: mocks.getTestSuitesByPlanId,
-  getTestCasesByScenario: mocks.getTestCasesByScenario,
+  getTestCasesByScenarioIds: mocks.getTestCasesByScenarioIds,
 }));
 
 vi.mock("@/app/test-plans/[token]/test-plan-detail", () => ({
@@ -49,9 +49,10 @@ describe("test plan route", () => {
       { id: "s1", title: "Suite 1", publicToken: "suite-1" },
       { id: "s2", title: "Suite 2", publicToken: "suite-2" },
     ]);
-    mocks.getTestCasesByScenario
-      .mockResolvedValueOnce([{ id: 1, tcId: "TC-1" }])
-      .mockResolvedValueOnce([{ id: 2, tcId: "TC-2" }]);
+    mocks.getTestCasesByScenarioIds.mockResolvedValueOnce({
+      s1: [{ id: 1, tcId: "TC-1" }],
+      s2: [{ id: 2, tcId: "TC-2" }],
+    });
 
     const element = await TestPlanDetailPage({
       params: Promise.resolve({ token: "plan-token" }),
@@ -61,8 +62,7 @@ describe("test plan route", () => {
 
     expect(mocks.getTestPlanByToken).toHaveBeenCalledWith("plan-token");
     expect(mocks.getTestSuitesByPlanId).toHaveBeenCalledWith("11");
-    expect(mocks.getTestCasesByScenario).toHaveBeenNthCalledWith(1, "s1");
-    expect(mocks.getTestCasesByScenario).toHaveBeenNthCalledWith(2, "s2");
+    expect(mocks.getTestCasesByScenarioIds).toHaveBeenCalledWith(["s1", "s2"]);
     expect(mocks.detail).toHaveBeenCalled();
 
     const detailMock = mocks.detail as unknown as {

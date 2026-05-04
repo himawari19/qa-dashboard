@@ -23,6 +23,8 @@ function emptyDashboardData() {
     },
     sprintInfo: null,
     bugTrendData: [],
+    sprintBurndown: [],
+    sprintPassRates: [],
     sprints: [],
     activity: [],
     spotlight: {

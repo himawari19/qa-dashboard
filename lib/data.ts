@@ -5,7 +5,6 @@ import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 import {
   countRows,
   getAccessScope,
-  getRoleRecommendations,
   getTableName,
   getWriteCompany,
   logActivity,
@@ -30,26 +29,141 @@ async function selectAll(sqlStr: string, params: any[] = []): Promise<Array<Reco
   return db.query<Record<string, string | number | null>>(sqlStr, params);
 }
 
-export async function getDashboardData(filterProject?: string) {
+type DashboardCacheEntry = { expiresAt: number; data: unknown };
+const dashboardCache = new Map<string, DashboardCacheEntry>();
+
+function dashboardCacheKey(company: string, isAdmin: boolean, role: string, projectFilter: string) {
+  return [company, isAdmin ? "admin" : "user", role, projectFilter || "__all__"].join("|");
+}
+
+export function invalidateDashboardCache(company?: string) {
+  if (!company) {
+    dashboardCache.clear();
+    return;
+  }
+  const prefix = `${company}|`;
+  for (const key of dashboardCache.keys()) {
+    if (key.startsWith(prefix)) dashboardCache.delete(key);
+  }
+}
+
+export async function getProjectOptions() {
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const rows = await selectAll(
+    `SELECT DISTINCT "project" as value FROM "TestPlan"
+     WHERE COALESCE("project", '') != '' AND "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}
+     ORDER BY "project" ASC`,
+    isAdmin ? [] : [company],
+  );
+  return rows.map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }));
+}
+
+export async function getAssigneeOptions() {
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const rows = await selectAll(
+    `SELECT DISTINCT "name" as value FROM "Assignee"
+     WHERE COALESCE("name", '') != '' AND "status" = 'active'${isAdmin ? "" : ' AND "company" = ?'}
+     ORDER BY "name" ASC`,
+    isAdmin ? [] : [company],
+  );
+  return rows.map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }));
+}
+
+export async function getTestPlanReferenceRows() {
+  const { company, isAdmin, andWhere, params: qParams } = getAccessScope(await getCurrentUser());
+  const rows = await selectAll(
+    `SELECT "id", "title", "project", "publicToken", "sprint", "updatedAt"
+     FROM "TestPlan"
+     WHERE "deletedAt" IS NULL ${andWhere}
+     ORDER BY "updatedAt" DESC`,
+    qParams,
+  );
+  return rows.map((item) => ({
+    id: String(item.id ?? ""),
+    title: String(item.title ?? ""),
+    project: String(item.project ?? ""),
+    publicToken: String(item.publicToken ?? ""),
+    sprint: String(item.sprint ?? ""),
+  }));
+}
+
+export async function getTestSuitesByPlanIds(planIds: Array<string | number>) {
+  const ids = planIds.map((id) => String(id)).filter(Boolean);
+  if (ids.length === 0) return [];
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const placeholders = ids.map(() => "?").join(", ");
+  const rows = await selectAll(
+    `SELECT id, testPlanId, title, publicToken
+     FROM "TestSuite"
+     WHERE "deletedAt" IS NULL
+     ${isAdmin ? "" : ' AND "company" = ?'}
+     AND "testPlanId" IN (${placeholders})
+     ORDER BY "updatedAt" DESC`,
+    isAdmin ? ids : [company, ...ids],
+  );
+  return rows.map((row) => ({
+    id: String(row.id ?? ""),
+    testPlanId: String(row.testPlanId ?? ""),
+    title: String(row.title ?? ""),
+    token: String(row.publicToken ?? ""),
+  }));
+}
+
+export async function getTestCaseStatsBySuiteIds(suiteIds: Array<string | number>) {
+  const ids = suiteIds.map((id) => String(id)).filter(Boolean);
+  if (ids.length === 0) return new Map<string, { passed: number; failed: number; total: number }>();
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const placeholders = ids.map(() => "?").join(", ");
+  const rows = await selectAll(
+    `SELECT tc."testSuiteId" as suiteId,
+      COUNT(*) as total,
+      SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'passed' THEN 1 ELSE 0 END) as passed,
+      SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'failed' THEN 1 ELSE 0 END) as failed,
+      SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'blocked' THEN 1 ELSE 0 END) as blocked
+     FROM "TestCase" tc
+     WHERE tc."deletedAt" IS NULL
+     ${isAdmin ? "" : ' AND tc."company" = ?'}
+     AND tc."testSuiteId" IN (${placeholders})
+     GROUP BY tc."testSuiteId"`,
+    isAdmin ? ids : [company, ...ids],
+  );
+  const stats = new Map<string, { passed: number; failed: number; total: number }>();
+  for (const row of rows) {
+    const key = String(row.suiteId ?? "");
+    if (!key) continue;
+    stats.set(key, {
+      passed: Number(row.passed ?? 0),
+      failed: Number(row.failed ?? 0),
+      total: Number(row.total ?? 0),
+    });
+  }
+  return stats;
+}
+
+export async function getDashboardData(filterProject?: string): Promise<any> {
   const user = await getCurrentUser();
   const { company, isAdmin } = getAccessScope(user);
   const userRole = user?.role || "user";
+  const rolePersona = userRole;
+  const normalizedProject = String(filterProject ?? "").trim();
+  const cacheKey = dashboardCacheKey(company, isAdmin, userRole, filterProject || "");
+  const cached = dashboardCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return structuredClone(cached.data as object);
+  }
 
-  const projectFilter = filterProject ? ` AND "project" = ?` : "";
-  const projectParam = filterProject ? [filterProject] : [];
-
-  const baseCompany = isAdmin ? "" : ` "company" = ?`;
+  const companyWhere = isAdmin ? "" : `WHERE "company" = ?`;
+  const companyAndWhere = isAdmin ? "" : `AND "company" = ?`;
   const companyParams = isAdmin ? [] : [company];
-
-  const where = isAdmin
-    ? (filterProject ? ` WHERE "project" = ?` : "")
-    : (filterProject ? ` WHERE "company" = ? AND "project" = ?` : ` WHERE "company" = ?`);
-  const andWhere = isAdmin
-    ? (filterProject ? ` AND "project" = ?` : "")
-    : (filterProject ? ` AND "company" = ? AND "project" = ?` : ` AND "company" = ?`);
-  const qParams = isAdmin
-    ? [...projectParam]
-    : (filterProject ? [company, filterProject] : [company]);
+  const projectWhere = normalizedProject
+    ? (isAdmin ? ` WHERE "project" = ?` : ` WHERE "company" = ? AND "project" = ?`)
+    : companyWhere;
+  const projectAndWhere = normalizedProject
+    ? (isAdmin ? ` AND "project" = ?` : ` AND "company" = ? AND "project" = ?`)
+    : companyAndWhere;
+  const projectParams = normalizedProject
+    ? (isAdmin ? [normalizedProject] : [company, normalizedProject])
+    : companyParams;
 
   const [
     tasks, 
@@ -77,62 +191,70 @@ export async function getDashboardData(filterProject?: string) {
     recentSessions,
     heatmapRes
   ] = await Promise.all([
-    selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC LIMIT 5`, qParams),
-    selectAll(`SELECT * FROM "Bug" ${where} ORDER BY "updatedAt" DESC LIMIT 5`, qParams),
-    selectAll(`SELECT * FROM "TestCase" ${where}${isAdmin ? "" : (where ? " AND " : " WHERE ") + '"deletedAt" IS NULL'} ORDER BY "updatedAt" DESC LIMIT 5`, qParams),
+    selectAll(`SELECT * FROM "Task" ${projectWhere} ORDER BY "updatedAt" DESC LIMIT 5`, projectParams),
+    selectAll(`SELECT * FROM "Bug" ${projectWhere} ORDER BY "updatedAt" DESC LIMIT 5`, projectParams),
+    selectAll(`SELECT * FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'} ORDER BY "updatedAt" DESC LIMIT 5`, companyParams),
     countRows("Task", company),
     countRows("Bug", company),
     countRows("TestCase", company),
-    selectAll(`SELECT status, COUNT(*) as count FROM "Task" ${where} GROUP BY status`, qParams),
-    selectAll(`SELECT severity, COUNT(*) as count FROM "Bug" ${where} GROUP BY severity`, qParams),
-    db.get(`SELECT * FROM "Sprint" WHERE status = 'active' ${andWhere} LIMIT 1`, qParams) as Promise<any>,
-    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${andWhere}`, qParams) as Promise<any>,
-    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${andWhere}`, qParams) as Promise<any>,
-    selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') ${andWhere} GROUP BY DATE("createdAt") ORDER BY date ASC`, qParams),
-    selectAll(`SELECT id, name, startDate, endDate, status FROM "Sprint" ${where} ORDER BY startDate DESC LIMIT 20`, qParams),
-    selectAll(`SELECT * FROM "ActivityLog" ${where} ORDER BY "createdAt" DESC LIMIT 10`, qParams),
-    selectAll(`SELECT module, COUNT(*) as count FROM "Bug" ${where} GROUP BY module LIMIT 10`, qParams),
-    selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
-    selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now') ${andWhere}`, qParams),
-    selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now') ${andWhere}`, qParams),
-    selectAll(`SELECT "id", "title", "severity" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${andWhere} ORDER BY "createdAt" DESC`, qParams),
-    selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${andWhere} ORDER BY "createdAt" DESC`, qParams),
+    selectAll(`SELECT status, COUNT(*) as count FROM "Task" ${projectWhere} GROUP BY status`, projectParams),
+    selectAll(`SELECT severity, COUNT(*) as count FROM "Bug" ${projectWhere} GROUP BY severity`, projectParams),
+    db.get(`SELECT * FROM "Sprint" WHERE status = 'active' ${companyAndWhere} LIMIT 1`, companyParams) as Promise<any>,
+    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}`, projectParams) as Promise<any>,
+    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${projectAndWhere}`, projectParams) as Promise<any>,
+    selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') ${projectAndWhere} GROUP BY DATE("createdAt") ORDER BY date ASC`, projectParams),
+    selectAll(`SELECT id, name, startDate, endDate, status FROM "Sprint" ${companyWhere} ORDER BY startDate DESC LIMIT 20`, companyParams),
+    selectAll(`SELECT * FROM "ActivityLog" ${companyWhere} ORDER BY "createdAt" DESC LIMIT 10`, companyParams),
+    selectAll(`SELECT module, COUNT(*) as count FROM "Bug" ${projectWhere} GROUP BY module LIMIT 10`, projectParams),
+    selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now') ${projectAndWhere}`, projectParams),
+    selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now') ${projectAndWhere}`, projectParams),
+    selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now') ${projectAndWhere}`, projectParams),
+    selectAll(`SELECT "id", "title", "severity" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
+    selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
     countRows("TestSuite", company),
     countRows("TestSession", company),
-    selectAll(`SELECT id, date, tester, scope, totalCases, passed, failed, blocked, result FROM "TestSession" ${where} ORDER BY date DESC LIMIT 10`, qParams),
+    selectAll(`SELECT id, date, tester, scope, totalCases, passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams),
     selectAll(`
       WITH AllAssignees AS (
-        SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${andWhere}
+        SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${projectAndWhere}
         UNION
-        SELECT suggestedDev as name FROM "Bug" WHERE suggestedDev != '' AND status != 'closed' ${andWhere}
+        SELECT suggestedDev as name FROM "Bug" WHERE suggestedDev != '' AND status != 'closed' ${projectAndWhere}
         UNION
-        SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived' ${andWhere}
+        SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived' ${companyAndWhere}
         UNION
-        SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed' ${andWhere}
+        SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed' ${projectAndWhere}
         UNION
-        SELECT name FROM "Assignee" WHERE status = 'active' ${andWhere}
+        SELECT name FROM "Assignee" WHERE status = 'active' ${companyAndWhere}
       )
       SELECT 
         name,
-        (SELECT COUNT(*) FROM "Task" t WHERE t.assignee = AllAssignees.name AND t.status != 'done' ${andWhere}) as taskCount,
-        (SELECT COUNT(*) FROM "Bug" b WHERE b.suggestedDev = AllAssignees.name AND b.status != 'closed' ${andWhere}) as bugCount,
-        (SELECT COUNT(*) FROM "TestSuite" s WHERE s.assignee = AllAssignees.name AND s.status != 'archived' ${andWhere}) as suiteCount,
-        (SELECT COUNT(*) FROM "TestPlan" p WHERE p.assignee = AllAssignees.name AND p.status != 'closed' ${andWhere}) as planCount
+        (SELECT COUNT(*) FROM "Task" t WHERE t.assignee = AllAssignees.name AND t.status != 'done' ${projectAndWhere}) as taskCount,
+        (SELECT COUNT(*) FROM "Bug" b WHERE b.suggestedDev = AllAssignees.name AND b.status != 'closed' ${projectAndWhere}) as bugCount,
+        (SELECT COUNT(*) FROM "TestSuite" s WHERE s.assignee = AllAssignees.name AND s.status != 'archived' ${companyAndWhere}) as suiteCount,
+        (SELECT COUNT(*) FROM "TestPlan" p WHERE p.assignee = AllAssignees.name AND p.status != 'closed' ${projectAndWhere}) as planCount
       FROM AllAssignees
       WHERE name IS NOT NULL AND name != ''
       ORDER BY name ASC
-    `, [...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams, ...qParams]),
+    `, [...projectParams, ...projectParams, ...companyParams, ...projectParams, ...companyParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams]),
   ]);
 
   const todayActivity = [...(todayTasks || []), ...(todayBugs || []), ...(todaySessions || [])];
 
   let sprintInfo = null;
+  let sprintBurndown: { date: string; done: number; ideal: number }[] = [];
   if (sprint) {
-    const [tTotal, tDone] = await Promise.all([
-      db.get('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?' + andWhere, [sprint.id, ...qParams]) as Promise<any>,
-      db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'" + andWhere, [sprint.id, ...qParams]) as Promise<any>
+    const [tTotal, tDone, burndownRows] = await Promise.all([
+      db.get('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?' + companyAndWhere, [sprint.id, ...companyParams]) as Promise<any>,
+      db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'" + companyAndWhere, [sprint.id, ...companyParams]) as Promise<any>,
+      selectAll(
+        `SELECT DATE("updatedAt") as date, COUNT(*) as count FROM "Task"
+         WHERE "sprintId" = ? AND status = 'done'
+         AND DATE("updatedAt") BETWEEN ? AND ?
+         ${companyAndWhere} GROUP BY DATE("updatedAt") ORDER BY date ASC`,
+        [sprint.id, sprint.startDate, sprint.endDate, ...companyParams]
+      ),
     ]);
-    
+
     sprintInfo = {
       name: String(sprint.name),
       startDate: String(sprint.startDate),
@@ -141,7 +263,52 @@ export async function getDashboardData(filterProject?: string) {
       taskTotal: Number(tTotal.count),
       taskDone: Number(tDone.count)
     };
+
+    // Build cumulative burndown with ideal line
+    const start = new Date(sprint.startDate);
+    const end = new Date(sprint.endDate);
+    const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
+    const totalTasks = Number(tTotal.count);
+    const doneByDate: Record<string, number> = {};
+    for (const row of burndownRows as any[]) {
+      doneByDate[String(row.date)] = Number(row.count);
+    }
+    let cumDone = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    for (let i = 0; i <= totalDays; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().slice(0, 10);
+      if (dateStr > today) break;
+      cumDone += doneByDate[dateStr] || 0;
+      sprintBurndown.push({
+        date: dateStr.slice(5),
+        done: cumDone,
+        ideal: Math.round((i / totalDays) * totalTasks),
+      });
+    }
   }
+
+  // Pass rate per sprint (last 5 sprints)
+  const recentSprintsForRate = await selectAll(
+    `SELECT id, name, startDate, endDate FROM "Sprint" ${companyWhere} ORDER BY startDate DESC LIMIT 5`,
+    companyParams
+  ) as any[];
+  const sprintPassRates = await Promise.all(
+    recentSprintsForRate.map(async (sp: any) => {
+      const sessions = await selectAll(
+        `SELECT passed, totalCases FROM "TestSession" WHERE DATE("date") BETWEEN ? AND ? ${projectAndWhere}`,
+        [sp.startDate, sp.endDate, ...projectParams]
+      ) as any[];
+      const totalPassed = sessions.reduce((s: number, r: any) => s + Number(r.passed), 0);
+      const totalCases = sessions.reduce((s: number, r: any) => s + Number(r.totalCases), 0);
+      return {
+        name: String(sp.name).replace(/sprint\s*/i, "S").substring(0, 12),
+        passRate: totalCases > 0 ? Math.round(totalPassed * 100 / totalCases) : 0,
+        sessions: sessions.length,
+      };
+    })
+  );
 
   const successRate = (bugCount + taskCount) > 0 ? Math.round(((Number(bugFixed.count) + Number(taskCompleted.count)) / (bugCount + taskCount)) * 100) : 0;
   
@@ -149,7 +316,7 @@ export async function getDashboardData(filterProject?: string) {
   const mostActiveProject = await db.get('SELECT project as name FROM "TestPlan" GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1') as any;
   const spotlightName = mostActiveProject?.name || (taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project");
 
-  return {
+  const data = {
     metrics: [
       { label: "Open Tasks", value: taskCount, caption: "Daily QA tasks currently being managed." },
       { label: "Bug Entries", value: bugCount, caption: "Defects with severity, priority, and evidence." },
@@ -168,6 +335,7 @@ export async function getDashboardData(filterProject?: string) {
       blocked: Number(s.blocked ?? 0),
       result: String(s.result ?? ""),
     })),
+    rolePersona,
     distribution: {
       tasks: taskStatus.map(r => ({ name: String(r.status), value: Number(r.count) })),
       bugs: bugSeverity.map(r => ({ name: String(r.severity), value: Number(r.count) })),
@@ -239,6 +407,8 @@ export async function getDashboardData(filterProject?: string) {
       createdAt: String(item.createdAt ?? ""),
     })),
     bugTrendData: bugTrend.map((r) => ({ date: String(r.date), count: Number(r.count) })),
+    sprintBurndown,
+    sprintPassRates: sprintPassRates.reverse(),
     sprints: allSprints.map((s) => ({
       id: Number(s.id),
       name: String(s.name),
@@ -246,9 +416,9 @@ export async function getDashboardData(filterProject?: string) {
       endDate: String(s.endDate),
       status: String(s.status),
     })),
-    rolePersona: userRole,
-    roleRecommendations: getRoleRecommendations(userRole, { bugs, tasks, todayActivity, critBugs, prioTasks })
   };
+  dashboardCache.set(cacheKey, { data, expiresAt: Date.now() + 15000 });
+  return structuredClone(data as object);
 }
 
 export async function getReportsData() {
@@ -275,6 +445,16 @@ export async function getReportsData() {
 
 export async function getResourceDetails(name: string) {
   const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const resourceCacheKey = `${company}|${isAdmin ? "admin" : "user"}|${name.toLowerCase()}`;
+  const resourceCache = (globalThis as typeof globalThis & {
+    __qaResourceDetailsCache?: Map<string, { expiresAt: number; data: unknown }>;
+  }).__qaResourceDetailsCache ?? ((globalThis as typeof globalThis & {
+    __qaResourceDetailsCache?: Map<string, { expiresAt: number; data: unknown }>;
+  }).__qaResourceDetailsCache = new Map());
+  const cached = resourceCache.get(resourceCacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return structuredClone(cached.data as object);
+  }
   const andWhere = isAdmin ? "" : ' AND "company" = ?';
   const companyParam = isAdmin ? [] : [company];
 
@@ -284,11 +464,13 @@ export async function getResourceDetails(name: string) {
     selectAll(`SELECT id, title, status, 'N/A' as priority FROM "TestSuite" WHERE assignee = ? ${andWhere} AND status != 'archived' ORDER BY createdAt DESC`, [name, ...companyParam]),
   ]);
 
-  return {
+  const data = {
     tasks: tasks.map(t => ({ ...t, type: 'Task' })),
     bugs: bugs.map(b => ({ ...b, type: 'Bug' })),
     suites: suites.map(s => ({ ...s, type: 'Suite' })),
   };
+  resourceCache.set(resourceCacheKey, { data, expiresAt: Date.now() + 30000 });
+  return structuredClone(data as object);
 }
 
 export async function getExecutiveData() {
@@ -379,12 +561,20 @@ export async function getModuleRows(module: ModuleKey) {
     case "test-suites": {
       const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
       return (await selectAll(
-        `SELECT ts.*,
-          (SELECT COUNT(*) FROM "TestCase" tc WHERE tc."testSuiteId" = ts.id AND tc."deletedAt" IS NULL AND LOWER(tc."status") = 'passed') AS passed,
-          (SELECT COUNT(*) FROM "TestCase" tc WHERE tc."testSuiteId" = ts.id AND tc."deletedAt" IS NULL AND LOWER(tc."status") = 'failed') AS failed,
-          (SELECT COUNT(*) FROM "TestCase" tc WHERE tc."testSuiteId" = ts.id AND tc."deletedAt" IS NULL AND LOWER(tc."status") = 'blocked') AS blocked
-         FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC`,
-        qParams
+        `WITH case_stats AS (
+          SELECT tc."testSuiteId" as suiteId,
+            SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'passed' THEN 1 ELSE 0 END) as passed,
+            SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'failed' THEN 1 ELSE 0 END) as failed,
+            SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'blocked' THEN 1 ELSE 0 END) as blocked
+          FROM "TestCase" tc
+          WHERE tc."deletedAt" IS NULL${isAdmin ? "" : ' AND tc."company" = ?'}
+          GROUP BY tc."testSuiteId"
+        )
+        SELECT ts.*, COALESCE(cs.passed, 0) as passed, COALESCE(cs.failed, 0) as failed, COALESCE(cs.blocked, 0) as blocked
+         FROM "TestSuite" ts
+         LEFT JOIN case_stats cs ON cs.suiteId = ts.id
+         WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC`,
+        isAdmin ? [] : [company, company]
       )).map((item) => ({
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", Number(item.id)),
@@ -460,6 +650,132 @@ export async function getModuleRows(module: ModuleKey) {
   }
 }
 
+export async function getModuleRowsPage(module: ModuleKey, page: number, pageSize: number) {
+  const scope = getAccessScope(await getCurrentUser());
+  const { company, isAdmin, where, andWhere, params: qParams } = scope;
+  const safePage = Math.max(1, Math.floor(page || 1));
+  const safeSize = Math.max(1, Math.floor(pageSize || 10));
+  const offset = (safePage - 1) * safeSize;
+  const limitClause = ` LIMIT ${safeSize} OFFSET ${offset}`;
+
+  switch (module) {
+    case "test-plans": {
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestPlan" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = (await selectAll(`SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC${limitClause}`, qParams)).map((item) => {
+        const normalized = normalizeTestPlanRow(item);
+        return {
+          ...normalized,
+          code: codeFromId("PLAN", Number(item.id)),
+          publicToken: normalized.publicToken || "",
+        };
+      });
+      return { rows, total };
+    }
+    case "test-sessions": {
+      const total = await countRows("TestSession", isAdmin ? undefined : company);
+      const rows = await selectAll(`SELECT * FROM "TestSession" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      return { rows, total };
+    }
+    case "test-cases": {
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestCase" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = (await selectAll(`SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC${limitClause}`, qParams)).map((item) => normalizeTestCaseRow(item));
+      return { rows, total };
+    }
+    case "bugs": {
+      const total = await countRows("Bug", isAdmin ? undefined : company);
+      const rows = await selectAll(`SELECT * FROM "Bug" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      return { rows, total };
+    }
+    case "tasks": {
+      const total = await countRows("Task", isAdmin ? undefined : company);
+      const rows = await selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      return { rows, total };
+    }
+    case "test-suites": {
+      const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${isAdmin ? "" : ' AND ts."company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const rows = (await selectAll(
+        `WITH case_stats AS (
+          SELECT tc."testSuiteId" as suiteId,
+            SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'passed' THEN 1 ELSE 0 END) as passed,
+            SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'failed' THEN 1 ELSE 0 END) as failed,
+            SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'blocked' THEN 1 ELSE 0 END) as blocked
+          FROM "TestCase" tc
+          WHERE tc."deletedAt" IS NULL${isAdmin ? "" : ' AND tc."company" = ?'}
+          GROUP BY tc."testSuiteId"
+        )
+        SELECT ts.*, COALESCE(cs.passed, 0) as passed, COALESCE(cs.failed, 0) as failed, COALESCE(cs.blocked, 0) as blocked
+         FROM "TestSuite" ts
+         LEFT JOIN case_stats cs ON cs.suiteId = ts.id
+         WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC${limitClause}`,
+        isAdmin ? [] : [company, company]
+      )).map((item) => ({
+        ...normalizeTestSuiteRow(item),
+        code: codeFromId("SUITE", Number(item.id)),
+        passed: Number(item.passed ?? 0),
+        failed: Number(item.failed ?? 0),
+        blocked: Number(item.blocked ?? 0),
+      }));
+      return { rows, total: Number(totalRow?.total ?? 0) };
+    }
+    case "assignees": {
+      const total = await countRows("Assignee", isAdmin ? undefined : company);
+      const rows = await selectAll(`SELECT * FROM "Assignee" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      return { rows, total };
+    }
+    case "meeting-notes": {
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "MeetingNote" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = (await selectAll(`SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "updatedAt" DESC${limitClause}`, qParams)).map((item) => ({
+        ...item,
+        code: codeFromId("MEET", Number(item.id)),
+      }));
+      return { rows, total };
+    }
+    case "users": {
+      const total = await countRows("User", isAdmin ? undefined : company);
+      const rows = await selectAll(`SELECT id, name, username, role, company, createdAt FROM "User" ${where} ORDER BY createdAt DESC${limitClause}`, qParams);
+      return { rows, total };
+    }
+    case "sprints": {
+      const total = await countRows("Sprint", isAdmin ? undefined : company);
+      const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
+      const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
+      const subParams = isAdmin ? [] : [company];
+      const rows = await selectAll(`
+        SELECT s.*,
+          (SELECT tp2."title" FROM "TestPlan" tp2
+            WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
+              OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
+              OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
+            ${tpCompanyFilter}
+            AND tp2."deletedAt" IS NULL
+            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS testPlanTitle,
+          (SELECT tp2."project" FROM "TestPlan" tp2
+            WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
+              OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
+              OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
+            ${tpCompanyFilter}
+            AND tp2."deletedAt" IS NULL
+            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS project
+        FROM "Sprint" s
+        ${sprintWhere}
+        ORDER BY s."startDate" DESC${limitClause}
+      `, [...subParams, ...subParams, ...qParams]);
+      return { rows, total };
+    }
+    case "deployments": {
+      const total = await countRows("Deployment", isAdmin ? undefined : company);
+      const rows = await selectAll(`SELECT * FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC${limitClause}`, qParams);
+      return { rows, total };
+    }
+    default:
+      return { rows: [], total: 0 };
+  }
+}
+
 export async function createModuleRecord(module: ModuleKey, data: any) {
   const user = await getCurrentUser();
   const company = getWriteCompany(user, data.company);
@@ -472,6 +788,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
       );
       await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`);
+      invalidateDashboardCache(company);
       await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
       return res;
     }
@@ -482,6 +799,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.publicToken || makePublicToken(), data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
       await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "bugs": {
@@ -493,6 +811,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
       );
       await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "tasks": {
@@ -502,6 +821,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
       );
       await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "test-sessions": {
@@ -520,6 +840,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
       );
       await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "assignees": {
@@ -529,6 +850,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status]
       );
       await logActivity(company, "Assignee", String(data.name), "Added", `New team member: ${data.name}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "users": {
@@ -540,6 +862,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.name || data.username, data.username, hashedPassword, data.role || "user"]
       );
       await logActivity(company, "User", String(data.username), "Created", `Access granted for ${data.username}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "sprints": {
@@ -549,6 +872,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.name, data.startDate, data.endDate, data.status, data.goal ?? ""]
       );
       await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "meeting-notes": {
@@ -558,6 +882,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.publicToken || makePublicToken(), data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.actionItems ?? ""]
       );
       await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "deployments": {
@@ -567,6 +892,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, data.notes ?? ""]
       );
       await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${data.environment}: ${data.status}`);
+      invalidateDashboardCache(company);
       return res;
     }
     default:
@@ -587,6 +913,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "bugs": {
@@ -597,6 +924,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, id, ...companyParam]
       );
       await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "test-plans": {
@@ -607,6 +935,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`);
+      invalidateDashboardCache(company);
       await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
       return res;
     }
@@ -628,6 +957,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
       );
       await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "test-suites": {
@@ -639,6 +969,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id, ...companyParam]
       );
       await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "assignees": {
@@ -649,6 +980,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status, id, ...companyParam]
       );
       await logActivity(company, "Assignee", String(data.name), "Updated", `Profile for ${data.name} updated`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "users": {
@@ -660,6 +992,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
           [data.name, data.username, data.role, hashedPassword, id, ...companyParam]
         );
         await logActivity(company, "User", String(data.username), "Updated", `Security settings for ${data.username} updated`);
+        invalidateDashboardCache(company);
         return res;
       } else {
         const res = await db.run(
@@ -667,6 +1000,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
           [data.name, data.username, data.role, id, ...companyParam]
         );
         await logActivity(company, "User", String(data.username), "Updated", `User info for ${data.username} updated`);
+        invalidateDashboardCache(company);
         return res;
       }
     }
@@ -678,6 +1012,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.name, data.startDate, data.endDate, data.status, data.goal ?? "", id, ...companyParam]
       );
       await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "meeting-notes": {
@@ -688,6 +1023,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.date, data.project, data.title, data.attendees ?? "", data.content ?? "", data.actionItems ?? "", id, ...companyParam]
       );
       await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`);
+      invalidateDashboardCache(company);
       return res;
     }
     case "deployments": {
@@ -698,6 +1034,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, data.notes ?? "", id, ...companyParam]
       );
       await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`);
+      invalidateDashboardCache(company);
       return res;
     }
     default:
@@ -717,16 +1054,19 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
   if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
     const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = ?${companyFilter}`, [id, ...companyParam]);
     await logActivity(company, table, entityId, "Deleted", `${table} removed`);
+    invalidateDashboardCache(company);
     return res;
   }
   
   const res = await db.run(`DELETE FROM "${table}" WHERE id = ?${companyFilter}`, [id, ...companyParam]);
   await logActivity(company, table, entityId, "Deleted", `${table} permanently deleted`);
+  invalidateDashboardCache(company);
   return res;
 }
 
 export {
   getTestPlanByToken,
+  getTestPlanById,
   getTestSuitesByPlanId,
   getReleaseNotes,
   getQualityTrend,
@@ -735,7 +1075,9 @@ export {
   getProjectData,
   getTestSuiteByToken,
   getTestCasesByScenario,
+  getTestCasesByScenarioIds,
   getAllTestCasesWithSuite,
+  getPublicReportData,
 } from "@/lib/test-management-data";
 
 export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string) {
@@ -745,6 +1087,7 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
   if (!table) return null;
   const res = await db.run(`UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${andWhere}`, [status, id, ...qParams]);
   await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`);
+  invalidateDashboardCache(company);
   return res;
 }
 
@@ -755,6 +1098,7 @@ export async function clearModuleRecords(module: ModuleKey) {
   if (!table) return null;
   const res = await db.run(`DELETE FROM "${table}"${where}`, params);
   await logActivity(company, table, "ALL", "Cleared", `${table} records cleared`);
+  invalidateDashboardCache(company);
   return res;
 }
 

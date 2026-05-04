@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTestPlanByToken, getTestSuitesByPlanId, getTestCasesByScenario } from "@/lib/data";
+import { getTestPlanByToken, getTestSuitesByPlanId, getTestCasesByScenarioIds } from "@/lib/data";
 import { TestPlanDetail } from "./test-plan-detail";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +13,12 @@ export default async function TestPlanDetailPage({ params }: { params: Promise<{
   const planId = String(plan.id);
   const suitesRaw = await getTestSuitesByPlanId(planId);
   const suites = JSON.parse(JSON.stringify(suitesRaw));
-
-  const suitesWithCases = await Promise.all(
-    suites.map(async (suite: Record<string, unknown>) => {
-      const casesRaw = await getTestCasesByScenario(suite.id as string);
-      const cases = JSON.parse(JSON.stringify(casesRaw));
-      return { ...suite, cases };
-    })
-  );
+  const casesBySuiteIdRaw = await getTestCasesByScenarioIds(suites.map((suite: Record<string, unknown>) => suite.id as string));
+  const casesBySuiteId = JSON.parse(JSON.stringify(casesBySuiteIdRaw));
+  const suitesWithCases = suites.map((suite: Record<string, unknown>) => ({
+    ...suite,
+    cases: casesBySuiteId[String(suite.id)] ?? [],
+  }));
 
   return <TestPlanDetail plan={plan} suites={suitesWithCases} />;
 }

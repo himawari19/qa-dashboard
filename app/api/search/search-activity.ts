@@ -1,7 +1,7 @@
 import { codeFromId } from "@/lib/utils";
-import { buildResult, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
 
-export async function getActivityResults(query: string, companyClause: string, companyParams: unknown[]) {
+export async function getActivityResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "ACT");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
@@ -34,6 +34,7 @@ export async function getActivityResults(query: string, companyClause: string, c
     }
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
+  const filter = buildFilterClause(filters, { dateColumn: '"createdAt"' });
   const rows = await queryRows<Row>(
     `SELECT id, entityType, entityId, action, summary, createdAt
      FROM "ActivityLog"
@@ -44,10 +45,10 @@ export async function getActivityResults(query: string, companyClause: string, c
        OR LOWER(COALESCE(summary, '')) LIKE ?
        OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
      )
-     ${companyClause}
+     ${companyClause + filter.clause}
      ORDER BY "createdAt" DESC
      LIMIT 8`,
-    Array(5).fill(like).concat(companyParams),
+    Array(5).fill(like).concat(filter.params, companyParams),
   );
 
   return rows

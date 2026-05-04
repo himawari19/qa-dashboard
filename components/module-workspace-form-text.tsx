@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/badge";
 import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
 import { cn } from "@/lib/utils";
-import { WarningCircle } from "@phosphor-icons/react";
+import { Info, WarningCircle } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
 import type { ModuleKey } from "@/lib/modules";
 import type { FormField } from "@/components/module-workspace-form-field";
@@ -21,8 +21,17 @@ type Props = {
   sprintDuplicate: boolean;
   lastSprint: string | null;
   checkDuplicates: (title: string) => void;
+  checkSprintDuplicate: (sprint: string) => void;
   setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
+  versionSequenceLabel?: string;
 };
+
+function getNextVersion(version: string) {
+  const match = version.match(/^(v?)(\d+)\.(\d+)\.(\d+)$/i);
+  if (!match) return "";
+  const [, prefix, major, minor, patch] = match;
+  return `${prefix}${major}.${minor}.${Number(patch) + 1}`;
+}
 
 export function ModuleWorkspaceFormText({
   module,
@@ -33,39 +42,73 @@ export function ModuleWorkspaceFormText({
   sprintDuplicate,
   lastSprint,
   checkDuplicates,
+  checkSprintDuplicate,
   setSprintDuplicate,
+  versionSequenceLabel,
 }: Props) {
+  const value = editingRow ? String(editingRow[field.name] || "") : "";
+  const isLocked = Boolean(field.readonly);
+  const versionValue = versionSequenceLabel?.trim() || "";
+  const nextVersion = versionValue ? getNextVersion(versionValue) : "";
+  const initialValue = field.helperKind === "version-sequence" && !editingRow && nextVersion ? nextVersion : value;
+
+  if (isLocked) {
+    return (
+      <div className="flex min-h-12 w-full items-center rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed select-none">
+        {value || "—"}
+        <input type="hidden" name={field.name} value={value} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      <AutoResizeTextarea
-        name={field.name}
-        defaultValue={editingRow ? String(editingRow[field.name] || "") : ""}
-        required={field.required}
-        placeholder={field.placeholder ?? `Enter ${field.label}`}
-        disabled={module === "test-plans" && field.name === "scope"}
-        error={!!fieldError}
-        onChange={(e) => {
-          if (field.name === "title" || field.name === "caseName") {
-            checkDuplicates(e.target.value);
-          }
-          if (field.name === "sprint") {
-            const val = e.target.value.trim().toLowerCase();
-            if (val.length > 2) {
-              fetch("/api/items/sprints")
-                .then((r) => r.json())
-                .then((data) => {
-                  if (Array.isArray(data)) {
-                    setSprintDuplicate(data.some((s) => String(s.name || "").trim().toLowerCase() === val));
-                  }
-                })
-                .catch(() => {});
-            } else {
-              setSprintDuplicate(false);
+      <div className="relative">
+        <AutoResizeTextarea
+          name={field.name}
+          defaultValue={initialValue}
+          rows={field.kind === "textarea" ? (field.rows ?? 4) : 1}
+          required={field.required}
+          placeholder={field.placeholder ?? `Enter ${field.label}`}
+          disabled={module === "test-plans" && field.name === "scope"}
+          error={!!fieldError}
+          onChange={(e) => {
+            if (field.name === "title" || field.name === "caseName") {
+              checkDuplicates(e.target.value);
             }
-          }
-        }}
-        className={cn(field.name === "scope" && module === "test-plans" && "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed")}
-      />
+            if (field.name === "sprint") {
+              checkSprintDuplicate(e.target.value);
+            }
+          }}
+          className={cn(
+            field.kind === "textarea" ? "min-h-28" : "min-h-12 overflow-y-hidden",
+            field.helperKind === "version-sequence" && "pr-10",
+            field.name === "scope" && module === "test-plans" && "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed",
+          )}
+        />
+        {field.helperKind === "version-sequence" && (
+          <span
+            className="group absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full text-sky-600 outline-none dark:text-sky-300"
+          >
+            <Info size={14} weight="bold" />
+            <span className="pointer-events-none absolute right-0 bottom-full z-20 mb-2 w-max max-w-[240px] translate-y-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-700 opacity-0 shadow-lg transition group-hover:translate-y-0 group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              {versionValue ? (
+                <>
+                  Based on <span className="font-black">{versionValue}</span>
+                  {nextVersion ? (
+                    <>
+                      {" "}
+                      | next <span className="font-black">{nextVersion}</span>
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                "Version auto-filled from the latest entry."
+              )}
+            </span>
+          </span>
+        )}
+      </div>
       {field.name === "sprint" && lastSprint && (
         <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
           <span>

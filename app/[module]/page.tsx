@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { ModuleWorkspace } from "@/components/module-workspace";
-import { getModuleRows } from "@/lib/data";
+import { getAssigneeOptions, getModuleRows, getModuleRowsPage, getProjectOptions, getTestCaseStatsBySuiteIds, getTestPlanReferenceRows, getTestSuitesByPlanIds } from "@/lib/data";
 import { moduleOrder, moduleConfigs, type ModuleKey } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
+import { PAGE_SIZE } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,12 @@ export default async function ModulePage({
     notFound();
   }
 
+  const rawPage = Array.isArray(query.page) ? query.page[0] : query.page;
+  const requestedPage = Number(rawPage ?? 1);
+  const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
   let rows: Record<string, unknown>[] = [];
+  let totalItems = 0;
   let relatedOptions: Record<string, Array<{ label: string; value: string }>> = {};
   const initialFormValues: Record<string, string> = {};
   
@@ -37,19 +43,17 @@ export default async function ModulePage({
 
   const hiddenFields: string[] = [];
   try {
-    rows = await getModuleRows(moduleKey as ModuleKey);
+    const pageData = await getModuleRowsPage(moduleKey as ModuleKey, currentPage, PAGE_SIZE);
+    rows = pageData.rows as Record<string, unknown>[];
+    totalItems = pageData.total;
     if (moduleKey === "test-suites") {
-      const plans = await getModuleRows("test-plans");
+      const plans = await getTestPlanReferenceRows();
       const planMap = new Map<string, { project: string; title: string; publicToken: string }>();
-      const planLabelMap = new Map<string, string>();
-      const planTokenMap = new Map<string, string>();
       for (const plan of plans) {
         const row = plan as any;
         const id = String(row.id ?? "");
         if (!id) continue;
         planMap.set(id, row);
-        planLabelMap.set(id, String(row.title ?? ""));
-        planTokenMap.set(id, String(row.publicToken ?? ""));
       }
       
       relatedOptions = {
@@ -58,20 +62,7 @@ export default async function ModulePage({
           label: String(plan.title ?? ""),
         })),
       };
-
-      // Get test cases for stats
-      const allCases = await getModuleRows("test-cases");
-      const suiteStats = new Map<string, { passed: number; failed: number; total: number }>();
-      for (const tc of allCases) {
-        const row = tc as any;
-        const suiteId = String(row.testSuiteId ?? "");
-        const current = suiteStats.get(suiteId) ?? { passed: 0, failed: 0, total: 0 };
-        current.total += 1;
-        const status = String(row.status ?? "").toLowerCase();
-        if (status === "passed") current.passed += 1;
-        if (status === "failed") current.failed += 1;
-        suiteStats.set(suiteId, current);
-      }
+      const suiteStats = await getTestCaseStatsBySuiteIds(rows.map((suite: any) => suite.id));
 
       rows = rows.map((suite: any) => {
         const suiteId = String(suite.id ?? "");
@@ -110,7 +101,7 @@ export default async function ModulePage({
     }
 
     if (moduleKey === "test-plans") {
-      const suites = await getModuleRows("test-suites");
+      const suites = await getTestSuitesByPlanIds(rows.map((plan: any) => plan.id));
       const suitesByPlan = new Map<string, any[]>();
       for (const suite of suites) {
         const row = suite as any;
@@ -149,19 +140,11 @@ export default async function ModulePage({
     
     // Always fetch projects for modules that have a project select field
     if (["meeting-notes", "tasks", "bugs", "deployments"].includes(moduleKey)) {
-      const plans = await getModuleRows("test-plans");
-      // Fallback for case sensitivity in database results (project vs Project)
-      const projectNames = plans.map((p: any) => p.project || p.Project).filter(Boolean);
-      const uniqueProjects = Array.from(new Set(projectNames));
-      relatedOptions.project = uniqueProjects.map(p => ({ value: String(p), label: String(p) }));
+      relatedOptions.project = await getProjectOptions();
     }
 
     // Populate any field that uses team members
-    const team = await getModuleRows("assignees");
-    const teamOptions = team.map((member: any) => ({
-      value: String(member.name),
-      label: String(member.name),
-    }));
+    const teamOptions = await getAssigneeOptions();
 
     const config = moduleConfigs[moduleKey as ModuleKey];
     if (config) {
@@ -175,6 +158,14 @@ export default async function ModulePage({
     console.error(`Failed to load module rows for ${moduleKey}:`, error);
   }
 
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+
+  if (safePage !== currentPage) {
+    const pageData = await getModuleRowsPage(moduleKey as ModuleKey, safePage, PAGE_SIZE);
+    rows = pageData.rows as Record<string, unknown>[];
+  }
+
   const plainRows = JSON.parse(JSON.stringify(rows));
   const plainRelatedOptions = JSON.parse(JSON.stringify(relatedOptions));
 
@@ -182,6 +173,9 @@ export default async function ModulePage({
     <ModuleWorkspace 
       module={moduleKey as ModuleKey} 
       rows={plainRows} 
+      currentPage={safePage}
+      totalPages={totalPages}
+      totalItems={totalItems} 
       relatedOptions={plainRelatedOptions} 
       initialFormValues={initialFormValues} 
       hiddenFields={hiddenFields} 

@@ -26,6 +26,7 @@
 - **Navigation**: Use `router.refresh()`, NOT `window.location.reload()`.
 - **Imports**: Always check if `moduleConfigs` is imported in `app/[module]/page.tsx` before use.
 - **Visuals**: Modern, premium UI. Use Tailwind classes. NO hardcoded hex (except CSS vars).
+- **Versioning**: `package.json` version is the source of truth. Current app version is `0.1.0`; for major upgrades, bump the version and note the change in the release/commit summary.
 
 ## Do NOT
 - Add npm packages without checking `package.json`.

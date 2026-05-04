@@ -100,7 +100,7 @@ describe("weekly report page", () => {
 
     const errorMarkup = renderReportPage();
 
-    expect(errorMarkup).toContain("Weekly report gagal dimuat.");
+    expect(errorMarkup).toContain("Failed to load weekly report.");
     expect(errorMarkup).toContain("weekly report unavailable");
     expect(mocks.pageShell).toHaveBeenNthCalledWith(
       2,

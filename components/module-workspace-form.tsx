@@ -37,7 +37,9 @@ type ModuleWorkspaceFormProps = {
   onSubmit: (formData: FormData) => void;
   onCancel: () => void;
   checkDuplicates: (title: string) => void;
+  checkSprintDuplicate: (sprint: string) => void;
   setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
+  versionSequenceLabel?: string;
 };
 
 export function ModuleWorkspaceForm({
@@ -68,7 +70,9 @@ export function ModuleWorkspaceForm({
   onSubmit,
   onCancel,
   checkDuplicates,
+  checkSprintDuplicate,
   setSprintDuplicate,
+  versionSequenceLabel,
 }: ModuleWorkspaceFormProps) {
   return (
     <div id="module-form-section" className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
@@ -123,7 +127,9 @@ export function ModuleWorkspaceForm({
                     dateWarnings={dateWarnings}
                     setDateWarnings={setDateWarnings}
                     checkDuplicates={checkDuplicates}
+                    checkSprintDuplicate={checkSprintDuplicate}
                     setSprintDuplicate={setSprintDuplicate}
+                    versionSequenceLabel={versionSequenceLabel}
                   />
                 </label>
               );

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const priority = String(formData.get("priority") || "Medium");
 
     if (!testSuiteId || !tcId || !typeCase || !caseName || !testStep || !expectedResult) {
-      return NextResponse.json({ error: "Selesaikan semua form yang wajib diisi." }, { status: 400 });
+      return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });
     }
 
     if (!isAdmin) {
@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
       revalidatePath(`/test-suites/execute/${String((suite as Record<string, unknown>).publicToken)}`);
     }
 
-    return NextResponse.json({ message: "Test case berhasil ditambahkan." });
+    return NextResponse.json({ message: "Test case added successfully." });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Gagal menyimpan test case.";
+    const message = error instanceof Error ? error.message : "Failed to save test case.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
@@ -71,7 +71,7 @@ export async function DELETE(request: NextRequest) {
   const id = idStr ? Number(idStr) : null;
 
   if (!id) {
-    return NextResponse.json({ error: "ID tidak valid." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid ID." }, { status: 400 });
   }
 
   try {
@@ -83,7 +83,7 @@ export async function DELETE(request: NextRequest) {
       [id, ...companyParam]
     ) as { testSuiteId?: string } | undefined;
 
-    if (!tc) return NextResponse.json({ error: "Test case tidak ditemukan." }, { status: 404 });
+    if (!tc) return NextResponse.json({ error: "Test case not found." }, { status: 404 });
 
     await db.run(
       `UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${companyFilter}`,
@@ -98,9 +98,9 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ message: "Test case berhasil dihapus." });
+    return NextResponse.json({ message: "Test case deleted successfully." });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Gagal menghapus test case.";
+    const message = error instanceof Error ? error.message : "Failed to delete test case.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
     const rows = data.rows as Record<string, unknown>[];
 
     if (!rows || !Array.isArray(rows)) {
-      return NextResponse.json({ error: "Data eksekusi tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid execution data." }, { status: 400 });
     }
 
     const companyFilter = isAdmin ? "" : ' AND "company" = ?';
@@ -137,9 +137,9 @@ export async function PUT(request: NextRequest) {
 
     revalidatePath("/test-cases");
 
-    return NextResponse.json({ message: "Eksekusi berhasil disimpan!" });
+    return NextResponse.json({ message: "Execution saved successfully." });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Gagal menyimpan eksekusi test case.";
+    const message = error instanceof Error ? error.message : "Failed to save test case execution.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

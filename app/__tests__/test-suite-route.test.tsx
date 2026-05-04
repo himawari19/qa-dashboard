@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   },
   getTestSuiteByToken: vi.fn(),
   getTestCasesByScenario: vi.fn(),
+  getTestPlanById: vi.fn(),
   getCurrentUser: vi.fn(),
   isAdminUser: vi.fn(),
   detail: vi.fn(() => <div data-testid="suite-detail" />),
@@ -23,7 +24,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/data", () => ({
   getTestSuiteByToken: mocks.getTestSuiteByToken,
   getTestCasesByScenario: mocks.getTestCasesByScenario,
-  getTestPlanByToken: vi.fn(),
+  getTestPlanById: mocks.getTestPlanById,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -66,6 +67,13 @@ describe("test suite route", () => {
     mocks.getTestCasesByScenario.mockResolvedValueOnce([
       { id: 1, tcId: "TC-1" },
     ]);
+    mocks.getTestPlanById.mockResolvedValueOnce({
+      id: "p1",
+      title: "Plan A",
+      project: "QA Hub",
+      sprint: "Sprint 1",
+      publicToken: "plan-token",
+    });
     mocks.db.query.mockResolvedValueOnce([
       { id: 10, date: "2026-04-30", tester: "Rina", sprint: "Sprint 1", project: "QA Hub", totalCases: 1, passed: 1, failed: 0, blocked: 0, result: "passed", notes: "" },
     ]);
@@ -89,10 +97,7 @@ describe("test suite route", () => {
       `SELECT * FROM "TestSession" WHERE "scope" = ? AND "company" = ? ORDER BY "date" DESC LIMIT 20`,
       ["Suite A", "acme"],
     );
-    expect(mocks.db.get).toHaveBeenCalledWith(
-      'SELECT * FROM "TestPlan" WHERE "id" = ? AND "deletedAt" IS NULL',
-      ["p1"],
-    );
+    expect(mocks.getTestPlanById).toHaveBeenCalledWith("p1");
     expect(mocks.detail).toHaveBeenCalled();
 
     const detailMock = mocks.detail as unknown as {

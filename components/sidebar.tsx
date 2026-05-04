@@ -83,8 +83,8 @@ function SidebarTooltip({ tooltip }: { tooltip: TooltipState }) {
   if (!tooltip) return null;
   return createPortal(
     <div
-      className="pointer-events-none fixed z-[9999] left-[76px] flex items-center"
-      style={{ top: tooltip.y }}
+      className="pointer-events-none fixed z-[var(--z-tooltip)] flex items-center"
+      style={{ top: tooltip.y, left: "calc(var(--sidebar-collapsed) + 4px)" }}
     >
       <div className="rounded-md bg-slate-900 dark:bg-slate-700 px-2.5 py-1.5 text-xs font-semibold text-white shadow-xl whitespace-nowrap">
         <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900 dark:border-r-slate-700" />
@@ -127,7 +127,7 @@ export function NotificationPanel({
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full z-[300] mt-2 w-80 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in fade-in slide-in-from-top-2 duration-150 dark:bg-slate-900 dark:ring-white/10"
+      className="absolute right-0 top-full z-[var(--z-notification)] mt-2 w-80 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in fade-in slide-in-from-top-2 duration-150 dark:bg-slate-900 dark:ring-white/10"
     >
       <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
         <p className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Notifications</p>
@@ -153,7 +153,7 @@ export function NotificationPanel({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-800 dark:text-white leading-snug truncate">{n.title}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5 truncate">{n.detail}</p>
+                <p className="text-xs text-slate-400 mt-0.5 truncate">{n.detail}</p>
               </div>
             </Link>
           ))}
@@ -177,13 +177,25 @@ function SidebarNavItem({
   hideTooltip: () => void;
 }) {
   const Icon = item.icon;
+  const linkRef = useRef<HTMLAnchorElement | null>(null);
   const active =
     pathname === item.href ||
     pathname.startsWith(`${item.href}/`) ||
     (item.href === "/test-cases" && pathname.startsWith("/test-cases/"));
 
+  useEffect(() => {
+    if (!active) return;
+    const node = linkRef.current;
+    if (!node) return;
+    const timer = window.setTimeout(() => {
+      node.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [active, pathname]);
+
   return (
     <Link
+      ref={linkRef}
       href={item.href}
       onMouseEnter={(e) => showTooltip(e, item.label)}
       onMouseLeave={hideTooltip}
@@ -191,11 +203,11 @@ function SidebarNavItem({
         "group relative flex h-10 items-center rounded-md text-sm font-semibold transition-all duration-200",
         collapsed ? "justify-center px-0" : "gap-3 px-3",
         active
-          ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
-          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white",
+          ? "bg-sky-500/15 text-sky-700 ring-1 ring-sky-300/40 dark:bg-sky-400/10 dark:text-sky-300 dark:ring-sky-500/30"
+          : "text-slate-600 dark:text-slate-400 hover:bg-sky-100 hover:text-sky-800 dark:hover:bg-white/10 dark:hover:text-white",
       )}
     >
-      {active && !collapsed && <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sky-600 shadow-[0_0_8px_rgba(14,165,233,0.6)]" />}
+      {active && !collapsed && <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sky-600 shadow-[0_0_10px_rgba(14,165,233,0.7)]" />}
       <Icon
         size={18}
         weight="bold"
@@ -230,7 +242,7 @@ function SidebarSection({
       {group.title && (
         <div
           className={cn(
-            "px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600 transition-all duration-300 whitespace-nowrap overflow-hidden",
+            "px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600 transition-all duration-300 whitespace-nowrap overflow-hidden",
             collapsed ? "opacity-0 h-0" : "opacity-100 h-auto mt-2",
           )}
         >
@@ -315,7 +327,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 top-0 z-40 flex h-full border-r border-slate-200/50 dark:border-white/5 bg-white/70 dark:bg-black/40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] backdrop-blur-xl",
+          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/50 dark:border-white/5 bg-white/70 dark:bg-black/40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] backdrop-blur-xl",
           collapsed ? "w-[72px]" : "w-[240px]",
         )}
       >

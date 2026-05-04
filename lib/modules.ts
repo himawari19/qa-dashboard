@@ -28,6 +28,7 @@ type Field =
       required?: boolean;
       readonly?: boolean;
       span?: 1 | 2 | 3;
+      helperKind?: "version-sequence";
     }
   | {
       name: string;
@@ -37,6 +38,7 @@ type Field =
       required?: boolean;
       rows?: number;
       span?: 1 | 2 | 3;
+      helperKind?: "version-sequence";
     }
   | {
       name: string;
@@ -45,6 +47,7 @@ type Field =
       options: Option[];
       required?: boolean;
       span?: 1 | 2 | 3;
+      helperKind?: "version-sequence";
     };
 
 type Column = {
@@ -693,7 +696,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "date", label: "Deployment Date", kind: "date", required: true },
-      { name: "version", label: "Version / Tag", kind: "text", placeholder: "e.g. v1.3.0", required: true },
+      { name: "version", label: "Version / Tag", kind: "text", placeholder: "e.g. v1.3.0", required: true, helperKind: "version-sequence" },
       { name: "project", label: "Project", kind: "select", options: [], required: true },
       { name: "environment", label: "Environment", kind: "select", options: deploymentEnvOptions, required: true },
       { name: "developer", label: "Developer Name", kind: "text", placeholder: "e.g. John Doe", required: true },

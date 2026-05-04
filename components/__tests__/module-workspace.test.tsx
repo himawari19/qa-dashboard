@@ -12,6 +12,8 @@ vi.mock("next/navigation", () => ({
     back: vi.fn(),
     prefetch: vi.fn(),
   }),
+  usePathname: () => "/users",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("next/link", () => ({
@@ -106,6 +108,9 @@ function renderWorkspace(module: ModuleKey, userRole: string) {
           role: "lead",
         },
       ]}
+      currentPage={1}
+      totalPages={1}
+      totalItems={1}
       user={{ role: userRole, company: "acme" }}
     />,
   );

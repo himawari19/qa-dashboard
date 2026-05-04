@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTestSuiteByToken, getTestCasesByScenario, getTestPlanByToken } from "@/lib/data";
+import { getTestSuiteByToken, getTestCasesByScenario, getTestPlanById } from "@/lib/data";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
@@ -27,9 +27,7 @@ export default async function TestSuiteDetailPage({ params }: { params: Promise<
       `SELECT * FROM "TestSession" WHERE "scope" = ?${andCompany} ORDER BY "date" DESC LIMIT 20`,
       [suite.title, ...companyParam]
     ),
-    suite.testPlanId
-      ? db.get('SELECT * FROM "TestPlan" WHERE "id" = ? AND "deletedAt" IS NULL', [suite.testPlanId])
-      : Promise.resolve(null),
+    suite.testPlanId ? getTestPlanById(suite.testPlanId) : Promise.resolve(null),
   ]);
 
   const cases = JSON.parse(JSON.stringify(casesRaw));
