@@ -7,7 +7,7 @@ export async function getDeploymentResults(query: string, companyClause: string,
     const exactRow = await queryFirst<Row>(
       `SELECT id, date, version, project, environment, developer, changelog, status, notes, updatedAt
        FROM "Deployment"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

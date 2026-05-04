@@ -9,8 +9,8 @@ export async function getTestCaseResults(query: string, companyClause: string, c
               tc."testSuiteId", ts.title AS suiteTitle, ts."publicToken" AS suiteToken,
               tp.title AS planTitle, tp.project AS planProject, tc.updatedAt
        FROM "TestCase" tc
-       LEFT JOIN "TestSuite" ts ON ts.id = tc."testSuiteId" AND ts."deletedAt" IS NULL
-       LEFT JOIN "TestPlan" tp ON tp.id = ts."testPlanId" AND tp."deletedAt" IS NULL
+  LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
+  LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
        WHERE tc."deletedAt" IS NULL AND tc.id = ?
          ${companyClause.replace(/"company"/g, 'tc."company"')}
        ORDER BY tc."updatedAt" DESC
@@ -55,8 +55,8 @@ export async function getTestCaseResults(query: string, companyClause: string, c
             tc."testSuiteId", ts.title AS suiteTitle, ts."publicToken" AS suiteToken,
             tp.title AS planTitle, tp.project AS planProject, tc.updatedAt
      FROM "TestCase" tc
-     LEFT JOIN "TestSuite" ts ON ts.id = tc."testSuiteId" AND ts."deletedAt" IS NULL
-     LEFT JOIN "TestPlan" tp ON tp.id = ts."testPlanId" AND tp."deletedAt" IS NULL
+  LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
+  LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
      WHERE tc."deletedAt" IS NULL
        AND (
          LOWER(COALESCE(tc.tcId, '')) LIKE ?

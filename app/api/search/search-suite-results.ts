@@ -6,7 +6,7 @@ export async function getSuiteResults(query: string, companyClause: string, comp
     const exactRow = await queryFirst<Row>(
       `SELECT id, title, assignee, status, notes, "publicToken", "testPlanId", "updatedAt"
        FROM "TestSuite"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],
@@ -40,7 +40,7 @@ export async function getSuiteResults(query: string, companyClause: string, comp
     `SELECT ts.id, ts.title, ts.status, ts.assignee, ts.notes, ts."publicToken", ts."testPlanId",
             tp.title AS planTitle, tp.project AS planProject, ts."updatedAt"
      FROM "TestSuite" ts
-     LEFT JOIN "TestPlan" tp ON tp.id = ts."testPlanId" AND tp."deletedAt" IS NULL
+     LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
      WHERE ts."deletedAt" IS NULL
        AND (
          LOWER(COALESCE(ts.title, '')) LIKE ?

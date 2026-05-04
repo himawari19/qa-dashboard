@@ -52,12 +52,12 @@ export async function PATCH(request: NextRequest) {
       const hashedPassword = await hashPassword(password);
       
       await db.run(
-        'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?',
+        'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
         [name.trim(), role?.trim() || "viewer", hashedPassword, user.id]
       );
     } else {
       await db.run(
-        'UPDATE "User" SET "name" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?',
+        'UPDATE "User" SET "name" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
         [name.trim(), role?.trim() || "viewer", user.id]
       );
     }

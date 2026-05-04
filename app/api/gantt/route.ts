@@ -77,7 +77,7 @@ export async function PATCH(request: Request) {
   const table = type === "sprint" ? "Sprint" : "TestPlan";
 
   const row = await db.get(
-    `SELECT * FROM "${table}" WHERE "id" = ?${andCompany} LIMIT 1`,
+    `SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER)${andCompany} LIMIT 1`,
     [id, ...cp]
   ) as Record<string, unknown> | undefined;
 

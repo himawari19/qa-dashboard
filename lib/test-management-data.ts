@@ -88,11 +88,11 @@ export async function getTestPlanById(planId: string | number) {
   if (cached !== null) return cached;
   const item = shouldFilter
     ? await db.get(
-        'SELECT * FROM "TestPlan" WHERE "id" = ? AND "deletedAt" IS NULL AND "company" = ?',
+        'SELECT * FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL AND "company" = ?',
         [planId, scope.company],
       ) as Record<string, unknown> | undefined
     : await db.get(
-        'SELECT * FROM "TestPlan" WHERE "id" = ? AND "deletedAt" IS NULL',
+        'SELECT * FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL',
         [planId],
       ) as Record<string, unknown> | undefined;
   if (!item) return null;
@@ -174,7 +174,7 @@ export async function getTestSuite(id: string | number) {
   const qParams = isAdmin ? [] : [company];
 
   const item = await db.get(
-    `SELECT * FROM "TestSuite" WHERE id = ? AND "deletedAt" IS NULL ${andWhere}`,
+    `SELECT * FROM "TestSuite" WHERE id = CAST(? AS INTEGER) AND "deletedAt" IS NULL ${andWhere}`,
     [id, ...qParams],
   ) as Record<string, unknown> | undefined;
   if (!item) return null;
@@ -281,8 +281,8 @@ export async function getTestCasesByScenario(suiteId: string | number) {
   if (cached !== null) return cached;
   const rows = await selectAll(
     shouldFilter
-      ? `SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL AND "company" = ? ORDER BY id ASC`
-      : `SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ORDER BY id ASC`,
+      ? `SELECT * FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL AND "company" = ? ORDER BY id ASC`
+      : `SELECT * FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL ORDER BY id ASC`,
     shouldFilter ? [suiteId, scope.company] : [suiteId],
   );
   return setCached(cacheKey("cases-suite", scope, String(suiteId)), rows);
@@ -303,7 +303,7 @@ export async function getTestCasesByScenarioIds(suiteIds: Array<string | number>
     `SELECT * FROM "TestCase"
      WHERE "deletedAt" IS NULL
      ${shouldFilter ? ' AND "company" = ?' : ""}
-     AND "testSuiteId" IN (${placeholders})
+     AND "testSuiteId" IN (${ids.map(() => "CAST(? AS TEXT)").join(", ")})
      ORDER BY "testSuiteId" ASC, id ASC`,
     shouldFilter ? [scope.company, ...ids] : ids,
   );
@@ -410,8 +410,8 @@ export async function getAllTestCasesWithSuite() {
     `SELECT tc.*, ts.title AS suiteTitle, ts.publicToken AS suiteToken, ts.status AS suiteStatus,
             tp.title AS planTitle, tp.project AS planProject
      FROM "TestCase" tc
-     LEFT JOIN "TestSuite" ts ON ts.id = tc."testSuiteId" AND ts."deletedAt" IS NULL
-     LEFT JOIN "TestPlan" tp ON tp.id = ts."testPlanId" AND tp."deletedAt" IS NULL
+      LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
+      LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
      WHERE tc."deletedAt" IS NULL${andWhere}
      ORDER BY tc."testSuiteId" ASC, tc.id ASC`,
     qParams,

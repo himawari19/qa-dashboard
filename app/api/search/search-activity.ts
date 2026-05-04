@@ -7,7 +7,7 @@ export async function getActivityResults(query: string, companyClause: string, c
     const exactRow = await queryFirst<Row>(
       `SELECT id, entityType, entityId, action, summary, createdAt
        FROM "ActivityLog"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "createdAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

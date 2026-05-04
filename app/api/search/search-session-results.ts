@@ -7,7 +7,7 @@ export async function getSessionResults(query: string, companyClause: string, co
     const exactRow = await queryFirst<Row>(
       `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, updatedAt
        FROM "TestSession"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

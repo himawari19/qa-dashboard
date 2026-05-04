@@ -6,7 +6,7 @@ export async function getUserResults(query: string, companyClause: string, compa
     const exactRow = await queryFirst<Row>(
       `SELECT id, name, username, email, role, updatedAt
        FROM "User"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

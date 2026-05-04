@@ -97,7 +97,7 @@ export async function getTestSuitesByPlanIds(planIds: Array<string | number>) {
      FROM "TestSuite"
      WHERE "deletedAt" IS NULL
      ${isAdmin ? "" : ' AND "company" = ?'}
-     AND "testPlanId" IN (${placeholders})
+     AND "testPlanId" IN (${ids.map(() => "CAST(? AS TEXT)").join(", ")})
      ORDER BY "updatedAt" DESC`,
     isAdmin ? ids : [company, ...ids],
   );
@@ -123,7 +123,7 @@ export async function getTestCaseStatsBySuiteIds(suiteIds: Array<string | number
      FROM "TestCase" tc
      WHERE tc."deletedAt" IS NULL
      ${isAdmin ? "" : ' AND tc."company" = ?'}
-     AND tc."testSuiteId" IN (${placeholders})
+     AND tc."testSuiteId" IN (${ids.map(() => "CAST(? AS TEXT)").join(", ")})
      GROUP BY tc."testSuiteId"`,
     isAdmin ? ids : [company, ...ids],
   );
@@ -575,7 +575,7 @@ export async function getModuleRows(module: ModuleKey) {
         )
         SELECT ts.*, COALESCE(cs.passed, 0) as passed, COALESCE(cs.failed, 0) as failed, COALESCE(cs.blocked, 0) as blocked
          FROM "TestSuite" ts
-         LEFT JOIN case_stats cs ON cs.suiteId = ts.id
+          LEFT JOIN case_stats cs ON CAST(cs.suiteId AS INTEGER) = ts.id
          WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC`,
         isAdmin ? [] : [company, company]
       )).map((item) => ({
@@ -711,7 +711,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
         )
         SELECT ts.*, COALESCE(cs.passed, 0) as passed, COALESCE(cs.failed, 0) as failed, COALESCE(cs.blocked, 0) as blocked
          FROM "TestSuite" ts
-         LEFT JOIN case_stats cs ON cs.suiteId = ts.id
+          LEFT JOIN case_stats cs ON CAST(cs.suiteId AS INTEGER) = ts.id
          WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC${limitClause}`,
         isAdmin ? [] : [company, company]
       )).map((item) => ({
@@ -912,7 +912,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "Task"
          SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "dueDate" = ?, "description" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`);
@@ -923,7 +923,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "Bug"
          SET "project" = ?, "module" = ?, "bugType" = ?, "title" = ?, "preconditions" = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, "severity" = ?, "priority" = ?, "status" = ?, "evidence" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, id, ...companyParam]
       );
       await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`);
@@ -934,7 +934,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "TestPlan"
          SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`);
@@ -946,7 +946,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "TestSession"
          SET "date" = ?, "project" = ?, "sprint" = ?, "tester" = ?, "scope" = ?, "totalCases" = ?, "passed" = ?, "failed" = ?, "blocked" = ?, "result" = ?, "notes" = ?, "evidence" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id, ...companyParam]
       );
       await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`);
@@ -956,7 +956,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "TestCase"
          SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
       );
       await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
@@ -968,7 +968,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "TestSuite"
          SET "testPlanId" = ?, "title" = ?, "assignee" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id, ...companyParam]
       );
       await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`);
@@ -979,7 +979,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "Assignee"
          SET "name" = ?, "role" = ?, "email" = ?, "skills" = ?, "status" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status, id, ...companyParam]
       );
       await logActivity(company, "Assignee", String(data.name), "Updated", `Profile for ${data.name} updated`);
@@ -991,7 +991,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       if (data.password) {
         const hashedPassword = await hashPassword(data.password);
         const res = await db.run(
-          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${companyFilter}`,
+          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
           [data.name, data.username, data.role, hashedPassword, id, ...companyParam]
         );
         await logActivity(company, "User", String(data.username), "Updated", `Security settings for ${data.username} updated`);
@@ -999,7 +999,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         return res;
       } else {
         const res = await db.run(
-          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${companyFilter}`,
+          `UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
           [data.name, data.username, data.role, id, ...companyParam]
         );
         await logActivity(company, "User", String(data.username), "Updated", `User info for ${data.username} updated`);
@@ -1011,7 +1011,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "Sprint"
          SET "name" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.name, data.startDate, data.endDate, data.status, data.goal ?? "", id, ...companyParam]
       );
       await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`);
@@ -1022,7 +1022,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "MeetingNote"
          SET "date" = ?, "project" = ?, "title" = ?, "attendees" = ?, "content" = ?, "actionItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.project, data.title, data.attendees ?? "", data.content ?? "", data.actionItems ?? "", id, ...companyParam]
       );
       await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`);
@@ -1033,7 +1033,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const res = await db.run(
         `UPDATE "Deployment"
          SET "date" = ?, "version" = ?, "project" = ?, "environment" = ?, "developer" = ?, "changelog" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = ?${companyFilter}`,
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, data.notes ?? "", id, ...companyParam]
       );
       await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`);
@@ -1055,13 +1055,13 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
   const entityId = String(id);
   
   if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
-    const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = ?${companyFilter}`, [id, ...companyParam]);
+    const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
     await logActivity(company, table, entityId, "Deleted", `${table} removed`);
     invalidateDashboardCache(company);
     return res;
   }
   
-  const res = await db.run(`DELETE FROM "${table}" WHERE id = ?${companyFilter}`, [id, ...companyParam]);
+  const res = await db.run(`DELETE FROM "${table}" WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
   await logActivity(company, table, entityId, "Deleted", `${table} permanently deleted`);
   invalidateDashboardCache(company);
   return res;
@@ -1088,7 +1088,7 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
 
   const table = getTableName(module);
   if (!table) return null;
-  const res = await db.run(`UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${andWhere}`, [status, id, ...qParams]);
+  const res = await db.run(`UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${andWhere}`, [status, id, ...qParams]);
   await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`);
   invalidateDashboardCache(company);
   return res;

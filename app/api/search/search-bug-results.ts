@@ -6,7 +6,7 @@ export async function getBugResults(query: string, companyClause: string, compan
     const exactRow = await queryFirst<Row>(
       `SELECT id, title, project, module, severity, priority, status, stepsToReproduce, expectedResult, actualResult, updatedAt
        FROM "Bug"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

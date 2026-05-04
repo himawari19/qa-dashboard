@@ -6,7 +6,7 @@ export async function getAssigneeResults(query: string, companyClause: string, c
     const exactRow = await queryFirst<Row>(
       `SELECT id, name, role, email, skills, status, updatedAt
        FROM "Assignee"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

@@ -6,8 +6,8 @@ export async function GET() {
     const rows = await db.query(
       `SELECT s.id, s.title, s."testPlanId", p.code as "testPlanCode", p.title as "testPlanTitle"
        FROM "TestSuite" s
-       LEFT JOIN "TestPlan" p ON p.id = s."testPlanId"
-       INNER JOIN "TestCase" c ON c."testSuiteId" = CAST(s.id AS TEXT)
+      LEFT JOIN "TestPlan" p ON p.id = CAST(s."testPlanId" AS INTEGER)
+      INNER JOIN "TestCase" c ON CAST(c."testSuiteId" AS INTEGER) = s.id
        WHERE s."deletedAt" IS NULL AND c."deletedAt" IS NULL
        GROUP BY s.id, s.title, s."testPlanId", p.code, p.title
        ORDER BY MAX(s."updatedAt") DESC

@@ -6,7 +6,7 @@ export async function getTaskResults(query: string, companyClause: string, compa
     const exactRow = await queryFirst<Row>(
       `SELECT id, title, project, relatedFeature, category, status, priority, description, updatedAt
        FROM "Task"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

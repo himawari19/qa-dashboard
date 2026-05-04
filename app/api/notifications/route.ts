@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, isPostgres } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
 
@@ -11,12 +11,18 @@ export async function GET() {
   const isAdmin = isAdminUser(user.role, company);
   const andCompany = isAdmin ? "" : ` AND "company" = ?`;
   const cp = isAdmin ? [] : [company];
+  const endDateExpr = isPostgres ? `("endDate")::date` : `DATE("endDate")`;
+  const createdAtExpr = isPostgres ? `("createdAt")::date` : `DATE("createdAt")`;
+  const nowExpr = isPostgres ? "CURRENT_DATE" : "DATE('now')";
+  const plus3Expr = isPostgres ? "CURRENT_DATE + INTERVAL '3 days'" : "DATE('now', '+3 days')";
+  const plus2Expr = isPostgres ? "CURRENT_DATE + INTERVAL '2 days'" : "DATE('now', '+2 days')";
+  const minus7Expr = isPostgres ? "CURRENT_DATE - INTERVAL '7 days'" : "DATE('now', '-7 days')";
 
   const notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] = [];
 
   // Bugs open for more than 7 days
   const overdueBugs = await db.query(
-    `SELECT id, title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND DATE("createdAt") <= DATE('now', '-7 days')${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
+    `SELECT id, title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${createdAtExpr} <= ${minus7Expr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
     [...cp]
   ) as any[];
 
@@ -37,8 +43,8 @@ export async function GET() {
      WHERE status != 'completed'
        AND status != 'closed'
        AND COALESCE("endDate", '') != ''
-       AND "endDate" >= DATE('now')
-       AND "endDate" <= DATE('now', '+3 days')
+       AND ${endDateExpr} >= ${nowExpr}
+       AND ${endDateExpr} <= ${plus3Expr}
        ${andCompany}
      ORDER BY "endDate" ASC LIMIT 5`,
     [...cp]
@@ -62,8 +68,8 @@ export async function GET() {
        AND status != 'completed'
        AND "deletedAt" IS NULL
        AND COALESCE("endDate", '') != ''
-       AND "endDate" >= DATE('now')
-       AND "endDate" <= DATE('now', '+2 days')
+       AND ${endDateExpr} >= ${nowExpr}
+       AND ${endDateExpr} <= ${plus2Expr}
        ${andCompany}
      ORDER BY "endDate" ASC LIMIT 5`,
     [...cp]

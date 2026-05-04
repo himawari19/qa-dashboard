@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isAdmin) {
-      const suite = await db.get('SELECT "company" FROM "TestSuite" WHERE "id" = ? AND "deletedAt" IS NULL', [testSuiteId]) as { company?: string } | undefined;
+      const suite = await db.get('SELECT "company" FROM "TestSuite" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL', [testSuiteId]) as { company?: string } | undefined;
       if (!suite || suite.company !== company) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -79,14 +79,14 @@ export async function DELETE(request: NextRequest) {
     const companyParam = isAdmin ? [] : [company];
 
     const tc = await db.get(
-      `SELECT "testSuiteId" FROM "TestCase" WHERE id = ?${companyFilter}`,
+      `SELECT "testSuiteId" FROM "TestCase" WHERE id = CAST(? AS INTEGER)${companyFilter}`,
       [id, ...companyParam]
     ) as { testSuiteId?: string } | undefined;
 
     if (!tc) return NextResponse.json({ error: "Test case not found." }, { status: 404 });
 
     await db.run(
-      `UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?${companyFilter}`,
+      `UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
       [id, ...companyParam]
     );
 
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
         await db.run(
           `UPDATE "TestCase"
            SET status = ?, "actualResult" = ?, evidence = ?, priority = ?, "updatedAt" = CURRENT_TIMESTAMP
-           WHERE id = ?${companyFilter}`,
+           WHERE id = CAST(? AS INTEGER)${companyFilter}`,
           [tc.status || "Pending", tc.actualResult || "", tc.evidence || "", tc.priority || "Medium", tc.id, ...companyParam]
         );
       }

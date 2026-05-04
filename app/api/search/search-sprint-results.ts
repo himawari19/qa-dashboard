@@ -6,7 +6,7 @@ export async function getSprintResults(query: string, companyClause: string, com
     const exactRow = await queryFirst<Row>(
       `SELECT id, name, startDate, endDate, status, goal, updatedAt
        FROM "Sprint"
-       WHERE id = ?${companyClause}
+       WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],

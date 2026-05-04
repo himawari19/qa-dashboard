@@ -149,7 +149,7 @@ export async function syncSprintFromTestPlan({
 
   if (existing) {
     await db.run(
-      `UPDATE "Sprint" SET "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`,
+      `UPDATE "Sprint" SET "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
       [startDate ?? "", endDate ?? "", status, goal ?? "", existing.id],
     );
   } else {

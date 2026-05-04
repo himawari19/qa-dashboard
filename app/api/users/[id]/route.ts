@@ -21,12 +21,12 @@ export async function PATCH(
       const { hashPassword } = await import("@/lib/auth-core");
       const hashedPassword = await hashPassword(password);
       await db.run(
-        'UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?',
+        'UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
         [name, username, role, hashedPassword, id]
       );
     } else {
       await db.run(
-        'UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?',
+        'UPDATE "User" SET "name" = ?, "username" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
         [name, username, role, id]
       );
     }
@@ -54,7 +54,7 @@ export async function DELETE(
   }
 
   try {
-    await db.run('DELETE FROM "User" WHERE "id" = ?', [id]);
+    await db.run('DELETE FROM "User" WHERE "id" = CAST(? AS INTEGER)', [id]);
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     return NextResponse.json({ error: "Failed to delete user." }, { status: 500 });
