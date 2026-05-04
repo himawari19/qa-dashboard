@@ -297,7 +297,10 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   const sprintPassRates = await Promise.all(
     recentSprintsForRate.map(async (sp: any) => {
       const sessions = await selectAll(
-        `SELECT passed, "totalCases" FROM "TestSession" WHERE DATE("date") BETWEEN ? AND ? ${projectAndWhere}`,
+        `SELECT passed, "totalCases" FROM "TestSession"
+         WHERE COALESCE("date", '') != ''
+           AND "date" BETWEEN ? AND ?
+           ${projectAndWhere}`,
         [sp.startDate, sp.endDate, ...projectParams]
       ) as any[];
       const totalPassed = sessions.reduce((s: number, r: any) => s + Number(r.passed), 0);

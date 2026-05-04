@@ -35,6 +35,10 @@ const dayExpr = isPostgres
   : `CAST(julianday('now') - julianday("updatedAt") AS INTEGER)`;
 ```
 
+**Text dates in prod:** For legacy text date cols (`startDate`, `endDate`, `date`), avoid raw `DATE(col)` on possibly empty values. Guard with `COALESCE(col, '') != ''` and compare ISO strings when possible.
+
+**Bulk writes:** Any `IN (...)` write path must return early on empty arrays before building SQL.
+
 **`toPostgresQuery()`** auto-converts `DATE('now',...)` and `?`→`$n` but does NOT quote columns.
 
 **UNION params:** count `?` per branch — e.g. two branches with `andCompany` needs `[...cp, ...cp]`.

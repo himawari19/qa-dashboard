@@ -33,7 +33,14 @@ export async function GET() {
 
   // Sprints ending within 3 days
   const deadlineSprints = await db.query(
-    `SELECT id, name, "endDate" FROM "Sprint" WHERE status != 'completed' AND status != 'closed' AND "endDate" IS NOT NULL AND DATE("endDate") >= DATE('now') AND DATE("endDate") <= DATE('now', '+3 days')${andCompany} ORDER BY "endDate" ASC LIMIT 5`,
+    `SELECT id, name, "endDate" FROM "Sprint"
+     WHERE status != 'completed'
+       AND status != 'closed'
+       AND COALESCE("endDate", '') != ''
+       AND "endDate" >= DATE('now')
+       AND "endDate" <= DATE('now', '+3 days')
+       ${andCompany}
+     ORDER BY "endDate" ASC LIMIT 5`,
     [...cp]
   ) as any[];
 
@@ -50,7 +57,15 @@ export async function GET() {
 
   // Test plans with approaching end date (within 2 days)
   const deadlinePlans = await db.query(
-    `SELECT id, title, "endDate" FROM "TestPlan" WHERE status != 'closed' AND status != 'completed' AND "deletedAt" IS NULL AND "endDate" IS NOT NULL AND DATE("endDate") >= DATE('now') AND DATE("endDate") <= DATE('now', '+2 days')${andCompany} ORDER BY "endDate" ASC LIMIT 5`,
+    `SELECT id, title, "endDate" FROM "TestPlan"
+     WHERE status != 'closed'
+       AND status != 'completed'
+       AND "deletedAt" IS NULL
+       AND COALESCE("endDate", '') != ''
+       AND "endDate" >= DATE('now')
+       AND "endDate" <= DATE('now', '+2 days')
+       ${andCompany}
+     ORDER BY "endDate" ASC LIMIT 5`,
     [...cp]
   ) as any[];
 

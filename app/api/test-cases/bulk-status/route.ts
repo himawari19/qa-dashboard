@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   try {
     const { ids, status } = await request.json();
 
-    if (!Array.isArray(ids) || !status) {
+    if (!Array.isArray(ids) || ids.length === 0 || !status) {
       return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
     }
 

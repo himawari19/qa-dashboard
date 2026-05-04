@@ -27,10 +27,10 @@ export async function GET(request: Request) {
     db.query(
       `SELECT id, name, "startDate", "endDate", status, goal
        FROM "Sprint"
-       WHERE "startDate" IS NOT NULL
-         AND "endDate" IS NOT NULL
-         AND DATE("startDate") <= DATE(?)
-         AND DATE("endDate") >= DATE(?)
+       WHERE COALESCE("startDate", '') != ''
+         AND COALESCE("endDate", '') != ''
+         AND "startDate" <= ?
+         AND "endDate" >= ?
          ${andCompany}
        ORDER BY "startDate" ASC
        LIMIT 50`,
@@ -39,11 +39,11 @@ export async function GET(request: Request) {
     db.query(
       `SELECT id, title, project, sprint, "startDate", "endDate", status, assignee
        FROM "TestPlan"
-       WHERE "startDate" IS NOT NULL
-         AND "endDate" IS NOT NULL
+       WHERE COALESCE("startDate", '') != ''
+         AND COALESCE("endDate", '') != ''
          AND "deletedAt" IS NULL
-         AND DATE("startDate") <= DATE(?)
-         AND DATE("endDate") >= DATE(?)
+         AND "startDate" <= ?
+         AND "endDate" >= ?
          ${andCompany}
        ORDER BY "startDate" ASC
        LIMIT 50`,
