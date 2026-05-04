@@ -54,7 +54,7 @@ const dayExpr = isPostgres
 - **Navigation**: `router.refresh()`, NOT `window.location.reload()`.
 - **Imports**: Always check if `moduleConfigs` is imported in `app/[module]/page.tsx` before use.
 - **Visuals**: Modern, premium UI. Tailwind classes only. NO hardcoded hex (except CSS vars).
-- **Versioning**: `package.json` version is source of truth. Current: `0.2.0`.
+- **Versioning**: `package.json` version is source of truth.
 
 ## Do NOT
 - Add npm packages without checking `package.json`.
