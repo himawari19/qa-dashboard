@@ -313,7 +313,7 @@ function expandSchemaType(typeName: string, postgres: boolean) {
   return typeName;
 }
 
-function generateSchemaSql(postgres: boolean) {
+function generateTableSchemaSql(postgres: boolean) {
   let sqlRows = postgres ? "" : "PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;\n";
 
   for (const table of tables) {
@@ -322,11 +322,12 @@ function generateSchemaSql(postgres: boolean) {
 
     sqlRows += `CREATE TABLE IF NOT EXISTS "${table.name}" (${s});\n`;
   }
-  sqlRows += indexSql;
   return sqlRows;
 }
 
-export const schemaSql = generateSchemaSql(isPostgres);
+export const schemaTableSql = generateTableSchemaSql(isPostgres);
+export const schemaIndexSql = indexSql;
+export const schemaSql = `${schemaTableSql}${schemaIndexSql}`;
 
 type PostgresPool = {
   query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
@@ -386,10 +387,36 @@ async function getSqlite() {
     }
     
     const sqliteDb = new DatabaseSync(databasePath);
-    sqliteDb.exec(schemaSql);
+    sqliteDb.exec(schemaTableSql);
     globalForDb.sqliteDb = sqliteDb;
   }
   return globalForDb.sqliteDb as SqliteDatabase;
+}
+
+async function execSchemaSql(queryStr: string) {
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    sqlite.exec(queryStr);
+    return;
+  }
+
+  const pool = await getPostgresPool();
+  const statements = queryStr.split(';').filter(s => s.trim());
+  for (const s of statements) {
+    try {
+      await pool.query(toPostgresQuery(s));
+    } catch (err: unknown) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err.code === "42P07" || err.code === "23505")
+      ) {
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 async function applyMissingColumns() {
@@ -478,10 +505,11 @@ async function ensureSchema() {
         if (useSqlite) {
           await getSqlite();
         } else {
-          await db.exec(schemaSql);
+          await execSchemaSql(schemaTableSql);
         }
         
         await applyMissingColumns();
+        await execSchemaSql(schemaIndexSql);
         await backfillPublicTokens();
       } catch (err) {
         globalForDb.schemaInitPromise = undefined;

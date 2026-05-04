@@ -39,6 +39,8 @@ const dayExpr = isPostgres
 
 **Bulk writes:** Any `IN (...)` write path must return early on empty arrays before building SQL.
 
+**Schema init:** When changing `lib/db.ts`, create tables first, then apply missing columns, then create indexes. Existing PG tables may lag behind current schema.
+
 **`toPostgresQuery()`** auto-converts `DATE('now',...)` and `?`→`$n` but does NOT quote columns.
 
 **UNION params:** count `?` per branch — e.g. two branches with `andCompany` needs `[...cp, ...cp]`.
