@@ -39,9 +39,9 @@ export async function GET(
 
   // Simple keyword matching
   const query = `
-    SELECT id, ${titleField} as title, status, updatedAt FROM "${tableName}" 
-    WHERE LOWER(${titleField}) LIKE ? OR LOWER(${titleField}) LIKE ?
-    ORDER BY updatedAt DESC
+    SELECT id, "${titleField}" as title, status FROM "${tableName}"
+    WHERE LOWER("${titleField}") LIKE ? OR LOWER("${titleField}") LIKE ?
+    ORDER BY "updatedAt" DESC
     LIMIT 3
   `;
   

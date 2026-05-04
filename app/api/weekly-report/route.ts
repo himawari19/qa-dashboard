@@ -87,14 +87,14 @@ export async function GET() {
     db.query<BugRow>(
       `SELECT id, title, severity, priority, project, status
        FROM "Bug"
-       WHERE DATE(createdAt) >= DATE('now', '-7 days')${andCompany}
-       ORDER BY createdAt DESC`,
+       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       ORDER BY "createdAt" DESC`,
       cp,
     ),
     db.query<ClosedBugRow>(
       `SELECT id, title, severity
        FROM "Bug"
-       WHERE status IN ('closed','fixed') AND DATE(updatedAt) >= DATE('now', '-7 days')${andCompany}`,
+       WHERE status IN ('closed','fixed') AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}`,
       cp,
     ),
     db.query<CountRow>(
@@ -106,14 +106,14 @@ export async function GET() {
     db.query<TaskRow>(
       `SELECT id, title, priority, status, project
        FROM "Task"
-       WHERE DATE(createdAt) >= DATE('now', '-7 days')${andCompany}
-       ORDER BY createdAt DESC`,
+       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       ORDER BY "createdAt" DESC`,
       cp,
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "Task"
-       WHERE status = 'done' AND DATE(updatedAt) >= DATE('now', '-7 days')${andCompany}`,
+       WHERE status = 'done' AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}`,
       cp,
     ),
     db.query<CountRow>(
@@ -123,22 +123,22 @@ export async function GET() {
       cp,
     ),
     db.query<SessionRow>(
-      `SELECT id, date, tester, scope, totalCases, passed, failed, blocked, result
+      `SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result
        FROM "TestSession"
-       WHERE DATE(createdAt) >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
        ORDER BY date DESC`,
       cp,
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "TestCase"
-       WHERE DATE(updatedAt) >= DATE('now', '-7 days') AND status != 'Pending'${andCompany}`,
+       WHERE DATE("updatedAt") >= DATE('now', '-7 days') AND status != 'Pending'${andCompany}`,
       cp,
     ),
     db.query<SeverityRow>(
       `SELECT COALESCE(NULLIF(severity, ''), 'unknown') as name, COUNT(*) as count
        FROM "Bug"
-       WHERE DATE(createdAt) >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
        GROUP BY COALESCE(NULLIF(severity, ''), 'unknown')
        ORDER BY count DESC`,
       cp,
@@ -146,7 +146,7 @@ export async function GET() {
     db.query<ProjectRow>(
       `SELECT project as name, COUNT(*) as count
        FROM "Bug"
-       WHERE DATE(createdAt) >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
        GROUP BY project
        ORDER BY count DESC
        LIMIT 5`,
@@ -156,30 +156,30 @@ export async function GET() {
       `
       SELECT assignee as name, COUNT(*) as taskCount
       FROM "Task"
-      WHERE assignee != '' AND DATE(updatedAt) >= DATE('now', '-7 days')${andCompany}
+      WHERE assignee != '' AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}
       GROUP BY assignee
       UNION ALL
-      SELECT suggestedDev as name, COUNT(*) as taskCount
+      SELECT "suggestedDev" as name, COUNT(*) as taskCount
       FROM "Bug"
-      WHERE suggestedDev != '' AND DATE(updatedAt) >= DATE('now', '-7 days')${andCompany}
-      GROUP BY suggestedDev
+      WHERE "suggestedDev" != '' AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}
+      GROUP BY "suggestedDev"
       ORDER BY taskCount DESC
       LIMIT 5
       `,
-      cp,
+      [...cp, ...cp],
     ),
     db.query<SprintRow>(
-      `SELECT id, name, startDate, endDate, status, goal
+      `SELECT id, name, "startDate", "endDate", status, goal
        FROM "Sprint"
        WHERE status = 'active'${andCompany}
        LIMIT 5`,
       cp,
     ),
     db.query<ActivityRow>(
-      `SELECT entityType, action, summary, createdAt
+      `SELECT "entityType", action, summary, "createdAt"
        FROM "ActivityLog"
-       WHERE DATE(createdAt) >= DATE('now', '-7 days')${andCompany}
-       ORDER BY createdAt DESC
+       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       ORDER BY "createdAt" DESC
        LIMIT 20`,
       cp,
     ),

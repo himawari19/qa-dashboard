@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, isPostgres } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
 import { codeFromId } from "@/lib/utils";
@@ -27,6 +27,10 @@ export async function GET() {
     ${staleStatuses.map((status) => `WHEN '${status}' THEN ${THRESHOLDS[status]}`).join(" ")}
     ELSE 0 END`;
 
+  const dayExpr = isPostgres
+    ? `(CURRENT_DATE - "updatedAt"::date)`
+    : `CAST(julianday('now') - julianday("updatedAt") AS INTEGER)`;
+
   const bugRows = await db.query<{
     id: number | string;
     title: string;
@@ -34,11 +38,11 @@ export async function GET() {
     days: number | string;
   }>(
     `SELECT id, title, status,
-      CAST(julianday('now') - julianday(updatedAt) AS INTEGER) as days
+      ${dayExpr} as days
      FROM "Bug"
      WHERE LOWER(COALESCE(status, '')) IN (${placeholders})${andCompany}
-       AND CAST(julianday('now') - julianday(updatedAt) AS INTEGER) >= ${thresholdCase}
-     ORDER BY days DESC, updatedAt ASC
+       AND ${dayExpr} >= ${thresholdCase}
+     ORDER BY days DESC, "updatedAt" ASC
      LIMIT 15`,
     [...staleStatuses, ...cp],
   );
@@ -50,11 +54,11 @@ export async function GET() {
     days: number | string;
   }>(
     `SELECT id, title, status,
-      CAST(julianday('now') - julianday(updatedAt) AS INTEGER) as days
+      ${dayExpr} as days
      FROM "Task"
      WHERE LOWER(COALESCE(status, '')) IN (${placeholders})${andCompany}
-       AND CAST(julianday('now') - julianday(updatedAt) AS INTEGER) >= ${thresholdCase}
-     ORDER BY days DESC, updatedAt ASC
+       AND ${dayExpr} >= ${thresholdCase}
+     ORDER BY days DESC, "updatedAt" ASC
      LIMIT 15`,
     [...staleStatuses, ...cp],
   );

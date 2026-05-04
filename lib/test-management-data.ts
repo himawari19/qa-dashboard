@@ -218,7 +218,7 @@ export async function getProjectData(projectName: string) {
   if (planIds.length > 0) {
     const placeholders = planIds.map(() => "?").join(",");
     suites = await selectAll(
-      `SELECT * FROM "TestSuite" WHERE testPlanId IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
+      `SELECT * FROM "TestSuite" WHERE "testPlanId" IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
       [...planIds, ...qParams],
     );
   }
@@ -228,7 +228,7 @@ export async function getProjectData(projectName: string) {
   if (suiteIds.length > 0) {
     const placeholders = suiteIds.map(() => "?").join(",");
     cases = await selectAll(
-      `SELECT * FROM "TestCase" WHERE testSuiteId IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
+      `SELECT * FROM "TestCase" WHERE "testSuiteId" IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
       [...suiteIds, ...qParams],
     );
   }

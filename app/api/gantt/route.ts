@@ -25,27 +25,27 @@ export async function GET(request: Request) {
 
   const [sprints, plans] = await Promise.all([
     db.query(
-      `SELECT id, name, startDate, endDate, status, goal
+      `SELECT id, name, "startDate", "endDate", status, goal
        FROM "Sprint"
-       WHERE startDate IS NOT NULL
-         AND endDate IS NOT NULL
-         AND DATE(startDate) <= DATE(?)
-         AND DATE(endDate) >= DATE(?)
+       WHERE "startDate" IS NOT NULL
+         AND "endDate" IS NOT NULL
+         AND DATE("startDate") <= DATE(?)
+         AND DATE("endDate") >= DATE(?)
          ${andCompany}
-       ORDER BY startDate ASC
+       ORDER BY "startDate" ASC
        LIMIT 50`,
       [yearEnd, yearStart, ...cp]
     ) as Promise<Array<Record<string, unknown>>>,
     db.query(
-      `SELECT id, title, project, sprint, startDate, endDate, status, assignee
+      `SELECT id, title, project, sprint, "startDate", "endDate", status, assignee
        FROM "TestPlan"
-       WHERE startDate IS NOT NULL
-         AND endDate IS NOT NULL
+       WHERE "startDate" IS NOT NULL
+         AND "endDate" IS NOT NULL
          AND "deletedAt" IS NULL
-         AND DATE(startDate) <= DATE(?)
-         AND DATE(endDate) >= DATE(?)
+         AND DATE("startDate") <= DATE(?)
+         AND DATE("endDate") >= DATE(?)
          ${andCompany}
-       ORDER BY startDate ASC
+       ORDER BY "startDate" ASC
        LIMIT 50`,
       [yearEnd, yearStart, ...cp]
     ) as Promise<Array<Record<string, unknown>>>,

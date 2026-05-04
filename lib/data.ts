@@ -93,7 +93,7 @@ export async function getTestSuitesByPlanIds(planIds: Array<string | number>) {
   const { company, isAdmin } = getAccessScope(await getCurrentUser());
   const placeholders = ids.map(() => "?").join(", ");
   const rows = await selectAll(
-    `SELECT id, testPlanId, title, publicToken
+    `SELECT id, "testPlanId", title, "publicToken"
      FROM "TestSuite"
      WHERE "deletedAt" IS NULL
      ${isAdmin ? "" : ' AND "company" = ?'}
@@ -203,7 +203,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}`, projectParams) as Promise<any>,
     db.get(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${projectAndWhere}`, projectParams) as Promise<any>,
     selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') ${projectAndWhere} GROUP BY DATE("createdAt") ORDER BY date ASC`, projectParams),
-    selectAll(`SELECT id, name, startDate, endDate, status FROM "Sprint" ${companyWhere} ORDER BY startDate DESC LIMIT 20`, companyParams),
+    selectAll(`SELECT id, name, "startDate", "endDate", status FROM "Sprint" ${companyWhere} ORDER BY "startDate" DESC LIMIT 20`, companyParams),
     selectAll(`SELECT * FROM "ActivityLog" ${companyWhere} ORDER BY "createdAt" DESC LIMIT 10`, companyParams),
     selectAll(`SELECT module, COUNT(*) as count FROM "Bug" ${projectWhere} GROUP BY module LIMIT 10`, projectParams),
     selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now') ${projectAndWhere}`, projectParams),
@@ -213,12 +213,12 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
     countRows("TestSuite", company),
     countRows("TestSession", company),
-    selectAll(`SELECT id, date, tester, scope, totalCases, passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams),
+    selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams),
     selectAll(`
       WITH AllAssignees AS (
         SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${projectAndWhere}
         UNION
-        SELECT suggestedDev as name FROM "Bug" WHERE suggestedDev != '' AND status != 'closed' ${projectAndWhere}
+        SELECT "suggestedDev" as name FROM "Bug" WHERE "suggestedDev" != '' AND status != 'closed' ${projectAndWhere}
         UNION
         SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived' ${companyAndWhere}
         UNION
@@ -229,7 +229,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       SELECT 
         name,
         (SELECT COUNT(*) FROM "Task" t WHERE t.assignee = AllAssignees.name AND t.status != 'done' ${projectAndWhere}) as taskCount,
-        (SELECT COUNT(*) FROM "Bug" b WHERE b.suggestedDev = AllAssignees.name AND b.status != 'closed' ${projectAndWhere}) as bugCount,
+        (SELECT COUNT(*) FROM "Bug" b WHERE b."suggestedDev" = AllAssignees.name AND b.status != 'closed' ${projectAndWhere}) as bugCount,
         (SELECT COUNT(*) FROM "TestSuite" s WHERE s.assignee = AllAssignees.name AND s.status != 'archived' ${companyAndWhere}) as suiteCount,
         (SELECT COUNT(*) FROM "TestPlan" p WHERE p.assignee = AllAssignees.name AND p.status != 'closed' ${projectAndWhere}) as planCount
       FROM AllAssignees
@@ -291,13 +291,13 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
 
   // Pass rate per sprint (last 5 sprints)
   const recentSprintsForRate = await selectAll(
-    `SELECT id, name, startDate, endDate FROM "Sprint" ${companyWhere} ORDER BY startDate DESC LIMIT 5`,
+    `SELECT id, name, "startDate", "endDate" FROM "Sprint" ${companyWhere} ORDER BY "startDate" DESC LIMIT 5`,
     companyParams
   ) as any[];
   const sprintPassRates = await Promise.all(
     recentSprintsForRate.map(async (sp: any) => {
       const sessions = await selectAll(
-        `SELECT passed, totalCases FROM "TestSession" WHERE DATE("date") BETWEEN ? AND ? ${projectAndWhere}`,
+        `SELECT passed, "totalCases" FROM "TestSession" WHERE DATE("date") BETWEEN ? AND ? ${projectAndWhere}`,
         [sp.startDate, sp.endDate, ...projectParams]
       ) as any[];
       const totalPassed = sessions.reduce((s: number, r: any) => s + Number(r.passed), 0);
@@ -459,9 +459,9 @@ export async function getResourceDetails(name: string) {
   const companyParam = isAdmin ? [] : [company];
 
   const [tasks, bugs, suites] = await Promise.all([
-    selectAll(`SELECT id, title, status, priority FROM "Task" WHERE assignee = ? ${andWhere} AND status != 'done' ORDER BY createdAt DESC`, [name, ...companyParam]),
-    selectAll(`SELECT id, title, status, severity as priority FROM "Bug" WHERE suggestedDev = ? ${andWhere} AND status NOT IN ('closed', 'rejected') ORDER BY createdAt DESC`, [name, ...companyParam]),
-    selectAll(`SELECT id, title, status, 'N/A' as priority FROM "TestSuite" WHERE assignee = ? ${andWhere} AND status != 'archived' ORDER BY createdAt DESC`, [name, ...companyParam]),
+    selectAll(`SELECT id, title, status, priority FROM "Task" WHERE assignee = ? ${andWhere} AND status != 'done' ORDER BY "createdAt" DESC`, [name, ...companyParam]),
+    selectAll(`SELECT id, title, status, severity as priority FROM "Bug" WHERE "suggestedDev" = ? ${andWhere} AND status NOT IN ('closed', 'rejected') ORDER BY "createdAt" DESC`, [name, ...companyParam]),
+    selectAll(`SELECT id, title, status, 'N/A' as priority FROM "TestSuite" WHERE assignee = ? ${andWhere} AND status != 'archived' ORDER BY "createdAt" DESC`, [name, ...companyParam]),
   ]);
 
   const data = {
@@ -617,7 +617,7 @@ export async function getModuleRows(module: ModuleKey) {
         code: codeFromId("MEET", Number(item.id)),
       }));
     case "users":
-      return await selectAll(`SELECT id, name, username, role, company, createdAt FROM "User" ${where} ORDER BY createdAt DESC`, qParams);
+      return await selectAll(`SELECT id, name, username, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC`, qParams);
     case "sprints": {
       const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
       const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
@@ -736,7 +736,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     }
     case "users": {
       const total = await countRows("User", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT id, name, username, role, company, createdAt FROM "User" ${where} ORDER BY createdAt DESC${limitClause}`, qParams);
+      const rows = await selectAll(`SELECT id, name, username, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC${limitClause}`, qParams);
       return { rows, total };
     }
     case "sprints": {

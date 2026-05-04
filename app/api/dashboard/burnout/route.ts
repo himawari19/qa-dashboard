@@ -16,7 +16,7 @@ export async function GET() {
   try {
     // 1. Get all active items with their assignees, severities, projects, and due dates
     const bugs = await db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
-      `SELECT suggestedDev as assignee, severity, project, NULL as dueDate FROM "Bug" WHERE status NOT IN ('fixed', 'closed', 'rejected') AND suggestedDev IS NOT NULL AND suggestedDev != ''`
+      `SELECT "suggestedDev" as assignee, severity, project, NULL as dueDate FROM "Bug" WHERE status NOT IN ('fixed', 'closed', 'rejected') AND "suggestedDev" IS NOT NULL AND "suggestedDev" != ''`
     );
     
     const tasks = await db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(

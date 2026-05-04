@@ -4,7 +4,7 @@ export async function getSuiteResults(query: string, companyClause: string, comp
   const exactId = extractExactId(query, "SUITE");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, title, assignee, status, notes, publicToken, testPlanId, updatedAt
+      `SELECT id, title, assignee, status, notes, "publicToken", "testPlanId", "updatedAt"
        FROM "TestSuite"
        WHERE id = ?${companyClause}
        ORDER BY "updatedAt" DESC
@@ -38,7 +38,7 @@ export async function getSuiteResults(query: string, companyClause: string, comp
   const filter = buildFilterClause(filters, { statusColumn: 'ts."status"', assigneeColumn: 'ts."assignee"', dateColumn: 'ts."updatedAt"' });
   const rows = await queryRows<Row>(
     `SELECT ts.id, ts.title, ts.status, ts.assignee, ts.notes, ts."publicToken", ts."testPlanId",
-            tp.title AS planTitle, tp.project AS planProject, ts.updatedAt
+            tp.title AS planTitle, tp.project AS planProject, ts."updatedAt"
      FROM "TestSuite" ts
      LEFT JOIN "TestPlan" tp ON tp.id = ts."testPlanId" AND tp."deletedAt" IS NULL
      WHERE ts."deletedAt" IS NULL
