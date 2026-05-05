@@ -402,21 +402,23 @@ async function execSchemaSql(queryStr: string) {
 
   const pool = await getPostgresPool();
   const statements = queryStr.split(';').filter(s => s.trim());
-  for (const s of statements) {
-    try {
-      await pool.query(toPostgresQuery(s));
-    } catch (err: unknown) {
-      if (
-        typeof err === "object" &&
-        err !== null &&
-        "code" in err &&
-        (err.code === "42P07" || err.code === "23505")
-      ) {
-        continue;
+  await Promise.all(
+    statements.map(async (s) => {
+      try {
+        await pool.query(toPostgresQuery(s));
+      } catch (err: unknown) {
+        if (
+          typeof err === "object" &&
+          err !== null &&
+          "code" in err &&
+          (err.code === "42P07" || err.code === "23505")
+        ) {
+          return;
+        }
+        // ignore non-critical DDL errors
       }
-      throw err;
-    }
-  }
+    })
+  );
 }
 
 async function applyMissingColumns() {
@@ -489,19 +491,21 @@ async function backfillPublicTokens() {
     { table: "TestCase", column: "publicToken" },
     { table: "MeetingNote", column: "publicToken" },
   ];
-  for (const { table, column } of tablesToFill) {
-    if (useSqlite) {
-      const sqlite = await getSqlite();
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    for (const { table, column } of tablesToFill) {
       const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE COALESCE(${column}, '') = ''`).all() as Array<{ id: string | number }>;
       for (const row of rows) {
         sqlite.prepare(`UPDATE "${table}" SET ${column} = ? WHERE id = ?`).run(randomBytes(16).toString("base64url"), row.id);
       }
-    } else {
-      // Single UPDATE — no N+1
-      const pool = await getPostgresPool();
-      await pool.query(`UPDATE "${table}" SET "${column}" = md5(random()::text || id::text) WHERE COALESCE("${column}", '') = ''`);
-
     }
+  } else {
+    const pool = await getPostgresPool();
+    await Promise.all(
+      tablesToFill.map(({ table, column }) =>
+        pool.query(`UPDATE "${table}" SET "${column}" = md5(random()::text || id::text) WHERE COALESCE("${column}", '') = ''`)
+      )
+    );
   }
 }
 
