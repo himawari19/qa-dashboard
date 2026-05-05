@@ -52,7 +52,6 @@ describe("auth-core", () => {
 
   it("creates and verifies session tokens", async () => {
     vi.stubEnv("AUTH_SECRET", "topsecret");
-    mocks.db.get.mockResolvedValueOnce({ id: 1 });
 
     const token = await createSessionToken("admin");
 
@@ -60,28 +59,31 @@ describe("auth-core", () => {
     expect(await verifySessionToken(token)).toBe(true);
   });
 
-  it("verifies database-backed sessions and rejects expired ones", async () => {
+  it("verifies sessions via HMAC and rejects expired ones", async () => {
     vi.stubEnv("AUTH_SECRET", "topsecret");
-    mocks.db.get.mockResolvedValueOnce({ id: 1 });
 
     const token = await createSessionToken("user@example.com");
 
     expect(await verifySessionToken(token)).toBe(true);
-    expect(mocks.db.get).toHaveBeenCalledWith('SELECT id FROM "User" WHERE "email" = ?', ["user@example.com"]);
+    expect(mocks.db.get).not.toHaveBeenCalled();
 
     vi.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 60 * 1000 + 1);
     expect(await verifySessionToken(token)).toBe(false);
     vi.restoreAllMocks();
   });
 
-  it("validates static and database credentials", async () => {
+  it("validates credentials and returns user object", async () => {
     vi.stubEnv("AUTH_SECRET", "topsecret");
-    mocks.db.get.mockResolvedValueOnce({ id: 1 });
-    expect(await validateCredentials("user@example.com", "secret")).toBe(true);
-    expect(mocks.db.get).toHaveBeenCalledWith('SELECT * FROM "User" WHERE "email" = ? AND "password" = ?', [
-      "user@example.com",
-      expect.any(String),
-    ]);
+    const mockUser = { id: 1, name: "User", email: "user@example.com", role: "editor", company: "acme" };
+    mocks.db.get.mockResolvedValueOnce(mockUser);
+    const result = await validateCredentials("user@example.com", "secret");
+    expect(result).toMatchObject({ id: 1, email: "user@example.com" });
+    expect(mocks.db.get).toHaveBeenCalledWith(
+      'SELECT id, name, email, role, company FROM "User" WHERE "email" = ? AND "password" = ?',
+      ["user@example.com", expect.any(String)]
+    );
+    mocks.db.get.mockResolvedValueOnce(undefined);
+    expect(await validateCredentials("bad@example.com", "wrong")).toBeNull();
   });
 
   it("registers users and maps unique errors", async () => {

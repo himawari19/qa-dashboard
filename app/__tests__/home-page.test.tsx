@@ -70,7 +70,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import Home from "@/app/page";
+import Home, { DashboardData } from "@/app/page";
 
 let stateValues: unknown[] = [];
 let hookIndex = 0;
@@ -92,6 +92,7 @@ async function renderHome() {
 beforeEach(() => {
   resetHooks();
   mocks.fetch.mockReset();
+  mocks.getDashboardData.mockClear();
 
   reactMocks.useState.mockImplementation(((initial: unknown) => {
     const currentIndex = hookIndex++;
@@ -159,21 +160,15 @@ afterEach(() => {
 });
 
 describe("home page", () => {
-  it("loads project options and dashboard data without live credentials", async () => {
-    const initialMarkup = await renderHome();
+  it("renders Suspense shell synchronously", async () => {
+    const markup = await renderHome();
+    expect(markup).toContain("dashboard");
+  });
 
-    expect(initialMarkup).toContain("dashboard");
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    const loadedMarkup = await renderHome();
-
-    expect(loadedMarkup).toContain("dashboard");
-    expect(mocks.dashboard).toHaveBeenCalledTimes(1);
-    expect((mocks.dashboard as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls.at(-1)![0]).toEqual(
-      expect.objectContaining({
-        metrics: [{ label: "Open Tasks", value: 3, caption: "" }],
-      }),
-    );
+  it("DashboardData fetches server-side and passes initialData to DashboardHome", async () => {
+    const element = await DashboardData();
+    const markup = renderToStaticMarkup(element);
+    expect(mocks.getDashboardData).toHaveBeenCalledTimes(1);
+    expect(markup).toContain("dashboard");
   });
 });

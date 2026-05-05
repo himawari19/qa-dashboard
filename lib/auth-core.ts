@@ -68,11 +68,14 @@ export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
     const hashedPassword = await hashPassword(password);
-    const user = await db.get('SELECT * FROM "User" WHERE "email" = ? AND "password" = ?', [email, hashedPassword]);
-    return !!user;
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string }>(
+      'SELECT id, name, email, role, company FROM "User" WHERE "email" = ? AND "password" = ?',
+      [email, hashedPassword]
+    );
+    return user ?? null;
   } catch (err) {
     console.error("Auth DB error:", err);
-    return false;
+    return null;
   }
 }
 
@@ -90,15 +93,24 @@ export async function registerUser(email: string, password: string, name?: strin
   }
 }
 
-export async function createSessionToken(email: string) {
+export async function createSessionToken(
+  email: string,
+  user?: { id: number; name: string; role: string; company: string }
+) {
   const { secret } = getAuthConfig();
   if (!secret) {
     throw new Error("AUTH_SECRET is required.");
   }
-  const payload = toBase64UrlBytes(JSON.stringify({ email, ts: Date.now() }));
+  const payload = toBase64UrlBytes(JSON.stringify({
+    email,
+    ts: Date.now(),
+    ...(user ? { id: user.id, name: user.name, role: user.role, company: user.company } : {}),
+  }));
   const signature = await sign(payload, secret);
   return `${payload}.${signature}`;
 }
+
+const SESSION_DURATION = 6 * 60 * 60 * 1000;
 
 export async function verifySessionToken(token: string | undefined | null) {
   const { secret } = getAuthConfig();
@@ -108,21 +120,8 @@ export async function verifySessionToken(token: string | undefined | null) {
   if ((await sign(payload, secret)) !== signature) return false;
   try {
     const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { email?: string; ts?: number };
-    try {
-      const { db } = await import("./db");
-      const user = await db.get('SELECT id FROM "User" WHERE "email" = ?', [decoded.email]);
-      if (!user) return false;
-    } catch {
-      return false;
-    }
-    
-    // 6-hour session duration check
-    const SESSION_DURATION = 6 * 60 * 60 * 1000;
-    if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) {
-      return false;
-    }
-    
-    return true;
+    if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) return false;
+    return Boolean(decoded.email);
   } catch {
     return false;
   }
@@ -132,31 +131,43 @@ export async function getCurrentUser() {
   const { cookies } = await import("next/headers");
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return null;
-  
-  const [payload] = token.split(".");
-  if (!payload) return null;
-  
+
+  const { secret } = getAuthConfig();
+  if (!secret) return null;
+
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature) return null;
+
+  // Verify HMAC before trusting payload
+  if ((await sign(payload, secret)) !== signature) return null;
+
   try {
-    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { email?: string };
-    const email = decoded.email;
-    if (!email) return null;
+    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as {
+      email?: string; ts?: number;
+      id?: number; name?: string; role?: string; company?: string;
+    };
+    if (!decoded.email) return null;
+    if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) return null;
 
-    const { db } = await import("./db");
-    const user = await db.get<{
-      id: number;
-      name: string;
-      email: string;
-      role: string;
-      company: string;
-    }>('SELECT id, name, email, role, company FROM "User" WHERE "email" = ?', [email]);
-
-    if (user) {
+    // Fast path: user data embedded in token (new tokens after login)
+    if (decoded.id && decoded.name !== undefined && decoded.role !== undefined && decoded.company !== undefined) {
       return {
-        ...user,
-        role: normalizeRole(user.role),
+        id: decoded.id,
+        name: decoded.name,
+        email: decoded.email,
+        role: normalizeRole(decoded.role),
+        company: decoded.company,
       };
     }
-    return null;
+
+    // Fallback: old tokens without embedded user data — hit DB once
+    const { db } = await import("./db");
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string }>(
+      'SELECT id, name, email, role, company FROM "User" WHERE "email" = ?',
+      [decoded.email]
+    );
+    if (!user) return null;
+    return { ...user, role: normalizeRole(user.role) };
   } catch {
     return null;
   }

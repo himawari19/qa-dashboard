@@ -119,7 +119,7 @@ function Drawer({ title, subtitle, items, loading, onClose, viewAllHref }: {
             </div>
           ) : (
             items.map((item, i) => (
-              <Link key={i} href={item.href} onClick={onClose}
+              <Link key={i} href={item.href} prefetch={false} onClick={onClose}
                 className="flex items-center gap-3 rounded-md border border-slate-100 dark:border-slate-800 p-3 hover:border-blue-200 hover:bg-blue-50/40 dark:hover:border-blue-800/40 dark:hover:bg-blue-950/20 transition group">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-700 dark:group-hover:text-blue-400">{item.label}</p>
@@ -137,7 +137,7 @@ function Drawer({ title, subtitle, items, loading, onClose, viewAllHref }: {
 
         {viewAllHref && (
           <div className="border-t border-slate-100 dark:border-slate-800 p-4">
-            <Link href={viewAllHref} onClick={onClose}
+            <Link href={viewAllHref} prefetch={false} onClick={onClose}
               className="flex items-center justify-center gap-2 h-10 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold hover:bg-blue-600 dark:hover:bg-blue-50 transition">
               View All <ArrowRight size={14} weight="bold" />
             </Link>
@@ -178,7 +178,7 @@ function StatCard({ label, value, icon, color, onClick, active }: {
 
 function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link href={href} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900">
+    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900">
       {icon}{label}
     </Link>
   );
@@ -590,7 +590,7 @@ export function Dashboard({
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2">
               <CalendarBlank size={32} weight="bold" />
               <p className="text-xs font-semibold text-center">No active sprint.<br />Create one in Sprints.</p>
-              <Link href="/sprints" className="mt-2 text-xs font-bold text-blue-500 hover:underline">Go to Sprints →</Link>
+              <Link href="/sprints" prefetch={false} className="mt-2 text-xs font-bold text-blue-500 hover:underline">Go to Sprints →</Link>
             </div>
           )}
         </div>
@@ -714,13 +714,13 @@ export function Dashboard({
         <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-rose-500">Critical Bugs</h3>
-            <Link href="/bugs" className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
+            <Link href="/bugs" prefetch={false} className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
           </div>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
             {(spotlight?.criticalBugs ?? []).length === 0
               ? <p className="text-xs text-slate-400 py-4 text-center">No critical bugs 🎉</p>
               : (spotlight?.criticalBugs ?? []).map((bug, i) => (
-                  <Link key={i} href={bug.id ? `/bugs?viewId=${bug.id}` : "/bugs"}
+                  <Link key={i} href={bug.id ? `/bugs?viewId=${bug.id}` : "/bugs"} prefetch={false}
                     className="flex w-full items-center gap-2 rounded-md bg-slate-50 dark:bg-slate-800/50 p-2.5 text-left hover:bg-rose-50 dark:hover:bg-rose-950/20 transition group">
                     <XCircle size={14} weight="fill" className="text-rose-500 shrink-0" />
                     <span className="flex-1 text-xs font-semibold text-slate-700 dark:text-slate-300 truncate group-hover:text-rose-700">{bug.title}</span>
@@ -735,13 +735,13 @@ export function Dashboard({
         <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-blue-500">Priority Tasks</h3>
-            <Link href="/tasks" className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
+            <Link href="/tasks" prefetch={false} className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
           </div>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
             {(spotlight?.priorityTasks ?? []).length === 0
               ? <p className="text-xs text-slate-400 py-4 text-center">No priority tasks</p>
               : (spotlight?.priorityTasks ?? []).map((task, i) => (
-                  <Link key={i} href={task.id ? `/tasks?viewId=${task.id}` : "/tasks"}
+                  <Link key={i} href={task.id ? `/tasks?viewId=${task.id}` : "/tasks"} prefetch={false}
                     className="flex w-full items-center gap-2 rounded-md bg-slate-50 dark:bg-slate-800/50 p-2.5 text-left hover:bg-blue-50 dark:hover:bg-blue-950/20 transition group">
                     <CheckCircle size={14} weight="fill" className="text-blue-500 shrink-0" />
                     <span className="flex-1 text-xs font-semibold text-slate-700 dark:text-slate-300 truncate group-hover:text-blue-700">{task.title}</span>
@@ -851,7 +851,7 @@ export function Dashboard({
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {bottlenecks.slice(0, 9).map(b => (
-                <Link key={b.id} href={b.href} className="flex items-start gap-2.5 rounded-md border border-amber-200 dark:border-amber-800/30 bg-white dark:bg-slate-900 px-3 py-2.5 hover:border-amber-400 transition group">
+                <Link key={b.id} href={b.href} prefetch={false} className="flex items-start gap-2.5 rounded-md border border-amber-200 dark:border-amber-800/30 bg-white dark:bg-slate-900 px-3 py-2.5 hover:border-amber-400 transition group">
                   <div className="shrink-0 mt-0.5">
                     <span className={cn(
                       "inline-flex h-5 items-center rounded px-1.5 text-[9px] font-black uppercase tracking-wider",

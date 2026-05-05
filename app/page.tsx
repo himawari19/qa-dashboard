@@ -5,7 +5,7 @@ import { getDashboardData } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-async function DashboardData() {
+export async function DashboardData() {
   try {
     const data = await getDashboardData();
     return <DashboardHome initialData={data} initialProjects={[]} />;

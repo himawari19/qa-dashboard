@@ -668,7 +668,7 @@ describe("module row queries", () => {
       if (sql.includes('SELECT * FROM "Sprint" WHERE status = \'active\'')) return null;
       if (sql.includes("SELECT COUNT(*) as count FROM \"Bug\" WHERE status IN ('fixed', 'closed')")) return { count: 1 };
       if (sql.includes("SELECT COUNT(*) as count FROM \"Task\" WHERE status = 'completed'")) return { count: 2 };
-      if (sql.includes('SELECT project as name FROM "TestPlan" GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1')) return { name: "QA Hub" };
+      if (sql.includes('SELECT project as name FROM "TestPlan"') && sql.includes('GROUP BY project')) return { name: "QA Hub" };
       if (sql.includes('SELECT "title" FROM "TestPlan" WHERE "deletedAt" IS NULL')) return { title: "Plan A" };
       if (sql.includes('SELECT "project" FROM "TestPlan" WHERE "deletedAt" IS NULL')) return { project: "QA Hub" };
       if (sql.includes('SELECT COUNT(*) as total FROM "Task"')) return { total: 3 };

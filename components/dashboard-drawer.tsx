@@ -69,6 +69,7 @@ export function DashboardDrawer({ title, subtitle, items, loading, onClose, view
               <Link
                 key={i}
                 href={item.href}
+                prefetch={false}
                 onClick={onClose}
                 className="group flex items-center gap-3 rounded-md border border-slate-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-slate-800 dark:hover:border-blue-800/40 dark:hover:bg-blue-950/20"
               >
@@ -92,6 +93,7 @@ export function DashboardDrawer({ title, subtitle, items, loading, onClose, view
           <div className="border-t border-slate-100 p-4 dark:border-slate-800">
             <Link
               href={viewAllHref}
+              prefetch={false}
               onClick={onClose}
               className="flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 text-sm font-bold text-white transition hover:bg-blue-600 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-50"
             >

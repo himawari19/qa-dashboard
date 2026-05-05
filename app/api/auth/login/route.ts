@@ -6,11 +6,12 @@ export async function POST(request: NextRequest) {
   const email = body?.email?.trim() || "";
   const password = body?.password || "";
 
-  if (!(await validateCredentials(email, password))) {
+  const user = await validateCredentials(email, password);
+  if (!user) {
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 
-  const token = await createSessionToken(email);
+  const token = await createSessionToken(email, user);
   const response = NextResponse.json({ ok: true });
   response.cookies.set(sessionCookieName(), token, {
     httpOnly: true,
