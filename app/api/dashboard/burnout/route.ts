@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminUser } from "@/lib/auth-core";
 
 const burnoutCache = new Map<string, { expiresAt: number; data: unknown }>();
 
@@ -8,20 +9,25 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const company = user.company || "";
+  const isAdmin = isAdminUser(user.role, company);
   const cacheKey = `${company}|${user.role || "user"}`;
   const cached = burnoutCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return NextResponse.json(cached.data);
   }
+  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
+  const cp = isAdmin ? [] : [company];
   try {
-    // 1. Get all active items with their assignees, severities, projects, and due dates
-    const bugs = await db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
-      `SELECT "suggestedDev" as assignee, severity, project, NULL as dueDate FROM "Bug" WHERE status NOT IN ('fixed', 'closed', 'rejected') AND "suggestedDev" IS NOT NULL AND "suggestedDev" != ''`
-    );
-    
-    const tasks = await db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
-      `SELECT assignee, priority as severity, project, dueDate FROM "Task" WHERE status NOT IN ('completed', 'done') AND assignee IS NOT NULL AND assignee != ''`
-    );
+    const [bugs, tasks] = await Promise.all([
+      db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
+        `SELECT "suggestedDev" as assignee, severity, project, NULL as dueDate FROM "Bug" WHERE status NOT IN ('fixed', 'closed', 'rejected') AND "suggestedDev" IS NOT NULL AND "suggestedDev" != ''${andCompany}`,
+        cp
+      ),
+      db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
+        `SELECT assignee, priority as severity, project, dueDate FROM "Task" WHERE status NOT IN ('completed', 'done') AND assignee IS NOT NULL AND assignee != ''${andCompany}`,
+        cp
+      ),
+    ]);
 
     const allItems = [...bugs, ...tasks];
     const userStats: Record<string, { points: number; projects: Set<string>; items: number }> = {};

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createModuleRecord, deleteModuleRecord } from "@/lib/data";
+import { createModuleRecord, deleteModuleRecord, deleteModuleRecords } from "@/lib/data";
 import {
   formDataToEntry,
   moduleConfigs,
@@ -117,11 +117,8 @@ export async function DELETE(
 
   try {
     if (ids) {
-      const idList = ids.split(",");
-      for (const singleId of idList) {
-        await deleteModuleRecord(moduleKey, singleId);
-      }
-      
+      const idList = ids.split(",").filter(Boolean);
+      await deleteModuleRecords(moduleKey, idList);
       revalidatePath("/");
       revalidatePath(`/${moduleKey}`);
       return NextResponse.json({

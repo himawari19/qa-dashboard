@@ -367,7 +367,8 @@ const globalForDb = globalThis as unknown as {
 };
 
 async function getPostgresPool() {
-  const { Pool } = await import("@neondatabase/serverless");
+  const { Pool, neonConfig } = await import("@neondatabase/serverless");
+  neonConfig.fetchConnectionCache = true;
   if (!globalForDb.neonSql) {
     globalForDb.neonSql = new Pool({ connectionString: databaseUrl });
   }
@@ -433,12 +434,9 @@ async function applyMissingColumns() {
       if (def.startsWith("PRIMARY") || def.startsWith("FOREIGN") || def.startsWith("id ")) continue;
       const firstSpace = def.indexOf(" ");
       if (firstSpace <= 0) continue;
-      let rawColumn = def.slice(0, firstSpace).trim();
+      const rawColumn = def.slice(0, firstSpace).trim();
       const rawType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
-      
-      // Strip quotes for checking
       const columnName = rawColumn.replace(/"/g, "");
-      
       const columnType = rawType
         .replace(/SERIAL_OR_PK|DATE_TYPE|FK_INT_SPRINT/g, (match) => expandSchemaType(match, !useSqlite));
       try {
@@ -453,17 +451,29 @@ async function applyMissingColumns() {
     return;
   }
 
+  // Postgres: batch-fetch all existing columns in one query, then only ALTER the missing ones
   const pool = await getPostgresPool();
+  const tableNames = [...new Set(tables.map(t => t.name))];
+  const placeholders = tableNames.map((_, i) => `$${i + 1}`).join(", ");
+  let existingCols: Set<string>;
+  try {
+    const { rows } = await pool.query(
+      `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name IN (${placeholders})`,
+      tableNames,
+    );
+    existingCols = new Set((rows as { table_name: string; column_name: string }[]).map(r => `${r.table_name}.${r.column_name}`));
+  } catch {
+    existingCols = new Set();
+  }
+
   for (const { table, def } of columnQueries) {
     if (def.startsWith("PRIMARY") || def.startsWith("FOREIGN") || def.startsWith("id ")) continue;
     const firstSpace = def.indexOf(" ");
     if (firstSpace <= 0) continue;
     const rawColumn = def.slice(0, firstSpace).trim();
     const rawType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
-    
-    // Strip quotes
     const columnName = rawColumn.replace(/"/g, "");
-    
+    if (existingCols.has(`${table}.${columnName}`)) continue;
     try {
       await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${columnName}" ${expandSchemaType(rawType, true)}`));
     } catch {
@@ -487,11 +497,10 @@ async function backfillPublicTokens() {
         sqlite.prepare(`UPDATE "${table}" SET ${column} = ? WHERE id = ?`).run(randomBytes(16).toString("base64url"), row.id);
       }
     } else {
+      // Single UPDATE — no N+1
       const pool = await getPostgresPool();
-      const rows = await pool.query(toPostgresQuery(`SELECT id FROM "${table}" WHERE COALESCE("${column}", '') = ''`));
-      for (const row of rows.rows as Array<{ id: string | number }>) {
-        await pool.query(toPostgresQuery(`UPDATE "${table}" SET "${column}" = $1 WHERE id = $2`), [randomBytes(16).toString("base64url"), row.id]);
-      }
+      await pool.query(`UPDATE "${table}" SET "${column}" = md5(random()::text || id::text) WHERE COALESCE("${column}", '') = ''`);
+
     }
   }
 }

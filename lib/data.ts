@@ -215,27 +215,48 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     countRows("TestSession", company),
     selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams),
     selectAll(`
-      WITH AllAssignees AS (
-        SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${projectAndWhere}
-        UNION
-        SELECT "suggestedDev" as name FROM "Bug" WHERE "suggestedDev" != '' AND status != 'closed' ${projectAndWhere}
-        UNION
-        SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived' ${companyAndWhere}
-        UNION
-        SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed' ${projectAndWhere}
-        UNION
-        SELECT name FROM "Assignee" WHERE status = 'active' ${companyAndWhere}
-      )
-      SELECT 
-        name,
-        (SELECT COUNT(*) FROM "Task" t WHERE t.assignee = AllAssignees.name AND t.status != 'done' ${projectAndWhere}) as taskCount,
-        (SELECT COUNT(*) FROM "Bug" b WHERE b."suggestedDev" = AllAssignees.name AND b.status != 'closed' ${projectAndWhere}) as bugCount,
-        (SELECT COUNT(*) FROM "TestSuite" s WHERE s.assignee = AllAssignees.name AND s.status != 'archived' ${companyAndWhere}) as suiteCount,
-        (SELECT COUNT(*) FROM "TestPlan" p WHERE p.assignee = AllAssignees.name AND p.status != 'closed' ${projectAndWhere}) as planCount
-      FROM AllAssignees
-      WHERE name IS NOT NULL AND name != ''
-      ORDER BY name ASC
-    `, [...projectParams, ...projectParams, ...companyParams, ...projectParams, ...companyParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams]),
+      WITH
+        TaskCounts AS (
+          SELECT assignee as name, COUNT(*) as cnt FROM "Task"
+          WHERE status != 'done' AND assignee != '' ${projectAndWhere} GROUP BY assignee
+        ),
+        BugCounts AS (
+          SELECT "suggestedDev" as name, COUNT(*) as cnt FROM "Bug"
+          WHERE status != 'closed' AND "suggestedDev" != '' ${projectAndWhere} GROUP BY "suggestedDev"
+        ),
+        SuiteCounts AS (
+          SELECT assignee as name, COUNT(*) as cnt FROM "TestSuite"
+          WHERE status != 'archived' AND assignee != '' ${companyAndWhere} GROUP BY assignee
+        ),
+        PlanCounts AS (
+          SELECT assignee as name, COUNT(*) as cnt FROM "TestPlan"
+          WHERE status != 'closed' AND assignee != '' ${projectAndWhere} GROUP BY assignee
+        ),
+        AllAssignees AS (
+          SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${projectAndWhere}
+          UNION
+          SELECT "suggestedDev" as name FROM "Bug" WHERE "suggestedDev" != '' AND status != 'closed' ${projectAndWhere}
+          UNION
+          SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived' ${companyAndWhere}
+          UNION
+          SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed' ${projectAndWhere}
+          UNION
+          SELECT name FROM "Assignee" WHERE status = 'active' ${companyAndWhere}
+        )
+      SELECT
+        a.name,
+        COALESCE(t.cnt, 0) as taskCount,
+        COALESCE(b.cnt, 0) as bugCount,
+        COALESCE(s.cnt, 0) as suiteCount,
+        COALESCE(p.cnt, 0) as planCount
+      FROM AllAssignees a
+      LEFT JOIN TaskCounts t ON a.name = t.name
+      LEFT JOIN BugCounts b ON a.name = b.name
+      LEFT JOIN SuiteCounts s ON a.name = s.name
+      LEFT JOIN PlanCounts p ON a.name = p.name
+      WHERE a.name IS NOT NULL AND a.name != ''
+      ORDER BY a.name ASC
+    `, [...projectParams, ...projectParams, ...companyParams, ...projectParams, ...projectParams, ...projectParams, ...companyParams, ...projectParams, ...companyParams]),
   ]);
 
   const todayActivity = [...(todayTasks || []), ...(todayBugs || []), ...(todaySessions || [])];
@@ -316,7 +337,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   const successRate = (bugCount + taskCount) > 0 ? Math.round(((Number(bugFixed.count) + Number(taskCompleted.count)) / (bugCount + taskCount)) * 100) : 0;
   
   // Dynamic spotlight project
-  const mostActiveProject = await db.get('SELECT project as name FROM "TestPlan" GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1') as any;
+  const mostActiveProject = await db.get(`SELECT project as name FROM "TestPlan" ${companyWhere} GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1`, companyParams) as any;
   const spotlightName = mostActiveProject?.name || (taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project");
 
   const data = {
@@ -1051,20 +1072,46 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
 
   const table = getTableName(module);
   if (!table) return null;
-  
+
   const entityId = String(id);
-  
+
   if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
     const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
     await logActivity(company, table, entityId, "Deleted", `${table} removed`);
     invalidateDashboardCache(company);
     return res;
   }
-  
+
   const res = await db.run(`DELETE FROM "${table}" WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
   await logActivity(company, table, entityId, "Deleted", `${table} permanently deleted`);
   invalidateDashboardCache(company);
   return res;
+}
+
+export async function deleteModuleRecords(module: ModuleKey, ids: (string | number)[]) {
+  if (ids.length === 0) return;
+  const scope = getAccessScope(await getCurrentUser());
+  const { company, andWhere: companyFilter, params: companyParam } = scope;
+
+  const table = getTableName(module);
+  if (!table) return;
+
+  const placeholderList = ids.map(() => "?").join(", ");
+
+  if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
+    await db.run(
+      `UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id IN (${placeholderList})${companyFilter}`,
+      [...ids, ...companyParam]
+    );
+  } else {
+    await db.run(
+      `DELETE FROM "${table}" WHERE id IN (${placeholderList})${companyFilter}`,
+      [...ids, ...companyParam]
+    );
+  }
+
+  await logActivity(company, table, ids.join(","), "Deleted", `${ids.length} ${table} records deleted`);
+  invalidateDashboardCache(company);
 }
 
 export {

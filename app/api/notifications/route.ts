@@ -20,11 +20,35 @@ export async function GET() {
 
   const notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] = [];
 
-  // Bugs open for more than 7 days
-  const overdueBugs = await db.query(
-    `SELECT id, title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${createdAtExpr} <= ${minus7Expr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
-    [...cp]
-  ) as any[];
+  const [overdueBugs, deadlineSprints, deadlinePlans] = await Promise.all([
+    db.query(
+      `SELECT id, title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${createdAtExpr} <= ${minus7Expr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
+      [...cp]
+    ) as Promise<any[]>,
+    db.query(
+      `SELECT id, name, "endDate" FROM "Sprint"
+       WHERE status != 'completed'
+         AND status != 'closed'
+         AND COALESCE("endDate", '') != ''
+         AND ${endDateExpr} >= ${nowExpr}
+         AND ${endDateExpr} <= ${plus3Expr}
+         ${andCompany}
+       ORDER BY "endDate" ASC LIMIT 5`,
+      [...cp]
+    ) as Promise<any[]>,
+    db.query(
+      `SELECT id, title, "endDate" FROM "TestPlan"
+       WHERE status != 'closed'
+         AND status != 'completed'
+         AND "deletedAt" IS NULL
+         AND COALESCE("endDate", '') != ''
+         AND ${endDateExpr} >= ${nowExpr}
+         AND ${endDateExpr} <= ${plus2Expr}
+         ${andCompany}
+       ORDER BY "endDate" ASC LIMIT 5`,
+      [...cp]
+    ) as Promise<any[]>,
+  ]);
 
   for (const b of overdueBugs) {
     const days = Math.floor((Date.now() - new Date(b.createdAt).getTime()) / 86400000);
@@ -37,19 +61,6 @@ export async function GET() {
     });
   }
 
-  // Sprints ending within 3 days
-  const deadlineSprints = await db.query(
-    `SELECT id, name, "endDate" FROM "Sprint"
-     WHERE status != 'completed'
-       AND status != 'closed'
-       AND COALESCE("endDate", '') != ''
-       AND ${endDateExpr} >= ${nowExpr}
-       AND ${endDateExpr} <= ${plus3Expr}
-       ${andCompany}
-     ORDER BY "endDate" ASC LIMIT 5`,
-    [...cp]
-  ) as any[];
-
   for (const s of deadlineSprints) {
     const daysLeft = Math.ceil((new Date(s.endDate).getTime() - Date.now()) / 86400000);
     notifications.push({
@@ -60,20 +71,6 @@ export async function GET() {
       href: "/sprints",
     });
   }
-
-  // Test plans with approaching end date (within 2 days)
-  const deadlinePlans = await db.query(
-    `SELECT id, title, "endDate" FROM "TestPlan"
-     WHERE status != 'closed'
-       AND status != 'completed'
-       AND "deletedAt" IS NULL
-       AND COALESCE("endDate", '') != ''
-       AND ${endDateExpr} >= ${nowExpr}
-       AND ${endDateExpr} <= ${plus2Expr}
-       ${andCompany}
-     ORDER BY "endDate" ASC LIMIT 5`,
-    [...cp]
-  ) as any[];
 
   for (const p of deadlinePlans) {
     const daysLeft = Math.ceil((new Date(p.endDate).getTime() - Date.now()) / 86400000);
@@ -86,5 +83,8 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({ notifications: notifications.slice(0, 15) });
+  return NextResponse.json(
+    { notifications: notifications.slice(0, 15) },
+    { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" } }
+  );
 }
