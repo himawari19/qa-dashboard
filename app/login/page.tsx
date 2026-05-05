@@ -74,7 +74,6 @@ function LoginContent() {
       toast("Welcome back!", "success");
       setFormData({ name: "", email: "", password: "", role: "", company: "" });
       router.replace(nextUrl);
-      router.refresh();
     } catch (err) {
       setError("An unexpected error occurred.");
     } finally {
