@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isAdminUser, isInviteRole, normalizeRole } from "@/lib/roles";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,6 +15,10 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
     const { name, email, role, password } = body;
+  const normalizedRole = normalizeRole(role);
+  if (!isInviteRole(normalizedRole) && normalizedRole !== "admin") {
+    return NextResponse.json({ error: "Role is not allowed." }, { status: 400 });
+  }
 
   try {
     if (password) {
@@ -22,12 +26,12 @@ export async function PATCH(
       const hashedPassword = await hashPassword(password);
       await db.run(
         'UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name, email, role, hashedPassword, id]
+        [name, email, normalizedRole, hashedPassword, id]
       );
     } else {
       await db.run(
         'UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name, email, role, id]
+        [name, email, normalizedRole, id]
       );
     }
     return NextResponse.json({ ok: true });

@@ -8,6 +8,7 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid,
 } from "recharts";
+import { formatDisplayText } from "@/lib/utils";
 
 type ReportData = {
   plan: {
@@ -36,9 +37,9 @@ const SEVERITY_COLORS: Record<string, string> = {
 function StatusBadge({ status }: { status: string }) {
   const color = STATUS_COLORS[status.toLowerCase()] ?? "#94a3b8";
   return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide"
       style={{ background: color + "20", color }}>
-      {status}
+      {formatDisplayText(status)}
     </span>
   );
 }
@@ -46,9 +47,9 @@ function StatusBadge({ status }: { status: string }) {
 function SeverityBadge({ severity }: { severity: string }) {
   const color = SEVERITY_COLORS[severity.toLowerCase()] ?? "#94a3b8";
   return (
-    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
       style={{ background: color + "20", color }}>
-      {severity}
+      {formatDisplayText(severity)}
     </span>
   );
 }

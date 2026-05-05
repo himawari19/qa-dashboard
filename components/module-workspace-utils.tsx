@@ -16,24 +16,23 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { ModuleKey } from "@/lib/modules";
+import { normalizeRole } from "@/lib/roles";
 
 export const PAGE_SIZE = 10;
 
 export function getModuleWorkspacePermissions(userRole: string) {
-  const role = userRole.toLowerCase();
+  const role = normalizeRole(userRole);
   const isAdmin = role === "admin";
-  const isLead = role === "lead";
-  const isEditor = role === "editor";
-  const isViewer = role === "viewer";
+  const canWrite = isAdmin || ["fe", "be", "fullstack", "qa", "pm"].includes(role);
 
   return {
     isAdmin,
-    isLead,
-    isEditor,
-    isViewer,
-    canAdd: isAdmin || isLead || isEditor,
-    canEdit: isAdmin || isLead || isEditor,
-    canDelete: isAdmin || isLead,
+    isLead: false,
+    isEditor: false,
+    isViewer: false,
+    canAdd: canWrite,
+    canEdit: canWrite,
+    canDelete: isAdmin,
   };
 }
 

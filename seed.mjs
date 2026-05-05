@@ -5,7 +5,20 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
 const dbPaths = [join(process.cwd(), "prisma", "dev.db"), join(process.cwd(), "main.db")];
-for (const p of dbPaths) { if (existsSync(p)) { unlinkSync(p); console.log("Deleted:", p); } }
+for (const p of dbPaths) {
+  if (!existsSync(p)) continue;
+  try {
+    unlinkSync(p);
+    console.log("Deleted:", p);
+  } catch (err) {
+    if (String(err?.code || "") === "EBUSY") {
+      console.error(`Cannot reset ${p} because it is locked by a running app.`);
+      console.error("Stop the dev server, then run: node seed.mjs");
+      process.exit(1);
+    }
+    throw err;
+  }
+}
 
 mkdirSync(join(process.cwd(), "prisma"), { recursive: true });
 const DB_PATH = join(process.cwd(), "prisma", "dev.db");
@@ -415,11 +428,11 @@ acts.forEach(a => iAct.run(...a));
 console.log("✓ Activity Logs (20)");
 
 // ── USER ───────────────────────────────────────────────────────
-const pwHash = await hashPassword("@Anakjaman1");
+const pwHash = await hashPassword("Lotus1919!");
 db.prepare(`INSERT INTO "User" ("company","name","email","password","role") VALUES (?,?,?,?,?)`).run(
-  C, "Wahyu Simbolon", "wsherwin.simbolon@magnusdigital.co.id", pwHash, "admin"
+  C, "Admin", "admin@qa-daily.local", pwHash, "admin"
 );
-console.log("✓ User: wsherwin.simbolon@magnusdigital.co.id / @Anakjaman1");
+console.log("✓ User: admin@qa-daily.local / Lotus1919!");
 
 db.close();
 console.log("\n✅ Seed selesai! → prisma/dev.db");

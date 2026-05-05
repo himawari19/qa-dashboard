@@ -23,6 +23,7 @@ vi.mock("@/components/badge", () => ({
 vi.mock("@/lib/utils", () => ({
   cn: (...classes: Array<string | undefined | false>) => classes.filter(Boolean).join(" "),
   formatDate: (value: string) => value,
+  formatDisplayText: (value: string) => value,
 }));
 
 import { SuiteDetail } from "@/app/test-suites/[token]/suite-detail";

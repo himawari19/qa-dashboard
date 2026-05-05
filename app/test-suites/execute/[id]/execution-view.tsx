@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle, XCircle, ArrowLeft, Database, Play, FastForward, Keyboard, Warning, CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayText } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
@@ -89,7 +89,7 @@ export function SuiteExecutionView({
 
   const setAllStatus = (status: string) => {
     setItems((prev) => prev.map((item) => ({ ...item, status })));
-    toast(`All cases set to ${status}`, "info");
+    toast(`All cases set to ${formatDisplayText(status)}`, "info");
   };
 
   useEffect(() => {

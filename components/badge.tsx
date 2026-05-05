@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayText } from "@/lib/utils";
 
 const toneMap = {
   // ── Severity (traffic light scale, clearly distinct) ─────────────────────
@@ -89,12 +89,12 @@ export function Badge({ value, className }: { value: string; className?: string 
   return (
     <span
       className={cn(
-        "inline-flex min-w-[80px] justify-center rounded-md px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest shadow-sm",
+        "inline-flex min-w-[80px] justify-center rounded-md px-3 py-0.5 text-[10px] font-bold tracking-widest shadow-sm",
         toneMap[safeValue as keyof typeof toneMap] ?? "bg-slate-500 text-white",
-        className
+        className,
       )}
     >
-      {safeValue.replace(/_/g, " ")}
+      {formatDisplayText(safeValue)}
     </span>
   );
 }

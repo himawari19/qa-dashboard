@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cn, codeFromId, formatDate, normalizeMultiline, toDateInput } from "@/lib/utils";
+import { cn, codeFromId, formatDate, formatDisplayText, normalizeMultiline, toDateInput } from "@/lib/utils";
 
 describe("utils", () => {
   it("joins class values", () => {
@@ -20,6 +20,14 @@ describe("utils", () => {
 
   it("normalizes multiline text", () => {
     expect(normalizeMultiline(" line 1\r\nline 2 \n")).toBe("line 1\nline 2");
+  });
+
+  it("formats display text consistently", () => {
+    expect(formatDisplayText("todo")).toBe("Todo");
+    expect(formatDisplayText("in_progress")).toBe("In Progress");
+    expect(formatDisplayText("QA Engineer")).toBe("QA Engineer");
+    expect(formatDisplayText("TestCase")).toBe("Test Case");
+    expect(formatDisplayText("UI/UX Designer")).toBe("UI/UX Designer");
   });
 
   it("generates stable codes", () => {

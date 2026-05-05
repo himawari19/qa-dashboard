@@ -9,6 +9,7 @@ import { NotificationPanel } from "./sidebar";
 import { Bell, CaretDown, Gear, List, Moon, SignOut, Sun, UserCircle } from "@phosphor-icons/react";
 import { ConfirmModal } from "./ui/confirm-modal";
 import { cn } from "@/lib/utils";
+import { getRoleLabel, isAdminUser } from "@/lib/roles";
 
 export function AppWrapper({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -26,7 +27,17 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
   
   const pathname = usePathname();
   const router = useRouter();
-  const isAuthScreen = pathname === "/login";
+  const isAuthScreen = pathname === "/login" || pathname === "/register";
+
+  const refreshUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me");
+      const data = await response.json();
+      setUser(data.user || null);
+    } catch {
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
     const saved = window.localStorage.getItem("qa-sidebar-collapsed");
@@ -51,10 +62,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isAuthScreen) return;
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d) => setUser(d.user || null))
-      .catch(() => {});
+    void refreshUser();
     // Defer notifications to avoid competing with dashboard queries on cold DB start
     const t = setTimeout(() => {
       fetch("/api/notifications")
@@ -63,7 +71,15 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
         .catch(() => {});
     }, 5000);
     return () => clearTimeout(t);
-  }, [isAuthScreen]);
+  }, [isAuthScreen, pathname]);
+
+  useEffect(() => {
+    const handler = () => {
+      void refreshUser();
+    };
+    window.addEventListener("qa:profile-updated", handler);
+    return () => window.removeEventListener("qa:profile-updated", handler);
+  }, []);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -125,6 +141,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
               collapsed={collapsed} 
               onToggle={() => setCollapsed(!collapsed)} 
               onLogout={() => setShowLogoutConfirm(true)}
+              userRole={user?.role || ""}
             />
           </div>
           <div className="flex flex-1 flex-col min-w-0">
@@ -183,7 +200,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                           {user?.name || user?.email || "Account"}
                         </span>
                         <span className="truncate text-xs text-slate-500 dark:text-slate-400">
-                          {user?.role || "viewer"}{user?.company ? ` · ${user.company}` : ""}
+                          {getRoleLabel(user?.role || "qa")} · Workspace
                         </span>
                       </span>
                       <CaretDown size={12} weight="bold" className="text-slate-400" />
@@ -200,10 +217,10 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                           <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.email || "-"}</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-slate-600 dark:bg-white/5 dark:text-slate-300">
-                                {user?.role || "viewer"}
+                                {getRoleLabel(user?.role || "qa")}
                               </span>
                               <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
-                                {user?.company || "No company"}
+                                Workspace
                               </span>
                             </div>
                           </div>
@@ -216,11 +233,11 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-slate-500 dark:text-slate-400">Role</span>
-                            <span className="font-bold text-slate-800 dark:text-slate-100">{user?.role || "-"}</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-100">{getRoleLabel(user?.role || "")}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-500 dark:text-slate-400">Company</span>
-                            <span className="max-w-40 truncate font-bold text-slate-800 dark:text-slate-100">{user?.company || "-"}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Workspace</span>
+                            <span className="max-w-40 truncate font-bold text-slate-800 dark:text-slate-100">Private Workspace</span>
                           </div>
                         </div>
 
@@ -229,10 +246,12 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                             <UserCircle size={16} weight="bold" />
                             Profile
                           </Link>
-                          <Link href="/settings/users" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
-                            <Gear size={16} weight="bold" />
-                            Account settings
-                          </Link>
+                          {isAdminUser(user?.role, user?.company) && (
+                            <Link href="/settings/users" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
+                              <Gear size={16} weight="bold" />
+                              Account settings
+                            </Link>
+                          )}
                           <button
                             type="button"
                             onClick={() => { setAccountOpen(false); setShowLogoutConfirm(true); }}

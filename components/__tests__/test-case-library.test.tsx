@@ -15,6 +15,7 @@ vi.mock("@/components/badge", () => ({
 
 vi.mock("@/lib/utils", () => ({
   cn: (...classes: Array<string | undefined | false>) => classes.filter(Boolean).join(" "),
+  formatDisplayText: (value: string) => value,
 }));
 
 import { TestCaseLibrary } from "@/app/test-cases/test-case-library";

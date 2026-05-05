@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from "react";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/badge";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatDisplayText } from "@/lib/utils";
 import { Lightning, ClipboardText, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import {
   DAY_NAMES,
@@ -957,9 +957,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
             </div>
             <div className="h-3 w-px bg-slate-300 dark:bg-white/10 mx-1" />
             {Object.entries(STATUS_COLORS).map(([status, color]) => (
-              <div key={status} className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 capitalize">
+              <div key={status} className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
                 <div className="h-3.5 w-5 rounded" style={{ backgroundColor: color + "20", border: `1.5px solid ${color}60`, borderLeft: `3px solid ${color}` }} />
-                {status}
+                {formatDisplayText(status)}
               </div>
             ))}
           </div>

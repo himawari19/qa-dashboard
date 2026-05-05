@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { IdentificationCard, EnvelopeSimple, Briefcase, User, CheckCircle, Warning } from "@phosphor-icons/react";
+import React, { useEffect, useState } from "react";
+import { EnvelopeSimple, Briefcase, User, CheckCircle, Warning } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
+import { getRoleLabel } from "@/lib/roles";
 
 interface UserProfile {
   id: number;
@@ -21,6 +22,15 @@ export function ProfileForm({ user }: { user: UserProfile }) {
     password: "",
     confirmPassword: "",
   });
+
+  useEffect(() => {
+    setFormData({
+      name: user.name || "",
+      role: user.role || "",
+      password: "",
+      confirmPassword: "",
+    });
+  }, [user.name, user.role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +62,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
 
       if (res.ok) {
         toast("Profile updated successfully", "success");
+        window.dispatchEvent(new Event("qa:profile-updated"));
         router.refresh();
       } else {
         toast(data.error || "Failed to update profile", "error");
@@ -88,21 +99,11 @@ export function ProfileForm({ user }: { user: UserProfile }) {
           </label>
           <input
             type="text"
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            value={getRoleLabel(formData.role)}
+            readOnly
             className="w-full h-11 px-4 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800 dark:text-white"
-            placeholder="e.g. Senior QA Engineer"
+            placeholder="Role"
           />
-        </div>
-
-        {/* Username (Read-only) */}
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <IdentificationCard size={12} weight="bold" /> Username
-          </label>
-          <div className="w-full h-11 px-4 rounded-lg bg-slate-100 dark:bg-white/2 border border-slate-200 dark:border-white/5 flex items-center text-sm font-bold text-slate-500 opacity-70 cursor-not-allowed">
-            {user.email}
-          </div>
         </div>
 
         {/* Email (Read-only as per request) */}

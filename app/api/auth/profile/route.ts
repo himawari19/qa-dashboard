@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, createSessionToken, sessionCookieName } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export async function GET() {
@@ -61,7 +61,21 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    const updatedUser = {
+      id: user.id,
+      name: name.trim(),
+      role: (role?.trim() || "viewer"),
+      company: user.company,
+    };
+    const response = NextResponse.json({ success: true, user: updatedUser });
+    response.cookies.set(sessionCookieName(), await createSessionToken(user.email, updatedUser), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 6,
+    });
+    return response;
   } catch (error) {
     console.error("Profile Update Error:", error);
     return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });

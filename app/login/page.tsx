@@ -57,7 +57,10 @@ function LoginContent() {
         company: formData.company
       }),
       });
-      const data = await res.json();
+      const contentType = res.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await res.json()
+        : { error: await res.text() };
       
       if (!res.ok) {
         setError(data.error || `${mode === "signup" ? "Registration" : "Login"} failed.`);
@@ -74,8 +77,9 @@ function LoginContent() {
       toast("Welcome back!", "success");
       setFormData({ name: "", email: "", password: "", role: "", company: "" });
       router.replace(nextUrl);
+      router.refresh();
     } catch (err) {
-      setError("An unexpected error occurred.");
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setPending(false);
     }
@@ -257,16 +261,7 @@ function LoginContent() {
 
           {mode !== "forgot" && (
             <p className="text-center mt-6 text-sm text-slate-500 font-medium">
-              {mode === "signup" ? "Already a member?" : "New to the platform?"}{" "}
-              <button
-                onClick={() => {
-                  setMode(mode === "signup" ? "signin" : "signup");
-                  setError("");
-                }}
-                className="text-blue-600 font-bold hover:underline"
-              >
-                {mode === "signup" ? "Sign in instead" : "Create an account"}
-              </button>
+              Invite-only access. Ask the super admin for an invite link.
             </p>
           )}
         </div>

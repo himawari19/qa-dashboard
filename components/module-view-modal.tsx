@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayText } from "@/lib/utils";
 import { HighlightText } from "@/components/highlight-text";
 
 type FieldConfig = {
@@ -74,6 +74,12 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
               const value = String(row[field.name] ?? "");
               const isLong = field.kind === "textarea" || value.length > 120 || ["description", "notes", "content", "scope", "goal", "preconditions", "stepsToReproduce", "expectedResult", "actualResult"].includes(field.name);
               const Icon = fieldIcons[field.name] ?? <span />;
+              const displayValue =
+                field.kind === "select"
+                  ? field.options?.find(
+                      (opt) => opt.value === value || opt.label.toLowerCase() === value.toLowerCase(),
+                    )?.label ?? formatDisplayText(value)
+                  : value;
 
               return (
                 <div
@@ -87,13 +93,13 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
                     {Icon}
                     {field.label}
                   </div>
-                  {field.name === "evidence" && value.startsWith("http") ? (
-                    <a href={value} target="_blank" rel="noreferrer" className="break-all text-xs text-blue-600 hover:underline">
-                      {value}
+                  {field.name === "evidence" && displayValue.startsWith("http") ? (
+                    <a href={displayValue} target="_blank" rel="noreferrer" className="break-all text-xs text-blue-600 hover:underline">
+                      {displayValue}
                     </a>
                   ) : (
                     <p className={cn("whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-800 dark:text-slate-200", !isLong && "font-semibold")}>
-                      <HighlightText text={value || "-"} query="" />
+                      <HighlightText text={displayValue || "-"} query="" />
                     </p>
                   )}
                 </div>

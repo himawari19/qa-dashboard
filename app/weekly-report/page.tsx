@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/badge";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatDisplayText } from "@/lib/utils";
 import {
   Bug,
   CheckCircle,
@@ -458,11 +458,11 @@ export default function WeeklyReportPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{bug.code} · {bug.title}</p>
-                    <p className="mt-0.5 truncate text-[10px] text-slate-400">{bug.project} · {bug.priority}</p>
+                    <p className="mt-0.5 truncate text-[10px] text-slate-400">{bug.project} · {formatDisplayText(bug.priority)}</p>
                   </div>
                   <Badge value={bug.status} />
                 </div>
-                <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">{bug.severity}</p>
+                <p className="mt-2 text-[10px] font-semibold tracking-widest text-slate-400">{formatDisplayText(bug.severity)}</p>
               </div>
             ))}
           </div>
@@ -475,7 +475,7 @@ export default function WeeklyReportPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{task.code} · {task.title}</p>
-                    <p className="mt-0.5 truncate text-[10px] text-slate-400">{task.project} · {task.priority}</p>
+                    <p className="mt-0.5 truncate text-[10px] text-slate-400">{task.project} · {formatDisplayText(task.priority)}</p>
                   </div>
                   <Badge value={task.status} />
                 </div>
@@ -539,7 +539,7 @@ export default function WeeklyReportPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium leading-snug text-slate-700 dark:text-slate-300">{activity.summary}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-slate-400">{activity.action}</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-widest text-slate-400">{formatDisplayText(activity.entityType)} · {formatDisplayText(activity.action)}</p>
                 </div>
               </div>
             ))}

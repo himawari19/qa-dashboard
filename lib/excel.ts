@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { moduleConfigs, type ModuleKey } from "@/lib/modules";
+import { formatModuleFieldValue, moduleConfigs, type ModuleKey } from "@/lib/modules";
 
 const fills = {
   P0: "FFE45E5E",
@@ -64,10 +64,9 @@ export async function buildWorkbook(
   if (!template) {
     for (const row of rows) {
       // row here comes from toRow() which uses labels as keys.
-      // We need to map it back to field.name keys for ExcelJS to match column keys.
       const excelData: Record<string, string | number> = {};
-      moduleConfigs[module].fields.forEach(f => {
-        excelData[f.name] = row[f.label] ?? "";
+      moduleConfigs[module].fields.forEach((field) => {
+        excelData[field.name] = formatModuleFieldValue(field, row[field.label] ?? "");
       });
       
       const excelRow = worksheet.addRow(excelData);
@@ -93,7 +92,7 @@ function addDataValidation(module: ModuleKey, worksheet: ExcelJS.Worksheet) {
   moduleConfigs[module].fields.forEach((field, index) => {
     if (field.kind !== "select") return;
 
-    const options = field.options.map((option) => option.value).join(",");
+    const options = field.options.map((option) => option.label).join(",");
     const formula = `"${options}"`;
     
     // Apply to first 500 rows

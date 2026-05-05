@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser, normalizeRole } from "@/lib/auth-core";
+import { isAdminUser, isInviteRole, normalizeRole } from "@/lib/roles";
 
 type InviteRow = {
   id: number;
@@ -17,7 +17,7 @@ type InviteRow = {
 };
 
 type InviteInput = {
-  company: string;
+  company?: string;
   role: string;
   expiresInDays?: number;
 };
@@ -36,20 +36,20 @@ export async function getInviteByToken(token: string) {
   return db.get<InviteRow>('SELECT * FROM "Invite" WHERE "token" = ?', [token]);
 }
 
-export async function listInvites(company: string) {
-  return db.query<InviteRow>('SELECT * FROM "Invite" WHERE "company" = ? ORDER BY "createdAt" DESC', [company]);
+export async function listInvites() {
+  return db.query<InviteRow>('SELECT * FROM "Invite" WHERE "status" = ? ORDER BY "createdAt" DESC', ["pending"]);
 }
 
 export async function createInvite(input: InviteInput) {
   const user = await getCurrentUser();
   const company = String(input.company ?? "").trim();
-  const role = normalizeRole(input.role) || "viewer";
+  const role = normalizeRole(input.role) || "qa";
   const expiresInDays = Number.isFinite(input.expiresInDays ?? NaN) ? Number(input.expiresInDays) : 7;
-  if (!company) {
-    return { error: "Company is required." } as const;
-  }
   if (!user || !isAdminUser(user.role, user.company)) {
     return { error: "Unauthorized" } as const;
+  }
+  if (!isInviteRole(role)) {
+    return { error: "Role is not allowed." } as const;
   }
 
   const token = makeToken();
@@ -76,18 +76,34 @@ export async function revokeInvite(token: string) {
   return { ok: true } as const;
 }
 
-export async function acceptInvite(token: string, email: string) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Unauthorized" } as const;
-
+export async function markInviteAccepted(token: string, email: string) {
   const invite = await getInviteByToken(token);
   if (!invite) return { error: "Invite not found." } as const;
+  if (invite.status === "accepted") {
+    return { ok: true, company: invite.company, role: invite.role } as const;
+  }
   if (invite.status !== "pending") return { error: "Invite is not active." } as const;
   if (new Date(String(invite.expiresAt)).getTime() < Date.now()) {
     await db.run('UPDATE "Invite" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "token" = ?', ["expired", token]);
     return { error: "Invite expired." } as const;
   }
+  if (String(email ?? "").trim() === "") return { error: "Email is required." } as const;
+  if (!isInviteRole(normalizeRole(invite.role))) {
+    return { error: "Invite role is not allowed." } as const;
+  }
 
+  await db.run(
+    'UPDATE "Invite" SET "status" = ?, "acceptedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "token" = ?',
+    ["accepted", token],
+  );
+  return { ok: true, company: invite.company, role: invite.role } as const;
+}
+
+export async function acceptInvite(token: string, email: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Unauthorized" } as const;
+  const invite = await getInviteByToken(token);
+  if (!invite) return { error: "Invite not found." } as const;
   const existingUser = await db.get<{ id: number; email: string }>('SELECT id, email FROM "User" WHERE "email" = ?', [email]);
   if (!existingUser) {
     return { error: "User not found." } as const;
@@ -97,9 +113,5 @@ export async function acceptInvite(token: string, email: string) {
     'UPDATE "User" SET "company" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "email" = ?',
     [invite.company, invite.role, email],
   );
-  await db.run(
-    'UPDATE "Invite" SET "status" = ?, "acceptedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "token" = ?',
-    ["accepted", token],
-  );
-  return { ok: true, company: invite.company, role: invite.role } as const;
+  return markInviteAccepted(token, email);
 }

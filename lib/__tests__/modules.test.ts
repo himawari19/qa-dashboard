@@ -84,6 +84,27 @@ describe.each(moduleOrder)("%s config contract", (module) => {
       expect(Object.values(row).every((value) => typeof value === "string" || typeof value === "number")).toBe(true);
     }
   });
+
+  it("accepts select labels from exported workbooks", () => {
+    const entry = buildValidEntry(module);
+    const statusField = config.fields.find(
+      (field): field is Extract<(typeof config.fields)[number], { kind: "select" }> =>
+        field.kind === "select" && Boolean(field.options?.length),
+    );
+    if (!statusField) return;
+
+    const label = statusField.options[0]?.label;
+    const value = statusField.options[0]?.value;
+    if (!label || !value) return;
+
+    entry[statusField.name] = label;
+    const result = safeParseModuleEntry(module, entry);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(String((result.data as Record<string, string>)[statusField.name])).toBe(value);
+    }
+  });
 });
 
 describe("formDataToEntry", () => {

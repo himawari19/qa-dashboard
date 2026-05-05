@@ -3,6 +3,7 @@ import { verifySessionToken } from "@/lib/auth-core";
 
 const publicPaths = [
   "/login",
+  "/register",
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",

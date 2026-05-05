@@ -25,6 +25,7 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
+import { normalizeRole } from "@/lib/roles";
 
 const groups: SidebarGroup[] = [
   {
@@ -77,6 +78,31 @@ type Notification = { id: string; type: "overdue" | "deadline"; title: string; d
 type SidebarIcon = React.ComponentType<{ size?: number; weight?: "bold"; className?: string }>;
 type SidebarItem = { href: string; label: string; icon: SidebarIcon };
 type SidebarGroup = { title: string; items: SidebarItem[] };
+
+const ROLE_MENU: Record<string, string[]> = {
+  admin: ["/", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt", "/settings"],
+  fullstack: ["/", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
+  qa: ["/", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/weekly-report", "/gantt"],
+  fe: ["/", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
+  be: ["/", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
+  pm: ["/", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
+};
+
+function canSeeHref(role: string, href: string) {
+  const allowed = ROLE_MENU[role] || ROLE_MENU.qa;
+  if (allowed.includes(href)) return true;
+  if (href === "/settings") return role === "admin";
+  return false;
+}
+
+function filterGroups(role: string) {
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canSeeHref(role, item.href)),
+    }))
+    .filter((group) => group.items.length > 0);
+}
 
 function SidebarTooltip({ tooltip }: { tooltip: TooltipState }) {
   if (!tooltip) return null;
@@ -307,13 +333,17 @@ export function Sidebar({
   collapsed,
   onToggle,
   onLogout,
+  userRole = "",
 }: {
   collapsed: boolean;
   onToggle: () => void;
   onLogout?: () => void;
+  userRole?: string;
 }) {
   const pathname = usePathname();
   const [tooltip, setTooltip] = useState<TooltipState>(null);
+  const role = normalizeRole(userRole);
+  const visibleGroups = filterGroups(role);
 
   function showTooltip(e: React.MouseEvent<HTMLElement>, label: string) {
     if (!collapsed) return;
@@ -349,7 +379,7 @@ export function Sidebar({
           {/* Nav */}
           <div className={cn("flex-1 overflow-y-auto py-2 space-y-4 scrollbar-thin", collapsed ? "px-2" : "px-3")}>
             <nav className="space-y-4">
-              {groups.map((group) => (
+              {visibleGroups.map((group) => (
                 <SidebarSection
                   key={group.title || "dashboard"}
                   group={group}

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/badge";
 import { toast } from "@/components/ui/toast";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatDisplayText } from "@/lib/utils";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { DashboardDrawer } from "@/components/dashboard-drawer";
 import { DashboardStandupModal } from "@/components/dashboard-standup-modal";
@@ -307,24 +307,24 @@ export function Dashboard({
   const openSeverityDrawer = (severity: string, count: number) => {
     const bugs = recent.bugs.filter(b => b.severity?.toLowerCase() === severity.toLowerCase());
     setDrawer({
-      title: `${severity} Bugs`,
+      title: `${formatDisplayText(severity)} Bugs`,
       subtitle: `${count} total`,
       href: "/bugs",
       items: bugs.length > 0
         ? bugs.map(b => ({ label: b.title, sub: b.code, badge2: b.status, href: "/bugs" }))
-        : [{ label: `View all ${severity} bugs`, href: "/bugs" }],
+        : [{ label: `View all ${formatDisplayText(severity)} bugs`, href: "/bugs" }],
     });
   };
 
   const openTaskStatusDrawer = (status: string, count: number) => {
     const tasks = recent.tasks.filter(t => t.status?.toLowerCase() === status.toLowerCase());
     setDrawer({
-      title: `Tasks: ${status}`,
+      title: `Tasks: ${formatDisplayText(status)}`,
       subtitle: `${count} total`,
       href: "/tasks",
       items: tasks.length > 0
         ? tasks.map(t => ({ label: t.title, sub: t.code, badge: t.priority, href: "/tasks" }))
-        : [{ label: `View all ${status} tasks`, href: "/tasks" }],
+        : [{ label: `View all ${formatDisplayText(status)} tasks`, href: "/tasks" }],
     });
   };
 
@@ -774,7 +774,7 @@ export function Dashboard({
                   </div>
                   <div className="flex-1 min-w-0 pt-2">
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-snug line-clamp-2">{item.summary}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{item.entityType} · {item.action} · {item.createdAt?.slice(0, 16).replace("T", " ")}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{formatDisplayText(item.entityType)} · {formatDisplayText(item.action)} · {item.createdAt?.slice(0, 16).replace("T", " ")}</p>
                   </div>
                 </div>
               ))}

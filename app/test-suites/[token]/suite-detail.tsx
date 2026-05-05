@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatDisplayText } from "@/lib/utils";
 import { Badge } from "@/components/badge";
 import { Breadcrumb } from "@/components/breadcrumb";
 import {
@@ -371,12 +371,12 @@ export function SuiteDetail({
                         )}
                       </td>
                       <td className="px-3 py-3.5 hidden md:table-cell">
-                        <span className="text-xs text-slate-500">{tc.typeCase || "—"}</span>
+                        <span className="text-xs text-slate-500">{formatDisplayText(tc.typeCase)}</span>
                       </td>
                       <td className="px-3 py-3.5 hidden lg:table-cell">
                         <div className="flex items-center gap-1.5">
                           <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[tc.priority] ?? "bg-slate-300")} />
-                          <span className="text-xs font-semibold text-slate-500">{tc.priority || "—"}</span>
+                          <span className="text-xs font-semibold text-slate-500">{formatDisplayText(tc.priority)}</span>
                         </div>
                       </td>
                       <td className="px-3 py-3.5">
@@ -385,7 +385,7 @@ export function SuiteDetail({
                           STATUS_PILL[tc.status] ?? STATUS_PILL.Pending
                         )}>
                           {STATUS_ICON[tc.status] ?? STATUS_ICON.Pending}
-                          {tc.status || "Pending"}
+                          {formatDisplayText(tc.status || "Pending")}
                         </span>
                       </td>
                     </tr>

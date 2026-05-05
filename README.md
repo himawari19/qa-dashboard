@@ -19,12 +19,10 @@ pnpm dev
 
 ## Local Login
 
-Default local admin:
-
-- Email: `admin@qa-daily.local`
-- Password: `Lotus1919!`
+Use the local seed output for the default admin login.
 
 Login uses `email + password` only.
+If `node seed.mjs` errors with `EBUSY`, stop the dev server first because `prisma/dev.db` is locked.
 
 ## Notes
 

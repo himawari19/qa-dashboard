@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/page-shell";
 import { getCurrentUser } from "@/lib/auth";
-import { User, IdentificationCard, EnvelopeSimple, Briefcase, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { User, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "./profile-form";
 

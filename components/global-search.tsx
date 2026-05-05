@@ -4,7 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState, useCallback, ty
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowSquareOut, Bug, CalendarBlank, CaretLeft, CaretRight, Checks, CircleNotch, ClipboardText, ClockCounterClockwise, CopySimple, Kanban, MagnifyingGlass, Note, PlayCircle, RocketLaunch, SlidersHorizontal, Table, User, X } from "@phosphor-icons/react";
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayText } from "@/lib/utils";
 import { HighlightText } from "@/components/highlight-text";
 import { toast } from "@/components/ui/toast";
 
@@ -385,8 +385,8 @@ export function GlobalSearch({
   }
 
   const filterSummary = [
-    status && `Status: ${status}`,
-    assignee && `Assignee: ${assignee}`,
+    status && `Status: ${formatDisplayText(status)}`,
+    assignee && `Assignee: ${formatDisplayText(assignee)}`,
     from && `From: ${from}`,
     to && `To: ${to}`,
   ].filter(Boolean).join(" · ");
@@ -651,7 +651,7 @@ export function GlobalSearch({
                                 <div className="mt-0.5 flex shrink-0 flex-col items-start gap-1">
                                   <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", typeColors[result.type] || "bg-slate-100 text-slate-600")}>
                                     {typeIcons[result.type]}
-                                    {result.type}
+                                    {formatDisplayText(result.type)}
                                   </span>
                                   <span className="text-[10px] font-semibold text-slate-400">{result.code}</span>
                                 </div>

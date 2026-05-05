@@ -36,6 +36,7 @@ vi.mock("@/components/ui/toast", () => ({
 vi.mock("@/lib/utils", () => ({
   cn: (...classes: Array<string | undefined | false>) => classes.filter(Boolean).join(" "),
   formatDate: (value: string) => value,
+  formatDisplayText: (value: string) => value,
 }));
 
 import { SuiteExecutionView } from "@/app/test-suites/execute/[id]/execution-view";

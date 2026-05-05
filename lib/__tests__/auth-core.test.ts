@@ -34,7 +34,7 @@ beforeEach(() => {
 describe("auth-core", () => {
   it("normalizes roles and admin detection", () => {
     expect(normalizeRole("Admin (Owner)")).toBe("admin");
-    expect(normalizeRole(" Lead ")).toBe("lead");
+    expect(normalizeRole(" Lead ")).toBe("pm");
     expect(isAdminUser("admin", "")).toBe(true);
     expect(isAdminUser("admin", "acme")).toBe(false);
   });

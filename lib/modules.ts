@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { codeFromId, normalizeMultiline } from "@/lib/utils";
+import { getInviteRoleOptions, getRoleExportLabel } from "@/lib/roles";
 
 export type ModuleKey =
   | "tasks"
@@ -619,7 +620,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   users: {
     title: "User Management",
     shortTitle: "Users",
-    description: "Manage system user accounts, roles, and access permissions.",
+    description: "Manage invited user accounts, roles, and access permissions.",
     prefix: "USER",
     sheetName: "Users",
     schema: z.object({
@@ -633,32 +634,15 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       ID: String(item.id),
       Name: String(item.name),
       Email: String(item.email ?? ""),
-      Role: String(item.role),
+      Role: getRoleExportLabel(String(item.role ?? "")),
     }),
     fields: [
       { name: "name", label: "Full Name", kind: "text", placeholder: "e.g. John Doe", required: true },
       { name: "email", label: "Email Address", kind: "text", placeholder: "e.g. user@example.com", required: true },
       { name: "password", label: "Password", kind: "text", placeholder: "Leave blank to keep current password" },
       { name: "role", label: "Role", kind: "select", options: [
-        { label: "Admin (Owner)", value: "admin" },
-        { label: "Lead", value: "lead" },
-        { label: "Editor", value: "editor" },
-        { label: "Viewer", value: "viewer" },
-        { label: "User", value: "user" },
-        { label: "Product Manager", value: "Product Manager" },
-        { label: "Project Manager", value: "Project Manager" },
-        { label: "System Analyst", value: "System Analyst" },
-        { label: "UI/UX Designer", value: "UI/UX Designer" },
-        { label: "Frontend Developer", value: "Frontend Developer" },
-        { label: "Backend Developer", value: "Backend Developer" },
-        { label: "Fullstack Developer", value: "Fullstack Developer" },
-        { label: "Mobile Developer", value: "Mobile Developer" },
-        { label: "QA Engineer", value: "QA Engineer" },
-        { label: "QA Automation Engineer", value: "QA Automation Engineer" },
-        { label: "DevOps Engineer", value: "DevOps Engineer" },
-        { label: "Security Engineer", value: "Security Engineer" },
-        { label: "Database Administrator", value: "Database Administrator" },
-        { label: "Software Architect", value: "Software Architect" },
+        { label: "Super Admin", value: "admin" },
+        ...getInviteRoleOptions(),
       ], required: true },
     ],
     columns: [
@@ -769,6 +753,32 @@ export const moduleLabels = Object.fromEntries(
   moduleOrder.map((key) => [key, moduleConfigs[key].shortTitle]),
 ) as Record<ModuleKey, string>;
 
+function findSelectOption(field: Extract<Field, { kind: "select" }>, value: string) {
+  const lowered = value.toLowerCase();
+  return field.options.find((option) => option.value === value || option.label.toLowerCase() === lowered);
+}
+
+export function formatModuleFieldValue(field: Field, value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (field.kind !== "select") return text;
+
+  const option = findSelectOption(field, text);
+  return option?.label ?? text;
+}
+
+export function normalizeModuleEntry(module: ModuleKey, entry: Record<string, string>) {
+  const normalized = { ...entry };
+  for (const field of moduleConfigs[module].fields) {
+    if (field.kind !== "select") continue;
+    const rawValue = String(entry[field.name] ?? "").trim();
+    if (!rawValue) continue;
+    const option = findSelectOption(field, rawValue);
+    if (option) normalized[field.name] = option.value;
+  }
+  return normalized;
+}
+
 export function formDataToEntry(formData: FormData) {
   const entry: Record<string, string> = {};
   formData.forEach((value, key) => {
@@ -780,9 +790,9 @@ export function formDataToEntry(formData: FormData) {
 }
 
 export function parseModuleEntry(module: ModuleKey, entry: Record<string, string>) {
-  return moduleConfigs[module].schema.parse(entry);
+  return moduleConfigs[module].schema.parse(normalizeModuleEntry(module, entry));
 }
 
 export function safeParseModuleEntry(module: ModuleKey, entry: Record<string, string>) {
-  return moduleConfigs[module].schema.safeParse(entry);
+  return moduleConfigs[module].schema.safeParse(normalizeModuleEntry(module, entry));
 }
