@@ -16,29 +16,35 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
   const [projects, setProjects] = useState<string[]>(initialProjects);
   const [selectedProject, setSelectedProject] = useState("");
   const [open, setOpen] = useState(false);
-  const hydrated = useRef(Boolean(initialData && initialProjects.length));
+  const hasServerData = useRef(Boolean(initialData));
 
+  // Fetch projects list (lightweight, cached server-side)
   useEffect(() => {
-    if (hydrated.current && initialData) return;
-    hydrated.current = true;
+    let active = true;
+    fetch("/api/dashboard/projects", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => { if (active) setProjects(j.projects || []); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  // Fetch dashboard data — skip initial fetch if server already provided it
+  useEffect(() => {
+    if (!selectedProject && hasServerData.current && data) return;
 
     let active = true;
-    setData(null);
+    if (!selectedProject) setData(null);
     setError(null);
 
     const load = async () => {
       try {
-        const [projectsRes, dataRes] = await Promise.all([
-          fetch("/api/dashboard/projects", { cache: "no-store" }),
-          fetch(selectedProject ? `/api/dashboard?project=${encodeURIComponent(selectedProject)}` : "/api/dashboard", { cache: "no-store" }),
-        ]);
-
-        if (!projectsRes.ok) throw new Error(`Failed to load projects (${projectsRes.status})`);
+        const dataRes = await fetch(
+          selectedProject ? `/api/dashboard?project=${encodeURIComponent(selectedProject)}` : "/api/dashboard",
+          { cache: "no-store" }
+        );
         if (!dataRes.ok) throw new Error(`Failed to load dashboard (${dataRes.status})`);
-
-        const [projectsJson, dataJson] = await Promise.all([projectsRes.json(), dataRes.json()]);
+        const dataJson = await dataRes.json();
         if (!active) return;
-        setProjects(projectsJson.projects || []);
         setData(dataJson);
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Failed to load dashboard");
@@ -47,7 +53,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
 
     load();
     return () => { active = false; };
-  }, [selectedProject, initialData, initialProjects.length]);
+  }, [selectedProject]);
 
   if (error) {
     return (

@@ -51,14 +51,18 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isAuthScreen) return;
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((d) => setNotifCount((d.notifications || []).length))
-      .catch(() => {});
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((d) => setUser(d.user || null))
       .catch(() => {});
+    // Defer notifications to avoid competing with dashboard queries on cold DB start
+    const t = setTimeout(() => {
+      fetch("/api/notifications")
+        .then((r) => r.json())
+        .then((d) => setNotifCount((d.notifications || []).length))
+        .catch(() => {});
+    }, 5000);
+    return () => clearTimeout(t);
   }, [isAuthScreen]);
 
   useEffect(() => {
