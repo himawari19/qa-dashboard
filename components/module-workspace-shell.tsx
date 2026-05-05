@@ -206,7 +206,6 @@ export function ModuleWorkspaceShell({
             onCancel={onCancelForm}
             checkDuplicates={checkDuplicates}
             checkSprintDuplicate={checkSprintDuplicate}
-            setSprintDuplicate={setSprintDuplicate}
             versionSequenceLabel={versionSequenceLabel}
           />
         ) : null}

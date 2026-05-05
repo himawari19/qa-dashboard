@@ -25,7 +25,7 @@ vi.mock("@/lib/utils", () => ({
   cn: (...classes: Array<string | undefined | false>) => classes.filter(Boolean).join(" "),
 }));
 
-import { TestCaseDetailEditor } from "@/components/test-case-detail-editor";
+import { TestCaseDetailEditor, TestCaseGridRow } from "@/components/test-case-detail-editor";
 
 describe("TestCaseDetailEditor", () => {
   it("renders existing rows and editor controls", () => {
@@ -56,6 +56,113 @@ describe("TestCaseDetailEditor", () => {
     expect(html).toContain("TC-1");
     expect(html).toContain("Login works");
     expect(html).toContain("Action");
-    expect(html).toContain("SAVE");
+    expect(html).toContain("#");
+    expect(html).not.toContain("Ctrl+Enter");
+  });
+
+  it("shows save while editing and delete after commit", () => {
+    const editingHtml = renderToStaticMarkup(
+      <table>
+        <tbody>
+          <TestCaseGridRow
+            row={{
+              id: 1,
+              testSuiteId: "9",
+              tcId: "TC-1",
+              caseName: "Login works",
+              typeCase: "Positive",
+              preCondition: "User exists",
+              testStep: "Open login page",
+              expectedResult: "Dashboard opens",
+              actualResult: "",
+              status: "Pending",
+              evidence: "",
+              priority: "High",
+            }}
+            index={0}
+            rowKey="edit-1"
+            mode="edit"
+            canSave
+            onEdit={() => undefined}
+            onChange={() => undefined}
+            onSave={() => undefined}
+            onDelete={() => undefined}
+            focusNext={() => undefined}
+            focusPrevious={() => undefined}
+          />
+        </tbody>
+      </table>,
+    );
+
+    const viewHtml = renderToStaticMarkup(
+      <table>
+        <tbody>
+          <TestCaseGridRow
+            row={{
+              id: 1,
+              testSuiteId: "9",
+              tcId: "TC-1",
+              caseName: "Login works",
+              typeCase: "Positive",
+              preCondition: "User exists",
+              testStep: "Open login page",
+              expectedResult: "Dashboard opens",
+              actualResult: "",
+              status: "Failed",
+              evidence: "",
+              priority: "High",
+            }}
+            index={0}
+            rowKey="view-1"
+            mode="view"
+            onEdit={() => undefined}
+            onChange={() => undefined}
+            onSave={() => undefined}
+            onDelete={() => undefined}
+            onReportBug={() => undefined}
+          />
+        </tbody>
+      </table>,
+    );
+
+    expect(editingHtml).toContain("Save");
+    expect(viewHtml).toContain("title=\"Delete\"");
+    expect(viewHtml).toContain("title=\"Report Bug\"");
+  });
+
+  it("applies full-cell tone fills", () => {
+    const html = renderToStaticMarkup(
+      <table>
+        <tbody>
+          <TestCaseGridRow
+            row={{
+              id: 1,
+              testSuiteId: "9",
+              tcId: "TC-1",
+              caseName: "Login works",
+              typeCase: "Positive",
+              preCondition: "User exists",
+              testStep: "Open login page",
+              expectedResult: "Dashboard opens",
+              actualResult: "",
+              status: "Passed",
+              evidence: "",
+              priority: "High",
+            }}
+            index={0}
+            rowKey="view-1"
+            mode="view"
+            onEdit={() => undefined}
+            onChange={() => undefined}
+            onSave={() => undefined}
+            onDelete={() => undefined}
+            onReportBug={() => undefined}
+          />
+        </tbody>
+      </table>,
+    );
+
+    expect(html).toContain("bg-emerald-500 text-white");
+    expect(html).toContain("bg-orange-500 text-white");
   });
 });

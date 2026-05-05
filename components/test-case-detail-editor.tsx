@@ -1,33 +1,51 @@
 "use client";
 
-import type { KeyboardEvent, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { FloppyDisk, CaretDown, Trash, Bug, PlayCircle } from "@phosphor-icons/react";
+import { Bug, PencilSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
-import { BadgeCell, COLS, CustomSelect, EditTextCell, ReadCell, TOTAL_WIDTH, Th, colMap, fieldOrder, priorityOptions, statusOptions, typeOptions } from "@/components/test-case-detail-helpers";
-import type { TestCaseRow } from "@/components/test-case-detail-helpers";
-export type { TestCaseRow } from "@/components/test-case-detail-helpers";
-// ─── main component ────────────────────────────────────────────────────────────
-export function TestCaseDetailEditor({
-  suiteId,
-  suiteTitle,
-  initialCases,
-}: {
-  suiteId: string;
-  suiteTitle: string;
-  initialCases: TestCaseRow[];
-}) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<TestCaseRow | null>(null);
+import {
+  BadgeCell,
+  COLS,
+  CustomSelect,
+  EditTextCell,
+  ReadCell,
+  TOTAL_WIDTH,
+  Th,
+  colMap,
+  priorityOptions,
+  statusOptions,
+  type TestCaseRow,
+  type FieldKey,
+  typeOptions,
+} from "@/components/test-case-detail-helpers";
+import { cn } from "@/lib/utils";
 
-  const [form, setForm] = useState<TestCaseRow>({
+export type { TestCaseRow } from "@/components/test-case-detail-helpers";
+
+type FieldRef = HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement;
+
+function normalizeRow(row: Record<string, unknown>, suiteId: string): TestCaseRow {
+  return {
+    id: row.id === undefined || row.id === null || row.id === "" ? undefined : Number(row.id),
+    testSuiteId: String(row.testSuiteId ?? suiteId),
+    tcId: String(row.tcId ?? ""),
+    caseName: String(row.caseName ?? ""),
+    typeCase: String(row.typeCase ?? ""),
+    preCondition: String(row.preCondition ?? ""),
+    testStep: String(row.testStep ?? ""),
+    expectedResult: String(row.expectedResult ?? ""),
+    actualResult: String(row.actualResult ?? ""),
+    status: String(row.status ?? ""),
+    evidence: String(row.evidence ?? ""),
+    priority: String(row.priority ?? ""),
+  };
+}
+
+function createBlankDraft(suiteId: string, tcId: string): TestCaseRow {
+  return {
     testSuiteId: suiteId,
-    tcId: suggestNextId(initialCases),
+    tcId,
     caseName: "",
     typeCase: "",
     preCondition: "",
@@ -35,161 +53,384 @@ export function TestCaseDetailEditor({
     expectedResult: "",
     actualResult: "",
     status: "",
-    priority: "",
     evidence: "",
-  });
+    priority: "",
+  };
+}
 
-  // Load draft from localStorage on mount
+function suggestNextId(rows: TestCaseRow[]) {
+  if (rows.length === 0) return "TC-001";
+  const last = String(rows[rows.length - 1]?.tcId ?? "");
+  const match = last.match(/(\d+)$/);
+  if (match) {
+    const suffix = match[1] ?? "0";
+    const next = Number.parseInt(suffix, 10) + 1;
+    const prefix = last.replace(/\d+$/, "");
+    return `${prefix}${String(next).padStart(suffix.length, "0")}`;
+  }
+  return `TC-${String(rows.length + 1).padStart(3, "0")}`;
+}
+
+function isFailedStatus(value: string) {
+  return ["Failed", "FAILURE", "FAILED"].includes(String(value).toUpperCase()) || String(value).toLowerCase() === "failed";
+}
+
+function requiredEditReady(row: TestCaseRow | null) {
+  return Boolean(row?.tcId && row.caseName && row.expectedResult && row.status && row.priority);
+}
+
+export function TestCaseGridRow({
+  row,
+  index,
+  rowKey,
+  mode,
+  canSave,
+  onChange,
+  onSave,
+  onEdit,
+  onDelete,
+  onReportBug,
+  setRef,
+  focusNext,
+  focusPrevious,
+}: {
+  row: TestCaseRow;
+  index: number;
+  rowKey: string;
+  mode: "view" | "edit" | "draft";
+  canSave?: boolean;
+  onChange: (field: FieldKey, value: string) => void;
+  onSave: () => void;
+  onEdit?: () => void;
+  onDelete: () => void;
+  onReportBug?: () => void;
+  setRef?: (field: string, el: FieldRef | null) => void;
+  focusNext?: (field: FieldKey) => void;
+  focusPrevious?: (field: FieldKey) => void;
+  focusAction?: () => void;
+}) {
+  const showSave = mode !== "view";
+  const rowLabel = mode === "draft" ? "NEW" : String(index + 1);
+
+  const renderTextCell = (field: FieldKey, value: string, multiline?: boolean) => {
+    if (mode === "view") {
+      return (
+        <ReadCell value={value} w={colMap[field]} />
+      );
+    }
+
+    return (
+      <EditTextCell
+        value={value}
+        w={colMap[field]}
+        multiline={multiline}
+        onChange={(next) => onChange(field, next)}
+        onEnter={() => focusNext?.(field)}
+        setRef={(el) => setRef?.(`${rowKey}:${field}`, el)}
+        autoFocus={mode === "edit" && field === "caseName"}
+      />
+    );
+  };
+
+  const renderToneCell = (field: Extract<FieldKey, "typeCase" | "status" | "priority">, value: string, options: readonly string[]) => {
+    if (mode === "view") {
+      return (
+        <BadgeCell value={value} w={colMap[field]} fieldKey={field} />
+      );
+    }
+
+    return (
+      <CustomSelect
+        value={value}
+        w={colMap[field]}
+        fieldKey={field}
+        options={options}
+        placeholder="Select"
+        onChange={(next) => onChange(field, next)}
+        onEnter={() => focusNext?.(field)}
+        setRef={(el) => setRef?.(`${rowKey}:${field}`, el)}
+      />
+    );
+  };
+
+  return (
+    <tr className="align-top transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+      <td
+        style={{ width: colMap.__row__, minWidth: colMap.__row__, maxWidth: colMap.__row__ }}
+        className={cn(
+          "border border-slate-200 px-2 py-[4px] text-center text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:border-slate-600",
+          mode === "draft" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-700",
+        )}
+      >
+        {rowLabel}
+      </td>
+
+      {renderTextCell("tcId", String(row.tcId ?? ""))}
+      {renderTextCell("caseName", String(row.caseName ?? ""), true)}
+      {renderToneCell("typeCase", String(row.typeCase ?? ""), typeOptions)}
+      {renderTextCell("preCondition", String(row.preCondition ?? ""), true)}
+      {renderTextCell("testStep", String(row.testStep ?? ""), true)}
+      {renderTextCell("expectedResult", String(row.expectedResult ?? ""), true)}
+      {renderTextCell("actualResult", String(row.actualResult ?? ""), true)}
+      {renderToneCell("status", String(row.status ?? ""), statusOptions)}
+      {renderToneCell("priority", String(row.priority ?? ""), priorityOptions)}
+      {renderTextCell("evidence", String(row.evidence ?? ""), true)}
+
+      <td
+        style={{ width: colMap.__action__, minWidth: colMap.__action__, maxWidth: colMap.__action__ }}
+        className="border border-slate-200 bg-white px-2 py-[4px] align-middle dark:border-slate-600 dark:bg-slate-800"
+      >
+        <div className="flex items-center justify-center gap-2">
+          {mode === "view" ? (
+            <>
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-sky-50 text-sky-600 transition hover:bg-sky-100 dark:bg-sky-950/30 dark:text-sky-300"
+                title="Edit"
+              >
+                <PencilSimple size={12} weight="bold" />
+              </button>
+              <button
+                type="button"
+                onClick={onDelete}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-rose-50 text-rose-600 transition hover:bg-rose-100 dark:bg-rose-950/30 dark:text-rose-300"
+                title="Delete"
+              >
+                <Trash size={12} weight="bold" />
+              </button>
+            </>
+          ) : showSave ? (
+            <button
+              data-cell-ref={`${rowKey}:action`}
+              ref={(el) => setRef?.(`${rowKey}:action`, el)}
+              type="button"
+              onClick={onSave}
+              disabled={!canSave}
+              className="inline-flex h-8 items-center justify-center rounded-md bg-blue-600 px-3 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Save
+            </button>
+          ) : null}
+
+          {!showSave && isFailedStatus(row.status) && onReportBug && (
+            <button
+              type="button"
+              onClick={onReportBug}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-300"
+              title="Report Bug"
+            >
+              <Bug size={14} weight="bold" />
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+export function TestCaseDetailEditor({
+  suiteId,
+  suiteTitle: _suiteTitle,
+  initialCases,
+}: {
+  suiteId: string;
+  suiteTitle: string;
+  initialCases: TestCaseRow[];
+}) {
+  void _suiteTitle;
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [cases, setCases] = useState<TestCaseRow[]>(() => initialCases.map((row) => normalizeRow(row, suiteId)));
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<TestCaseRow | null>(null);
+  const [draftRow, setDraftRow] = useState<TestCaseRow>(() => createBlankDraft(suiteId, suggestNextId(initialCases)));
+  const editSaveLockRef = useRef(false);
+  const draftSaveLockRef = useRef(false);
+  const editDirtyRef = useRef(false);
+  const draftDirtyRef = useRef(false);
+  const editDraftRef = useRef<TestCaseRow | null>(null);
+  const draftRowRef = useRef<TestCaseRow>(draftRow);
+  const editingIdRef = useRef<number | null>(null);
+  const editFocusFieldRef = useRef<FieldKey | null>(null);
+  const refs = useRef<Partial<Record<string, FieldRef | null>>>({});
+
+  useEffect(() => {
+    editingIdRef.current = editingId;
+  }, [editingId]);
+
+  useEffect(() => {
+    draftRowRef.current = draftRow;
+  }, [draftRow]);
+
+  useEffect(() => {
+    const editingIdValue = editingIdRef.current;
+    const focusField = editFocusFieldRef.current;
+    if (!editingIdValue) return;
+
+    const targetField = focusField ?? "caseName";
+    const key = `edit-${editingIdValue}:${targetField}`;
+
+    const frame = window.requestAnimationFrame(() => {
+      const ref = refs.current[key];
+      if (ref && "focus" in ref) {
+        ref.focus();
+        if ("select" in ref) {
+          ref.select?.();
+        }
+      }
+      editFocusFieldRef.current = null;
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [editingId, editForm]);
+
+  useEffect(() => {
+    setCases(initialCases.map((row) => normalizeRow(row, suiteId)));
+  }, [initialCases, suiteId]);
+
   useEffect(() => {
     const draft = localStorage.getItem(`qa-draft-suite-${suiteId}`);
-    if (draft) {
-      try {
-        const parsed = JSON.parse(draft);
-        setForm((s: TestCaseRow) => ({ ...s, ...parsed }));
-        toast("Restored draft from last session", "info");
-      } catch (e) {
-        console.error("Failed to parse draft", e);
-      }
+    if (!draft) return;
+
+    try {
+      const parsed = JSON.parse(draft) as Partial<TestCaseRow>;
+      setDraftRow((current) => ({
+        ...current,
+        ...parsed,
+        testSuiteId: suiteId,
+        tcId: String(parsed.tcId ?? current.tcId),
+      }));
+      draftDirtyRef.current = true;
+      toast("Restored draft from last session", "info");
+    } catch {
+      // Ignore corrupt draft data.
     }
   }, [suiteId]);
 
-  // Save draft to localStorage whenever form changes
   useEffect(() => {
-    // Only save if there's actual content
-    if (form.caseName || form.testStep || form.expectedResult) {
-      const { testSuiteId, ...rest } = form;
+    if (draftRow.caseName || draftRow.preCondition || draftRow.testStep || draftRow.expectedResult || draftRow.actualResult) {
+      const { testSuiteId: _testSuiteId, ...rest } = draftRow;
+      void _testSuiteId;
       localStorage.setItem(`qa-draft-suite-${suiteId}`, JSON.stringify(rest));
     }
-  }, [form, suiteId]);
+  }, [draftRow, suiteId]);
 
-  // Clear draft on successful save
   function clearDraft() {
     localStorage.removeItem(`qa-draft-suite-${suiteId}`);
   }
 
-  function suggestNextId(rows: TestCaseRow[]) {
-    if (rows.length === 0) return "TC-001";
-    try {
-      const last = rows[rows.length - 1].tcId;
-      const match = last.match(/(\d+)$/);
-      if (match) {
-        const num = parseInt(match[0] ?? "0", 10) + 1;
-        const prefix = last.replace(/\d+$/, "");
-        return prefix + String(num).padStart(match[0].length, "0");
-      }
-    } catch {}
-    return `TC-${String(rows.length + 1).padStart(3, "0")}`;
-  }
+  function clearEditDraft(id: number | string) {
+    if (String(editingIdRef.current ?? "") !== String(id)) return;
 
-  const canSaveNew = useMemo(
-    () =>
-      Boolean(
-        form.tcId &&
-          form.caseName &&
-          form.expectedResult &&
-          form.status &&
-          form.priority,
-      ),
-    [form],
-  );
-
-  const canSaveEdit = useMemo(
-    () =>
-      Boolean(
-        editForm?.tcId &&
-          editForm?.caseName &&
-          editForm?.expectedResult &&
-          editForm?.status &&
-          editForm?.priority,
-      ),
-    [editForm],
-  );
-
-  const refs = useRef<
-    Partial<Record<string, HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>>
-  >({});
-
-  function setNew<K extends keyof TestCaseRow>(k: K, v: TestCaseRow[K]) {
-    setForm((s) => ({ ...s, [k]: v }));
-  }
-
-  function setEdit<K extends keyof TestCaseRow>(k: K, v: TestCaseRow[K]) {
-    if (!editForm) return;
-    setEditForm((s: TestCaseRow | null) => (s ? { ...s, [k]: v } : null));
-  }
-
-  function startEdit(row: TestCaseRow, focusField?: string) {
-    setEditingId(row.id ?? null);
-    setEditForm({ ...row });
-    if (focusField) {
-      setTimeout(() => {
-        refs.current[focusField]?.focus();
-      }, 50);
-    }
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
+    editDirtyRef.current = false;
+    editDraftRef.current = null;
+    editFocusFieldRef.current = null;
     setEditForm(null);
+    setEditingId(null);
   }
 
-  async function saveUpdate() {
-    if (!editForm || !editingId || pending || !canSaveEdit) return;
+  function setDraft<K extends FieldKey>(key: K, value: string) {
+    draftDirtyRef.current = true;
+    setDraftRow((current) => ({ ...current, [key]: value }));
+  }
+
+  function setEdit<K extends FieldKey>(key: K, value: string) {
+    if (!editDraftRef.current) return;
+    editDirtyRef.current = true;
+    editDraftRef.current = { ...editDraftRef.current, [key]: value };
+    setEditForm((current) => (current ? { ...current, [key]: value } : null));
+  }
+
+  function startEdit(row: TestCaseRow, field?: FieldKey) {
+    if (editingIdRef.current && editingIdRef.current !== row.id && editDirtyRef.current) {
+      toast("Save the current row before switching.", "info");
+      return;
+    }
+
+    setEditingId(row.id ?? null);
+    const draft = { ...row };
+    editDraftRef.current = draft;
+    editDirtyRef.current = false;
+    setEditForm(draft);
+    editFocusFieldRef.current = field ?? "caseName";
+  }
+
+  async function saveEdit() {
+    const savedId = editingIdRef.current;
+    const savedEntry = editDraftRef.current ? { ...editDraftRef.current } : null;
+
+    if (!savedEntry || !savedId || pending || !requiredEditReady(savedEntry) || !editDirtyRef.current || editSaveLockRef.current) return;
+
+    editSaveLockRef.current = true;
     startTransition(async () => {
       try {
-        const entry = { ...editForm };
-        const id = editingId;
-        delete entry.id;
-        
         const res = await fetch("/api/items/test-cases", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, entry }),
+          body: JSON.stringify({ id: savedId, entry: savedEntry }),
         });
-        const resData = await res.json();
+        const data = await res.json();
+
         if (res.ok) {
-          toast("Update successful", "success");
-          cancelEdit();
+          setCases((current) => current.map((row) => (row.id === savedId ? { ...row, ...savedEntry } : row)));
+          editDirtyRef.current = false;
+          editDraftRef.current = null;
+          setEditForm(null);
+          setEditingId(null);
+          toast(data.message || "Case updated", "success");
           router.refresh();
         } else {
-          toast(resData.error || "Update failed", "error");
+          toast(data.error || "Failed to update", "error");
         }
-      } catch (err) {
-        toast("An error occurred", "error");
+      } catch {
+        toast("Error occurred", "error");
+      } finally {
+        editSaveLockRef.current = false;
       }
     });
   }
 
-  async function saveNew() {
-    if (!canSaveNew || pending) return;
+  async function saveDraft() {
+    const savedEntry = { ...draftRowRef.current };
+
+    if (pending || !requiredEditReady(savedEntry) || !draftDirtyRef.current || draftSaveLockRef.current) return;
+
+    draftSaveLockRef.current = true;
     startTransition(async () => {
-      const data = new FormData();
-      Object.entries(form).forEach(([k, v]) => data.append(k, String(v ?? "")));
       try {
+        const data = new FormData();
+        Object.entries(savedEntry).forEach(([key, value]) => data.append(key, String(value ?? "")));
+
         const res = await fetch("/api/items/test-cases", { method: "POST", body: data });
-        const resData = await res.json();
+        const result = await res.json();
+
         if (res.ok) {
-          toast("Case added", "success");
-          setForm({
-            testSuiteId: suiteId,
-            tcId: suggestNextId([...initialCases, { ...form, id: resData.id }]), // Simple suggestion
-            caseName: "",
-            typeCase: form.typeCase, // Keep type for convenience
-            preCondition: form.preCondition, // Keep pre-condition for convenience
-            testStep: "",
-            expectedResult: "",
-            actualResult: "",
-            status: "",
-            priority: "",
-            evidence: "",
-          });
-          clearDraft();
+          const created = result.item ? normalizeRow(result.item as Record<string, unknown>, suiteId) : null;
+          if (created?.id) {
+            setCases((current) => [...current, created]);
+            const nextId = suggestNextId([...cases, created]);
+            const nextDraft = createBlankDraft(suiteId, nextId);
+            setDraftRow(nextDraft);
+            draftRowRef.current = nextDraft;
+            draftDirtyRef.current = false;
+            clearDraft();
+          } else {
+            const nextDraft = createBlankDraft(suiteId, suggestNextId(cases));
+            setDraftRow(nextDraft);
+            draftRowRef.current = nextDraft;
+            draftDirtyRef.current = false;
+            clearDraft();
+          }
+          toast(result.message || "Case added", "success");
           router.refresh();
         } else {
-          toast(resData.error || "Failed to add", "error");
+          toast(result.error || "Failed to add", "error");
         }
-      } catch (err) {
+      } catch {
         toast("Error occurred", "error");
+      } finally {
+        draftSaveLockRef.current = false;
       }
     });
   }
@@ -197,79 +438,136 @@ export function TestCaseDetailEditor({
   async function deleteCase(id: number | string) {
     startTransition(async () => {
       try {
-        const res = await fetch(`/api/test-cases?id=${id}`, { method: "DELETE" });
+        const res = await fetch(`/api/items/test-cases?id=${id}`, { method: "DELETE" });
+        const data = await res.json();
+
         if (res.ok) {
-          toast("Deleted successfully", "success");
-          router.refresh();
+          setCases((current) => current.filter((row) => String(row.id) !== String(id)));
+          clearEditDraft(id);
+          toast(data.message || "Deleted successfully", "success");
         } else {
-          toast("Failed to delete", "error");
+          toast(data.error || "Failed to delete", "error");
         }
-      } catch (err) {
+      } catch {
         toast("Error occurred", "error");
       }
     });
   }
-  // stats
-  const passed  = initialCases.filter((r) => r.status === "Passed" || r.status === "Success").length;
-  const failed  = initialCases.filter((r) => r.status === "Failed").length;
-  const blocked = initialCases.filter((r) => r.status === "Blocked").length;
-  const pending_ = initialCases.filter((r) => r.status === "Pending").length;
 
-  const positive = initialCases.filter((r) => r.typeCase === "Positive").length;
-  const negative = initialCases.filter((r) => r.typeCase === "Negative").length;
+  const canSaveEdit = useMemo(() => requiredEditReady(editForm), [editForm]);
+  const canSaveDraft = useMemo(() => requiredEditReady(draftRow), [draftRow]);
 
-  const critical = initialCases.filter((r) => r.priority === "Critical").length;
-  const high     = initialCases.filter((r) => r.priority === "High").length;
-  const medium   = initialCases.filter((r) => r.priority === "Medium").length;
-  const low      = initialCases.filter((r) => r.priority === "Low").length;
+  const passed = cases.filter((row) => row.status === "Passed" || row.status === "Success").length;
+  const failed = cases.filter((row) => row.status === "Failed").length;
+  const blocked = cases.filter((row) => row.status === "Blocked").length;
+  const pendingCount = cases.filter((row) => row.status === "Pending").length;
+
+  const positive = cases.filter((row) => row.typeCase === "Positive").length;
+  const negative = cases.filter((row) => row.typeCase === "Negative").length;
+
+  const critical = cases.filter((row) => row.priority === "Critical").length;
+  const high = cases.filter((row) => row.priority === "High").length;
+  const medium = cases.filter((row) => row.priority === "Medium").length;
+  const low = cases.filter((row) => row.priority === "Low").length;
+  const editableFieldOrder: FieldKey[] = ["tcId", "caseName", "typeCase", "preCondition", "testStep", "expectedResult", "actualResult", "status", "priority", "evidence"];
+
+  function focusCell(key: string) {
+    const el = refs.current[key];
+    if (el && "focus" in el) {
+      el.focus();
+    }
+  }
+
+  function focusNextInRow(rowKey: string, rowIndex: number, field: FieldKey, isDraft?: boolean) {
+    const currentIndex = editableFieldOrder.indexOf(field);
+    const nextField = editableFieldOrder[currentIndex + 1];
+    if (nextField) {
+      window.setTimeout(() => focusCell(`${rowKey}:${nextField}`), 0);
+      return;
+    }
+    if (isDraft) {
+      window.setTimeout(() => focusCell(`${rowKey}:action`), 0);
+      return;
+    }
+    const nextRow = cases[rowIndex + 1];
+    if (nextRow) {
+      const nextRowKey = `view-${nextRow.id ?? rowIndex + 1}`;
+      window.setTimeout(() => focusCell(`${nextRowKey}:${editableFieldOrder[0]}`), 0);
+      return;
+    }
+    window.setTimeout(() => focusCell(`draft:${editableFieldOrder[0]}`), 0);
+  }
+
+  function focusPreviousInRow(rowKey: string, rowIndex: number, field: FieldKey, isDraft?: boolean) {
+    const currentIndex = editableFieldOrder.indexOf(field);
+    const prevField = editableFieldOrder[currentIndex - 1];
+    if (prevField) {
+      window.setTimeout(() => focusCell(`${rowKey}:${prevField}`), 0);
+      return;
+    }
+    if (isDraft) {
+      const prevRow = cases[cases.length - 1];
+      if (prevRow) {
+        const prevRowKey = `view-${prevRow.id ?? cases.length - 1}`;
+        window.setTimeout(() => focusCell(`${prevRowKey}:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
+      }
+      return;
+    }
+    const prevRow = cases[rowIndex - 1];
+    if (prevRow) {
+      const prevRowKey = `view-${prevRow.id ?? rowIndex - 1}`;
+      window.setTimeout(() => focusCell(`${prevRowKey}:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
+    } else {
+      window.setTimeout(() => focusCell(`draft:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Metrics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-card p-4 space-y-3">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/5 pb-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="glass-card space-y-3 p-4">
+          <div className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:border-white/5">
             Execution Status
           </div>
           <div className="flex gap-6">
             <div>
               <div className="text-xl font-black text-emerald-500">{passed}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">PASSED</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">PASS</div>
             </div>
             <div>
               <div className="text-xl font-black text-rose-500">{failed}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">FAILED</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">FAIL</div>
             </div>
             <div>
               <div className="text-xl font-black text-amber-500">{blocked}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">BLOCKED</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">BLOCK</div>
             </div>
             <div>
-              <div className="text-xl font-black text-amber-400">{pending_}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">PENDING</div>
+              <div className="text-xl font-black text-slate-400">{pendingCount}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">PEND</div>
             </div>
           </div>
         </div>
 
-        <div className="glass-card p-4 space-y-3">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/5 pb-2">
-            Case Types
+        <div className="glass-card space-y-3 p-4">
+          <div className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:border-white/5">
+            Test Type
           </div>
-          <div className="flex gap-8">
+          <div className="flex gap-6">
             <div>
               <div className="text-xl font-black text-emerald-500">{positive}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">POSITIVE</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">POS</div>
             </div>
             <div>
               <div className="text-xl font-black text-rose-500">{negative}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">NEGATIVE</div>
+              <div className="text-[10px] font-bold uppercase text-slate-400">NEG</div>
             </div>
           </div>
         </div>
 
-        <div className="glass-card p-4 space-y-3">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/5 pb-2">
-            Priority Distribution
+        <div className="glass-card space-y-3 p-4">
+          <div className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:border-white/5">
+            Priority
           </div>
           <div className="flex gap-5">
             <div>
@@ -292,305 +590,102 @@ export function TestCaseDetailEditor({
         </div>
       </div>
 
-      {/* spreadsheet */}
       <div className="overflow-auto rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <table
-          className="border-collapse"
-          style={{ width: TOTAL_WIDTH, tableLayout: "fixed" }}
-        >
+        <table className="border-collapse" style={{ width: TOTAL_WIDTH, tableLayout: "fixed" }}>
           <colgroup>
-            {COLS.map((c) => (
-              <col key={c.key} style={{ width: c.width }} />
+            {COLS.map((column) => (
+              <col key={column.key} style={{ width: column.width }} />
             ))}
           </colgroup>
 
-          {/* ── HEADER ── */}
           <thead className="sticky top-0 z-20">
             <tr>
-              <Th w={colMap.__row__} className="text-center bg-slate-200 dark:bg-slate-700" />
-              <Th w={colMap.tcId}>TC ID</Th>
-              <Th w={colMap.caseName}>Case Name</Th>
-              <Th w={colMap.typeCase} className="text-center">Type Case</Th>
-              <Th w={colMap.preCondition}>Pre-Condition</Th>
-              <Th w={colMap.testStep}>Test Step</Th>
-              <Th w={colMap.expectedResult}>Expected Result</Th>
-              <Th w={colMap.actualResult}>Actual Result</Th>
-              <Th w={colMap.status} className="text-center">Status</Th>
-              <Th w={colMap.priority} className="text-center">Priority</Th>
-              <Th w={colMap.evidence} className="text-center">Evidence</Th>
-              <Th w={colMap.__action__} className="text-center bg-slate-200 dark:bg-slate-700">
-                Action
-              </Th>
+              {COLS.map((column) => (
+                <Th
+                  key={column.key}
+                  w={column.width}
+                  className={cn(column.key === "__row__" || column.key === "__action__" ? "text-center" : "")}
+                >
+                  {column.label}
+                </Th>
+              ))}
             </tr>
           </thead>
 
           <tbody>
-            {/* ── EXISTING ROWS ── */}
-            {initialCases.map((row, index) => (
-              <tr
-                key={row.id ?? index}
-                onClick={() => {
-                  if (editingId !== row.id) startEdit(row);
-                }}
-                className={cn(
-                  "align-top cursor-pointer group transition-colors",
-                  index % 2 === 0
-                    ? "bg-white hover:bg-sky-50/50 dark:bg-slate-900 dark:hover:bg-sky-900/10"
-                    : "bg-slate-50/70 hover:bg-sky-50/80 dark:bg-slate-800/50 dark:hover:bg-sky-900/20",
-                )}
-              >
-                {/* row number */}
-                <td
-                  style={{ width: colMap.__row__, minWidth: colMap.__row__ }}
-                  className="border border-slate-200 bg-slate-100 px-1 py-[4px] text-center text-[11px] font-semibold text-slate-400 select-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-500"
-                >
-                  {index + 1}
-                </td>
-
-                {editingId === row.id && editForm ? (
-                  <>
-                    <EditTextCell value={editForm.tcId} w={colMap.tcId} onChange={(v) => setEdit("tcId", v)} setRef={(el) => { if (el) refs.current.tcId = el; }} />
-                    <EditTextCell value={editForm.caseName} w={colMap.caseName} multiline onChange={(v) => setEdit("caseName", v)} setRef={(el) => { if (el) refs.current.caseName = el; }} />
-                    <CustomSelect value={editForm.typeCase} w={colMap.typeCase} fieldKey="typeCase" options={typeOptions} onChange={(v) => setEdit("typeCase", v)} setRef={(el) => { if (el) refs.current.typeCase = el; }} autoFocusOpen />
-                    <EditTextCell value={editForm.preCondition} w={colMap.preCondition} multiline onChange={(v) => setEdit("preCondition", v)} setRef={(el) => { if (el) refs.current.preCondition = el; }} />
-                    <EditTextCell value={editForm.testStep} w={colMap.testStep} multiline onChange={(v) => setEdit("testStep", v)} setRef={(el) => { if (el) refs.current.testStep = el; }} />
-                    <EditTextCell value={editForm.expectedResult} w={colMap.expectedResult} multiline onChange={(v) => setEdit("expectedResult", v)} setRef={(el) => { if (el) refs.current.expectedResult = el; }} />
-                    <EditTextCell value={editForm.actualResult ?? ""} w={colMap.actualResult} multiline onChange={(v) => setEdit("actualResult", v)} setRef={(el) => { if (el) refs.current.actualResult = el; }} />
-                    <CustomSelect value={editForm.status} w={colMap.status} fieldKey="status" options={statusOptions} onChange={(v) => setEdit("status", v)} setRef={(el) => { if (el) refs.current.status = el; }} />
-                    <CustomSelect value={editForm.priority} w={colMap.priority} fieldKey="priority" options={priorityOptions} placeholder="PRIORITY" onChange={(v) => setEdit("priority", v)} setRef={(el) => { if (el) refs.current.priority = el; }} />
-                    <EditTextCell value={editForm.evidence ?? ""} w={colMap.evidence} onChange={(v) => setEdit("evidence", v)} setRef={(el) => { if (el) refs.current.evidence = el; }} />
-
-                    <td className="border border-slate-200 bg-emerald-50 px-1 py-1 text-center align-middle dark:bg-emerald-950/20">
-                      <div className="flex flex-col gap-1 px-1">
-                        <button
-                          type="button"
-                          onClick={saveUpdate}
-                          disabled={pending || !canSaveEdit}
-                          className="flex h-7 items-center justify-center rounded bg-emerald-600 text-[10px] font-bold text-white transition hover:bg-emerald-700"
-                        >
-                          SAVE
-                        </button>
-                        <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => editingId !== null && deleteCase(editingId)}
-                          className="flex h-7 flex-1 items-center justify-center rounded bg-rose-50 px-1 text-rose-600 transition hover:bg-rose-100"
-                          title="Delete"
-                        >
-                            <Trash size={12} weight="bold" />
-                          </button>
-                          {editForm.status === "Failed" && (
-                            <Link
-                              href={`/bugs?action=new&title=${encodeURIComponent(`[Failed] ${editForm.caseName}`)}&preconditions=${encodeURIComponent(editForm.preCondition)}&stepsToReproduce=${encodeURIComponent(editForm.testStep)}&expectedResult=${encodeURIComponent(editForm.expectedResult)}&actualResult=${encodeURIComponent(editForm.actualResult || "")}`}
-                              className="flex h-7 flex-1 items-center justify-center rounded bg-amber-50 px-1 text-amber-600 transition hover:bg-amber-100"
-                              title="Report Bug"
-                            >
-                              <Bug size={14} weight="bold" />
-                            </Link>
-                          )}
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="flex h-7 flex-1 items-center justify-center rounded bg-slate-200 text-[10px] font-bold text-slate-600 transition hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400"
-                          >
-                            X
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <ReadCell value={String(row.tcId ?? "")}           w={colMap.tcId} onClick={() => startEdit(row, "tcId")} />
-                    <ReadCell value={String(row.caseName ?? "")}       w={colMap.caseName} onClick={() => startEdit(row, "caseName")} />
-                    <BadgeCell value={String(row.typeCase ?? "")}      w={colMap.typeCase} fieldKey="typeCase" onClick={() => startEdit(row, "typeCase")} />
-                    <ReadCell value={String(row.preCondition ?? "")}   w={colMap.preCondition} onClick={() => startEdit(row, "preCondition")} />
-                    <ReadCell value={String(row.testStep ?? "")}       w={colMap.testStep} onClick={() => startEdit(row, "testStep")} />
-                    <ReadCell value={String(row.expectedResult ?? "")} w={colMap.expectedResult} onClick={() => startEdit(row, "expectedResult")} />
-                    <ReadCell value={String(row.actualResult ?? "")}   w={colMap.actualResult} onClick={() => startEdit(row, "actualResult")} />
-                    <BadgeCell value={String(row.status ?? "")}        w={colMap.status} fieldKey="status" onClick={() => startEdit(row, "status")} />
-                    <BadgeCell value={String(row.priority ?? "Medium")} w={colMap.priority} fieldKey="priority" onClick={() => startEdit(row, "priority")} />
-                    <ReadCell value={String(row.evidence ?? "")}       w={colMap.evidence} onClick={() => startEdit(row, "evidence")} />
-
-                    <td
-                      style={{ width: colMap.__action__, minWidth: colMap.__action__ }}
-                      className="border border-slate-200 bg-slate-50 px-1 py-[4px] text-center align-middle dark:bg-slate-800 dark:border-slate-600"
-                    >
-                      <div className="flex flex-col gap-1 px-1">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); startEdit(row); }}
-                          className="flex h-7 items-center justify-center rounded border border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteCase(row.id!)}
-                          className="flex h-7 items-center justify-center rounded bg-rose-50 text-rose-600 transition hover:bg-rose-100"
-                          title="Delete"
-                        >
-                          <Trash size={12} weight="bold" />
-                        </button>
-                        {(row.status === "Failed" || row.status === "FAILURE" || String(row.status).toUpperCase() === "FAILED") && (
-                          <Link
-                            href={`/bugs?action=new&title=${encodeURIComponent(`[Failed] ${row.caseName}`)}&preconditions=${encodeURIComponent(row.preCondition)}&stepsToReproduce=${encodeURIComponent(row.testStep)}&expectedResult=${encodeURIComponent(row.expectedResult)}&actualResult=${encodeURIComponent(row.actualResult || "")}`}
-                            className="flex h-7 items-center justify-center rounded bg-amber-50 text-amber-600 transition hover:bg-amber-100"
-                            title="Report Bug"
-                          >
-                            <Bug size={14} weight="bold" />
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-
-            {/* ── NEW ROW / EDIT ROW ── */}
-            <tr className={cn("align-top", form.id ? "bg-amber-50/40 dark:bg-amber-950/20" : "bg-sky-50/40 dark:bg-sky-950/20")}>
-              {/* row indicator */}
-              <td
-                style={{ width: colMap.__row__, minWidth: colMap.__row__ }}
-                className={cn(
-                  "border border-slate-200 px-1 py-[4px] text-center text-[10px] font-black uppercase tracking-widest dark:border-slate-600",
-                  form.id
-                    ? "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400"
-                    : "bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400"
-                )}
-              >
-                {form.id ? "EDIT" : "NEW"}
-              </td>
-
-              <EditTextCell
-                value={form.tcId}
-                w={colMap.tcId}
-                placeholder="tc-001"
-                onChange={(v) => setNew("tcId", v)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); refs.current.caseName?.focus(); } }}
-                setRef={(el) => { if (el) refs.current.tcId = el; }}
-              />
-              <EditTextCell
-                value={form.caseName}
-                w={colMap.caseName}
-                placeholder="e.g. Valid Login"
-                multiline
-                onChange={(v) => setNew("caseName", v)}
-                setRef={(el) => { if (el) refs.current.caseName = el; }}
-              />
-
-              <CustomSelect
-                value={form.typeCase}
-                w={colMap.typeCase}
-                fieldKey="typeCase"
-                options={typeOptions}
-                placeholder="Type"
-                onChange={(v) => setNew("typeCase", v)}
-                setRef={(el) => { if (el) refs.current.typeCase_new = el; }}
-                autoFocusOpen
-              />
-
-              <EditTextCell
-                value={form.preCondition}
-                w={colMap.preCondition}
-                multiline
-                onChange={(v) => setNew("preCondition", v)}
-                setRef={(el) => { if (el) refs.current.preCondition_new = el; }}
-              />
-              <EditTextCell
-                value={form.testStep}
-                w={colMap.testStep}
-                multiline
-                onChange={(v) => setNew("testStep", v)}
-                setRef={(el) => { if (el) refs.current.testStep_new = el; }}
-              />
-              <EditTextCell
-                value={form.expectedResult}
-                w={colMap.expectedResult}
-                multiline
-                onChange={(v) => setNew("expectedResult", v)}
-                setRef={(el) => { if (el) refs.current.expectedResult_new = el; }}
-              />
-              <EditTextCell
-                value={form.actualResult ?? ""}
-                w={colMap.actualResult}
-                multiline
-                onChange={(v) => setNew("actualResult", v)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    saveNew();
+            {cases.map((row, index) => {
+              const isEditing = editingId === row.id;
+              const rowKey = isEditing ? `edit-${row.id}` : `view-${row.id ?? index}`;
+              const displayRow = isEditing && editForm && row.id === editForm.id ? editForm : row;
+              return (
+                <TestCaseGridRow
+                  key={row.id ?? `${row.tcId}-${index}`}
+                  row={displayRow}
+                  index={index}
+                  rowKey={rowKey}
+                  mode={isEditing ? "edit" : "view"}
+                  canSave={canSaveEdit}
+                  onChange={(field, value) => setEdit(field, value)}
+                  onSave={saveEdit}
+                  onEdit={() => startEdit(row, "caseName")}
+                  onDelete={() => row.id && deleteCase(row.id)}
+                  onReportBug={
+                    isFailedStatus(row.status)
+                      ? () => {
+                          window.open(
+                            `/bugs?action=new&title=${encodeURIComponent(`[Failed] ${row.caseName}`)}&preconditions=${encodeURIComponent(row.preCondition)}&stepsToReproduce=${encodeURIComponent(row.testStep)}&expectedResult=${encodeURIComponent(row.expectedResult)}&actualResult=${encodeURIComponent(row.actualResult || "")}`,
+                            "_blank",
+                          );
+                        }
+                      : undefined
                   }
-                }}
-                setRef={(el) => { if (el) refs.current.actualResult_new = el; }}
-              />
+                  setRef={(field, el) => {
+                    refs.current[`${rowKey}:${field}`] = el;
+                  }}
+                  focusNext={(field) => focusNextInRow(rowKey, index, field, false)}
+                  focusPrevious={(field) => focusPreviousInRow(rowKey, index, field, false)}
+                />
+              );
+            })}
 
-              <CustomSelect
-                value={form.status}
-                w={colMap.status}
-                fieldKey="status"
-                options={statusOptions}
-                placeholder="Status"
-                onChange={(v) => setNew("status", v)}
-                setRef={(el) => { if (el) refs.current.status_new = el; }}
-              />
-
-              <CustomSelect
-                value={form.priority}
-                w={colMap.priority}
-                fieldKey="priority"
-                options={priorityOptions}
-                placeholder="PRIORITY"
-                onChange={(v) => setNew("priority", v)}
-                setRef={(el) => { if (el) refs.current.priority_new = el; }}
-                autoFocusOpen
-              />
-
-              <EditTextCell
-                value={form.evidence}
-                w={colMap.evidence}
-                placeholder="https://example.com/screenshot"
-                onChange={(v) => setNew("evidence", v)}
-                setRef={(el) => { if (el) refs.current.evidence_new = el; }}
-              />
-
-              <td
-                style={{ width: colMap.__action__, minWidth: colMap.__action__ }}
-                className="border border-slate-200 bg-sky-50/40 px-1 py-[4px] text-center align-middle dark:bg-sky-950/20 dark:border-slate-600"
-              >
-                <button
-                  type="button"
-                  onClick={saveNew}
-                  disabled={pending || !canSaveNew}
-                  className={cn(
-                    "inline-flex w-full items-center justify-center gap-1 rounded bg-sky-600 px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-white transition active:scale-95 disabled:opacity-50",
-                  )}
-                >
-                  <FloppyDisk size={13} weight="bold" />
-                  SAVE
-                </button>
-              </td>
-            </tr>
+            {(() => {
+              const rowKey = "draft";
+              return (
+            <TestCaseGridRow
+              row={draftRow}
+              index={cases.length}
+              rowKey={rowKey}
+              mode="draft"
+              canSave={canSaveDraft}
+              onChange={(field, value) => setDraft(field, value)}
+              onSave={saveDraft}
+              onEdit={() => undefined}
+              onDelete={() => undefined}
+              setRef={(field, el) => {
+                refs.current[`${rowKey}:${field}`] = el;
+              }}
+              focusNext={(field) => focusNextInRow(rowKey, cases.length, field, true)}
+              focusPrevious={(field) => focusPreviousInRow(rowKey, cases.length, field, true)}
+            />
+              );
+            })()}
           </tbody>
         </table>
       </div>
 
-      {/* footer stats */}
       <div className="flex flex-wrap items-center gap-3 px-1 text-[11px] text-slate-500">
         <span className="font-semibold text-slate-600 dark:text-slate-400">
-          Total: {initialCases.length} test case{initialCases.length !== 1 ? "s" : ""}
+          Total: {cases.length} test case{cases.length !== 1 ? "s" : ""}
         </span>
         <span className="text-slate-300 dark:text-slate-600">|</span>
-        {passed  > 0 && <span className="font-semibold text-emerald-600">{passed} Passed</span>}
-        {failed  > 0 && <span className="font-semibold text-rose-500">{failed} Failed</span>}
-        {pending_ > 0 && <span className="font-semibold text-amber-500">{pending_} Pending</span>}
+        {passed > 0 && <span className="font-semibold text-emerald-600">{passed} Passed</span>}
+        {failed > 0 && <span className="font-semibold text-rose-500">{failed} Failed</span>}
+        {pendingCount > 0 && <span className="font-semibold text-amber-500">{pendingCount} Pending</span>}
         {blocked > 0 && <span className="font-semibold text-amber-600">{blocked} Blocked</span>}
-        {passed === 0 && failed === 0 && pending_ === 0 && blocked === 0 && (
+        {passed === 0 && failed === 0 && pendingCount === 0 && blocked === 0 && (
           <span className="text-slate-400">No test results yet</span>
         )}
       </div>
     </div>
   );
 }
-
