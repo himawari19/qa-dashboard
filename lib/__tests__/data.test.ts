@@ -381,7 +381,7 @@ describe("module data access", () => {
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('INSERT INTO "TestCase"');
     expect(mocks.db.run.mock.calls[0][1][1]).toMatch(/^.{0,}$/);
-    expect(mocks.db.run.mock.calls[0][1][12]).toBe("Medium");
+    expect(mocks.db.run.mock.calls[0][1][13]).toBe("Medium");
     expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "TestCase" && params?.[2] === "TC-1" && params?.[3] === "Created")).toBe(true);
   });
 

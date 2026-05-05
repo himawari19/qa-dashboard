@@ -70,7 +70,7 @@ describe("TestCaseLibrary", () => {
     expect(html).toContain("Checkout Suite");
     expect(html).toContain("Audit Suite");
     expect(html).toContain("Login works");
-    expect(html).toContain("Manage");
+    expect(html).toContain("Edit Cases");
     expect(html).toContain("Execute");
     expect(html).toContain('href="/test-cases/detail/suite-1"');
     expect(html).toContain('href="/test-suites/execute/suite-1"');

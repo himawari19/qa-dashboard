@@ -803,6 +803,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
 export async function createModuleRecord(module: ModuleKey, data: any) {
   const user = await getCurrentUser();
   const company = getWriteCompany(user, data.company);
+  const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
   switch (module) {
     case "test-plans": {
@@ -817,14 +818,27 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       return res;
     }
     case "test-cases": {
-      const res = await runInsert(
-        `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, data.publicToken || makePublicToken(), data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
-      );
-      await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
-      invalidateDashboardCache(company);
-      return res;
+      const publicToken = data.publicToken || makePublicToken();
+      try {
+        const res = await runInsert(
+          `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [company, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
+        );
+        await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
+        invalidateDashboardCache(company);
+        return res;
+      } catch (error) {
+        if (!getErrorMessage(error).includes("no such column: assignee")) throw error;
+        const res = await runInsert(
+          `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [company, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
+        );
+        await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
+        invalidateDashboardCache(company);
+        return res;
+      }
     }
     case "bugs": {
       const lastDevRes = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? AND "company" = ? ORDER BY "id" DESC LIMIT 1', [data.module, company]) as any;
@@ -927,6 +941,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
   const scope = getAccessScope(await getCurrentUser());
   const { company, where: _where, andWhere: companyFilter, params: companyParam } = scope;
+  const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
   switch (module) {
     case "tasks": {
@@ -974,15 +989,28 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "test-cases": {
-      const res = await db.run(
-        `UPDATE "TestCase"
-         SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
-         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
-      );
-      await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
-      invalidateDashboardCache(company);
-      return res;
+      try {
+        const res = await db.run(
+          `UPDATE "TestCase"
+           SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "assignee" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
+           WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+          [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
+        );
+        await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
+        invalidateDashboardCache(company);
+        return res;
+      } catch (error) {
+        if (!getErrorMessage(error).includes("no such column: assignee")) throw error;
+        const res = await db.run(
+          `UPDATE "TestCase"
+           SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
+           WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+          [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
+        );
+        await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
+        invalidateDashboardCache(company);
+        return res;
+      }
     }
     case "test-suites": {
       const suitePlanId = String(data.testPlanId ?? "");

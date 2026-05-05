@@ -43,9 +43,18 @@ export default async function ModulePage({
 
   const hiddenFields: string[] = [];
   try {
-    const pageData = await getModuleRowsPage(moduleKey as ModuleKey, currentPage, PAGE_SIZE);
-    rows = pageData.rows as Record<string, unknown>[];
-    totalItems = pageData.total;
+    const firstPageData = await getModuleRowsPage(moduleKey as ModuleKey, currentPage, PAGE_SIZE);
+    totalItems = firstPageData.total;
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    const resolvedPageData =
+      safePage !== currentPage
+        ? await getModuleRowsPage(moduleKey as ModuleKey, safePage, PAGE_SIZE)
+        : firstPageData;
+
+    rows = resolvedPageData.rows as Record<string, unknown>[];
+
     if (moduleKey === "test-suites") {
       const plans = await getTestPlanReferenceRows();
       const planMap = new Map<string, { project: string; title: string; publicToken: string }>();
@@ -55,7 +64,7 @@ export default async function ModulePage({
         if (!id) continue;
         planMap.set(id, row);
       }
-      
+
       relatedOptions = {
         testPlanId: plans.map((plan: any) => ({
           value: String(plan.id ?? ""),
@@ -113,10 +122,9 @@ export default async function ModulePage({
       }
       rows = rows.map((row: any) => ({
         ...row,
-        relatedSuites: suitesByPlan.get(String(row.id)) ?? []
+        relatedSuites: suitesByPlan.get(String(row.id)) ?? [],
       }));
 
-      // Row span logic for Project Name
       rows.sort((a: any, b: any) => {
         const projA = String(a.project ?? "");
         const projB = String(b.project ?? "");
@@ -137,18 +145,16 @@ export default async function ModulePage({
         return { ...row, projectRowSpan: group && group.start === index ? group.count : 0 };
       });
     }
-    
-    // Always fetch projects for modules that have a project select field
+
     if (["meeting-notes", "tasks", "bugs", "deployments"].includes(moduleKey)) {
       relatedOptions.project = await getProjectOptions();
     }
 
-    // Populate any field that uses team members
     const teamOptions = await getAssigneeOptions();
 
     const config = moduleConfigs[moduleKey as ModuleKey];
     if (config) {
-      config.fields.forEach(field => {
+      config.fields.forEach((field) => {
         if (["assignee", "tester", "suggestedDev"].includes(field.name)) {
           relatedOptions[field.name] = teamOptions;
         }
@@ -160,11 +166,6 @@ export default async function ModulePage({
 
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
-
-  if (safePage !== currentPage) {
-    const pageData = await getModuleRowsPage(moduleKey as ModuleKey, safePage, PAGE_SIZE);
-    rows = pageData.rows as Record<string, unknown>[];
-  }
 
   const plainRows = JSON.parse(JSON.stringify(rows));
   const plainRelatedOptions = JSON.parse(JSON.stringify(relatedOptions));

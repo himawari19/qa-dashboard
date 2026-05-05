@@ -49,11 +49,9 @@ export const typeOptions = ["Positive", "Negative"] as const;
 export const statusOptions = ["Pending", "Passed", "Failed", "Blocked"] as const;
 export const priorityOptions = ["Critical", "High", "Medium", "Low"] as const;
 
-const typeCellClass: Record<string, string> = {
+const toneCellClass: Record<string, string> = {
   Positive: "bg-emerald-500 text-white",
   Negative: "bg-rose-500 text-white",
-};
-const statusCellClass: Record<string, string> = {
   Pending: "bg-amber-400 text-amber-950",
   Passed: "bg-emerald-500 text-white",
   PASSED: "bg-emerald-500 text-white",
@@ -63,22 +61,21 @@ const statusCellClass: Record<string, string> = {
   FAILED: "bg-rose-500 text-white",
   Blocked: "bg-slate-500 text-white",
   BLOCKED: "bg-slate-500 text-white",
-};
-const priorityCellClass: Record<string, string> = {
   Critical: "bg-red-500 text-white",
   High: "bg-orange-500 text-white",
   Medium: "bg-blue-500 text-white",
   Low: "bg-slate-500 text-white",
 };
 
-export function badgeClass(fieldKey: string, value: string) {
-  if (fieldKey === "typeCase") return typeCellClass[value] ?? "bg-slate-300 text-slate-700";
-  if (fieldKey === "status") return statusCellClass[value] ?? "bg-slate-300 text-slate-700";
-  if (fieldKey === "priority") return priorityCellClass[value] ?? "bg-slate-300 text-slate-700";
-  return "bg-slate-300 text-slate-700";
+export function getToneClass(fieldKey: string, value: string) {
+  if (fieldKey === "typeCase") return toneCellClass[value] ?? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+  if (fieldKey === "status") return toneCellClass[value] ?? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+  if (fieldKey === "priority") return toneCellClass[value] ?? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+  return "";
 }
 
 export const COLS = [
+  { key: "__row__", label: "#", width: 56 },
   { key: "tcId", label: "TC ID", width: 100 },
   { key: "caseName", label: "Case Name", width: 220 },
   { key: "typeCase", label: "Type", width: 110 },
@@ -89,18 +86,18 @@ export const COLS = [
   { key: "status", label: "Status", width: 120 },
   { key: "priority", label: "Priority", width: 120 },
   { key: "evidence", label: "Evidence", width: 180 },
-  { key: "__action__", label: "Action", width: 100 },
+  { key: "__action__", label: "Action", width: 116 },
 ] as const;
 
-export const TOTAL_WIDTH = COLS.reduce((s, c) => s + c.width, 0);
-export const colMap = Object.fromEntries(COLS.map((c) => [c.key, c.width])) as Record<string, number>;
+export const TOTAL_WIDTH = COLS.reduce((sum, column) => sum + column.width, 0);
+export const colMap = Object.fromEntries(COLS.map((column) => [column.key, column.width])) as Record<string, number>;
 
 export function Th({ children, w, className }: { children?: ReactNode; w: number; className?: string }) {
   return (
     <th
       style={{ width: w, minWidth: w, maxWidth: w }}
       className={cn(
-        "border border-slate-300 bg-slate-100 px-2 py-[5px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-600 select-none dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300",
+        "border border-slate-300 bg-slate-100 px-2 py-[5px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-600 select-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300",
         className,
       )}
     >
@@ -115,11 +112,11 @@ export function ReadCell({ value, w, onClick }: { value: string; w: number; onCl
       style={{ width: w, minWidth: w, maxWidth: w }}
       onClick={onClick}
       className={cn(
-        "border border-slate-200 px-[6px] py-[4px] align-top text-[12px] leading-[1.4] transition-colors dark:border-slate-600",
-        onClick ? "cursor-text hover:bg-white/50" : "text-slate-700 dark:text-slate-300",
+        "border border-slate-200 bg-white px-[6px] py-[4px] align-top text-[12px] leading-[1.4] transition-colors dark:border-slate-600 dark:bg-slate-800",
+        onClick ? "cursor-text hover:bg-slate-50 dark:hover:bg-slate-700/70" : "text-slate-700 dark:text-slate-300",
       )}
     >
-      <div className="min-h-[22px] whitespace-pre-wrap break-words">
+      <div className="flex h-full min-h-[28px] items-start whitespace-pre-wrap break-words">
         {value || <span className="text-slate-300 dark:text-slate-600">—</span>}
       </div>
     </td>
@@ -127,21 +124,20 @@ export function ReadCell({ value, w, onClick }: { value: string; w: number; onCl
 }
 
 export function BadgeCell({ value, w, fieldKey, onClick }: { value: string; w: number; fieldKey: string; onClick?: () => void }) {
+  const toneClass = getToneClass(fieldKey, value);
   return (
     <td
       style={{ width: w, minWidth: w, maxWidth: w }}
       onClick={onClick}
-      className="border border-slate-200 p-0 align-top dark:border-slate-600"
+      className={cn(
+        "border border-slate-200 p-0 align-top dark:border-slate-600",
+        toneClass || "bg-white dark:bg-slate-800",
+      )}
     >
-      <div
-        className={cn(
-          "flex min-h-[28px] h-full w-full items-center justify-between gap-1 px-[6px] text-[11px] font-bold uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-400",
-          badgeClass(fieldKey, value)
-            ? cn(badgeClass(fieldKey, value), "rounded-none")
-            : "text-slate-400 bg-white dark:bg-slate-800 dark:text-slate-500",
-        )}
-      >
-        <span>{value || "Select"}</span>
+      <div className="flex min-h-[28px] h-full w-full items-center px-[6px] py-[4px] text-[11px] font-bold uppercase tracking-wide">
+        <span className={cn("truncate", !value && "text-slate-400 dark:text-slate-500")}>
+          {value || "Select"}
+        </span>
       </div>
     </td>
   );
@@ -154,7 +150,9 @@ export function EditTextCell({
   multiline,
   onChange,
   onKeyDown,
+  onEnter,
   setRef,
+  autoFocus,
 }: {
   value: string;
   w: number;
@@ -162,25 +160,67 @@ export function EditTextCell({
   multiline?: boolean;
   onChange: (v: string) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onEnter?: () => void;
   setRef?: (el: HTMLInputElement | HTMLTextAreaElement | null) => void;
+  autoFocus?: boolean;
 }) {
   const sharedClass =
-    "block w-full border-0 bg-transparent px-[6px] py-[4px] text-[12px] leading-[1.4] text-slate-800 outline-none focus:ring-0 placeholder:text-slate-300 dark:text-slate-200 dark:placeholder:text-slate-600";
+    "block h-full w-full flex-1 border-0 bg-transparent px-[6px] py-[4px] text-[12px] leading-[1.4] text-slate-800 outline-none focus:ring-0 placeholder:text-slate-300 dark:text-slate-200 dark:placeholder:text-slate-600";
   const innerRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
 
+  function syncMultilineHeight() {
+    const el = innerRef.current;
+    if (!el || !(el instanceof HTMLTextAreaElement)) return;
+    const cell = el.closest("td");
+    const cellHeight = cell instanceof HTMLTableCellElement ? cell.clientHeight : 28;
+    el.style.height = "0px";
+    el.style.height = `${Math.max(el.scrollHeight, cellHeight, 28)}px`;
+  }
+
   useEffect(() => {
-    if (multiline && innerRef.current) {
-      const t = innerRef.current as HTMLTextAreaElement;
-      t.style.height = "0px";
-      t.style.height = `${t.scrollHeight}px`;
+    if (!autoFocus || !innerRef.current) return;
+    const frame = window.requestAnimationFrame(() => {
+      innerRef.current?.focus();
+      if ("select" in innerRef.current! && typeof innerRef.current!.select === "function") {
+        innerRef.current!.select();
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [autoFocus]);
+
+  useEffect(() => {
+    if (!multiline) return;
+    const el = innerRef.current;
+    if (!el || !(el instanceof HTMLTextAreaElement)) return;
+
+    syncMultilineHeight();
+
+    const cell = el.closest("td");
+    if (!cell || typeof ResizeObserver === "undefined") {
+      return;
     }
-  }, [value, multiline]);
+
+    const observer = new ResizeObserver(() => {
+      syncMultilineHeight();
+    });
+    observer.observe(cell);
+    return () => observer.disconnect();
+  }, [multiline, value]);
+
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onEnter?.();
+      return;
+    }
+    onKeyDown?.(e);
+  }
 
   return (
     <td
       style={{ width: w, minWidth: w, maxWidth: w }}
       onClick={() => innerRef.current?.focus()}
-      className="border border-slate-200 p-0 align-top bg-white focus-within:ring-2 focus-within:ring-inset focus-within:ring-sky-400 dark:bg-slate-800 dark:border-slate-600"
+      className="relative border border-slate-200 bg-white p-0 align-top focus-within:ring-2 focus-within:ring-inset focus-within:ring-sky-400 dark:border-slate-600 dark:bg-slate-800"
     >
       {multiline ? (
         <textarea
@@ -188,12 +228,13 @@ export function EditTextCell({
             innerRef.current = el;
             if (setRef) setRef(el);
           }}
+          autoFocus={autoFocus}
           value={value}
           placeholder={placeholder}
           rows={1}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown as (e: KeyboardEvent<HTMLTextAreaElement>) => void}
-          className={cn(sharedClass, "resize-none overflow-hidden min-h-[28px]")}
+          onKeyDown={handleKeyDown as (e: KeyboardEvent<HTMLTextAreaElement>) => void}
+          className={cn(sharedClass, "block min-h-[28px] w-full resize-none overflow-hidden")}
         />
       ) : (
         <input
@@ -202,11 +243,12 @@ export function EditTextCell({
             if (setRef) setRef(el);
           }}
           type="text"
+          autoFocus={autoFocus}
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown as (e: KeyboardEvent<HTMLInputElement>) => void}
-          className={cn(sharedClass, "h-[28px]")}
+          onKeyDown={handleKeyDown as (e: KeyboardEvent<HTMLInputElement>) => void}
+          className={cn(sharedClass, "absolute inset-0 h-full w-full")}
         />
       )}
     </td>
@@ -221,6 +263,7 @@ export function CustomSelect({
   placeholder,
   onChange,
   onTabKey,
+  onEnter,
   setRef,
   autoFocusOpen,
 }: {
@@ -231,6 +274,7 @@ export function CustomSelect({
   placeholder?: string;
   onChange: (v: string) => void;
   onTabKey?: () => void;
+  onEnter?: () => void;
   setRef?: (el: HTMLButtonElement | null) => void;
   autoFocusOpen?: boolean;
 }) {
@@ -238,26 +282,30 @@ export function CustomSelect({
   const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const tone = badgeClass(fieldKey, value);
+  const toneClass = getToneClass(fieldKey, value);
 
   function openDropdown() {
     if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setRect({ top: r.bottom, left: r.left, width: Math.max(r.width, 140) });
+      setRect({ top: r.bottom, left: r.left, width: Math.max(r.width, 220) });
     }
     setOpen(true);
   }
 
   useEffect(() => {
     if (!open) return;
+
     function close(e: MouseEvent) {
-      if (listRef.current && !listRef.current.contains(e.target as Node) && btnRef.current && !btnRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (listRef.current && !listRef.current.contains(target) && btnRef.current && !btnRef.current.contains(target)) {
         setOpen(false);
       }
     }
+
     function onScroll() {
       setOpen(false);
     }
+
     document.addEventListener("mousedown", close);
     window.addEventListener("scroll", onScroll, true);
     return () => {
@@ -267,18 +315,27 @@ export function CustomSelect({
   }, [open]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
-    if (e.key === "Enter" || e.key === " ") {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onEnter?.();
+    } else if (e.key === " ") {
       e.preventDefault();
       openDropdown();
-      return;
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    } else if (e.key === "Tab" && onTabKey) {
+      onTabKey();
     }
-    if (e.key === "Tab" && onTabKey) onTabKey();
   }
 
   return (
     <td
       style={{ width: w, minWidth: w, maxWidth: w }}
-      className="border border-slate-200 p-0 align-top dark:border-slate-600"
+      onClick={openDropdown}
+      className={cn(
+        "relative border border-slate-200 p-0 align-top cursor-pointer dark:border-slate-600",
+        toneClass || "bg-white dark:bg-slate-800",
+      )}
     >
       <button
         ref={(el) => {
@@ -289,12 +346,11 @@ export function CustomSelect({
         type="button"
         onClick={openDropdown}
         onKeyDown={handleKeyDown}
-        className={cn(
-          "flex min-h-[28px] h-full w-full items-center justify-between gap-1 px-[6px] text-[11px] font-bold uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-400",
-          tone ? cn(tone, "rounded-none") : "text-slate-400 bg-white dark:bg-slate-800 dark:text-slate-500",
-        )}
+        className="absolute inset-0 flex h-full w-full items-center justify-between gap-1 bg-transparent px-[6px] py-[4px] text-[11px] font-bold uppercase tracking-wide text-slate-800 outline-none focus:ring-2 focus:ring-inset focus:ring-sky-400 dark:text-slate-200"
       >
-        <span>{value || placeholder || "Select"}</span>
+        <span className={cn("truncate", !value && "text-slate-400 dark:text-slate-500")}>
+          {value || placeholder || "Select"}
+        </span>
         <CaretDown size={10} weight="bold" className="shrink-0 opacity-70" />
       </button>
       {open && rect && (
@@ -304,13 +360,15 @@ export function CustomSelect({
           className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-800"
         >
           {options.map((opt) => {
-            const optTone = badgeClass(fieldKey, opt);
+            const optTone = getToneClass(fieldKey, opt);
             return (
               <li key={opt}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-3 py-[5px] text-left text-[11px] font-bold uppercase tracking-wide hover:bg-slate-50 dark:hover:bg-slate-700"
-                  onClick={() => {
+                  className="flex w-full items-center gap-2 px-3 py-[5px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onChange(opt);
                     setOpen(false);
                   }}

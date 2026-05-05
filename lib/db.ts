@@ -79,6 +79,7 @@ export const tables = [
       "typeCase" TEXT NOT NULL,
       "preCondition" TEXT NOT NULL,
       "caseName" TEXT NOT NULL,
+      "assignee" TEXT DEFAULT '',
       "testStep" TEXT NOT NULL,
       "expectedResult" TEXT NOT NULL,
       "actualResult" TEXT DEFAULT '',
@@ -260,6 +261,7 @@ CREATE INDEX IF NOT EXISTS "idx_testcase_company" ON "TestCase"("company");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company_updated" ON "TestCase"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company_status" ON "TestCase"("company", "status");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company_suite" ON "TestCase"("company", "testSuiteId");
+CREATE INDEX IF NOT EXISTS "idx_testcase_assignee" ON "TestCase"("assignee");
 CREATE INDEX IF NOT EXISTS "idx_testcase_status" ON "TestCase"("status");
 CREATE INDEX IF NOT EXISTS "idx_testcase_suite" ON "TestCase"("testSuiteId");
   CREATE INDEX IF NOT EXISTS "idx_testplan_company" ON "TestPlan"("company");

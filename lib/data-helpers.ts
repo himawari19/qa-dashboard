@@ -51,6 +51,7 @@ export function normalizeTestCaseRow(item: Record<string, unknown>) {
     id: Number(item.id ?? 0),
     testSuiteId: String(item.testSuiteId ?? ""),
     publicToken: String(item.publicToken ?? ""),
+    assignee: String(item.assignee ?? ""),
     priority: String(item.priority ?? "Medium"),
     evidence: String(item.evidence ?? ""),
     status: String(item.status ?? "Pending"),

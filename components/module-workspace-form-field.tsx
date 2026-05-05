@@ -56,7 +56,6 @@ type Props = {
   setDateWarnings: Dispatch<SetStateAction<Record<string, "past" | "future">>>;
   checkDuplicates: (title: string) => void;
   checkSprintDuplicate: (sprint: string) => void;
-  setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
   versionSequenceLabel?: string;
 };
 
@@ -78,7 +77,6 @@ export function ModuleWorkspaceFormField({
   setDateWarnings,
   checkDuplicates,
   checkSprintDuplicate,
-  setSprintDuplicate,
   versionSequenceLabel,
 }: Props) {
   const Icon = fieldIcons[field.name] || <Note size={16} />;
@@ -120,7 +118,6 @@ export function ModuleWorkspaceFormField({
           lastSprint={lastSprint}
           checkDuplicates={checkDuplicates}
           checkSprintDuplicate={checkSprintDuplicate}
-          setSprintDuplicate={setSprintDuplicate}
           versionSequenceLabel={versionSequenceLabel}
         />
       )}

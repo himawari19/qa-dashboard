@@ -408,6 +408,7 @@ export async function getAllTestCasesWithSuite() {
 
   return setCached(cacheKey("all-test-cases", scope, "suite"), await selectAll(
     `SELECT tc.*, ts.title AS suiteTitle, ts."publicToken" AS suiteToken, ts.status AS suiteStatus,
+            ts.assignee AS suiteAssignee,
             tp.title AS planTitle, tp.project AS planProject
      FROM "TestCase" tc
       LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL

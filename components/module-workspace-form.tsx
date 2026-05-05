@@ -38,7 +38,6 @@ type ModuleWorkspaceFormProps = {
   onCancel: () => void;
   checkDuplicates: (title: string) => void;
   checkSprintDuplicate: (sprint: string) => void;
-  setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
   versionSequenceLabel?: string;
 };
 
@@ -71,7 +70,6 @@ export function ModuleWorkspaceForm({
   onCancel,
   checkDuplicates,
   checkSprintDuplicate,
-  setSprintDuplicate,
   versionSequenceLabel,
 }: ModuleWorkspaceFormProps) {
   return (
@@ -128,7 +126,6 @@ export function ModuleWorkspaceForm({
                     setDateWarnings={setDateWarnings}
                     checkDuplicates={checkDuplicates}
                     checkSprintDuplicate={checkSprintDuplicate}
-                    setSprintDuplicate={setSprintDuplicate}
                     versionSequenceLabel={versionSequenceLabel}
                   />
                 </label>

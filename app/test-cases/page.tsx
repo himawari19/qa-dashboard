@@ -18,7 +18,7 @@ export default async function TestCasesPage({
     <PageShell
       eyebrow="Test Management"
       title="Test Case Library"
-      description="All test cases across every suite. Filter, review, and jump directly to execution."
+      description="All test cases across every suite. Filter by status, review assignee ownership, and jump directly to execution."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Cases" }]}
     >
       <TestCaseLibrary key={initialSearch} cases={cases} initialSearch={initialSearch} />

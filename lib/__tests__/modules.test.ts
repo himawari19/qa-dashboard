@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   formDataToEntry,
+  formatModuleFieldValue,
   moduleConfigs,
   moduleLabels,
   moduleOrder,
+  normalizeModuleEntry,
   parseModuleEntry,
   safeParseModuleEntry,
   type ModuleKey,
@@ -121,5 +123,35 @@ describe("formDataToEntry", () => {
       name: "Alpha",
       title: "Beta",
     });
+  });
+});
+
+describe("field formatting", () => {
+  it("formats select values as labels and trims plain text", () => {
+    const selectField = moduleConfigs["test-plans"].fields.find(
+      (field): field is Extract<(typeof moduleConfigs)["test-plans"]["fields"][number], { kind: "select" }> =>
+        field.kind === "select" && field.options.length > 0,
+    );
+
+    expect(selectField).toBeTruthy();
+    if (!selectField) return;
+
+    const option = selectField.options[0];
+    expect(option).toBeTruthy();
+    if (!option) return;
+
+    expect(formatModuleFieldValue(selectField, option.value)).toBe(option.label);
+    expect(formatModuleFieldValue(selectField, option.label.toLowerCase())).toBe(option.label);
+    expect(formatModuleFieldValue(selectField, "  ")).toBe("");
+    expect(formatModuleFieldValue({ name: "title", label: "Title", kind: "text" }, "  Hello ")).toBe("Hello");
+  });
+
+  it("normalizes select labels back to stored values", () => {
+    const source = {
+      ...buildValidEntry("test-plans"),
+      status: "Active",
+    };
+
+    expect(normalizeModuleEntry("test-plans", source).status).toBe("active");
   });
 });

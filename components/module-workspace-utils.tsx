@@ -74,7 +74,7 @@ export function getPreferredColumnOrder(module: ModuleKey) {
     return ["testPlanLabel", "title", "code", "assignee", "notes", "status"];
   }
   if (module === "test-cases") {
-    return ["tcId", "caseName", "priority", "status"];
+    return ["tcId", "caseName", "testSuiteId", "assignee", "priority", "status"];
   }
   if (module === "sprints") {
     return ["name", "project", "testPlanTitle", "startDate", "endDate", "status"];

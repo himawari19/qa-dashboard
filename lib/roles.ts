@@ -3,6 +3,8 @@ export const INVITE_ROLES = ["fe", "be", "fullstack", "qa", "pm"] as const;
 
 const ROLE_ALIASES: Record<string, string> = {
   "admin (owner)": "admin",
+  "super admin": "admin",
+  superadmin: "admin",
   owner: "admin",
   admin: "admin",
   "frontend developer": "fe",

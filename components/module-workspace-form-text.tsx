@@ -5,7 +5,6 @@ import { Badge } from "@/components/badge";
 import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
 import { cn } from "@/lib/utils";
 import { Info, WarningCircle } from "@phosphor-icons/react";
-import type { Dispatch, SetStateAction } from "react";
 import type { ModuleKey } from "@/lib/modules";
 import type { FormField } from "@/components/module-workspace-form-field";
 
@@ -22,7 +21,6 @@ type Props = {
   lastSprint: string | null;
   checkDuplicates: (title: string) => void;
   checkSprintDuplicate: (sprint: string) => void;
-  setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
   versionSequenceLabel?: string;
 };
 
@@ -43,7 +41,6 @@ export function ModuleWorkspaceFormText({
   lastSprint,
   checkDuplicates,
   checkSprintDuplicate,
-  setSprintDuplicate,
   versionSequenceLabel,
 }: Props) {
   const value = editingRow ? String(editingRow[field.name] || "") : "";
@@ -67,7 +64,7 @@ export function ModuleWorkspaceFormText({
         <AutoResizeTextarea
           name={field.name}
           defaultValue={initialValue}
-          rows={field.kind === "textarea" ? (field.rows ?? 4) : 1}
+          rows={field.kind === "textarea" ? 1 : 1}
           required={field.required}
           placeholder={field.placeholder ?? `Enter ${field.label}`}
           disabled={module === "test-plans" && field.name === "scope"}
@@ -81,7 +78,7 @@ export function ModuleWorkspaceFormText({
             }
           }}
           className={cn(
-            field.kind === "textarea" ? "min-h-28" : "min-h-12 overflow-y-hidden",
+            field.kind === "textarea" ? "min-h-12" : "min-h-12 overflow-y-hidden",
             field.helperKind === "version-sequence" && "pr-10",
             field.name === "scope" && module === "test-plans" && "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed",
           )}

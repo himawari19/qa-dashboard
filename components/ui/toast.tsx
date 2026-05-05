@@ -30,11 +30,12 @@ export function toast(message: string, type: ToastType = "success", options?: To
 export function Toaster() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [, forceTick] = useState(0);
+  const defaultDuration = 2000;
 
   useEffect(() => {
     toastFn = (message, type, options) => {
       const id = Math.random().toString(36).substring(2, 9);
-      const duration = options?.duration ?? 5000;
+      const duration = options?.duration ?? defaultDuration;
       setToasts((prev) => [...prev, {
         id,
         message,
@@ -55,11 +56,11 @@ export function Toaster() {
   }, []);
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100] flex flex-col gap-3">
+    <div className="fixed right-8 top-8 z-[100] flex flex-col items-end gap-3">
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex min-w-[300px] animate-in slide-in-from-right-10 fade-in-0 transform items-center gap-3 rounded-md border bg-white p-4 shadow-xl transition-all duration-300"
+          className="flex min-w-[300px] origin-top-right animate-in fade-in slide-in-from-top-2 slide-in-from-right-4 zoom-in-95 transform items-center gap-3 rounded-md border bg-white p-4 shadow-xl duration-200"
         >
           {t.type === "success" && <CheckCircle size={24} className="text-emerald-500" weight="fill" />}
           {t.type === "error" && <WarningCircle size={24} className="text-rose-500" weight="fill" />}
