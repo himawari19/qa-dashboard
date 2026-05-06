@@ -12,7 +12,6 @@ import {
   Note,
   SquaresFour,
   Table,
-  ShieldCheck,
   ClipboardText,
   PlayCircle,
   Gear,
@@ -26,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import { normalizeRole } from "@/lib/roles";
+import { BrandMark } from "@/components/brand-mark";
 
 const groups: SidebarGroup[] = [
   {
@@ -365,15 +365,14 @@ export function Sidebar({
         <div className="flex w-full flex-col">
           {/* Logo */}
           <div className={cn("border-b border-slate-100/50 dark:border-white/5 p-4 flex items-center gap-3", collapsed ? "justify-center" : "")}>
-            <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
-              <ShieldCheck size={20} weight="bold" className="text-white" />
-            </div>
-            <span className={cn(
-              "font-bold text-lg tracking-tight text-slate-800 dark:text-white transition-all duration-300 origin-left",
-              collapsed ? "opacity-0 scale-0 w-0 overflow-hidden" : "opacity-100 scale-100 w-auto"
-            )}>
-              QA Daily
-            </span>
+            <BrandMark
+              compact
+              showLabel={!collapsed}
+              labelClassName={cn(
+                "transition-all duration-300 origin-left",
+                collapsed ? "opacity-0 scale-0 w-0 overflow-hidden" : "opacity-100 scale-100 w-auto"
+              )}
+            />
           </div>
 
           {/* Nav */}

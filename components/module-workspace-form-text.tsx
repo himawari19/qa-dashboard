@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/badge";
 import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
@@ -22,10 +23,11 @@ type Props = {
   checkDuplicates: (title: string) => void;
   checkSprintDuplicate: (sprint: string) => void;
   versionSequenceLabel?: string;
+  versionSequenceDefaultValue?: string;
 };
 
 function getNextVersion(version: string) {
-  const match = version.match(/^(v?)(\d+)\.(\d+)\.(\d+)$/i);
+  const match = version.match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
   if (!match) return "";
   const [, prefix, major, minor, patch] = match;
   return `${prefix}${major}.${minor}.${Number(patch) + 1}`;
@@ -42,12 +44,22 @@ export function ModuleWorkspaceFormText({
   checkDuplicates,
   checkSprintDuplicate,
   versionSequenceLabel,
+  versionSequenceDefaultValue,
 }: Props) {
   const value = editingRow ? String(editingRow[field.name] || "") : "";
   const isLocked = Boolean(field.readonly);
   const versionValue = versionSequenceLabel?.trim() || "";
   const nextVersion = versionValue ? getNextVersion(versionValue) : "";
-  const initialValue = field.helperKind === "version-sequence" && !editingRow && nextVersion ? nextVersion : value;
+  const initialValue =
+    field.helperKind === "version-sequence" && !editingRow
+      ? (versionSequenceDefaultValue?.trim() || nextVersion || value)
+      : value;
+  const [versionDraft, setVersionDraft] = useState(initialValue);
+
+  useEffect(() => {
+    if (field.helperKind !== "version-sequence") return;
+    setVersionDraft(initialValue);
+  }, [field.helperKind, initialValue]);
 
   if (isLocked) {
     return (
@@ -63,13 +75,17 @@ export function ModuleWorkspaceFormText({
       <div className="relative">
         <AutoResizeTextarea
           name={field.name}
-          defaultValue={initialValue}
+          value={field.helperKind === "version-sequence" ? versionDraft : undefined}
+          defaultValue={field.helperKind === "version-sequence" ? undefined : initialValue}
           rows={field.kind === "textarea" ? 1 : 1}
           required={field.required}
           placeholder={field.placeholder ?? `Enter ${field.label}`}
           disabled={module === "test-plans" && field.name === "scope"}
           error={!!fieldError}
           onChange={(e) => {
+            if (field.helperKind === "version-sequence") {
+              setVersionDraft(e.target.value);
+            }
             if (field.name === "title" || field.name === "caseName") {
               checkDuplicates(e.target.value);
             }

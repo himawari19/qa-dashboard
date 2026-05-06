@@ -6,6 +6,7 @@ import type { ModuleKey } from "@/lib/modules";
 import { ModuleWorkspaceFormDate } from "@/components/module-workspace-form-date";
 import { ModuleWorkspaceFormSelect } from "@/components/module-workspace-form-select";
 import { ModuleWorkspaceFormText } from "@/components/module-workspace-form-text";
+import { cn } from "@/lib/utils";
 
 export type FieldOption = { label: string; value: string };
 
@@ -57,6 +58,7 @@ type Props = {
   checkDuplicates: (title: string) => void;
   checkSprintDuplicate: (sprint: string) => void;
   versionSequenceLabel?: string;
+  versionSequenceDefaultValue?: string;
 };
 
 export function ModuleWorkspaceFormField({
@@ -78,9 +80,37 @@ export function ModuleWorkspaceFormField({
   checkDuplicates,
   checkSprintDuplicate,
   versionSequenceLabel,
+  versionSequenceDefaultValue,
 }: Props) {
   const Icon = fieldIcons[field.name] || <Note size={16} />;
   const isLocked = Boolean(field.readonly);
+  const lockedValue = editingRow ? String(editingRow[field.name] || "—") : "—";
+
+  function renderLockedTextarea(value: string) {
+    const lines = value.split(/\r?\n/).filter(Boolean);
+    return (
+      <div className="space-y-1 whitespace-pre-wrap break-words">
+        {lines.map((line, index) => {
+          const match = line.match(/^(\d+\.\s*)?(?:\*\*)?(.+?)(?:\*\*)?:\s*(.+)$/);
+          if (match) {
+            const [, prefix = "", title, body] = match;
+            return (
+              <p key={`${index}-${title}`} className="leading-relaxed">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">{prefix}</span>
+                <span className="font-bold text-slate-700 dark:text-slate-200">{title}:</span> {body}
+              </p>
+            );
+          }
+
+          return (
+            <p key={`${index}-${line}`} className="leading-relaxed text-slate-700 dark:text-slate-200">
+              {line}
+            </p>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -90,8 +120,15 @@ export function ModuleWorkspaceFormField({
         {field.required && <span className="text-rose-500">*</span>}
       </span>
       {isLocked ? (
-        <div className="flex min-h-12 w-full items-center rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed select-none">
-          {editingRow ? String(editingRow[field.name] || "—") : "—"}
+        <div className={cn(
+          "w-full rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed select-none",
+          field.kind === "textarea" ? "min-h-28 items-start whitespace-pre-wrap" : "flex min-h-12 items-center",
+        )}>
+          <div className={field.kind === "textarea" ? "whitespace-pre-wrap break-words" : ""}>
+            {field.kind === "textarea" && field.name === "notes"
+              ? renderLockedTextarea(lockedValue)
+              : lockedValue}
+          </div>
           <input type="hidden" name={field.name} value={editingRow ? String(editingRow[field.name] || "") : ""} />
         </div>
       ) : field.kind === "select" ? (
@@ -119,6 +156,7 @@ export function ModuleWorkspaceFormField({
           checkDuplicates={checkDuplicates}
           checkSprintDuplicate={checkSprintDuplicate}
           versionSequenceLabel={versionSequenceLabel}
+          versionSequenceDefaultValue={versionSequenceDefaultValue}
         />
       )}
     </>

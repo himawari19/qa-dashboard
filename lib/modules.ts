@@ -38,6 +38,7 @@ type Field =
       placeholder?: string;
       required?: boolean;
       rows?: number;
+      readonly?: boolean;
       span?: 1 | 2 | 3;
       helperKind?: "version-sequence";
     }
@@ -571,12 +572,12 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       "Action Items": String(item.actionItems ?? ""),
     }),
     fields: [
+      { name: "content", label: "Discussion / Summary", kind: "textarea", placeholder: "Key discussion points and outcomes...", required: false, span: 3 },
+      { name: "actionItems", label: "Action Items / Decisions", kind: "textarea", placeholder: "Who does what by when...", required: false, span: 3 },
       { name: "date", label: "Date", kind: "date", required: true },
       { name: "project", label: "Project Name", kind: "select", options: [], required: true },
       { name: "title", label: "Topic", kind: "text", placeholder: "e.g. Daily Standup", required: true },
       { name: "attendees", label: "Attendees", kind: "text", placeholder: "e.g. John, Sarah, Mike" },
-      { name: "content", label: "Discussion / Summary", kind: "textarea", placeholder: "Key discussion points and outcomes...", required: false, span: 3 },
-      { name: "actionItems", label: "Action Items / Decisions", kind: "textarea", placeholder: "Who does what by when...", required: false, span: 3 },
     ],
     columns: [
       { key: "date", label: "Date" },
@@ -690,7 +691,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "developer", label: "Developer Name", kind: "text", placeholder: "e.g. John Doe", required: true },
       { name: "status", label: "Status", kind: "select", options: deploymentStatusOptions, required: true },
       { name: "changelog", label: "Changelog", kind: "textarea", placeholder: "List changes, fixes, and new features...", required: true, span: 3 },
-      { name: "notes", label: "Notes", kind: "textarea", placeholder: "Additional notes or rollback instructions...", span: 3 },
+      { name: "notes", label: "Notes (auto-generated)", kind: "textarea", readonly: true, span: 3 },
     ],
     columns: [
       { key: "date", label: "Date" },

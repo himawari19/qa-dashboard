@@ -792,6 +792,29 @@ describe("module row queries", () => {
     ]);
   });
 
+  it("hydrates deployment notes from changelog when notes are empty", async () => {
+    mocks.db.query.mockResolvedValueOnce([
+      {
+        id: 1,
+        date: "2026-05-06",
+        version: "v1.0.4",
+        project: "VanApp",
+        environment: "Development",
+        developer: "Developer A",
+        changelog: "1. Perbaikan spasi (slide 4) -> Sudah diperbaiki ; belum di test",
+        status: "success",
+        notes: "",
+        company: "acme",
+      },
+    ]);
+
+    const rows = await getModuleRows("deployments");
+
+    expect(rows[0]).toMatchObject({
+      notes: "1. Penyempurnaan Visual & UI: Perbaikan spasi agar lebih proporsional.",
+    });
+  });
+
   it("creates missing tables for assignees and meeting notes", async () => {
     mocks.db.query
       .mockResolvedValueOnce([{ id: 1, name: "Rina", company: "acme" }])

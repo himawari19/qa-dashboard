@@ -14,10 +14,11 @@ import {
   ChartBar, TrendUp, CalendarBlank, Kanban, CaretRight, Timer,
 } from "@phosphor-icons/react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend, AreaChart, Area, CartesianGrid,
   LineChart, Line, ReferenceLine,
 } from "recharts";
+import { ResponsiveContainer } from "@/components/responsive-container";
 import { ChartSkeleton } from "@/components/ui/skeleton";
 
 // ── Types ──────────────────────────────────────────────────────────────────

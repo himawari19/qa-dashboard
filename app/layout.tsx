@@ -8,8 +8,14 @@ import { Toaster } from "@/components/ui/toast";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "QA Daily Hub",
-  description: "Professional QA Activity and Test Case Management",
+  title: {
+    default: "QA Daily Hub | Quality Ops Workspace",
+    template: "%s | QA Daily Hub",
+  },
+  description: "A polished workspace for QA teams to manage test cases, execution, bugs, and daily activity.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

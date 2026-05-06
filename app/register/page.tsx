@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle, Eye, EyeSlash, UserPlus } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
+import { BrandMark } from "@/components/brand-mark";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -58,8 +59,13 @@ export default function RegisterPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2 bg-slate-50">
       <div className="hidden lg:flex flex-col justify-center bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 p-16 text-white">
-        <p className="text-xs font-black uppercase tracking-[0.35em] text-white/70">QA Daily Hub</p>
-        <h1 className="mt-6 max-w-lg text-6xl font-black leading-tight">Register with your invite.</h1>
+        <BrandMark
+          className="mb-7"
+          labelClassName="text-white"
+          titleClassName="text-white"
+          subtitleClassName="text-white/70"
+        />
+        <h1 className="max-w-lg text-6xl font-black leading-tight">Register with your invite.</h1>
         <p className="mt-6 max-w-xl text-lg leading-8 text-white/85">
           Private workspace access. No public signup. Use the invitation link from your super admin.
         </p>

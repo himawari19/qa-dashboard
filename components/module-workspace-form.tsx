@@ -39,6 +39,7 @@ type ModuleWorkspaceFormProps = {
   checkDuplicates: (title: string) => void;
   checkSprintDuplicate: (sprint: string) => void;
   versionSequenceLabel?: string;
+  versionSequenceDefaultValue?: string;
 };
 
 export function ModuleWorkspaceForm({
@@ -71,6 +72,7 @@ export function ModuleWorkspaceForm({
   checkDuplicates,
   checkSprintDuplicate,
   versionSequenceLabel,
+  versionSequenceDefaultValue,
 }: ModuleWorkspaceFormProps) {
   return (
     <div id="module-form-section" className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
@@ -124,10 +126,11 @@ export function ModuleWorkspaceForm({
                     lastSprint={lastSprint}
                     dateWarnings={dateWarnings}
                     setDateWarnings={setDateWarnings}
-                    checkDuplicates={checkDuplicates}
-                    checkSprintDuplicate={checkSprintDuplicate}
-                    versionSequenceLabel={versionSequenceLabel}
-                  />
+                  checkDuplicates={checkDuplicates}
+                  checkSprintDuplicate={checkSprintDuplicate}
+                  versionSequenceLabel={versionSequenceLabel}
+                  versionSequenceDefaultValue={versionSequenceDefaultValue}
+                />
                 </label>
               );
             })}

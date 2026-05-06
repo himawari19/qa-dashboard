@@ -94,9 +94,11 @@ function LoginContent() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-400/20 rounded-full blur-3xl animate-pulse delay-700" />
         
         <div className="relative z-10 text-white max-w-md">
-          <h1 className="text-6xl font-black mb-6 leading-tight tracking-tight">QA Daily Hub.</h1>
+          <h1 className="text-5xl font-black mb-6 leading-tight tracking-tight sm:text-6xl">
+            Quality control, made sharp.
+          </h1>
           <p className="text-xl text-blue-100 leading-relaxed mb-8 font-medium">
-            Master your software quality journey. The all-in-one platform for modern QA teams to collaborate and excel.
+            A focused workspace for test cases, execution, bugs, and the daily QA rhythm.
           </p>
         </div>
 
@@ -283,7 +285,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center font-black text-3xl text-blue-600 tracking-tighter">QA Daily Hub.</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center font-black text-3xl text-blue-600 tracking-tighter">QA Daily Hub</div>}>
       <LoginContent />
     </Suspense>
   );

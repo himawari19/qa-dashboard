@@ -32,13 +32,6 @@ type ModuleWorkspaceCellProps = {
   row: TableRow;
   column: Column;
   value: unknown;
-  statusOptions: Array<{ label: string; value: string }>;
-  canEdit: boolean;
-  statusDropdownId: string | number | null;
-  index: number;
-  visibleRowsLength: number;
-  setStatusDropdownId: (value: string | number | null) => void;
-  onUpdateStatus: (id: string | number, value: string) => void | Promise<void>;
 };
 
 export function ModuleWorkspaceCell({
@@ -46,14 +39,36 @@ export function ModuleWorkspaceCell({
   row,
   column,
   value,
-  statusOptions,
-  canEdit,
-  statusDropdownId,
-  index,
-  visibleRowsLength,
-  setStatusDropdownId,
-  onUpdateStatus,
 }: ModuleWorkspaceCellProps) {
+  function renderNotesValue(text: string) {
+    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+
+    if (!lines.length) return <span>-</span>;
+
+    return (
+      <div className="space-y-1 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
+        {lines.map((line, index) => {
+          const match = line.match(/^(\d+\.\s*)?(?:\*\*)?(.+?)(?:\*\*)?:\s*(.+)$/);
+          if (match) {
+            const [, prefix = "", title, body] = match;
+            return (
+              <p key={`${index}-${title}`} className="whitespace-pre-wrap break-words">
+                <span className="font-semibold">{prefix}</span>
+                <span className="font-bold">{title}:</span> {body}
+              </p>
+            );
+          }
+
+          return (
+            <p key={`${index}-${line}`} className="whitespace-pre-wrap break-words">
+              {line}
+            </p>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") || (module === "test-plans" && column.key === "project")) {
     const rowSpanKey = module === "test-plans" ? "projectRowSpan" : "testPlanRowSpan";
     const rowSpan = Number(row[rowSpanKey] ?? 1);
@@ -88,45 +103,8 @@ export function ModuleWorkspaceCell({
         <a href={String(value)} target="_blank" rel="noreferrer" className="break-all text-blue-600 hover:underline">
           <HighlightText text={String(value)} query="" linkify={false} />
         </a>
-      ) : column.tone === "status" && statusOptions.length > 0 && ["tasks", "bugs", "test-plans", "test-sessions", "test-suites", "sprints", "assignees", "users", "deployments"].includes(module) ? (
-        <div className="relative" data-status-dropdown>
-          <button
-            type="button"
-            onClick={() => {
-              if (!canEdit) return;
-              setStatusDropdownId(statusDropdownId === row.id ? null : row.id);
-            }}
-            className={cn(canEdit ? "cursor-pointer" : "cursor-default")}
-            title={canEdit ? "Click to change status" : ""}
-          >
-            <Badge value={String(value)} />
-          </button>
-          {statusDropdownId === row.id && (
-            <div
-              className={cn(
-                "absolute left-0 z-[100] mt-1 min-w-[140px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 shadow-2xl animate-in fade-in zoom-in-95 duration-200",
-                index > visibleRowsLength - 3 && visibleRowsLength > 3 ? "bottom-full mb-1" : "top-full",
-              )}
-            >
-              {statusOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    void onUpdateStatus(row.id, opt.value);
-                    setStatusDropdownId(null);
-                  }}
-                  className={cn(
-                    "flex w-full items-center px-3 py-1.5 text-xs font-semibold transition hover:bg-slate-50 dark:hover:bg-slate-700",
-                    String(value) === opt.value ? "text-sky-700 dark:text-sky-400" : "text-slate-700 dark:text-slate-300",
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      ) : column.tone === "status" ? (
+        <Badge value={String(value)} />
       ) : column.tone ? (
         <Badge value={String(value)} />
       ) : column.key.toLowerCase().includes("date") ? (
@@ -146,6 +124,16 @@ export function ModuleWorkspaceCell({
           ) : (
             <span>-</span>
           )}
+        </div>
+      ) : column.key === "notes" && typeof value === "string" ? (
+        <div
+          className={cn(
+            "max-w-[280px] rounded-sm bg-slate-50 p-2 text-xs leading-relaxed break-words cursor-default whitespace-normal dark:bg-slate-800",
+            module === "test-suites" ? "min-h-12" : "h-24 overflow-y-auto",
+          )}
+          title={value}
+        >
+          {renderNotesValue(value)}
         </div>
       ) : column.multiline ? (
         <div

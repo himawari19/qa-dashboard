@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { ModuleKey } from "@/lib/modules";
+import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { type Attachment } from "@/components/attachment-uploader";
 import type { FormField } from "@/components/module-workspace-form-field";
 import { parseFieldError } from "@/components/module-workspace-utils";
@@ -31,7 +32,6 @@ type ActionArgs = {
   pendingDeleteId: string | number | null;
   undoTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
   formDirty: boolean;
-  statusDropdownId: string | number | null;
   openSelectField: string | null;
   setSelectValues: Dispatch<SetStateAction<Record<string, string>>>;
   setRefreshing: Dispatch<SetStateAction<boolean>>;
@@ -46,7 +46,6 @@ type ActionArgs = {
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   setDateWarnings: Dispatch<SetStateAction<Record<string, "past" | "future">>>;
   setFormDirty: Dispatch<SetStateAction<boolean>>;
-  setStatusDropdownId: Dispatch<SetStateAction<string | number | null>>;
   setOpenSelectField: Dispatch<SetStateAction<string | null>>;
   setPendingDeleteId: Dispatch<SetStateAction<string | number | null>>;
   setDeleteId: Dispatch<SetStateAction<string | number | null>>;
@@ -67,7 +66,6 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     pendingDeleteId,
     undoTimerRef,
     formDirty,
-    statusDropdownId,
     openSelectField,
     setSelectValues,
     setRefreshing,
@@ -81,7 +79,6 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     setAttachments,
     setDateWarnings,
     setFormDirty,
-    setStatusDropdownId,
     setOpenSelectField,
     setPendingDeleteId,
   setDeleteId,
@@ -134,16 +131,6 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
       window.history.replaceState({}, "", url.toString());
     }
   }, [rows, setViewingRow]);
-
-  useEffect(() => {
-    if (statusDropdownId === null) return;
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[data-status-dropdown]")) setStatusDropdownId(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [statusDropdownId, setStatusDropdownId]);
 
   useEffect(() => {
     if (openSelectField === null) return;
@@ -345,6 +332,9 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     if (!editingRow) return;
 
     const entry = Object.fromEntries(formData.entries());
+    if (module === "deployments") {
+      entry.notes = generateDeploymentNotes(String(entry.changelog ?? ""));
+    }
 
     const { ok, data } = await requestModuleJson<ApiPayload>(`/api/items/${module}`, {
       method: "PATCH",

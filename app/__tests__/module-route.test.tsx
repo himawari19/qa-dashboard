@@ -33,6 +33,12 @@ const mocks = vi.hoisted(() => ({
         { id: 1, name: "Alice", email: "alice@example.com", role: "lead", company: "acme" },
       ];
     }
+    if (module === "deployments") {
+      return [
+        { id: 1, version: "v1.0.4" },
+        { id: 2, version: "v1.0.3" },
+      ];
+    }
     if (module === "assignees") {
       return [
         { id: 1, name: "Rina" },
@@ -182,6 +188,27 @@ describe("module route", () => {
         testPlanRowSpan: 0,
       },
     ]);
+  });
+
+  it("pre-fills deployment version from the latest deployment", async () => {
+    mocks.getModuleRowsPage.mockResolvedValueOnce({
+      rows: [
+        { id: 1, date: "2026-05-06", version: "v1.0.4", project: "VanApp" },
+      ],
+      total: 1,
+    });
+
+    const element = await ModulePage({
+      params: Promise.resolve({ module: "deployments" }),
+      searchParams: Promise.resolve({ page: "1" }),
+    });
+
+    renderToStaticMarkup(element);
+
+    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls[0]![0];
+    expect(props.initialFormValues).toMatchObject({
+      version: "v1.0.5",
+    });
   });
 
   it("loads related suites for test plans and clamps page overflow", async () => {

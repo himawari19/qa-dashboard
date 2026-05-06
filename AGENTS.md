@@ -52,6 +52,7 @@ const dayExpr = isPostgres
 - **Serialization**: DB results → Client Components MUST use `JSON.parse(JSON.stringify(data))`.
 - **Breadcrumbs**: Use `PageShell` with standardized parents: `Documentation` (Sprints, Meetings), `System Settings` (Users, Team), `Test Management` (Plans, Suites).
 - **Navigation**: `router.refresh()`, NOT `window.location.reload()`.
+- **Charts**: Recharts `ResponsiveContainer` must only render after the wrapper has measurable width/height. Use `components/responsive-container.tsx` to avoid `width(-1)`/`height(-1)` console warnings.
 - **Imports**: Always check if `moduleConfigs` is imported in `app/[module]/page.tsx` before use.
 - **Visuals**: Modern, premium UI. Tailwind classes only. NO hardcoded hex (except CSS vars).
 - **Versioning**: `package.json` version is source of truth.

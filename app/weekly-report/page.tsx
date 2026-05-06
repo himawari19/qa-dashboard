@@ -23,10 +23,10 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
   Cell,
   CartesianGrid,
 } from "recharts";
+import { ResponsiveContainer } from "@/components/responsive-container";
 
 type WeeklyReportData = {
   period: { from: string; to: string };

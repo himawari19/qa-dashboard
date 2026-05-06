@@ -14,6 +14,38 @@ import { PAGE_SIZE } from "@/lib/pagination";
 
 type Row = Record<string, string | number> & { id: string | number };
 
+function compareVersions(left: string, right: string) {
+  const matchLeft = String(left ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
+  const matchRight = String(right ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
+  if (!matchLeft && !matchRight) return 0;
+  if (!matchLeft) return -1;
+  if (!matchRight) return 1;
+  const [, leftPrefix, leftMajor, leftMinor, leftPatch] = matchLeft;
+  const [, rightPrefix, rightMajor, rightMinor, rightPatch] = matchRight;
+  const leftWeight = leftPrefix ? 1 : 0;
+  const rightWeight = rightPrefix ? 1 : 0;
+  if (leftWeight !== rightWeight) return leftWeight - rightWeight;
+  const majorDiff = Number(leftMajor) - Number(rightMajor);
+  if (majorDiff !== 0) return majorDiff;
+  const minorDiff = Number(leftMinor) - Number(rightMinor);
+  if (minorDiff !== 0) return minorDiff;
+  return Number(leftPatch) - Number(rightPatch);
+}
+
+function getLatestVersion(rows: Row[]) {
+  return rows
+    .map((row) => String(row.version ?? "").trim())
+    .filter(Boolean)
+    .reduce((latest, current) => (compareVersions(current, latest) > 0 ? current : latest), "");
+}
+
+function getNextVersion(version: string) {
+  const match = String(version ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
+  if (!match) return "";
+  const [, prefix, major, minor, patch] = match;
+  return `${prefix}${major}.${minor}.${Number(patch) + 1}`;
+}
+
 export function ModuleWorkspace({
   module,
   rows,
@@ -25,6 +57,7 @@ export function ModuleWorkspace({
   hiddenFields = [],
   user = null,
   topContent = null,
+  versionSequenceDefaultValue = "",
 }: {
   module: ModuleKey;
   rows: Row[]; 
@@ -36,6 +69,7 @@ export function ModuleWorkspace({
   hiddenFields?: string[];
   user?: any;
   topContent?: ReactNode;
+  versionSequenceDefaultValue?: string;
 }) {
   const config = moduleConfigs[module];
   const router = useRouter();
@@ -57,7 +91,6 @@ export function ModuleWorkspace({
   const [refreshing, setRefreshing] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
   const [viewingRow, setViewingRow] = useState<Row | null>(null);
-  const [statusDropdownId, setStatusDropdownId] = useState<string | number | null>(null);
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -97,6 +130,7 @@ export function ModuleWorkspace({
     [module]
   );
   const versionSequenceField = config.fields.find((field) => field.helperKind === "version-sequence");
+  const versionSequenceDefault = useMemo(() => getNextVersion(getLatestVersion(localRows)), [localRows]);
   const versionSequenceLabel =
     versionSequenceField && versionSequenceField.name
       ? String(editingRow?.[versionSequenceField.name] ?? localRows[0]?.[versionSequenceField.name] ?? "").trim()
@@ -123,7 +157,6 @@ export function ModuleWorkspace({
     pendingDeleteId,
     undoTimerRef,
     formDirty,
-    statusDropdownId,
     openSelectField,
     setSelectValues,
     setRefreshing,
@@ -138,7 +171,6 @@ export function ModuleWorkspace({
     setAttachments,
     setDateWarnings,
     setFormDirty,
-    setStatusDropdownId,
     setOpenSelectField,
     setPendingDeleteId,
     setDeleteId,
@@ -192,7 +224,6 @@ export function ModuleWorkspace({
         totalPages={totalPages}
         totalItems={totalItems}
         statusOptions={statusOptions}
-        statusDropdownId={statusDropdownId}
         pendingDeleteId={pendingDeleteId}
         deleteOpen={deleteId !== null}
         reopenOpen={reopenId !== null}
@@ -219,7 +250,7 @@ export function ModuleWorkspace({
         setDateWarnings={setDateWarnings}
         setSprintDuplicate={setSprintDuplicate}
         versionSequenceLabel={versionSequenceLabel}
-        setStatusDropdownId={setStatusDropdownId}
+        versionSequenceDefaultValue={versionSequenceDefaultValue || versionSequenceDefault}
         onAdd={() => openFormEditor()}
         onEditRow={(row) => openFormEditor(row as Row)}
         onViewRow={(row) => setViewingRow(row as Row)}

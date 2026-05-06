@@ -7,6 +7,38 @@ import { PAGE_SIZE } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
+function getNextVersion(version: string) {
+  const match = String(version ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
+  if (!match) return "";
+  const [, prefix, major, minor, patch] = match;
+  return `${prefix}${major}.${minor}.${Number(patch) + 1}`;
+}
+
+function compareVersions(left: string, right: string) {
+  const matchLeft = String(left ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
+  const matchRight = String(right ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
+  if (!matchLeft && !matchRight) return 0;
+  if (!matchLeft) return -1;
+  if (!matchRight) return 1;
+  const [, leftPrefix, leftMajor, leftMinor, leftPatch] = matchLeft;
+  const [, rightPrefix, rightMajor, rightMinor, rightPatch] = matchRight;
+  const leftWeight = leftPrefix ? 1 : 0;
+  const rightWeight = rightPrefix ? 1 : 0;
+  if (leftWeight !== rightWeight) return leftWeight - rightWeight;
+  const majorDiff = Number(leftMajor) - Number(rightMajor);
+  if (majorDiff !== 0) return majorDiff;
+  const minorDiff = Number(leftMinor) - Number(rightMinor);
+  if (minorDiff !== 0) return minorDiff;
+  return Number(leftPatch) - Number(rightPatch);
+}
+
+function getLatestDeploymentVersion(rows: Record<string, unknown>[]) {
+  return rows
+    .map((row) => String(row.version ?? "").trim())
+    .filter(Boolean)
+    .reduce((latest, current) => (compareVersions(current, latest) > 0 ? current : latest), "");
+}
+
 export function generateStaticParams() {
   return moduleOrder.map((module) => ({ module }));
 }
@@ -150,6 +182,15 @@ export default async function ModulePage({
       relatedOptions.project = await getProjectOptions();
     }
 
+    if (moduleKey === "deployments" && !initialFormValues.version) {
+      const deploymentRows = await getModuleRows("deployments");
+      const latestVersion = getLatestDeploymentVersion(deploymentRows);
+      const nextVersion = latestVersion ? getNextVersion(latestVersion) : "";
+      if (nextVersion) {
+        initialFormValues.version = nextVersion;
+      }
+    }
+
     const teamOptions = await getAssigneeOptions();
 
     const config = moduleConfigs[moduleKey as ModuleKey];
@@ -179,6 +220,7 @@ export default async function ModulePage({
       totalItems={totalItems} 
       relatedOptions={plainRelatedOptions} 
       initialFormValues={initialFormValues} 
+      versionSequenceDefaultValue={initialFormValues.version || ""}
       hiddenFields={hiddenFields} 
       user={JSON.parse(JSON.stringify(await getCurrentUser()))}
     />

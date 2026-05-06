@@ -41,9 +41,6 @@ type ModuleWorkspaceTableProps = {
   canEdit: boolean;
   canDelete: boolean;
   pendingDeleteId: string | number | null;
-  statusOptions: Array<{ label: string; value: string }>;
-  statusDropdownId: string | number | null;
-  setStatusDropdownId: (value: string | number | null) => void;
   onAdd: () => void;
   onEditRow: (row: TableRow) => void;
   onViewRow: (row: TableRow) => void;
@@ -51,7 +48,6 @@ type ModuleWorkspaceTableProps = {
   onReopenRow: (row: TableRow) => void;
   onPrevPage: () => void;
   onNextPage: () => void;
-  onUpdateStatus: (id: string | number, value: string) => void | Promise<void>;
 };
 
 export function ModuleWorkspaceTable({
@@ -66,9 +62,6 @@ export function ModuleWorkspaceTable({
   canEdit,
   canDelete,
   pendingDeleteId,
-  statusOptions,
-  statusDropdownId,
-  setStatusDropdownId,
   onAdd,
   onEditRow,
   onViewRow,
@@ -76,7 +69,6 @@ export function ModuleWorkspaceTable({
   onReopenRow,
   onPrevPage,
   onNextPage,
-  onUpdateStatus,
 }: ModuleWorkspaceTableProps) {
   return (
     <div className="max-w-full overflow-x-auto px-6 pb-32 pt-6">
@@ -137,13 +129,6 @@ export function ModuleWorkspaceTable({
                     row={row}
                     column={column}
                     value={row[column.key]}
-                    statusOptions={statusOptions}
-                    canEdit={canEdit}
-                    statusDropdownId={statusDropdownId}
-                    index={index}
-                    visibleRowsLength={visibleRows.length}
-                    setStatusDropdownId={setStatusDropdownId}
-                    onUpdateStatus={onUpdateStatus}
                   />
                 ))}
                 <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 align-top">

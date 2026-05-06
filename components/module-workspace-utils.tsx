@@ -80,7 +80,7 @@ export function getPreferredColumnOrder(module: ModuleKey) {
     return ["name", "project", "testPlanTitle", "startDate", "endDate", "status"];
   }
   if (module === "meeting-notes") {
-    return ["code", "date", "project", "title"];
+    return ["date", "project", "title", "content", "actionItems", "attendees"];
   }
   if (module === "test-sessions") {
     return ["date", "project", "sprint", "tester", "result"];

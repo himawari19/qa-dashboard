@@ -38,6 +38,32 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
     (field) => row[field.name] !== undefined && row[field.name] !== null && String(row[field.name]).trim() !== "",
   );
 
+  function renderNotes(value: string) {
+    const lines = value.split(/\r?\n/).filter(Boolean);
+    return (
+      <div className="space-y-2 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
+        {lines.map((line, index) => {
+          const match = line.match(/^(\d+\.\s*)?(?:\*\*)?(.+?)(?:\*\*)?:\s*(.+)$/);
+          if (match) {
+            const [, prefix = "", title, body] = match;
+            return (
+              <p key={`${index}-${title}`} className="whitespace-pre-wrap break-words">
+                <span className="font-semibold">{prefix}</span>
+                <span className="font-bold">{title}:</span> {body}
+              </p>
+            );
+          }
+
+          return (
+            <p key={`${index}-${line}`} className="whitespace-pre-wrap break-words">
+              {line}
+            </p>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center"
@@ -97,6 +123,8 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
                     <a href={displayValue} target="_blank" rel="noreferrer" className="break-all text-xs text-blue-600 hover:underline">
                       {displayValue}
                     </a>
+                  ) : field.name === "notes" ? (
+                    renderNotes(displayValue || "-")
                   ) : (
                     <p className={cn("whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-800 dark:text-slate-200", !isLong && "font-semibold")}>
                       <HighlightText text={displayValue || "-"} query="" />
@@ -109,12 +137,6 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-4 py-3 dark:border-slate-800">
-          <button
-            onClick={onClose}
-            className="h-8 rounded-md border border-slate-200 px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            Close
-          </button>
           {canEdit && (
             <button
               onClick={onEdit}
@@ -123,6 +145,12 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
               Edit
             </button>
           )}
+          <button
+            onClick={onClose}
+            className="h-8 rounded-md bg-red-600 px-4 text-xs font-bold text-white transition hover:bg-red-700"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

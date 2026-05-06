@@ -31,9 +31,6 @@ describe("ModuleWorkspace splits", () => {
         canEdit={true}
         canDelete={true}
         pendingDeleteId={null}
-        statusOptions={[]}
-        statusDropdownId={null}
-        setStatusDropdownId={() => {}}
         onAdd={() => {}}
         onEditRow={() => {}}
         onViewRow={() => {}}
@@ -41,7 +38,6 @@ describe("ModuleWorkspace splits", () => {
         onReopenRow={() => {}}
         onPrevPage={() => {}}
         onNextPage={() => {}}
-        onUpdateStatus={() => {}}
       />,
     );
 

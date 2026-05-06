@@ -16,6 +16,7 @@ import {
   syncSprintFromTestPlan,
 } from "@/lib/data-helpers";
 import { getQualityTrend, getReleaseNotes } from "@/lib/test-management-data";
+import { generateDeploymentNotes } from "@/lib/deployment-notes";
 
 export {
   makePublicToken,
@@ -27,6 +28,14 @@ export {
 
 async function selectAll(sqlStr: string, params: any[] = []): Promise<Array<Record<string, string | number | null>>> {
   return db.query<Record<string, string | number | null>>(sqlStr, params);
+}
+
+function hydrateDeploymentNotes<T extends Record<string, any>>(row: T) {
+  if (!row) return row;
+  return {
+    ...row,
+    notes: generateDeploymentNotes(String(row.changelog ?? "")),
+  };
 }
 
 type DashboardCacheEntry = { expiresAt: number; data: unknown };
@@ -668,7 +677,7 @@ export async function getModuleRows(module: ModuleKey) {
       `, [...subParams, ...subParams, ...qParams]);
     }
     case "deployments":
-      return await selectAll(`SELECT * FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams);
+      return (await selectAll(`SELECT * FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams)).map(hydrateDeploymentNotes);
     default:
       return [];
   }
@@ -792,7 +801,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     }
     case "deployments": {
       const total = await countRows("Deployment", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT * FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC${limitClause}`, qParams);
+      const rows = (await selectAll(`SELECT * FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC${limitClause}`, qParams)).map(hydrateDeploymentNotes);
       return { rows, total };
     }
     default:
@@ -924,10 +933,11 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       return res;
     }
     case "deployments": {
+      const notes = generateDeploymentNotes(String(data.changelog ?? ""));
       const res = await runInsert(
         `INSERT INTO "Deployment" ("company", "date", "version", "project", "environment", "developer", "changelog", "status", "notes")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, data.notes ?? ""]
+        [company, data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, notes]
       );
       await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${data.environment}: ${data.status}`);
       invalidateDashboardCache(company);
@@ -1079,11 +1089,12 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "deployments": {
+      const notes = generateDeploymentNotes(String(data.changelog ?? ""));
       const res = await db.run(
         `UPDATE "Deployment"
          SET "date" = ?, "version" = ?, "project" = ?, "environment" = ?, "developer" = ?, "changelog" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, data.notes ?? "", id, ...companyParam]
+        [data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, notes, id, ...companyParam]
       );
       await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`);
       invalidateDashboardCache(company);

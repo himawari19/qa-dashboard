@@ -6,8 +6,9 @@ import {
   ChartBar, CalendarBlank, User, Folder, Lightning,
 } from "@phosphor-icons/react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Cell, CartesianGrid,
 } from "recharts";
+import { ResponsiveContainer } from "@/components/responsive-container";
 import { formatDisplayText } from "@/lib/utils";
 
 type ReportData = {

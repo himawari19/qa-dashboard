@@ -50,7 +50,6 @@ type Props = {
   totalPages: number;
   totalItems: number;
   statusOptions: Array<{ label: string; value: string }>;
-  statusDropdownId: string | number | null;
   pendingDeleteId: string | number | null;
   deleteOpen: boolean;
   reopenOpen: boolean;
@@ -69,8 +68,8 @@ type Props = {
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   setDateWarnings: Dispatch<SetStateAction<Record<string, "past" | "future">>>;
   setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
-  setStatusDropdownId: Dispatch<SetStateAction<string | number | null>>;
   versionSequenceLabel?: string;
+  versionSequenceDefaultValue?: string;
   onAdd: () => void;
   onEditRow: (row: any) => void;
   onViewRow: (row: any) => void;
@@ -119,7 +118,6 @@ export function ModuleWorkspaceShell({
   totalPages,
   totalItems,
   statusOptions,
-  statusDropdownId,
   pendingDeleteId,
   deleteOpen,
   reopenOpen,
@@ -138,8 +136,8 @@ export function ModuleWorkspaceShell({
   setAttachments,
   setDateWarnings,
   setSprintDuplicate,
-  setStatusDropdownId,
   versionSequenceLabel,
+  versionSequenceDefaultValue,
   onAdd,
   onEditRow,
   onViewRow,
@@ -207,6 +205,7 @@ export function ModuleWorkspaceShell({
             checkDuplicates={checkDuplicates}
             checkSprintDuplicate={checkSprintDuplicate}
             versionSequenceLabel={versionSequenceLabel}
+            versionSequenceDefaultValue={versionSequenceDefaultValue}
           />
         ) : null}
 
@@ -223,9 +222,6 @@ export function ModuleWorkspaceShell({
             canEdit={canEdit}
             canDelete={canDelete}
             pendingDeleteId={pendingDeleteId}
-            statusOptions={statusOptions}
-            statusDropdownId={statusDropdownId}
-            setStatusDropdownId={setStatusDropdownId}
             onAdd={onAdd}
             onEditRow={onEditRow}
             onViewRow={onViewRow}
@@ -233,11 +229,10 @@ export function ModuleWorkspaceShell({
             onReopenRow={onReopenRow}
             onPrevPage={onPrevPage}
             onNextPage={onNextPage}
-            onUpdateStatus={onUpdateStatus}
           />
         ) : !showForm ? (
           <div className="overflow-hidden bg-slate-50 dark:bg-slate-800/50 border-t border-[#d9e2ea] dark:border-slate-700 p-5">
-            <KanbanBoard rows={visibleRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} />
+            <KanbanBoard rows={visibleRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
           </div>
         ) : null}
       </section>

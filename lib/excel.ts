@@ -31,6 +31,25 @@ function headerLabel(fieldName: string) {
     .trim();
 }
 
+export function resolveExportCellValue(
+  field: (typeof moduleConfigs)[ModuleKey]["fields"][number],
+  row: Record<string, string | number>,
+) {
+  const candidates = [
+    row[field.label],
+    row[field.name],
+    row[headerLabel(field.name)],
+    row[headerLabel(field.label)],
+  ];
+
+  for (const candidate of candidates) {
+    const text = String(candidate ?? "").trim();
+    if (text) return formatModuleFieldValue(field, candidate);
+  }
+
+  return "";
+}
+
 export async function buildWorkbook(
   module: ModuleKey,
   rows: Record<string, string | number>[],
@@ -63,10 +82,9 @@ export async function buildWorkbook(
 
   if (!template) {
     for (const row of rows) {
-      // row here comes from toRow() which uses labels as keys.
       const excelData: Record<string, string | number> = {};
       moduleConfigs[module].fields.forEach((field) => {
-        excelData[field.name] = formatModuleFieldValue(field, row[field.label] ?? "");
+        excelData[field.name] = resolveExportCellValue(field, row);
       });
       
       const excelRow = worksheet.addRow(excelData);
@@ -84,6 +102,8 @@ export async function buildWorkbook(
 
   addDataValidation(module, worksheet);
   autoFitColumns(worksheet);
+  autoFitRowHeights(worksheet);
+  applyAutoBorders(worksheet, template ? 5 : rows.length);
 
   return workbook;
 }
@@ -110,7 +130,6 @@ function addDataValidation(module: ModuleKey, worksheet: ExcelJS.Worksheet) {
 }
 
 function styleDataRow(row: ExcelJS.Row) {
-  row.height = 30; // Better default height
   row.eachCell((cell) => {
     cell.alignment = { vertical: "top", horizontal: "left", wrapText: true };
     cell.border = border();
@@ -161,12 +180,44 @@ function autoFitColumns(worksheet: ExcelJS.Worksheet) {
   });
 }
 
+function autoFitRowHeights(worksheet: ExcelJS.Worksheet) {
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+
+    let maxLines = 1;
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const text = String(cell.value ?? "");
+      if (!text) return;
+      const columnWidth = Number(worksheet.getColumn(colNumber).width ?? 18);
+      const width = Math.max(10, Math.floor(columnWidth * 0.9));
+      const lines = text.split(/\r?\n/).reduce((count, line) => {
+        const wrapped = Math.max(1, Math.ceil(line.length / width));
+        return count + wrapped;
+      }, 0);
+      maxLines = Math.max(maxLines, lines);
+    });
+
+    row.height = Math.min(240, Math.max(24, maxLines * 18));
+  });
+}
+
+function applyAutoBorders(worksheet: ExcelJS.Worksheet, dataRowCount: number) {
+  const rowCount = Math.max(1, dataRowCount + 1);
+  const columnCount = worksheet.columnCount;
+
+  for (let rowIndex = 1; rowIndex <= rowCount; rowIndex += 1) {
+    for (let columnIndex = 1; columnIndex <= columnCount; columnIndex += 1) {
+      worksheet.getCell(rowIndex, columnIndex).border = border();
+    }
+  }
+}
+
 function border() {
   return {
-    top: { style: "thin", color: { argb: "FFCBD5E1" } },
-    left: { style: "thin", color: { argb: "FFCBD5E1" } },
-    bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
-    right: { style: "thin", color: { argb: "FFCBD5E1" } },
+    top: { style: "thin", color: { argb: "FF111827" } },
+    left: { style: "thin", color: { argb: "FF111827" } },
+    bottom: { style: "thin", color: { argb: "FF111827" } },
+    right: { style: "thin", color: { argb: "FF111827" } },
   } as ExcelJS.Borders;
 }
 

@@ -225,19 +225,19 @@ export async function PATCH(
       });
     }
 
-    if (!status) {
-      return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
+    if (status) {
+      const { updateModuleStatus } = await import("@/lib/data");
+      await updateModuleStatus(moduleKey, id, status);
+      
+      revalidatePath("/");
+      revalidatePath(`/${moduleKey}`);
+
+      return NextResponse.json({
+        message: `Status updated successfully.`,
+      });
     }
 
-    const { updateModuleStatus } = await import("@/lib/data");
-    await updateModuleStatus(moduleKey, id, status);
-    
-    revalidatePath("/");
-    revalidatePath(`/${moduleKey}`);
-
-    return NextResponse.json({
-      message: `Status updated successfully.`,
-    });
+    return NextResponse.json({ error: "Invalid update payload." }, { status: 400 });
   } catch (error) {
     logError(error, `PATCH /api/items/${moduleKey}`);
     const message = error instanceof Error ? error.message : "Failed to update data.";
