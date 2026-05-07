@@ -49,10 +49,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <PageShell 
-      eyebrow="Project Name" 
+      eyebrow="Test Plan Name" 
       title={projectName} 
-      description="Comprehensive project quality overview and activity tracking."
-      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Plan", href: "/test-plans" }, { label: projectName }]}
+      description="Comprehensive test plan quality overview and activity tracking."
+      crumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Test Plan", href: "/test-plans" },
+        { label: "Detail Project" },
+      ]}
     >
 
       {/* Executive Overview Cards */}
@@ -133,7 +137,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <div className="flex items-center gap-3">
                   <Badge value={plan.status} />
                   <Link 
-                    href={`/test-plans/detail/${plan.publicToken}`}
+                    href={`/test-plans/${plan.publicToken}`}
                     className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-bold text-white transition hover:bg-blue-600 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-50"
                   >
                     View Plan
@@ -150,7 +154,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Bug size={22} weight="bold" className="text-rose-500" />
-              Project Defects
+              Test Plan Defects
             </h3>
             <Link href="/bugs" className="text-xs font-bold text-rose-600 hover:underline">View All</Link>
           </div>
@@ -208,7 +212,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           ))}
           {(data.meetings as any[]).length === 0 && (
             <div className="col-span-full py-10 text-center rounded-md border border-dashed border-slate-200 dark:border-slate-700">
-              <p className="text-sm text-slate-400">No meeting documentation found for this project.</p>
+              <p className="text-sm text-slate-400">No meeting documentation found for this test plan.</p>
             </div>
           )}
         </div>

@@ -196,7 +196,7 @@ export function SuiteExecutionView({
             {/* Form */}
             <div className="px-4 py-3 space-y-2.5 max-h-[50vh] overflow-y-auto">
               {[
-                { key: "project", label: "Project", placeholder: "Project name", required: false },
+                { key: "project", label: "Test Plan", placeholder: "Test plan name", required: false },
                 { key: "sprint", label: "Sprint", placeholder: "e.g. Sprint 5", required: false },
                 { key: "tester", label: "Tester", placeholder: "Your name", required: true },
               ].map((f) => (
@@ -251,7 +251,7 @@ export function SuiteExecutionView({
           crumbs={[
             { label: "Dashboard", href: "/dashboard" },
             { label: "Test Execution", href: "/test-execution" },
-            { label: "Execute Session" },
+            { label: "Detail Test Execution" },
           ]}
         />
       </div>

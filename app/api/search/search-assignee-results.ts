@@ -1,4 +1,5 @@
 import { codeFromId } from "@/lib/utils";
+import { getRoleLabel, normalizeRole } from "@/lib/roles";
 import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
 export async function getAssigneeResults(query: string, companyClause: string, companyParams: unknown[]) {
   const exactId = extractExactId(query, "ASS");
@@ -12,6 +13,7 @@ export async function getAssigneeResults(query: string, companyClause: string, c
       [exactId, ...companyParams],
     );
     if (exactRow) {
+      if (normalizeRole(String(exactRow.role ?? "")) === "admin") return [];
       const exactItem = buildResult({
         row: exactRow,
         query,
@@ -20,7 +22,7 @@ export async function getAssigneeResults(query: string, companyClause: string, c
         href: "/assignees",
         code: codeFromId("ASS", Number(exactRow.id)),
         label: normalize(exactRow.name),
-        sublabel: [normalize(exactRow.role), normalize(exactRow.email), normalize(exactRow.status)].filter(Boolean).join(" · "),
+        sublabel: [getRoleLabel(String(exactRow.role ?? "")), normalize(exactRow.email), normalize(exactRow.status)].filter(Boolean).join(" · "),
         snippetSource: exactRow.skills,
         fieldScores: [
           ["name", 100],
@@ -51,6 +53,7 @@ export async function getAssigneeResults(query: string, companyClause: string, c
   );
 
   return rows
+    .filter((row) => normalizeRole(String(row.role ?? "")) !== "admin")
     .map((row) =>
       buildResult({
         row,
@@ -60,7 +63,7 @@ export async function getAssigneeResults(query: string, companyClause: string, c
         href: "/assignees",
         code: codeFromId("ASS", Number(row.id)),
         label: normalize(row.name),
-        sublabel: [normalize(row.role), normalize(row.email), normalize(row.status)].filter(Boolean).join(" · "),
+        sublabel: [getRoleLabel(String(row.role ?? "")), normalize(row.email), normalize(row.status)].filter(Boolean).join(" · "),
         snippetSource: row.skills,
         fieldScores: [
           ["name", 100],

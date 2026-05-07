@@ -18,7 +18,7 @@ export async function getActivityResults(query: string, companyClause: string, c
         query,
         type: "Activity",
         group: "Activity",
-        href: "/",
+        href: "/dashboard",
         code: codeFromId("ACT", Number(exactRow.id)),
         label: `${normalize(exactRow.entityType)} ${normalize(exactRow.action)}`.trim(),
         sublabel: normalize(exactRow.entityId),

@@ -106,7 +106,7 @@ export function ReportView({ data }: { data: ReportData }) {
           <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Folder size={14} weight="bold" className="text-slate-400" />
-              <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Project</span>{plan.project || "–"}</div>
+              <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Test Plan</span>{plan.project || "–"}</div>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Lightning size={14} weight="bold" className="text-slate-400" />

@@ -66,11 +66,22 @@ describe("project detail page", () => {
     expect(html).toContain("Plan Alpha");
     expect(html).toContain("Critical login issue");
     expect(html).toContain("Weekly sync");
+    expect(html).toContain('href="/test-plans/plan-1"');
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "QA Hub",
-      eyebrow: "Project Name",
-      description: "Comprehensive project quality overview and activity tracking.",
+      eyebrow: "Test Plan Name",
+      description: "Comprehensive test plan quality overview and activity tracking.",
     }));
+    expect(props.crumbs).toEqual([
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Test Plan", href: "/test-plans" },
+      { label: "Detail Project" },
+    ]);
+    expect((props.crumbs as Array<{ label: string }>).map((crumb) => crumb.label)).toEqual([
+      "Dashboard",
+      "Test Plan",
+      "Detail Project",
+    ]);
   });
 });

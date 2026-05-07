@@ -1,4 +1,5 @@
 import { codeFromId } from "@/lib/utils";
+import { getRoleLabel } from "@/lib/roles";
 import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
 export async function getUserResults(query: string, companyClause: string, companyParams: unknown[]) {
   const exactId = extractExactId(query, "USR");
@@ -20,7 +21,7 @@ export async function getUserResults(query: string, companyClause: string, compa
         href: "/users",
         code: codeFromId("USR", Number(exactRow.id)),
         label: normalize(exactRow.name) || normalize(exactRow.email),
-        sublabel: [normalize(exactRow.email), normalize(exactRow.role)].filter(Boolean).join(" · "),
+        sublabel: [normalize(exactRow.email), getRoleLabel(String(exactRow.role ?? ""))].filter(Boolean).join(" · "),
         snippetSource: exactRow.email || exactRow.role,
         fieldScores: [
           ["name", 100],
@@ -57,7 +58,7 @@ export async function getUserResults(query: string, companyClause: string, compa
         href: "/users",
         code: codeFromId("USR", Number(row.id)),
         label: normalize(row.name) || normalize(row.email),
-        sublabel: [normalize(row.email), normalize(row.role)].filter(Boolean).join(" · "),
+        sublabel: [normalize(row.email), getRoleLabel(String(row.role ?? ""))].filter(Boolean).join(" · "),
         snippetSource: row.email || row.role,
         fieldScores: [
           ["name", 100],

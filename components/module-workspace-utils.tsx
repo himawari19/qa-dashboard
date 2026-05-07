@@ -16,14 +16,14 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { ModuleKey } from "@/lib/modules";
-import { normalizeRole } from "@/lib/roles";
+import { ASSIGNEE_ROLES, normalizeRole } from "@/lib/roles";
 
 export const PAGE_SIZE = 10;
 
 export function getModuleWorkspacePermissions(userRole: string) {
   const role = normalizeRole(userRole);
   const isAdmin = role === "admin";
-  const canWrite = isAdmin || ["fe", "be", "fullstack", "qa", "pm", "ai"].includes(role);
+  const canWrite = isAdmin || ASSIGNEE_ROLES.includes(role as (typeof ASSIGNEE_ROLES)[number]);
 
   return {
     isAdmin,
@@ -40,13 +40,11 @@ export function getModuleWorkspaceCrumbs(module: ModuleKey, title: string) {
   const scopeCrumb =
     module === "assignees" || module === "users"
       ? { label: "System Settings", href: "/settings" }
-      : module === "meeting-notes" || module === "sprints"
-        ? { label: "Documentation", href: "/documentation" }
-        : { label: "Test Management", href: "/test-plans" };
+      : null;
 
   return [
-    { label: "Dashboard", href: "/" },
-    scopeCrumb,
+    { label: "Dashboard", href: "/dashboard" },
+    ...(scopeCrumb ? [scopeCrumb] : []),
     { label: title },
   ];
 }

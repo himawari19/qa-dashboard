@@ -498,7 +498,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
     <PageShell
       title="Gantt / Timeline"
       eyebrow="Reports"
-      crumbs={[{ label: "Dashboard", href: "/" }, { label: "Reports" }, { label: "Gantt / Timeline" }]}
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Gantt / Timeline" }]}
       actions={
         <div className="flex items-center gap-2 flex-wrap">
           {/* Type filter */}

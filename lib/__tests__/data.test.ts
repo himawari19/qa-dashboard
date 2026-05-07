@@ -819,10 +819,17 @@ describe("module row queries", () => {
 
   it("creates missing tables for assignees and meeting notes", async () => {
     mocks.db.query
-      .mockResolvedValueOnce([{ id: 1, name: "Rina", company: "acme" }])
+      .mockResolvedValueOnce([
+        { id: 1, name: "Admin User", email: "admin@example.com", role: "admin", company: "acme" },
+        { id: 2, name: "Rina", email: "rina@example.com", role: "qa", company: "acme" },
+      ])
+      .mockResolvedValueOnce([
+        { id: 1, name: "Admin User", role: "admin", email: "admin@example.com", skills: "", status: "active" },
+        { id: 2, name: "Rina", role: "qa", email: "rina@example.com", skills: "", status: "active" },
+      ])
       .mockResolvedValueOnce([{ id: 2, project: "QA Hub", title: "Daily", date: "2026-04-30" }]);
 
-    await getModuleRows("assignees");
+    const assignees = await getModuleRows("assignees");
     await getModuleRows("meeting-notes");
 
     expect(mocks.db.exec).toHaveBeenNthCalledWith(
@@ -835,6 +842,9 @@ describe("module row queries", () => {
     );
     expect(mocks.db.query.mock.calls.some(([sql]) => String(sql).includes('FROM "User"'))).toBe(true);
     expect(mocks.db.query.mock.calls.some(([sql]) => String(sql).includes('FROM "MeetingNote"'))).toBe(true);
+    expect(assignees).toEqual([
+      { id: "2", name: "Rina", role: "qa", email: "rina@example.com", skills: "", status: "active" },
+    ]);
   });
 
   it("adds suite statistics and company scoping", async () => {

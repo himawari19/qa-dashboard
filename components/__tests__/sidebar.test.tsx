@@ -1,0 +1,30 @@
+import { describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/test-suites/execute/session-1",
+}));
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
+    <a href={href} className={className}>{children}</a>
+  ),
+}));
+
+import { Sidebar } from "@/components/sidebar";
+
+describe("Sidebar", () => {
+  it("marks test execution active for execution detail routes", () => {
+    const html = renderToStaticMarkup(
+      <Sidebar
+        collapsed={false}
+        onToggle={() => {}}
+        userRole="admin"
+      />,
+    );
+
+    expect(html).toContain('href="/test-execution"');
+    expect(html).toMatch(/href="\/test-execution"[^>]*bg-sky-500\/15[\s\S]*?Test Execution/);
+    expect(html).not.toMatch(/href="\/test-suites"[^>]*bg-sky-500\/15/);
+  });
+});

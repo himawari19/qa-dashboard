@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { isAssignableRole, normalizeRole } from "@/lib/roles";
 
 type UserRow = {
   id: number;
@@ -15,8 +16,13 @@ function normalizeText(value: string | null | undefined) {
 export async function syncAssigneeFromUser(user: UserRow) {
   const name = normalizeText(user.name) || normalizeText(user.email) || `User ${user.id}`;
   const email = normalizeText(user.email);
-  const role = normalizeText(user.role);
+  const role = normalizeRole(user.role);
   const company = normalizeText(user.company);
+
+  if (!isAssignableRole(role)) {
+    await deleteAssigneeForUser(user.id);
+    return;
+  }
 
   await db.run(
     `INSERT INTO "Assignee" ("company", "userId", "name", "role", "email", "skills", "status", "updatedAt")

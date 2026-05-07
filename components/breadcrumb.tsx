@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-type Crumb = { label: string; href?: string };
+type Crumb = { label: string; href?: string; active?: boolean };
 
 export function Breadcrumb({ crumbs, className }: { crumbs: Crumb[]; className?: string }) {
   return (
@@ -10,7 +10,7 @@ export function Breadcrumb({ crumbs, className }: { crumbs: Crumb[]; className?:
         <span key={i} className="flex items-center gap-1.5">
           {i > 0 && <span className="text-slate-300" aria-hidden>›</span>}
           {crumb.href ? (
-            <Link href={crumb.href} className="transition hover:text-sky-700">
+            <Link href={crumb.href} className="text-slate-500 transition hover:text-sky-700">
               {crumb.label}
             </Link>
           ) : (

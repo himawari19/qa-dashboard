@@ -72,7 +72,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
             className="flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-sky-400 hover:text-sky-600 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300"
           >
             <Funnel size={13} weight="bold" />
-            {selectedProject || "All Projects"}
+            {selectedProject || "All Test Plans"}
           </button>
           {open && (
             <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-56 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
@@ -80,7 +80,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
                 onClick={() => { setSelectedProject(""); setOpen(false); }}
                 className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/5"
               >
-                All Projects
+                All Test Plans
               </button>
               {projects.map((p) => (
                 <button

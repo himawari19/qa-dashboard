@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { cn, formatDisplayText } from "@/lib/utils";
+import { getRoleLabel } from "@/lib/roles";
 import { HighlightText } from "@/components/highlight-text";
 
 type FieldConfig = {
@@ -123,6 +124,8 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
                     <a href={displayValue} target="_blank" rel="noreferrer" className="break-all text-xs text-blue-600 hover:underline">
                       {displayValue}
                     </a>
+                  ) : field.name === "role" ? (
+                    <HighlightText text={getRoleLabel(String(row[field.name] ?? ""))} query="" />
                   ) : field.name === "notes" ? (
                     renderNotes(displayValue || "-")
                   ) : (

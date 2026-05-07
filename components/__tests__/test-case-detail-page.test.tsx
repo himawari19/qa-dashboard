@@ -76,10 +76,9 @@ describe("TestCaseDetailPage", () => {
       crumbs?: Array<{ label: string }>;
     };
     expect(props.crumbs?.map((crumb) => crumb.label)).toEqual([
-      "Test Plans",
-      "Release Plan",
-      "Checkout Suite",
-      "Cases",
+      "Dashboard",
+      "Test Cases",
+      "Detail Test Cases",
     ]);
   });
 });

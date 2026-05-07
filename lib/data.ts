@@ -18,6 +18,7 @@ import {
 } from "@/lib/data-helpers";
 import { getQualityTrend, getReleaseNotes } from "@/lib/test-management-data";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
+import { normalizeRole } from "@/lib/roles";
 
 export {
   makePublicToken,
@@ -71,13 +72,17 @@ export async function getProjectOptions() {
 export async function getAssigneeOptions() {
   const { company, isAdmin } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
-    `SELECT DISTINCT COALESCE("name", "email") as value FROM "User"
+    `SELECT DISTINCT COALESCE("name", "email") as value, "role"
+     FROM "User"
      WHERE COALESCE("name", '') != '' OR COALESCE("email", '') != ''
      ${isAdmin ? "" : ' AND "company" = ?'}
      ORDER BY COALESCE("name", "email") ASC`,
     isAdmin ? [] : [company],
   );
-  return rows.map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }));
+  return rows
+    .filter((row) => normalizeRole(String(row.role ?? "")) !== "admin")
+    .map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }))
+    .filter((row) => Boolean(row.value));
 }
 
 export async function getTestPlanReferenceRows() {
@@ -632,14 +637,17 @@ export async function getModuleRows(module: ModuleKey) {
         "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`);
-      return (await selectAll(`SELECT u."id", u."name", u."role", u."email", COALESCE(a."skills", '') as "skills", 'active' as "status"
+      const assigneeRows = await selectAll(`SELECT u."id", u."name", u."role", u."email", COALESCE(a."skills", '') as "skills", 'active' as "status"
         FROM "User" u
         LEFT JOIN "Assignee" a ON a."userId" = u."id"
         ${isAdmin ? "" : ' WHERE u."company" = ?'}
-        ORDER BY u."name" ASC`, qParams)).map((item) => ({
-        ...item,
-        id: String(item.id),
-      }));
+        ORDER BY u."name" ASC`, qParams);
+      return assigneeRows
+        .filter((item: any) => normalizeRole(String(item.role ?? "")) !== "admin")
+        .map((item: any) => ({
+          ...item,
+          id: String(item.id),
+        }));
     case "meeting-notes":
       // Emergency check to ensure table exists (fixes "no such table" errors)
       await db.exec(`CREATE TABLE IF NOT EXISTS "MeetingNote" (

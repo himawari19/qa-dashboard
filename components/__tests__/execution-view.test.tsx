@@ -69,7 +69,7 @@ describe("SuiteExecutionView", () => {
 
     expect(html).toContain("Checkout Suite");
     expect(html).toContain("Login works");
-    expect(html).toContain("Execute Session");
+    expect(html).toContain("Detail Test Execution");
     expect(html).toContain("Finish Session");
     expect(mocks.breadcrumb).toHaveBeenCalled();
   });

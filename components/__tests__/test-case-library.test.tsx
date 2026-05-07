@@ -27,8 +27,8 @@ describe("TestCaseLibrary", () => {
         cases={[
           {
             id: 1,
-            tcId: "TC-1",
-            caseName: "Login works",
+            tcId: "TS-010",
+            caseName: "Payment gateway works",
             typeCase: "Positive",
             preCondition: "",
             testStep: "",
@@ -37,17 +37,17 @@ describe("TestCaseLibrary", () => {
             status: "Passed",
             priority: "High",
             evidence: "",
-            suiteTitle: "Checkout Suite",
-            suiteToken: "suite-1",
+            suiteTitle: "Payment Suite",
+            suiteToken: "suite-10",
             suiteStatus: "active",
-            planTitle: "Release Plan",
-            planProject: "QA Hub",
+            planTitle: "Sprint 3",
+            planProject: "ECOSHOP WEB",
             testSuiteId: 1,
           },
           {
             id: 2,
-            tcId: "TC-2",
-            caseName: "Payment fails",
+            tcId: "TS-002",
+            caseName: "Login works",
             typeCase: "Negative",
             preCondition: "",
             testStep: "",
@@ -56,24 +56,25 @@ describe("TestCaseLibrary", () => {
             status: "Failed",
             priority: "Medium",
             evidence: "",
-            suiteTitle: "Audit Suite",
+            suiteTitle: "Login Suite",
             suiteToken: "suite-2",
             suiteStatus: "draft",
-            planTitle: null,
-            planProject: null,
+            planTitle: "Sprint 1",
+            planProject: "ECOSHOP WEB",
             testSuiteId: 2,
           },
         ]}
       />,
     );
 
-    expect(html).toContain("Checkout Suite");
-    expect(html).toContain("Audit Suite");
+    expect(html.indexOf("Login Suite")).toBeGreaterThan(-1);
+    expect(html.indexOf("Payment Suite")).toBeGreaterThan(-1);
+    expect(html.indexOf("Login Suite")).toBeLessThan(html.indexOf("Payment Suite"));
     expect(html).toContain("Login works");
-    expect(html).toContain("Edit Cases");
-    expect(html).toContain("Execute");
-    expect(html).toContain('href="/test-cases/detail/suite-1"');
-    expect(html).toContain('href="/test-suites/execute/suite-1"');
+    expect(html).toContain("Passed");
+    expect(html).toContain("Failed");
+    expect(html).toContain("Edit Test Case");
+    expect(html).toContain('href="/test-cases/detail/suite-2"');
     expect(mocks.badge).toHaveBeenCalled();
   });
 });

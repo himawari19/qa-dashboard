@@ -1,5 +1,23 @@
 export const WORKSPACE_ROLES = ["admin", "fe", "be", "fullstack", "qa", "pm", "ai"] as const;
-export const INVITE_ROLES = ["fe", "be", "fullstack", "qa", "pm", "ai"] as const;
+export const INVITE_ROLES = ["fe", "be", "fullstack", "ai", "qa", "pm"] as const;
+export const ASSIGNEE_ROLES = ["fe", "be", "fullstack", "ai", "qa", "pm"] as const;
+export const PUBLIC_ROLES = [
+  "Product Manager",
+  "Project Manager",
+  "System Analyst",
+  "UI/UX Designer",
+  "Front-end Engineer",
+  "Back-end Engineer",
+  "Fullstack Engineer",
+  "AI Engineer",
+  "Mobile Developer",
+  "QA Engineer",
+  "QA Automation Engineer",
+  "DevOps Engineer",
+  "Security Engineer",
+  "Database Administrator",
+  "Software Architect",
+] as const;
 
 const ROLE_ALIASES: Record<string, string> = {
   "admin (owner)": "admin",
@@ -10,11 +28,14 @@ const ROLE_ALIASES: Record<string, string> = {
   "frontend developer": "fe",
   frontend: "fe",
   fe: "fe",
+  "front-end engineer": "fe",
   "backend developer": "be",
   backend: "be",
   be: "be",
+  "back-end engineer": "be",
   "fullstack developer": "fullstack",
   fullstack: "fullstack",
+  "fullstack engineer": "fullstack",
   "ai engineer": "ai",
   "artificial intelligence engineer": "ai",
   "machine learning engineer": "ai",
@@ -26,6 +47,13 @@ const ROLE_ALIASES: Record<string, string> = {
   "project manager": "pm",
   pm: "pm",
   lead: "pm",
+  "system analyst": "system analyst",
+  "ui/ux designer": "ui/ux designer",
+  "mobile developer": "mobile developer",
+  "devops engineer": "devops engineer",
+  "security engineer": "security engineer",
+  "database administrator": "database administrator",
+  "software architect": "software architect",
   editor: "fullstack",
   viewer: "qa",
   user: "qa",
@@ -39,6 +67,13 @@ const ROLE_LABELS: Record<string, string> = {
   ai: "AI Engineer",
   qa: "QA Engineer",
   pm: "Product Manager",
+  "system analyst": "System Analyst",
+  "ui/ux designer": "UI/UX Designer",
+  "mobile developer": "Mobile Developer",
+  "devops engineer": "DevOps Engineer",
+  "security engineer": "Security Engineer",
+  "database administrator": "Database Administrator",
+  "software architect": "Software Architect",
 };
 
 export function normalizeRole(role: string | null | undefined) {
@@ -67,4 +102,19 @@ export function getRoleExportLabel(role: string | null | undefined) {
 
 export function getInviteRoleOptions() {
   return INVITE_ROLES.map((value) => ({ label: ROLE_LABELS[value], value }));
+}
+
+export function getUserRoleOptions() {
+  return [
+    { label: ROLE_LABELS.admin, value: "admin" },
+    ...getInviteRoleOptions(),
+  ];
+}
+
+export function getPublicRoleOptions() {
+  return PUBLIC_ROLES.map((label) => ({ label, value: label }));
+}
+
+export function isAssignableRole(role: string | null | undefined) {
+  return ASSIGNEE_ROLES.includes(normalizeRole(role) as (typeof ASSIGNEE_ROLES)[number]);
 }

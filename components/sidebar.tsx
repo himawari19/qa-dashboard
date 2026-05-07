@@ -31,7 +31,7 @@ const groups: SidebarGroup[] = [
   {
     title: "",
     items: [
-      { href: "/", label: "Dashboard", icon: SquaresFour },
+      { href: "/dashboard", label: "Dashboard", icon: SquaresFour },
     ],
   },
   {
@@ -80,12 +80,13 @@ type SidebarItem = { href: string; label: string; icon: SidebarIcon };
 type SidebarGroup = { title: string; items: SidebarItem[] };
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt", "/settings"],
-  fullstack: ["/", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
-  qa: ["/", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/weekly-report", "/gantt"],
-  fe: ["/", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
-  be: ["/", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
-  pm: ["/", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
+  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt", "/settings"],
+  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
+  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
+  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/weekly-report", "/gantt"],
+  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
+  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
+  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
 };
 
 function canSeeHref(role: string, href: string) {
@@ -204,10 +205,14 @@ function SidebarNavItem({
 }) {
   const Icon = item.icon;
   const linkRef = useRef<HTMLAnchorElement | null>(null);
+  const isSuiteExecutionRoute = pathname.startsWith("/test-suites/execute");
   const active =
     pathname === item.href ||
-    pathname.startsWith(`${item.href}/`) ||
-    (item.href === "/test-cases" && pathname.startsWith("/test-cases/"));
+    (item.href !== "/test-suites" && pathname.startsWith(`${item.href}/`)) ||
+    (item.href === "/test-cases" && pathname.startsWith("/test-cases/")) ||
+    (item.href === "/test-plans" && pathname.startsWith("/projects/")) ||
+    (item.href === "/test-suites" && pathname.startsWith("/test-suites/") && !isSuiteExecutionRoute) ||
+    (item.href === "/test-execution" && isSuiteExecutionRoute);
 
   useEffect(() => {
     if (!active) return;

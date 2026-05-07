@@ -23,19 +23,13 @@ export function TestCaseDetailPage({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const suiteId = String(scenario.id ?? "");
-  const planLabel = plan?.title || "Test Plan";
-  const planToken = plan?.publicToken || plan?.id;
 
   const crumbs = [
-    { label: "Test Plans", href: "/test-plans" },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Test Cases", href: "/test-cases" },
   ] as { label: string; href?: string }[];
 
-  if (plan) {
-    crumbs.push({ label: planLabel, href: `/test-plans/detail/${planToken}` });
-  }
-
-  crumbs.push({ label: suiteLabel || suiteId, href: `/test-suites/execute/${suiteToken}` });
-  crumbs.push({ label: "Cases" });
+  crumbs.push({ label: "Detail Test Cases" });
 
   async function handleSubmitExecution() {
     if (rows.length === 0 || isPending) return;
@@ -54,7 +48,7 @@ export function TestCaseDetailPage({
     startTransition(async () => {
       const fd = new FormData();
       fd.append("date", new Date().toISOString().split("T")[0]);
-      fd.append("project", suiteLabel.split(" ")[0] || "Project");
+      fd.append("project", suiteLabel.split(" ")[0] || "Test Plan");
       fd.append("sprint", "Active");
       fd.append("tester", "QA Specialist");
       fd.append("scope", suiteLabel);
@@ -91,13 +85,15 @@ export function TestCaseDetailPage({
   );
 
   return (
-    <PageShell
-      eyebrow="Test Cases"
-      title={suiteLabel || "Test Case Detail"}
-      description="Spreadsheet-style input for all test cases in this suite."
-      crumbs={crumbs}
-      actions={actions}
-    >
+      <PageShell
+        eyebrow="Test Cases"
+        title={suiteLabel || "Test Case Detail"}
+        description={plan?.title
+          ? `Spreadsheet-style input for all test cases in this suite. Test Plan: ${plan.title}.`
+          : "Spreadsheet-style input for all test cases in this suite."}
+        crumbs={crumbs}
+        actions={actions}
+      >
       <TestCaseDetailEditor 
         suiteId={suiteId} 
         suiteTitle={suiteLabel || "Test Case Detail"} 

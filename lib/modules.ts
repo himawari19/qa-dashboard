@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { codeFromId, normalizeMultiline } from "@/lib/utils";
-import { getInviteRoleOptions, getRoleExportLabel } from "@/lib/roles";
+import { getInviteRoleOptions, getRoleExportLabel, getUserRoleOptions } from "@/lib/roles";
 
 export type ModuleKey =
   | "tasks"
@@ -547,7 +547,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "notes", label: "Goal / Notes", kind: "textarea", rows: 3, placeholder: "Describe the objective of this suite..." },
     ],
     columns: [
-      { key: "title", label: "Test Suite Name", internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
+      { key: "title", label: "Test Suite Name", internalLink: (row) => `/test-suites/${row.publicToken || row.token || ""}` },
       { key: "testPlanLabel", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.testPlanToken}` },
       { key: "assignee", label: "Assignee" },
       { key: "notes", label: "Goal / Notes", multiline: true },
@@ -645,10 +645,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "name", label: "Full Name", kind: "text", placeholder: "e.g. John Doe", required: true },
       { name: "email", label: "Email Address", kind: "text", placeholder: "e.g. user@example.com", required: true },
       { name: "password", label: "Password", kind: "text", placeholder: "Leave blank to keep current password" },
-      { name: "role", label: "Role", kind: "select", options: [
-        { label: "Super Admin", value: "admin" },
-        ...getInviteRoleOptions(),
-      ], required: true },
+      { name: "role", label: "Role", kind: "select", options: getUserRoleOptions(), required: true },
     ],
     columns: [
       { key: "name", label: "Full Name" },

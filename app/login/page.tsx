@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { cn } from "@/lib/utils";
+import { getPublicRoleOptions } from "@/lib/roles";
 
 function LoginContent() {
   const router = useRouter();
@@ -198,21 +199,11 @@ function LoginContent() {
                       required
                     >
                       <option value="" disabled>Select your role</option>
-                      <option value="Product Manager">Product Manager</option>
-                      <option value="Project Manager">Project Manager</option>
-                      <option value="System Analyst">System Analyst</option>
-                      <option value="UI/UX Designer">UI/UX Designer</option>
-                      <option value="Frontend Developer">Frontend Developer</option>
-                      <option value="Backend Developer">Backend Developer</option>
-                      <option value="Fullstack Developer">Fullstack Developer</option>
-                      <option value="AI Engineer">AI Engineer</option>
-                      <option value="Mobile Developer">Mobile Developer</option>
-                      <option value="QA Engineer">QA Engineer</option>
-                      <option value="QA Automation Engineer">QA Automation Engineer</option>
-                      <option value="DevOps Engineer">DevOps Engineer</option>
-                      <option value="Security Engineer">Security Engineer</option>
-                      <option value="Database Administrator">Database Administrator</option>
-                      <option value="Software Architect">Software Architect</option>
+                      {getPublicRoleOptions().map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

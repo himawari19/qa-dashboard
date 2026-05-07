@@ -85,17 +85,17 @@ const toneMap = {
   "Software Architect":       "bg-violet-700 text-white",
 } as const;
 
-export function Badge({ value, className }: { value: string; className?: string }) {
+export function Badge({ value, displayValue, className }: { value: string; displayValue?: string; className?: string }) {
   const safeValue = String(value || "");
   return (
     <span
       className={cn(
         "inline-flex min-w-[80px] justify-center rounded-md px-3 py-0.5 text-[10px] font-bold tracking-widest shadow-sm",
         toneMap[safeValue as keyof typeof toneMap] ?? "bg-slate-500 text-white",
-        className,
-      )}
+      className,
+    )}
     >
-      {formatDisplayText(safeValue)}
+      {displayValue ?? formatDisplayText(safeValue)}
     </span>
   );
 }

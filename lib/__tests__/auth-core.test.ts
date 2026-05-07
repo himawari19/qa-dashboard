@@ -14,6 +14,9 @@ vi.mock("@/lib/db", () => ({
 import {
   authEnabled,
   createSessionToken,
+  getInviteRoleOptions,
+  getRoleLabel,
+  getPublicRoleOptions,
   hashPassword,
   isAdminUser,
   normalizeRole,
@@ -35,6 +38,26 @@ describe("auth-core", () => {
   it("normalizes roles and admin detection", () => {
     expect(normalizeRole("Admin (Owner)")).toBe("admin");
     expect(normalizeRole(" Lead ")).toBe("pm");
+    expect(normalizeRole("AI Engineer")).toBe("ai");
+    expect(getRoleLabel("ai")).toBe("AI Engineer");
+    expect(getInviteRoleOptions().map((option) => option.value)).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm"]);
+    expect(getPublicRoleOptions().map((option: { label: string }) => option.label)).toEqual([
+      "Product Manager",
+      "Project Manager",
+      "System Analyst",
+      "UI/UX Designer",
+      "Front-end Engineer",
+      "Back-end Engineer",
+      "Fullstack Engineer",
+      "AI Engineer",
+      "Mobile Developer",
+      "QA Engineer",
+      "QA Automation Engineer",
+      "DevOps Engineer",
+      "Security Engineer",
+      "Database Administrator",
+      "Software Architect",
+    ]);
     expect(isAdminUser("admin", "")).toBe(true);
     expect(isAdminUser("admin", "acme")).toBe(false);
   });

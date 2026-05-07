@@ -25,7 +25,7 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("@/components/badge", () => ({
-  Badge: ({ children }: { children: any }) => <span>{children}</span>,
+  Badge: ({ displayValue, value }: { value: string; displayValue?: string }) => <span>{displayValue ?? value}</span>,
 }));
 
 vi.mock("@/components/kanban-board", () => ({
@@ -63,7 +63,6 @@ vi.mock("@/components/module-workspace-utils", () => ({
   getFieldIcons: () => ({}),
   getModuleWorkspaceCrumbs: (_module: string, title: string) => [
     { label: "Dashboard" },
-    { label: "Test Management" },
     { label: title },
   ],
   getModuleWorkspacePermissions: (role: string) => {
@@ -132,5 +131,28 @@ describe("ModuleWorkspace smoke", () => {
     expect(html).toContain("Add Users");
     expect(html).toContain(">Edit<");
     expect(html).not.toContain(">Delete<");
+  });
+
+  it("renders long role labels in the users table", () => {
+    const html = renderToStaticMarkup(
+      <ModuleWorkspace
+        module="users"
+        rows={[
+          {
+            id: 1,
+            name: "Alice",
+            email: "alice@example.com",
+            role: "qa",
+          },
+        ]}
+        currentPage={1}
+        totalPages={1}
+        totalItems={1}
+        user={{ role: "editor", company: "acme" }}
+      />,
+    );
+
+    expect(html).toContain("QA Engineer");
+    expect(html).not.toContain(">Qa<");
   });
 });

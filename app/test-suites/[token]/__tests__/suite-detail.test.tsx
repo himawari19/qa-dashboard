@@ -62,7 +62,7 @@ describe("SuiteDetail", () => {
     expect(mocks.breadcrumb.mock.calls[0][0].crumbs.map((crumb: { label: string }) => crumb.label)).toEqual([
       "Dashboard",
       "Test Suites",
-      "Checkout Suite",
+      "Detail Test Suites",
     ]);
   });
 });

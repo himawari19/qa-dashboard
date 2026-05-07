@@ -9,11 +9,11 @@ import {
   XCircle,
   Warning,
   Clock,
-  Play,
   MagnifyingGlass,
   Checks,
+  DotsThreeVertical,
+  PencilSimple,
   Table,
-  ArrowSquareOut,
 } from "@phosphor-icons/react";
 
 type TestCase = {
@@ -73,6 +73,27 @@ const PRIORITY_DOT: Record<string, string> = {
   Low: "bg-slate-300",
 };
 
+function getCaseSortValue(value: string) {
+  const match = String(value ?? "").match(/(\d+)/);
+  return match ? Number.parseInt(match[1] ?? "0", 10) : Number.MAX_SAFE_INTEGER;
+}
+
+function compareTestCases(a: TestCase, b: TestCase) {
+  const aValue = getCaseSortValue(a.tcId);
+  const bValue = getCaseSortValue(b.tcId);
+  if (aValue !== bValue) return aValue - bValue;
+  return String(a.tcId ?? "").localeCompare(String(b.tcId ?? ""), undefined, { numeric: true, sensitivity: "base" });
+}
+
+function compareSuiteGroups(a: SuiteGroup, b: SuiteGroup) {
+  const aCase = a.cases[0];
+  const bCase = b.cases[0];
+  if (!aCase && !bCase) return a.suiteTitle.localeCompare(b.suiteTitle);
+  if (!aCase) return 1;
+  if (!bCase) return -1;
+  return compareTestCases(aCase, bCase) || a.suiteTitle.localeCompare(b.suiteTitle);
+}
+
 const ALL = "All";
 const STATUS_FILTERS = [ALL, "Passed", "Failed", "Blocked", "Pending"] as const;
 
@@ -80,12 +101,7 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
   const [search, setSearch] = useState(initialSearch);
   const [filterStatus, setFilterStatus] = useState(ALL);
   const [filterAssignee, setFilterAssignee] = useState(ALL);
-  const [compactView, setCompactView] = useState(true);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-
-  const total = cases.length;
-  const passedTotal = cases.filter((c) => c.status === "Passed").length;
-  const suiteCount = useMemo(() => new Set(cases.map((c) => String(c.testSuiteId ?? "unassigned"))).size, [cases]);
 
   const groups = useMemo<SuiteGroup[]>(() => {
     const map = new Map<string, SuiteGroup>();
@@ -112,7 +128,9 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
       else if (s === "Blocked") g.blocked++;
       else g.pending++;
     });
-    return Array.from(map.values());
+    return Array.from(map.values())
+      .map((group) => ({ ...group, cases: [...group.cases].sort(compareTestCases) }))
+      .sort(compareSuiteGroups);
   }, [cases]);
 
   const filteredGroups = useMemo(() => {
@@ -128,7 +146,6 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
           filteredCases = filteredCases.filter(
             (c) =>
               c.caseName?.toLowerCase().includes(q) ||
-              c.tcId?.toLowerCase().includes(q) ||
               c.assignee?.toLowerCase().includes(q) ||
               c.suiteTitle?.toLowerCase().includes(q) ||
               c.suiteAssignee?.toLowerCase().includes(q) ||
@@ -164,9 +181,6 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
         ? selected.filteredCases
         : selected.cases)
     : [];
-  const visibleCases = selected ? displayCases.length : 0;
-  const passRate = visibleCases > 0 ? Math.round((displayCases.filter((c) => c.status === "Passed").length / visibleCases) * 100) : 0;
-
   return (
     <div className="space-y-4 pb-20">
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -176,44 +190,11 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.35em] text-blue-600">Test Case Library</p>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Search by case, suite, assignee, or status. Switch to compact view when the list gets dense.
+                  Search by case, suite, assignee, or status.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{total} cases</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{suiteCount} suites</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{visibleCases || total} visible</span>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">{passRate}% pass rate</span>
-              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setCompactView((v) => !v)}
-                className={cn(
-                  "h-9 rounded-md border px-3 text-xs font-semibold transition",
-                  compactView
-                    ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
-                )}
-              >
-                Compact
-              </button>
-              <Link
-                href={selected?.suiteToken ? `/test-cases/detail/${selected.suiteToken}` : "/test-cases"}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300"
-              >
-                <ArrowSquareOut size={13} weight="bold" />
-                Edit Selected
-              </Link>
-              <Link
-                href={selected?.suiteToken ? `/test-suites/execute/${selected.suiteToken}` : "/test-suites"}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-900 px-3 text-xs font-black uppercase tracking-wider text-white transition hover:bg-blue-600 dark:bg-white dark:text-slate-900"
-              >
-                <Play size={12} weight="fill" />
-                Execute
-              </Link>
-            </div>
+            <div />
           </div>
 
           <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
@@ -224,7 +205,7 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search case name, TC ID, suite, assignee..."
+                  placeholder="Search case name, suite, assignee..."
                   className="h-10 w-full rounded-md border border-slate-200 bg-white pl-8 pr-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                 />
               </div>
@@ -362,24 +343,20 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                       <span className="flex items-center gap-1"><Clock size={13} className="text-slate-400" />{selected.pending}</span>
                     </div>
                     {selected.suiteToken && (
-                      <Link
-                        href={`/test-cases/detail/${selected.suiteToken}`}
-                        title="Edit test cases"
-                        className="flex h-8 items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300"
-                      >
-                        <ArrowSquareOut size={13} weight="bold" />
-                        Edit Cases
-                      </Link>
-                    )}
-                    {selected.suiteToken && (
-                      <Link
-                        href={`/test-suites/execute/${selected.suiteToken}`}
-                        title="Execute suite"
-                        className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-black uppercase tracking-wider text-white transition hover:bg-blue-600 dark:bg-white dark:text-slate-900"
-                      >
-                        <Play size={12} weight="fill" />
-                        Execute
-                      </Link>
+                      <details className="relative">
+                        <summary className="flex h-9 w-9 list-none items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white [&::-webkit-details-marker]:hidden">
+                          <DotsThreeVertical size={18} weight="bold" />
+                        </summary>
+                        <div className="absolute right-0 top-11 z-20 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
+                          <Link
+                            href={`/test-cases/detail/${selected.suiteToken}`}
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          >
+                            <PencilSimple size={14} weight="bold" />
+                            Edit Test Case
+                          </Link>
+                        </div>
+                      </details>
                     )}
                   </div>
                 </div>
@@ -396,7 +373,6 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                         <div key={tc.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="font-mono text-[11px] font-bold text-slate-400">{tc.tcId}</p>
                               <h3 className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{tc.caseName}</h3>
                               <p className="mt-1 text-[11px] text-slate-500">{tc.assignee || selected.suiteAssignee || "Unassigned"}</p>
                             </div>
@@ -417,10 +393,10 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                     </div>
 
                     <div className="hidden flex-1 overflow-y-auto md:block">
-                      <table className={cn("w-full text-sm", compactView ? "text-[13px]" : "text-sm")}>
+                      <table className="w-full text-sm">
                         <thead className="sticky top-0 z-10">
                           <tr className="border-b border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/80">
-                            <th className="w-[90px] px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">ID</th>
+                            <th className="w-[72px] px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">#</th>
                             <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
                             <th className="hidden w-[160px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Assignee</th>
                             <th className="hidden w-[120px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Type</th>
@@ -429,16 +405,16 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {displayCases.map((tc) => (
+                          {displayCases.map((tc, index) => (
                             <tr key={tc.id} className="group/row transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
                               <td className="px-5 py-3.5 align-top">
-                                <span className="font-mono text-xs font-bold text-slate-400">{tc.tcId}</span>
+                                <span className="font-mono text-xs font-bold text-slate-400">{index + 1}</span>
                               </td>
-                              <td className={cn("px-3 py-3.5 align-top", compactView ? "max-w-[360px]" : "max-w-[320px]")}>
+                              <td className="max-w-[360px] px-3 py-3.5 align-top">
                                 <div className="space-y-1">
                                   <p className="truncate font-semibold text-slate-800 dark:text-slate-200">{tc.caseName}</p>
                                   {tc.actualResult && (
-                                    <p className={cn("truncate text-[11px] text-slate-400", compactView ? "mt-0" : "mt-0.5")}>{tc.actualResult}</p>
+                                    <p className="mt-0 truncate text-[11px] text-slate-400">{tc.actualResult}</p>
                                   )}
                                 </div>
                               </td>

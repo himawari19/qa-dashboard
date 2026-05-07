@@ -116,6 +116,7 @@ export default async function ModulePage({
           projectLabel: plan?.project ?? "",
           testSuiteId: suiteId,
           publicToken: String(suite.publicToken ?? ""),
+          token: String(suite.publicToken ?? ""),
           passed: suiteStats.get(suiteId)?.passed ?? 0,
           failed: suiteStats.get(suiteId)?.failed ?? 0,
           total: suiteStats.get(suiteId)?.total ?? 0,
@@ -149,7 +150,8 @@ export default async function ModulePage({
         const planId = String(row.testPlanId ?? "");
         if (!planId) continue;
         const list = suitesByPlan.get(planId) ?? [];
-        list.push({ id: row.id, title: row.title, token: row.publicToken });
+        const token = String(row.token ?? row.publicToken ?? "");
+        list.push({ id: row.id, title: row.title, token, publicToken: token });
         suitesByPlan.set(planId, list);
       }
       rows = rows.map((row: any) => ({

@@ -45,7 +45,7 @@ describe("TestPlanDetail", () => {
         suites={[
           {
             id: "s1",
-            publicToken: "suite-1",
+            token: "suite-1",
             title: "Smoke Suite",
             assignee: "Rina",
             status: "active",
@@ -71,7 +71,7 @@ describe("TestPlanDetail", () => {
     expect(mocks.breadcrumb.mock.calls[0][0].crumbs.map((crumb: { label: string }) => crumb.label)).toEqual([
       "Dashboard",
       "Test Plans",
-      "Release Plan",
+      "Detail Test Plans",
     ]);
   });
 });

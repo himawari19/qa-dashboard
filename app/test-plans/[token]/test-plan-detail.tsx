@@ -41,7 +41,8 @@ type TestCase = {
 
 type Suite = {
   id: string;
-  publicToken: string;
+  token?: string;
+  publicToken?: string;
   title: string;
   assignee: string;
   status: string;
@@ -179,7 +180,7 @@ export function TestPlanDetail({
         <Breadcrumb crumbs={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Test Plans", href: "/test-plans" },
-          { label: plan.title || "Plan Detail" },
+          { label: "Detail Test Plans" },
         ]} />
 
         {/* ── Hero ── */}
@@ -383,7 +384,7 @@ export function TestPlanDetail({
 
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <Link href={`/test-suites/${suite.publicToken}`} onClick={(e) => e.stopPropagation()} className="text-sm font-bold text-slate-900 dark:text-white hover:text-blue-600 transition">{suite.title}</Link>
+                          <Link href={`/test-suites/${suite.token || suite.publicToken || ""}`} onClick={(e) => e.stopPropagation()} className="text-sm font-bold text-slate-900 dark:text-white hover:text-blue-600 transition">{suite.title}</Link>
                           <Badge value={suite.status} />
                           <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-bold", ready.color)}>
                             <span className={cn("h-1.5 w-1.5 rounded-full", ready.dot)} />
@@ -425,14 +426,14 @@ export function TestPlanDetail({
                       {/* Action buttons */}
                       <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                         <Link
-                          href={`/test-cases/detail/${suite.publicToken}`}
+                            href={`/test-suites/${suite.token || suite.publicToken || ""}`}
                           className="flex h-8 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition dark:border-slate-700 dark:text-slate-400"
                         >
                           <ArrowSquareOut size={12} weight="bold" />
                           Manage
                         </Link>
                         <Link
-                          href={`/test-suites/execute/${suite.publicToken}`}
+                            href={`/test-suites/execute/${suite.token || suite.publicToken || ""}`}
                           className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-black text-white hover:bg-blue-600 transition dark:bg-white dark:text-slate-900"
                         >
                           <Play size={12} weight="fill" />

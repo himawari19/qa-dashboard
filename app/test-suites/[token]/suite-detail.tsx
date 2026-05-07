@@ -149,7 +149,7 @@ export function SuiteDetail({
         <Breadcrumb crumbs={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Test Suites", href: "/test-suites" },
-          { label: suite.title },
+          { label: "Detail Test Suites" },
         ]} />
 
         {/* ── Hero ── */}

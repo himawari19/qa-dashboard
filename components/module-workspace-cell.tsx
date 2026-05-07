@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/badge";
 import { HighlightText } from "@/components/highlight-text";
 import { cn, formatDate } from "@/lib/utils";
+import { getRoleLabel } from "@/lib/roles";
 import type { ModuleKey } from "@/lib/modules";
 
 type RelatedSuite = { id: string; title: string; token?: string };
@@ -103,6 +104,8 @@ export function ModuleWorkspaceCell({
         <a href={String(value)} target="_blank" rel="noreferrer" className="break-all text-blue-600 hover:underline">
           <HighlightText text={String(value)} query="" linkify={false} />
         </a>
+      ) : module === "users" && column.key === "role" ? (
+        <Badge value={String(value)} displayValue={getRoleLabel(String(value))} />
       ) : column.tone === "status" ? (
         <Badge value={String(value)} />
       ) : column.tone ? (
@@ -115,7 +118,7 @@ export function ModuleWorkspaceCell({
             row.relatedSuites.map((suite) => (
               <Link
                 key={suite.id}
-                href={`/test-cases/detail/${suite.token}`}
+                href={`/test-suites/${suite.token || suite.publicToken || ""}`}
                 className="rounded-sm bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/50 dark:text-sky-300"
               >
                 {suite.title || suite.id}

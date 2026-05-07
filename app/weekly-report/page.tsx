@@ -273,7 +273,7 @@ export default function WeeklyReportPage() {
 
   if (loading) {
     return (
-      <PageShell title="Weekly Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/" }, { label: "Reports" }, { label: "Weekly Report" }]}>
+      <PageShell title="Weekly Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Weekly Report" }]}>
         <div className="space-y-4 animate-pulse">
           <div className="h-24 rounded-2xl bg-slate-100 dark:bg-slate-800" />
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -290,7 +290,7 @@ export default function WeeklyReportPage() {
 
   if (error || !report) {
     return (
-      <PageShell title="Weekly Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/" }, { label: "Reports" }, { label: "Weekly Report" }]}>
+      <PageShell title="Weekly Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Weekly Report" }]}>
         <div className="glass-card p-8">
           <p className="text-sm font-semibold text-slate-900 dark:text-white">Failed to load weekly report.</p>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{error ?? "No data available."}</p>
@@ -315,7 +315,7 @@ export default function WeeklyReportPage() {
     <PageShell
       title="Weekly Report"
       eyebrow="Reports"
-      crumbs={[{ label: "Dashboard", href: "/" }, { label: "Reports" }, { label: "Weekly Report" }]}
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Weekly Report" }]}
       actions={
         <button
           onClick={() => window.print()}
@@ -431,7 +431,7 @@ export default function WeeklyReportPage() {
           )}
         </Panel>
 
-        <Panel title="Bug by Project" subtitle="Projects with the most bugs this week.">
+        <Panel title="Bug by Test Plan" subtitle="Test plans with the most bugs this week.">
           {projectChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240} minWidth={1} minHeight={1}>
               <BarChart data={projectChartData} layout="vertical" margin={{ top: 8, right: 16, left: 10 }}>
@@ -444,7 +444,7 @@ export default function WeeklyReportPage() {
             </ResponsiveContainer>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-              No project data.
+              No test plan data.
             </div>
           )}
         </Panel>
