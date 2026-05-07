@@ -1,6 +1,6 @@
 // seed.mjs — run with: node seed.mjs
 import { DatabaseSync } from "node:sqlite";
-import { existsSync, unlinkSync, mkdirSync } from "node:fs";
+import { existsSync, unlinkSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
@@ -23,6 +23,30 @@ for (const p of dbPaths) {
 mkdirSync(join(process.cwd(), "prisma"), { recursive: true });
 const DB_PATH = join(process.cwd(), "prisma", "dev.db");
 const db = new DatabaseSync(DB_PATH);
+
+function loadEnvFile(filePath = join(process.cwd(), ".env")) {
+  if (!existsSync(filePath)) return;
+  const content = readFileSync(filePath, "utf8");
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eqIndex = line.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = line.slice(0, eqIndex).trim();
+    let value = line.slice(eqIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (!(key in process.env)) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadEnvFile();
 
 async function hashPassword(password) {
   const enc = new TextEncoder();
@@ -205,6 +229,34 @@ db.exec(`CREATE TABLE IF NOT EXISTS "User" (
   "email" TEXT UNIQUE,
   "password" TEXT NOT NULL,
   "role" TEXT NOT NULL DEFAULT 'user',
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`);
+
+db.exec(`CREATE TABLE IF NOT EXISTS "Invite" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "token" TEXT NOT NULL UNIQUE,
+  "company" TEXT NOT NULL,
+  "role" TEXT NOT NULL DEFAULT 'viewer',
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "createdBy" TEXT NOT NULL DEFAULT '',
+  "expiresAt" TEXT NOT NULL,
+  "acceptedAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`);
+
+db.exec(`CREATE TABLE IF NOT EXISTS "Deployment" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "date" TEXT NOT NULL,
+  "version" TEXT NOT NULL,
+  "project" TEXT NOT NULL,
+  "environment" TEXT NOT NULL DEFAULT 'staging',
+  "developer" TEXT NOT NULL,
+  "changelog" TEXT NOT NULL DEFAULT '',
+  "status" TEXT NOT NULL DEFAULT 'success',
+  "notes" TEXT DEFAULT '',
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`);
@@ -428,11 +480,43 @@ acts.forEach(a => iAct.run(...a));
 console.log("✓ Activity Logs (20)");
 
 // ── USER ───────────────────────────────────────────────────────
-const pwHash = await hashPassword("Lotus1919!");
+const ADMIN = {
+  name: process.env.SEED_ADMIN_NAME?.trim() || "",
+  email: process.env.SEED_ADMIN_EMAIL?.trim() || "",
+  password: process.env.SEED_ADMIN_PASSWORD || "",
+};
+if (!ADMIN.name || !ADMIN.email || !ADMIN.password) {
+  throw new Error("Missing SEED_ADMIN_NAME, SEED_ADMIN_EMAIL, or SEED_ADMIN_PASSWORD in .env");
+}
+const pwHash = await hashPassword(ADMIN.password);
 db.prepare(`INSERT INTO "User" ("company","name","email","password","role") VALUES (?,?,?,?,?)`).run(
-  C, "Admin", "admin@qa-daily.local", pwHash, "admin"
+  C,
+  ADMIN.name,
+  ADMIN.email,
+  pwHash,
+  "admin"
 );
-console.log("✓ User: admin@qa-daily.local / Lotus1919!");
+console.log(`✓ Admin user seeded: ${ADMIN.email}`);
+
+// ── INVITES ────────────────────────────────────────────────────
+const iInvite = db.prepare(`INSERT INTO "Invite" ("token","company","role","status","createdBy","expiresAt","acceptedAt") VALUES (?,?,?,?,?,?,?)`);
+const invites = [
+  [tok(), C, "viewer", "pending", ADMIN.email, "2026-06-30T00:00:00.000Z", null],
+  [tok(), C, "editor", "accepted", ADMIN.email, "2026-06-30T00:00:00.000Z", "2026-05-07T00:00:00.000Z"],
+  [tok(), C, "lead", "expired", ADMIN.email, "2026-03-01T00:00:00.000Z", null],
+];
+invites.forEach((invite) => iInvite.run(...invite));
+console.log("✓ Invites (3)");
+
+// ── DEPLOYMENTS ────────────────────────────────────────────────
+const iDeployment = db.prepare(`INSERT INTO "Deployment" ("company","date","version","project","environment","developer","changelog","status","notes") VALUES (?,?,?,?,?,?,?,?,?)`);
+const deployments = [
+  [C, "2026-03-10", "v3.4.0", "EcoShop Web", "staging", "Andi Pratama", "Checkout fixes, promo validation, payment retry handling.", "success", ""],
+  [C, "2026-03-12", "v3.4.1", "EcoShop Web", "production", "Citra Lestari", "Regression patch for cart quantity and mobile layout.", "success", ""],
+  [C, "2026-03-13", "v3.4.2", "EcoShop Web", "staging", "Eko Wijaya", "Hotfix for payment gateway timeout and request logging.", "rollback", "Rollback after payment API alerts spiked."],
+];
+deployments.forEach((deployment) => iDeployment.run(...deployment));
+console.log("✓ Deployments (3)");
 
 db.close();
 console.log("\n✅ Seed selesai! → prisma/dev.db");

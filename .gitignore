@@ -49,6 +49,10 @@ next-env.d.ts
 /prisma/*.db
 /prisma/*.db-shm
 /prisma/*.db-wal
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
 
 # playwright / e2e local testing artifacts
 /.playwright-cli/
@@ -64,7 +68,7 @@ next-env.d.ts
 logs/
 
 # scratch and test scripts
-scratch/
+/scratch/
 /test-*.js
 /test-*.ts
 
@@ -77,7 +81,8 @@ scratch/
 eslint.json
 
 # claude
-.claude/
+/.claude/
+/.claude/settings.local.json
 
 # reference assets
 logres.gif
