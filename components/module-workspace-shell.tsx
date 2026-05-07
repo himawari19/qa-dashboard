@@ -192,8 +192,6 @@ export function ModuleWorkspaceShell({
             openSelectField={openSelectField}
             setOpenSelectField={setOpenSelectField}
             setSelectValues={setSelectValues}
-            attachments={attachments as any}
-            setAttachments={setAttachments as any}
             duplicates={duplicates}
             sprintDuplicate={sprintDuplicate}
             lastSprint={lastSprint}

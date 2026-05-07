@@ -47,56 +47,58 @@ export function ModuleWorkspaceHeader({
             <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">{description}</p>
           </div>
 
-          <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
-            {canAdd && (
-              <button
-                type="button"
-                onClick={onToggleForm}
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          {!showForm ? (
+            <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
+              {canAdd && (
+                <button
+                  type="button"
+                  onClick={onToggleForm}
+                  className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:border-emerald-600 hover:bg-emerald-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  <Plus size={16} weight="bold" className="shrink-0" />
+                  Add {shortTitle}
+                </button>
+              )}
+
+              <Link
+                href={`/api/export/${module}`}
+                title="Export Excel"
+                aria-label="Export Excel"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <Plus size={16} weight="bold" className="shrink-0" />
-                {showForm ? "Hide form" : `Add ${shortTitle}`}
-              </button>
-            )}
+                <FileXls size={16} weight="bold" />
+              </Link>
 
-            <Link
-              href={`/api/export/${module}`}
-              title="Export Excel"
-              aria-label="Export Excel"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-            >
-              <FileXls size={16} weight="bold" />
-            </Link>
-
-            <Link
-              href={`/api/export/${module}?format=pdf`}
-              title="Print / Export PDF"
-              aria-label="Print / Export PDF"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-            >
-              <FilePdf size={16} weight="bold" />
-            </Link>
-
-            {canAdd && (
-              <label
-                title="Import Excel"
-                aria-label="Import Excel"
-                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-sky-600 hover:bg-sky-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              <Link
+                href={`/api/export/${module}?format=pdf`}
+                title="Print / Export PDF"
+                aria-label="Print / Export PDF"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <UploadSimple size={16} weight="bold" />
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) onImportFile(file);
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-            )}
-          </div>
+                <FilePdf size={16} weight="bold" />
+              </Link>
+
+              {canAdd && (
+                <label
+                  title="Import Excel"
+                  aria-label="Import Excel"
+                  className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <UploadSimple size={16} weight="bold" />
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) onImportFile(file);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          ) : null}
         </div>
         {topContent ? <div className="mt-6">{topContent}</div> : null}
       </div>

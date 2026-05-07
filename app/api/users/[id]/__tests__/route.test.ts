@@ -6,10 +6,13 @@ const mocks = vi.hoisted(() => ({
   isAdminUser: vi.fn(),
   normalizeRole: vi.fn((role: string) => String(role).trim().toLowerCase()),
   isInviteRole: vi.fn((role: string) => ["viewer", "editor", "lead"].includes(role)),
+  isAssignableRole: vi.fn((role: string) => ["editor", "lead", "viewer", "qa", "pm", "fe", "be", "fullstack", "ai"].includes(role)),
   hashPassword: vi.fn(async (password: string) => `hashed:${password}`),
   db: {
     run: vi.fn(),
   },
+  syncAssigneeFromUser: vi.fn(async () => undefined),
+  deleteAssigneeForUser: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -20,10 +23,16 @@ vi.mock("@/lib/roles", () => ({
   isAdminUser: mocks.isAdminUser,
   isInviteRole: mocks.isInviteRole,
   normalizeRole: mocks.normalizeRole,
+  isAssignableRole: mocks.isAssignableRole,
 }));
 
 vi.mock("@/lib/auth-core", () => ({
   hashPassword: mocks.hashPassword,
+}));
+
+vi.mock("@/lib/user-assignee-sync", () => ({
+  syncAssigneeFromUser: mocks.syncAssigneeFromUser,
+  deleteAssigneeForUser: mocks.deleteAssigneeForUser,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -87,6 +96,13 @@ describe("user id route", () => {
       'UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
       ["User", "user@example.com", "editor", "hashed:secret1", "2"],
     );
+    expect(mocks.syncAssigneeFromUser).toHaveBeenCalledWith({
+      id: 2,
+      company: "",
+      name: "User",
+      email: "user@example.com",
+      role: "editor",
+    });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
   });

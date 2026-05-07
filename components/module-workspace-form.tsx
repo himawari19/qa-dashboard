@@ -1,7 +1,6 @@
 "use client";
 
 import { type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { AttachmentUploader, type Attachment } from "@/components/attachment-uploader";
 import { cn } from "@/lib/utils";
 import { ModuleWorkspaceFormField, type FieldOption, type FormField } from "@/components/module-workspace-form-field";
 import type { ModuleKey } from "@/lib/modules";
@@ -26,8 +25,6 @@ type ModuleWorkspaceFormProps = {
   openSelectField: string | null;
   setOpenSelectField: (value: string | null) => void;
   setSelectValues: Dispatch<SetStateAction<Record<string, string>>>;
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   duplicates: DuplicateRow[];
   sprintDuplicate: boolean;
   lastSprint: string | null;
@@ -59,8 +56,6 @@ export function ModuleWorkspaceForm({
   openSelectField,
   setOpenSelectField,
   setSelectValues,
-  attachments,
-  setAttachments,
   duplicates,
   sprintDuplicate,
   lastSprint,
@@ -136,23 +131,15 @@ export function ModuleWorkspaceForm({
             })}
         </div>
 
-        {(module === "bugs" || module === "tasks") && (
-          <div className="mt-6">
-            <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              Attachments
-            </p>
-            <AttachmentUploader value={attachments} onChange={setAttachments} disabled={isViewer} />
-            <input type="hidden" name="attachments" value={JSON.stringify(attachments)} />
-          </div>
-        )}
-
         <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-10 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={pending}
-              style={{ backgroundColor: editingRow ? "#16a34a" : "#2563eb" }}
-              className="h-12 rounded-md px-8 text-sm font-bold text-white shadow-md transition duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className={cn(
+                "h-12 rounded-md px-8 text-sm font-bold text-white shadow-md transition duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-400",
+                "bg-emerald-600 hover:bg-emerald-700",
+              )}
             >
               {pending ? "Processing..." : editingRow ? `Save ${shortTitle}` : `Add ${shortTitle}`}
             </button>
