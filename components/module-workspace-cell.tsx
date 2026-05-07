@@ -7,7 +7,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
 import type { ModuleKey } from "@/lib/modules";
 
-type RelatedSuite = { id: string; title: string; token?: string };
+type RelatedSuite = { id: string; title: string; token?: string; publicToken?: string };
 
 type TableRow = {
   id: string | number;

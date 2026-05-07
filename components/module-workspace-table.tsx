@@ -8,7 +8,7 @@ import { PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import type { ModuleKey } from "@/lib/modules";
 
-type RelatedSuite = { id: string; title: string; token?: string };
+type RelatedSuite = { id: string; title: string; token?: string; publicToken?: string };
 
 type TableRow = {
   id: string | number;
