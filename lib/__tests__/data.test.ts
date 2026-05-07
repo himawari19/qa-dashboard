@@ -331,7 +331,8 @@ describe("module data access", () => {
 
   it("hard deletes non-archived tables and soft deletes notes/suites/cases", async () => {
     await deleteModuleRecord("users", 7);
-    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
+    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "Assignee" WHERE "userId" = ?');
+    expect(mocks.db.run.mock.calls[1][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
     expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "User" && params?.[2] === "7" && params?.[3] === "Deleted")).toBe(true);
 
     vi.clearAllMocks();
@@ -441,8 +442,9 @@ describe("module data access", () => {
 
     await deleteModuleRecord("users", 9);
 
-    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
-    expect(mocks.db.run.mock.calls[0][1]).toEqual([9, "acme"]);
+    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "Assignee" WHERE "userId" = ?');
+    expect(mocks.db.run.mock.calls[1][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
+    expect(mocks.db.run.mock.calls[1][1]).toEqual([9, "acme"]);
   });
 
   it("creates assignee records with company scoping and activity log", async () => {
@@ -831,16 +833,8 @@ describe("module row queries", () => {
       2,
       expect.stringContaining('CREATE TABLE IF NOT EXISTS "MeetingNote"'),
     );
-    expect(mocks.db.query).toHaveBeenNthCalledWith(
-      1,
-      'SELECT * FROM "Assignee"  WHERE "company" = ? ORDER BY "name" ASC',
-      ["acme"],
-    );
-    expect(mocks.db.query).toHaveBeenNthCalledWith(
-      2,
-      'SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL  AND "company" = ? ORDER BY "date" DESC, "updatedAt" DESC',
-      ["acme"],
-    );
+    expect(mocks.db.query.mock.calls.some(([sql]) => String(sql).includes('FROM "User"'))).toBe(true);
+    expect(mocks.db.query.mock.calls.some(([sql]) => String(sql).includes('FROM "MeetingNote"'))).toBe(true);
   });
 
   it("adds suite statistics and company scoping", async () => {

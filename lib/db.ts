@@ -185,6 +185,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "userId" INTEGER UNIQUE,
       "name" TEXT NOT NULL,
       "role" TEXT,
       "email" TEXT,
@@ -330,6 +331,8 @@ export const schemaTableSql = generateTableSchemaSql(isPostgres);
 export const schemaIndexSql = indexSql;
 export const schemaSql = `${schemaTableSql}${schemaIndexSql}`;
 
+const sequentialIdTables = new Set(tables.map((table) => table.name));
+
 type PostgresPool = {
   query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
 };
@@ -360,6 +363,50 @@ function toPostgresQuery(queryStr: string) {
     pgQuery = pgQuery.replace(/\?/g, () => `$${++count}`);
   }
   return pgQuery;
+}
+
+function parseInsertStatement(queryStr: string) {
+  const match = queryStr.match(/^\s*INSERT(?:\s+OR\s+\w+)?\s+INTO\s+"([^"]+)"\s*\(([\s\S]*?)\)\s*VALUES\s*\(([\s\S]*?)\)([\s\S]*)$/i);
+  if (!match) return null;
+
+  const [, table, columnsRaw, valuesRaw, suffix] = match;
+  const columns = columnsRaw
+    .split(",")
+    .map((column) => column.trim().replace(/^"|"$/g, ""))
+    .filter(Boolean);
+  const values = valuesRaw
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return { table, columns, values, suffix };
+}
+
+function buildSequentialInsert(queryStr: string, params: unknown[], nextId: number) {
+  const parsed = parseInsertStatement(queryStr);
+  if (!parsed) return { queryStr, params };
+  if (!sequentialIdTables.has(parsed.table)) return { queryStr, params };
+  if (parsed.columns.includes("id")) return { queryStr, params };
+
+  const quotedColumns = [`"id"`].concat(parsed.columns.map((column) => `"${column}"`));
+  const nextValues = ["?"].concat(parsed.values);
+  const rewrittenSql = `INSERT INTO "${parsed.table}" (${quotedColumns.join(", ")}) VALUES (${nextValues.join(", ")})${parsed.suffix}`;
+  return { queryStr: rewrittenSql, params: [nextId, ...params] };
+}
+
+async function getNextSequentialId(table: string) {
+  const rows = await queryRaw<{ id: number | string }>(`SELECT "id" FROM "${table}" ORDER BY "id" ASC`);
+  let nextId = 1;
+  for (const row of rows) {
+    const currentId = Number(row.id);
+    if (!Number.isFinite(currentId) || currentId < nextId) continue;
+    if (currentId === nextId) {
+      nextId += 1;
+      continue;
+    }
+    if (currentId > nextId) break;
+  }
+  return nextId;
 }
 
 const globalForDb = globalThis as unknown as {
@@ -393,6 +440,72 @@ async function getSqlite() {
     globalForDb.sqliteDb = sqliteDb;
   }
   return globalForDb.sqliteDb as SqliteDatabase;
+}
+
+async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    return sqlite.prepare(queryStr).all(...params) as T[];
+  }
+
+  const pool = await getPostgresPool();
+  const pgQuery = toPostgresQuery(queryStr);
+  const { rows } = await pool.query(pgQuery, params);
+  return rows as T[];
+}
+
+async function runRaw(queryStr: string, params: unknown[] = []): Promise<void> {
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    sqlite.prepare(queryStr).run(...params);
+    return;
+  }
+
+  const pool = await getPostgresPool();
+  const pgQuery = toPostgresQuery(queryStr);
+  await pool.query(pgQuery, params);
+}
+
+async function execRaw(queryStr: string): Promise<void> {
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    sqlite.exec(queryStr);
+    return;
+  }
+
+  const pool = await getPostgresPool();
+  const statements = queryStr.split(";").filter((s) => s.trim());
+  for (const s of statements) {
+    try {
+      await pool.query(toPostgresQuery(s));
+    } catch (err: unknown) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err.code === "42P07" || err.code === "23505")
+      ) {
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+function isSequentialIdConflict(err: unknown, table: string) {
+  if (typeof err !== "object" || err === null) return false;
+  const error = err as { code?: string; message?: string; detail?: string };
+  const message = String(error.message ?? "").toLowerCase();
+  const detail = String(error.detail ?? "").toLowerCase();
+  const tableName = table.toLowerCase();
+
+  if (message.includes("unique constraint failed") && message.includes(`${tableName}.id`)) {
+    return true;
+  }
+  if (detail.includes("(id)=")) {
+    return true;
+  }
+  return false;
 }
 
 async function execSchemaSql(queryStr: string) {
@@ -539,15 +652,7 @@ async function ensureSchema() {
 export const db = {
   async query<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
     await ensureSchema();
-    if (useSqlite) {
-      const sqlite = await getSqlite();
-      return sqlite.prepare(queryStr).all(...params) as T[];
-    } else {
-      const pool = await getPostgresPool();
-      const pgQuery = toPostgresQuery(queryStr);
-      const { rows } = await pool.query(pgQuery, params);
-      return rows as T[];
-    }
+    return queryRaw<T>(queryStr, params);
   },
 
   async get<T>(queryStr: string, params: unknown[] = []): Promise<T | undefined> {
@@ -557,39 +662,30 @@ export const db = {
 
   async run(queryStr: string, params: unknown[] = []): Promise<void> {
     await ensureSchema();
-    if (useSqlite) {
-      const sqlite = await getSqlite();
-      sqlite.prepare(queryStr).run(...params);
-    } else {
-      const pool = await getPostgresPool();
-      const pgQuery = toPostgresQuery(queryStr);
-      await pool.query(pgQuery, params);
+    const parsedInsert = parseInsertStatement(queryStr);
+    if (parsedInsert && sequentialIdTables.has(parsedInsert.table) && !parsedInsert.columns.includes("id")) {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const nextId = await getNextSequentialId(parsedInsert.table);
+        const rewritten = buildSequentialInsert(queryStr, params, nextId);
+        try {
+          await runRaw(rewritten.queryStr, rewritten.params);
+          return;
+        } catch (err) {
+          if (!isSequentialIdConflict(err, parsedInsert.table)) {
+            throw err;
+          }
+        }
+      }
+      const nextId = await getNextSequentialId(parsedInsert.table);
+      const rewritten = buildSequentialInsert(queryStr, params, nextId);
+      await runRaw(rewritten.queryStr, rewritten.params);
+      return;
     }
+    await runRaw(queryStr, params);
   },
 
   async exec(queryStr: string): Promise<void> {
-    if (useSqlite) {
-      const sqlite = await getSqlite();
-      sqlite.exec(queryStr);
-    } else {
-      const pool = await getPostgresPool();
-      const statements = queryStr.split(';').filter(s => s.trim());
-      for (const s of statements) {
-        try {
-          await pool.query(toPostgresQuery(s));
-        } catch (err: unknown) {
-          if (
-            typeof err === "object" &&
-            err !== null &&
-            "code" in err &&
-            (err.code === "42P07" || err.code === "23505")
-          ) {
-            continue;
-          }
-          throw err;
-        }
-      }
-    }
+    await execRaw(queryStr);
   },
 
   async transaction<T>(fn: () => Promise<T>): Promise<T> {

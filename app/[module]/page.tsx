@@ -196,7 +196,7 @@ export default async function ModulePage({
     const config = moduleConfigs[moduleKey as ModuleKey];
     if (config) {
       config.fields.forEach((field) => {
-        if (["assignee", "tester", "suggestedDev"].includes(field.name)) {
+        if (["assignee", "tester", "suggestedDev", "developer"].includes(field.name)) {
           relatedOptions[field.name] = teamOptions;
         }
       });

@@ -591,7 +591,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   assignees: {
     title: "Team Members",
     shortTitle: "Assignees",
-    description: "Manage the list of people who can be assigned to tasks and test suites.",
+    description: "Synced from user accounts for assignment across tasks, test suites, and deployment logs.",
     prefix: "USER",
     sheetName: "Assignees",
     schema: assigneeSchema,
@@ -688,7 +688,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "version", label: "Version / Tag", kind: "text", placeholder: "e.g. v1.3.0", required: true, helperKind: "version-sequence" },
       { name: "project", label: "Project", kind: "select", options: [], required: true },
       { name: "environment", label: "Environment", kind: "select", options: deploymentEnvOptions, required: true },
-      { name: "developer", label: "Developer Name", kind: "text", placeholder: "e.g. John Doe", required: true },
+      { name: "developer", label: "Developer Name", kind: "select", options: [], required: true },
       { name: "status", label: "Status", kind: "select", options: deploymentStatusOptions, required: true },
       { name: "changelog", label: "Changelog", kind: "textarea", placeholder: "List changes, fixes, and new features...", required: true, span: 3 },
       { name: "notes", label: "Notes (auto-generated)", kind: "textarea", readonly: true, span: 3 },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser, isInviteRole, normalizeRole } from "@/lib/roles";
+import { deleteAssigneeForUser, syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 
 export async function PATCH(
   request: NextRequest,
@@ -34,6 +35,13 @@ export async function PATCH(
         [name, email, normalizedRole, id]
       );
     }
+    await syncAssigneeFromUser({
+      id: Number(id),
+      company: user.company,
+      name,
+      email,
+      role: normalizedRole,
+    });
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     return NextResponse.json({ error: "Failed to update user." }, { status: 500 });
@@ -56,6 +64,7 @@ export async function DELETE(
   }
 
   try {
+    await deleteAssigneeForUser(Number(id));
     await db.run('DELETE FROM "User" WHERE "id" = CAST(? AS INTEGER)', [id]);
     return NextResponse.json({ ok: true });
   } catch (err: any) {

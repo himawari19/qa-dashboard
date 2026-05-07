@@ -23,7 +23,7 @@ export const PAGE_SIZE = 10;
 export function getModuleWorkspacePermissions(userRole: string) {
   const role = normalizeRole(userRole);
   const isAdmin = role === "admin";
-  const canWrite = isAdmin || ["fe", "be", "fullstack", "qa", "pm"].includes(role);
+  const canWrite = isAdmin || ["fe", "be", "fullstack", "qa", "pm", "ai"].includes(role);
 
   return {
     isAdmin,

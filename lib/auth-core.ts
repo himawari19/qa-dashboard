@@ -1,3 +1,5 @@
+import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
+
 const COOKIE_NAME = "qa_daily_session";
 export const WORKSPACE_ROLES = ["admin", "fe", "be", "fullstack", "qa", "pm"] as const;
 export const INVITE_ROLES = ["fe", "be", "fullstack", "qa", "pm"] as const;
@@ -134,6 +136,13 @@ export async function registerUser(email: string, password: string, name?: strin
     const { db } = await import("./db");
     const hashedPassword = await hashPassword(password);
     await db.run('INSERT INTO "User" ("email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)', [email, hashedPassword, name || email, role, company]);
+    const user = await db.get<{ id: number; company: string; name: string | null; email: string | null; role: string | null }>(
+      'SELECT "id", "company", "name", "email", "role" FROM "User" WHERE "email" = ?',
+      [email],
+    );
+    if (user) {
+      await syncAssigneeFromUser(user);
+    }
     return { success: true };
   } catch (err: any) {
     if (err.message?.includes("UNIQUE constraint") || err.code === "23505") {

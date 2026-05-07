@@ -4,8 +4,8 @@ export async function getAssigneeResults(query: string, companyClause: string, c
   const exactId = extractExactId(query, "ASS");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, name, role, email, skills, status, updatedAt
-       FROM "Assignee"
+      `SELECT id, name, role, email, '' as skills, 'active' as status, "updatedAt"
+       FROM "User"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
        LIMIT 1`,
@@ -35,20 +35,19 @@ export async function getAssigneeResults(query: string, companyClause: string, c
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
   const rows = await queryRows<Row>(
-    `SELECT id, name, role, email, skills, status, updatedAt
-     FROM "Assignee"
+    `SELECT id, name, role, email, '' as skills, 'active' as status, "updatedAt"
+     FROM "User"
      WHERE (
        LOWER(COALESCE(name, '')) LIKE ?
        OR LOWER(COALESCE(role, '')) LIKE ?
        OR LOWER(COALESCE(email, '')) LIKE ?
-       OR LOWER(COALESCE(skills, '')) LIKE ?
        OR LOWER(COALESCE(status, '')) LIKE ?
        OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
      )
      ${companyClause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(6).fill(like).concat(companyParams),
+    Array(5).fill(like).concat(companyParams),
   );
 
   return rows

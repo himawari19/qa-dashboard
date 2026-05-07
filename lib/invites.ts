@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser, isInviteRole, normalizeRole } from "@/lib/roles";
+import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 
 type InviteRow = {
   id: number;
@@ -113,5 +114,12 @@ export async function acceptInvite(token: string, email: string) {
     'UPDATE "User" SET "company" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "email" = ?',
     [invite.company, invite.role, email],
   );
+  const updatedUser = await db.get<{ id: number; company: string; name: string | null; email: string | null; role: string | null }>(
+    'SELECT "id", "company", "name", "email", "role" FROM "User" WHERE "email" = ?',
+    [email],
+  );
+  if (updatedUser) {
+    await syncAssigneeFromUser(updatedUser);
+  }
   return markInviteAccepted(token, email);
 }

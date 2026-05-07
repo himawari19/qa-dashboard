@@ -1,5 +1,5 @@
-export const WORKSPACE_ROLES = ["admin", "fe", "be", "fullstack", "qa", "pm"] as const;
-export const INVITE_ROLES = ["fe", "be", "fullstack", "qa", "pm"] as const;
+export const WORKSPACE_ROLES = ["admin", "fe", "be", "fullstack", "qa", "pm", "ai"] as const;
+export const INVITE_ROLES = ["fe", "be", "fullstack", "qa", "pm", "ai"] as const;
 
 const ROLE_ALIASES: Record<string, string> = {
   "admin (owner)": "admin",
@@ -15,6 +15,10 @@ const ROLE_ALIASES: Record<string, string> = {
   be: "be",
   "fullstack developer": "fullstack",
   fullstack: "fullstack",
+  "ai engineer": "ai",
+  "artificial intelligence engineer": "ai",
+  "machine learning engineer": "ai",
+  ai: "ai",
   "qa engineer": "qa",
   "qa automation engineer": "qa",
   qa: "qa",
@@ -32,6 +36,7 @@ const ROLE_LABELS: Record<string, string> = {
   fe: "Front-end Engineer",
   be: "Back-end Engineer",
   fullstack: "Fullstack Engineer",
+  ai: "AI Engineer",
   qa: "QA Engineer",
   pm: "Product Manager",
 };

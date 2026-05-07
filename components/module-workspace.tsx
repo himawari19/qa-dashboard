@@ -101,6 +101,10 @@ export function ModuleWorkspace({
     () => getModuleWorkspacePermissions(String(user?.role || "user")),
     [user?.role],
   );
+  const assigneeLocked = module === "assignees";
+  const effectiveCanAdd = canAdd && !assigneeLocked;
+  const effectiveCanEdit = canEdit && !assigneeLocked;
+  const effectiveCanDelete = canDelete && !assigneeLocked;
 
   useEffect(() => {
     setLocalRows(rows);
@@ -205,9 +209,9 @@ export function ModuleWorkspace({
         hiddenFields={hiddenFields}
         fieldIcons={fieldIcons}
         fieldErrors={fieldErrors}
-        canAdd={canAdd}
-        canEdit={canEdit}
-        canDelete={canDelete}
+        canAdd={effectiveCanAdd}
+        canEdit={effectiveCanEdit}
+        canDelete={effectiveCanDelete}
         isViewer={isViewer}
         relatedOptions={relatedOptions}
         selectValues={selectValues}

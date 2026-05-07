@@ -75,6 +75,7 @@ const toneMap = {
   "Frontend Developer":       "bg-blue-600 text-white",
   "Backend Developer":        "bg-blue-800 text-white",
   "Fullstack Developer":      "bg-blue-700 text-white",
+  "AI Engineer":              "bg-fuchsia-700 text-white",
   "Mobile Developer":         "bg-sky-600 text-white",
   "QA Engineer":              "bg-teal-600 text-white",
   "QA Automation Engineer":   "bg-teal-800 text-white",

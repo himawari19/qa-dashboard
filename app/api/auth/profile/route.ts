@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, createSessionToken, sessionCookieName } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 
 export async function GET() {
   try {
@@ -54,11 +55,25 @@ export async function PATCH(request: NextRequest) {
         'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
         [name.trim(), role?.trim() || "viewer", hashedPassword, user.id]
       );
+      await syncAssigneeFromUser({
+        id: user.id,
+        company: user.company,
+        name: name.trim(),
+        email: user.email,
+        role: role?.trim() || "viewer",
+      });
     } else {
       await db.run(
         'UPDATE "User" SET "name" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
         [name.trim(), role?.trim() || "viewer", user.id]
       );
+      await syncAssigneeFromUser({
+        id: user.id,
+        company: user.company,
+        name: name.trim(),
+        email: user.email,
+        role: role?.trim() || "viewer",
+      });
     }
 
     const updatedUser = {

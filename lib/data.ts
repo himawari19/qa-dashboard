@@ -2,6 +2,7 @@ import { db, isPostgres } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
+import { backfillAssigneesFromUsers, deleteAssigneeForUser, syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 import {
   countRows,
   getAccessScope,
@@ -70,9 +71,10 @@ export async function getProjectOptions() {
 export async function getAssigneeOptions() {
   const { company, isAdmin } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
-    `SELECT DISTINCT "name" as value FROM "Assignee"
-     WHERE COALESCE("name", '') != '' AND "status" = 'active'${isAdmin ? "" : ' AND "company" = ?'}
-     ORDER BY "name" ASC`,
+    `SELECT DISTINCT COALESCE("name", "email") as value FROM "User"
+     WHERE COALESCE("name", '') != '' OR COALESCE("email", '') != ''
+     ${isAdmin ? "" : ' AND "company" = ?'}
+     ORDER BY COALESCE("name", "email") ASC`,
     isAdmin ? [] : [company],
   );
   return rows.map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }));
@@ -250,7 +252,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
           UNION
           SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed' ${projectAndWhere}
           UNION
-          SELECT name FROM "Assignee" WHERE status = 'active' ${companyAndWhere}
+          SELECT COALESCE("name", "email") as name FROM "User" ${companyWhere}
         )
       SELECT
         a.name,
@@ -617,18 +619,24 @@ export async function getModuleRows(module: ModuleKey) {
       }));
     }
     case "assignees":
-      // Emergency check to ensure table exists
+      await backfillAssigneesFromUsers();
       await db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
         "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
         "company" TEXT NOT NULL DEFAULT '',
+        "userId" INTEGER UNIQUE,
         "name" TEXT NOT NULL,
         "role" TEXT,
         "email" TEXT,
+        "skills" TEXT DEFAULT '',
         "status" TEXT NOT NULL DEFAULT 'active',
         "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`);
-      return (await selectAll(`SELECT * FROM "Assignee" ${where} ORDER BY "name" ASC`, qParams)).map((item) => ({
+      return (await selectAll(`SELECT u."id", u."name", u."role", u."email", COALESCE(a."skills", '') as "skills", 'active' as "status"
+        FROM "User" u
+        LEFT JOIN "Assignee" a ON a."userId" = u."id"
+        ${isAdmin ? "" : ' WHERE u."company" = ?'}
+        ORDER BY u."name" ASC`, qParams)).map((item) => ({
         ...item,
         id: String(item.id),
       }));
@@ -754,8 +762,9 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total: Number(totalRow?.total ?? 0) };
     }
     case "assignees": {
-      const total = await countRows("Assignee", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT * FROM "Assignee" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      const total = await countRows("User", isAdmin ? undefined : company);
+      const rows = await selectAll(`SELECT id, name, role, email, '' as skills, 'active' as status, "createdAt", "updatedAt"
+        FROM "User" ${where.replace(/"company"/g, '"company"')} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
       return { rows, total };
     }
     case "meeting-notes": {
@@ -908,6 +917,13 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?)`,
         [company, data.name || data.email, data.email, hashedPassword, data.role || "user"]
       );
+      const user = await db.get<{ id: number; company: string; name: string | null; email: string | null; role: string | null }>(
+        'SELECT "id", "company", "name", "email", "role" FROM "User" WHERE "email" = ?',
+        [data.email],
+      );
+      if (user) {
+        await syncAssigneeFromUser(user);
+      }
       await logActivity(company, "User", String(data.email), "Created", `Access granted for ${data.email}`);
       invalidateDashboardCache(company);
       return res;
@@ -1053,6 +1069,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
           `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
           [data.name, data.email, data.role, hashedPassword, id, ...companyParam]
         );
+        await syncAssigneeFromUser({ id: Number(id), company, name: data.name, email: data.email, role: data.role });
         await logActivity(company, "User", String(data.email), "Updated", `Security settings for ${data.email} updated`);
         invalidateDashboardCache(company);
         return res;
@@ -1061,6 +1078,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
           `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
           [data.name, data.email, data.role, id, ...companyParam]
         );
+        await syncAssigneeFromUser({ id: Number(id), company, name: data.name, email: data.email, role: data.role });
         await logActivity(company, "User", String(data.email), "Updated", `User info for ${data.email} updated`);
         invalidateDashboardCache(company);
         return res;
@@ -1119,6 +1137,10 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
     await logActivity(company, table, entityId, "Deleted", `${table} removed`);
     invalidateDashboardCache(company);
     return res;
+  }
+
+  if (table === "User") {
+    await deleteAssigneeForUser(Number(id));
   }
 
   const res = await db.run(`DELETE FROM "${table}" WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);

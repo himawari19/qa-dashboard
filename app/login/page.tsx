@@ -205,6 +205,7 @@ function LoginContent() {
                       <option value="Frontend Developer">Frontend Developer</option>
                       <option value="Backend Developer">Backend Developer</option>
                       <option value="Fullstack Developer">Fullstack Developer</option>
+                      <option value="AI Engineer">AI Engineer</option>
                       <option value="Mobile Developer">Mobile Developer</option>
                       <option value="QA Engineer">QA Engineer</option>
                       <option value="QA Automation Engineer">QA Automation Engineer</option>
