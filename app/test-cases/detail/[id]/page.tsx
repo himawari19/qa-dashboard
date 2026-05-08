@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTestCasesByScenario, getTestSuiteByToken, getTestPlanById } from "@/lib/data";
+import { getTestCasesByScenario, getTestSuiteByToken, getTestSuite, getTestPlanById } from "@/lib/data";
 import { TestCaseDetailPage } from "@/components/test-case-detail-page";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export default async function TestCaseDetailPageRoute({ params }: { params: Prom
   const { id: token } = await params;
   if (!token) notFound();
 
-  const suite = await getTestSuiteByToken(token);
+  const suite = (await getTestSuiteByToken(token)) || (await getTestSuite(token));
   if (!suite) notFound();
 
   const suiteId = String((suite as Record<string, unknown>).id ?? "");

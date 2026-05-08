@@ -341,14 +341,14 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                       <span className="flex items-center gap-1"><Warning size={13} className="text-amber-500" />{selected.blocked}</span>
                       <span className="flex items-center gap-1"><Clock size={13} className="text-slate-400" />{selected.pending}</span>
                     </div>
-                    {selected.suiteToken && (
+                    {(selected.suiteToken || selected.key) && (
                       <details className="relative">
                         <summary className="flex h-9 w-9 list-none items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white [&::-webkit-details-marker]:hidden">
                           <DotsThreeVertical size={18} weight="bold" />
                         </summary>
                         <div className="absolute right-0 top-11 z-20 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
                           <Link
-                            href={`/test-cases/detail/${selected.suiteToken}`}
+                            href={`/test-cases/detail/${selected.suiteToken || selected.key}`}
                             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                           >
                             <PencilSimple size={14} weight="bold" />
