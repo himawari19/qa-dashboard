@@ -60,13 +60,13 @@ export function Toaster() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex min-w-[300px] origin-top-right animate-in fade-in slide-in-from-top-2 slide-in-from-right-4 zoom-in-95 transform items-center gap-3 rounded-md border bg-white p-4 shadow-xl duration-200"
+          className="flex min-w-[300px] origin-top-right animate-in fade-in slide-in-from-top-2 slide-in-from-right-4 zoom-in-95 transform items-center gap-3 rounded-md border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800 p-4 shadow-xl duration-200"
         >
           {t.type === "success" && <CheckCircle size={24} className="text-emerald-500" weight="fill" />}
           {t.type === "error" && <WarningCircle size={24} className="text-rose-500" weight="fill" />}
           {t.type === "info" && <Info size={24} className="text-sky-500" weight="fill" />}
           
-          <p className="flex-1 text-sm font-semibold text-slate-800">
+          <p className="flex-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
             {t.message}
             {t.expiresAt ? ` ${Math.max(1, Math.ceil((t.expiresAt - Date.now()) / 1000))} seconds.` : ""}
           </p>
@@ -76,7 +76,7 @@ export function Toaster() {
                 t.onAction?.();
                 setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
               }}
-              className="rounded-md border border-sky-200 px-3 py-1 text-xs font-bold text-sky-700 hover:bg-sky-50"
+              className="rounded-md border border-sky-200 dark:border-sky-800 px-3 py-1 text-xs font-bold text-sky-700 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/30"
             >
               {t.actionLabel ?? "Undo"}
             </button>
@@ -84,7 +84,7 @@ export function Toaster() {
           
           <button
             onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
           >
             <X size={16} />
           </button>

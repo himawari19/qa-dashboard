@@ -46,7 +46,7 @@ export function ConfirmModal({
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onCancel} />
       
       <div className={cn(
-        "relative w-full max-w-sm transform overflow-hidden rounded-xl bg-white dark:bg-slate-900 shadow-2xl transition-all duration-300 border border-slate-200 dark:border-slate-700",
+        "relative w-full max-w-sm transform overflow-hidden rounded-xl bg-white dark:bg-slate-800 shadow-2xl transition-all duration-300 border border-slate-200 dark:border-slate-700/50",
         isOpen ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
       )}>
         <div className="flex flex-col items-center text-center px-6 pt-6 pb-4">

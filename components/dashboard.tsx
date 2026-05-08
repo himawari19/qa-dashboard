@@ -95,7 +95,7 @@ function Drawer({ title, subtitle, items, loading, onClose, viewAllHref }: {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
-      <div ref={ref} className="h-full w-full max-w-sm bg-white dark:bg-slate-900 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div ref={ref} className="h-full w-full max-w-sm bg-white dark:bg-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-5 py-4">
           <div>
@@ -151,25 +151,28 @@ function Drawer({ title, subtitle, items, loading, onClose, viewAllHref }: {
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, icon, color, onClick, active }: {
+function StatCard({ label, value, icon, color, onClick, active, caption }: {
   label: string; value: number; icon: React.ReactNode;
-  color: string; onClick: () => void; active?: boolean;
+  color: string; onClick: () => void; active?: boolean; caption?: string;
 }) {
   return (
     <button onClick={onClick}
       className={cn(
         "flex flex-col gap-3 rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg group",
         active
-          ? "border-blue-400 ring-2 ring-blue-400/30 bg-white dark:bg-slate-900"
-          : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-slate-300"
+          ? "border-blue-400 ring-2 ring-blue-400/30 bg-white dark:bg-slate-800/80"
+          : "border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600/50"
       )}>
       <div className="flex items-center justify-between">
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", color)}>{icon}</div>
-        <CaretRight size={14} className={cn("transition", active ? "text-blue-500" : "text-slate-300 group-hover:text-slate-400")} />
+        <CaretRight size={14} className={cn("transition", active ? "text-blue-500" : "text-slate-300 dark:text-slate-600 group-hover:text-slate-400")} />
       </div>
       <div>
         <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
-        <p className="text-xs font-semibold text-slate-400 mt-0.5">{label}</p>
+        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-0.5">{label}</p>
+        {caption && (
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 truncate">{caption}</p>
+        )}
       </div>
     </button>
   );
@@ -190,12 +193,12 @@ function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; 
 const ChartTip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-3 shadow-xl text-xs">
-      {label && <p className="font-bold text-slate-500 mb-1.5">{label}</p>}
+    <div className="rounded-lg border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-600/50 p-3 shadow-xl text-xs">
+      {label && <p className="font-bold text-slate-500 dark:text-slate-400 mb-1.5">{label}</p>}
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.fill }} />
-          <span className="font-semibold text-slate-700 dark:text-slate-300">{p.name}: {p.value}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-200">{p.name}: {p.value}</span>
         </div>
       ))}
     </div>
@@ -366,9 +369,9 @@ export function Dashboard({
     Session: <PlayCircle size={14} weight="bold" className="text-amber-500" />,
   };
 
-  const chartGrid = isDark ? "#1e293b" : "#f1f5f9";
-  const chartTick = isDark ? "#64748b" : "#94a3b8";
-  const chartCursor = isDark ? "#1e293b" : "#f1f5f9";
+  const chartGrid = isDark ? "rgba(148,163,184,0.08)" : "#f1f5f9";
+  const chartTick = isDark ? "#94a3b8" : "#94a3b8";
+  const chartCursor = isDark ? "rgba(148,163,184,0.06)" : "#f1f5f9";
 
   return (
     <div className="space-y-6 pb-12">
@@ -419,6 +422,7 @@ export function Dashboard({
               key={card.label}
               label={card.label}
               value={metric?.value ?? 0}
+              caption={metric?.caption}
               icon={card.icon}
               color={card.color}
               active={drawer?.title === card.label || drawer?.title === "Open Tasks" && card.label === "Open Tasks"}
@@ -433,7 +437,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-3">
 
         {/* Bug by Module */}
-        <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bugs by Module</h3>
             <ChartBar size={15} className="text-slate-400" weight="bold" />
@@ -462,7 +466,7 @@ export function Dashboard({
         </div>
 
         {/* Bug Severity donut */}
-        <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bug Severity</h3>
             <Bug size={15} className="text-slate-400" weight="bold" />
@@ -490,7 +494,7 @@ export function Dashboard({
         </div>
 
         {/* Task Status donut */}
-        <div className="flex min-h-0 flex-col min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="flex min-h-0 flex-col min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Task Status</h3>
             <Kanban size={15} className="text-slate-400" weight="bold" />
@@ -522,7 +526,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-3">
 
         {/* Session execution trend */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Execution Trend</h3>
             <TrendUp size={15} className="text-slate-400" weight="bold" />
@@ -558,7 +562,7 @@ export function Dashboard({
         </div>
 
         {/* Sprint */}
-        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 flex flex-col">
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Active Sprint</h3>
             <CalendarBlank size={15} className="text-slate-400" weight="bold" />
@@ -601,7 +605,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-2">
 
         {/* Sprint Burndown */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Sprint Burndown</h3>
             <TrendUp size={15} className="text-violet-400" weight="bold" />
@@ -627,7 +631,7 @@ export function Dashboard({
         </div>
 
         {/* Pass Rate per Sprint */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Pass Rate per Sprint</h3>
             <Checks size={15} className="text-emerald-400" weight="bold" />
@@ -659,7 +663,7 @@ export function Dashboard({
       {/* ── Bug Trend (7 days) ── */}
       {bugTrendData.length > 0 && (
         <section>
-          <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bug Trend</h3>
               <Bug size={15} className="text-rose-400" weight="bold" />
@@ -686,7 +690,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-3">
 
         {/* Quality shield */}
-        <div className="rounded-xl bg-slate-900 dark:bg-blue-950 p-5 text-white relative overflow-hidden">
+        <div className="rounded-xl bg-slate-900 dark:bg-gradient-to-br dark:from-blue-950 dark:to-slate-900 p-5 text-white relative overflow-hidden">
           <div className="absolute -right-6 -bottom-6 h-32 w-32 rounded-full bg-blue-500/10 blur-2xl" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4">
@@ -712,7 +716,7 @@ export function Dashboard({
         </div>
 
         {/* Critical bugs */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-rose-500">Critical Bugs</h3>
             <Link href="/bugs" prefetch={false} className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
@@ -733,7 +737,7 @@ export function Dashboard({
         </div>
 
         {/* Priority tasks */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-blue-500">Priority Tasks</h3>
             <Link href="/tasks" prefetch={false} className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
@@ -758,7 +762,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-2">
 
         {/* Activity timeline */}
-        <div className="flex h-[28rem] min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="flex h-[28rem] min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Recent Activity</h3>
             <Clock size={15} className="text-slate-400" weight="bold" />
@@ -767,24 +771,32 @@ export function Dashboard({
             <div className="py-10 text-center text-xs text-slate-400">No activity yet.</div>
           ) : (
             <div className="relative min-h-0 flex-1 space-y-0 overflow-y-auto pr-2">
-              <div className="absolute left-[22px] top-0 bottom-0 w-px bg-slate-100 dark:bg-slate-800" />
-              {activity.map((item, i) => (
-                <div key={i} className="relative flex items-start gap-3 pb-4">
-                  <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <div className="absolute left-[22px] top-0 bottom-0 w-px bg-gradient-to-b from-blue-200 via-slate-200 to-transparent dark:from-blue-800/50 dark:via-slate-700/30 dark:to-transparent" />
+              {activity.map((item, i) => {
+                const actionColor = item.action === "create" ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30"
+                  : item.action === "delete" ? "border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30"
+                  : "border-slate-200 dark:border-slate-600/50 bg-white dark:bg-slate-800";
+                return (
+                <div key={i} className="relative flex items-start gap-3 pb-4 group">
+                  <div className={cn("relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors", actionColor)}>
                     {ENTITY_ICON[item.entityType] ?? <Clock size={14} className="text-slate-400" weight="bold" />}
                   </div>
                   <div className="flex-1 min-w-0 pt-2">
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-snug line-clamp-2">{item.summary}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{formatDisplayText(item.entityType)} · {formatDisplayText(item.action)} · {item.createdAt?.slice(0, 16).replace("T", " ")}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400">{formatDisplayText(item.entityType)}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">{item.createdAt?.slice(0, 16).replace("T", " ")}</span>
+                    </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Team workload */}
-        <div className="flex h-[28rem] min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5">
+        <div className="flex h-[28rem] min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Team Workload</h3>
             <User size={15} className="text-slate-400" weight="bold" />
@@ -888,5 +900,12 @@ export function Dashboard({
 }
 
 function EmptyChart({ label }: { label: string }) {
-  return <div className="flex h-full items-center justify-center text-[11px] text-slate-400 italic text-center">{label}</div>;
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+      <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-700/40 flex items-center justify-center">
+        <ChartBar size={18} weight="bold" className="text-slate-300 dark:text-slate-600" />
+      </div>
+      <p className="text-[11px] text-slate-400 dark:text-slate-500 italic max-w-[200px]">{label}</p>
+    </div>
+  );
 }

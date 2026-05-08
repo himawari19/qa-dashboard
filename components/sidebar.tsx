@@ -153,7 +153,7 @@ export function NotificationPanel({
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full z-[var(--z-notification)] mt-2 w-80 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in fade-in slide-in-from-top-2 duration-150 dark:bg-slate-900 dark:ring-white/10"
+      className="absolute right-0 top-full z-[var(--z-notification)] mt-2 w-80 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in fade-in slide-in-from-top-2 duration-150 dark:bg-slate-800 dark:ring-slate-700/50"
     >
       <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
         <p className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Notifications</p>
@@ -274,7 +274,7 @@ function SidebarSection({
       {group.title && (
         <div
           className={cn(
-            "px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600 transition-all duration-300 whitespace-nowrap overflow-hidden",
+            "px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 transition-all duration-300 whitespace-nowrap overflow-hidden",
             collapsed ? "opacity-0 h-0" : "opacity-100 h-auto mt-2",
           )}
         >
@@ -363,13 +363,13 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/50 dark:border-white/5 bg-white/70 dark:bg-black/40 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] backdrop-blur-xl",
+          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/50 dark:border-slate-700/30 bg-white/70 dark:bg-slate-900/80 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] backdrop-blur-xl",
           collapsed ? "w-[72px]" : "w-[240px]",
         )}
       >
         <div className="flex w-full flex-col">
           {/* Logo */}
-          <div className={cn("border-b border-slate-100/50 dark:border-white/5 p-4 flex items-center gap-3", collapsed ? "justify-center" : "")}>
+          <div className={cn("border-b border-slate-100/50 dark:border-slate-700/30 p-4 flex items-center gap-3", collapsed ? "justify-center" : "")}>
             <BrandMark
               compact
               showLabel={!collapsed}
@@ -397,7 +397,7 @@ export function Sidebar({
           </div>
 
           {/* Bottom actions */}
-          <div className={cn("mt-auto space-y-0.5 border-t border-slate-100 dark:border-white/5 pt-2", collapsed ? "p-2" : "p-3")}>
+          <div className={cn("mt-auto space-y-0.5 border-t border-slate-100 dark:border-slate-700/30 pt-2", collapsed ? "p-2" : "p-3")}>
             <SidebarActionButton
               collapsed={collapsed}
               onClick={onToggle}

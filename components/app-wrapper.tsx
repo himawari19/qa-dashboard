@@ -56,8 +56,11 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!mounted) return;
+    document.documentElement.classList.add("dark-transition");
     document.documentElement.classList.toggle("dark", dark);
     window.localStorage.setItem("qa-theme", dark ? "dark" : "light");
+    const t = setTimeout(() => document.documentElement.classList.remove("dark-transition"), 350);
+    return () => clearTimeout(t);
   }, [dark, mounted]);
 
   useEffect(() => {
@@ -124,7 +127,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={cn(
-      "flex min-h-screen bg-slate-50 dark:bg-[#020617] mesh-gradient overflow-x-hidden"
+      "flex min-h-screen bg-slate-50 dark:bg-[#0f172a] mesh-gradient overflow-x-hidden"
     )}>
       {isAuthScreen ? (
         children
@@ -149,7 +152,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
               className="flex flex-1 flex-col transition-[margin-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:ml-[var(--sidebar-w)]"
               style={{ "--sidebar-w": sidebarWidth } as React.CSSProperties}
             >
-              <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/50 dark:border-white/5 bg-white/60 dark:bg-black/20 px-4 md:px-6 backdrop-blur-xl">
+              <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/50 dark:border-slate-700/30 bg-white/60 dark:bg-slate-900/60 px-4 md:px-6 backdrop-blur-xl">
                 <button
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
@@ -207,7 +210,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                     </button>
 
                     {accountOpen && (
-                      <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                      <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700/40 dark:bg-slate-800">
                         <div className="flex items-start gap-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white dark:bg-white dark:text-slate-900">
                             {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
