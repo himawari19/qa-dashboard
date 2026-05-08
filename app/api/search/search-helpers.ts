@@ -185,7 +185,12 @@ export function buildSearchSql(columns: string[], companyClause: string, extraWh
 }
 
 export async function queryRows<T extends Row>(sql: string, params: unknown[] = []) {
-  return (await db.query(sql, params)) as T[];
+  try {
+    return (await db.query(sql, params)) as T[];
+  } catch (error) {
+    console.error("Search query failed:", error);
+    return [] as T[];
+  }
 }
 
 export async function queryFirst<T extends Row>(sql: string, params: unknown[] = []) {

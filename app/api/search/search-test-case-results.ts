@@ -4,10 +4,10 @@ export async function getTestCaseResults(query: string, companyClause: string, c
   const exactId = extractExactId(query, "TC");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT tc.id, tc.tcId, tc.caseName, tc.typeCase, tc.status, tc.priority,
-              tc.preCondition, tc.testStep, tc.expectedResult, tc.actualResult, tc.evidence,
+      `SELECT tc.id, tc."tcId", tc."caseName", tc."typeCase", tc.status, tc.priority,
+              tc."preCondition", tc."testStep", tc."expectedResult", tc."actualResult", tc.evidence,
               tc."testSuiteId", ts.title AS suiteTitle, ts."publicToken" AS suiteToken,
-              tp.title AS planTitle, tp.project AS planProject, tc.updatedAt
+              tp.title AS planTitle, tp.project AS planProject, tc."updatedAt"
        FROM "TestCase" tc
   LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
   LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
@@ -50,24 +50,24 @@ export async function getTestCaseResults(query: string, companyClause: string, c
   const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { statusColumn: 'tc."status"', assigneeColumn: 'ts."assignee"', dateColumn: 'tc."updatedAt"' });
   const rows = await queryRows<Row>(
-    `SELECT tc.id, tc.tcId, tc.caseName, tc.typeCase, tc.status, tc.priority,
-            tc.preCondition, tc.testStep, tc.expectedResult, tc.actualResult, tc.evidence,
+    `SELECT tc.id, tc."tcId", tc."caseName", tc."typeCase", tc.status, tc.priority,
+            tc."preCondition", tc."testStep", tc."expectedResult", tc."actualResult", tc.evidence,
             tc."testSuiteId", ts.title AS suiteTitle, ts."publicToken" AS suiteToken,
-            tp.title AS planTitle, tp.project AS planProject, tc.updatedAt
+            tp.title AS planTitle, tp.project AS planProject, tc."updatedAt"
      FROM "TestCase" tc
   LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
   LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
      WHERE tc."deletedAt" IS NULL
        AND (
-         LOWER(COALESCE(tc.tcId, '')) LIKE ?
-         OR LOWER(COALESCE(tc.caseName, '')) LIKE ?
-         OR LOWER(COALESCE(tc.typeCase, '')) LIKE ?
+         LOWER(COALESCE(tc."tcId", '')) LIKE ?
+         OR LOWER(COALESCE(tc."caseName", '')) LIKE ?
+         OR LOWER(COALESCE(tc."typeCase", '')) LIKE ?
          OR LOWER(COALESCE(tc.status, '')) LIKE ?
          OR LOWER(COALESCE(tc.priority, '')) LIKE ?
-         OR LOWER(COALESCE(tc.preCondition, '')) LIKE ?
-         OR LOWER(COALESCE(tc.testStep, '')) LIKE ?
-         OR LOWER(COALESCE(tc.expectedResult, '')) LIKE ?
-         OR LOWER(COALESCE(tc.actualResult, '')) LIKE ?
+         OR LOWER(COALESCE(tc."preCondition", '')) LIKE ?
+         OR LOWER(COALESCE(tc."testStep", '')) LIKE ?
+         OR LOWER(COALESCE(tc."expectedResult", '')) LIKE ?
+         OR LOWER(COALESCE(tc."actualResult", '')) LIKE ?
          OR LOWER(COALESCE(ts.title, '')) LIKE ?
          OR LOWER(COALESCE(tp.title, '')) LIKE ?
          OR LOWER(COALESCE(CAST(tc.id AS TEXT), '')) LIKE ?

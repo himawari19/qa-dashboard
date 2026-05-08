@@ -70,7 +70,7 @@ export function ModuleWorkspaceForm({
   versionSequenceDefaultValue,
 }: ModuleWorkspaceFormProps) {
   return (
-    <div id="module-form-section" className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-6 py-6 shadow-sm">
+    <div id="module-form-section" className="rounded-2xl border-t border-slate-200/60 dark:border-white/10 bg-transparent px-6 py-6 mb-6">
       <div className="mb-6 grid gap-3 sm:flex sm:items-center sm:justify-between">
         <div>
           <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
@@ -84,7 +84,7 @@ export function ModuleWorkspaceForm({
 
       <form
         id={`${module}-form`}
-        className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-xl"
+        className="rounded-2xl glass-card bg-white p-8 shadow-2xl"
         onChange={onFormChange}
         onSubmit={(event) => {
           event.preventDefault();
@@ -137,8 +137,8 @@ export function ModuleWorkspaceForm({
               type="submit"
               disabled={pending}
               className={cn(
-                "h-12 rounded-md px-8 text-sm font-bold text-white shadow-md transition duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-400",
-                "bg-emerald-600 hover:bg-emerald-700",
+                "h-12 rounded-lg px-8 text-sm font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50",
+                "bg-emerald-600 hover:bg-emerald-500",
               )}
             >
               {pending ? "Processing..." : editingRow ? `Save ${shortTitle}` : `Add ${shortTitle}`}
@@ -146,7 +146,7 @@ export function ModuleWorkspaceForm({
             <button
               type="button"
               onClick={onCancel}
-              className="h-12 rounded-md border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="h-12 rounded-lg glass-card px-5 text-sm font-bold text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
             >
               Cancel
             </button>

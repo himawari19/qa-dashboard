@@ -2,6 +2,7 @@
 
 import type { KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CaretDown } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -50,21 +51,21 @@ export const statusOptions = ["Pending", "Passed", "Failed", "Blocked"] as const
 export const priorityOptions = ["Critical", "High", "Medium", "Low"] as const;
 
 const toneCellClass: Record<string, string> = {
-  Positive: "bg-emerald-500 text-white",
-  Negative: "bg-rose-500 text-white",
-  Pending: "bg-amber-400 text-amber-950",
-  Passed: "bg-emerald-500 text-white",
-  PASSED: "bg-emerald-500 text-white",
-  Success: "bg-emerald-500 text-white",
-  SUCCESS: "bg-emerald-500 text-white",
-  Failed: "bg-rose-500 text-white",
-  FAILED: "bg-rose-500 text-white",
-  Blocked: "bg-slate-500 text-white",
-  BLOCKED: "bg-slate-500 text-white",
-  Critical: "bg-red-500 text-white",
-  High: "bg-orange-500 text-white",
-  Medium: "bg-blue-500 text-white",
-  Low: "bg-slate-500 text-white",
+  Positive: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
+  Negative: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400",
+  Pending: "bg-slate-200 text-slate-700 dark:bg-slate-600/30 dark:text-slate-400",
+  Passed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
+  PASSED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
+  Success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
+  SUCCESS: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
+  Failed: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400",
+  FAILED: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400",
+  Blocked: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400",
+  BLOCKED: "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400",
+  Critical: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400",
+  High: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400",
+  Medium: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400",
+  Low: "bg-slate-200 text-slate-700 dark:bg-slate-600/30 dark:text-slate-400",
 };
 
 export function getToneClass(fieldKey: string, value: string) {
@@ -97,7 +98,7 @@ export function Th({ children, w, className }: { children?: ReactNode; w: number
     <th
       style={{ width: w, minWidth: w, maxWidth: w }}
       className={cn(
-        "border border-slate-300 bg-slate-100 px-2 py-[5px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-600 select-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300",
+        "border-b border-r border-slate-100 bg-transparent px-2 py-[5px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500 select-none dark:border-white/5 dark:text-slate-400 backdrop-blur-md",
         className,
       )}
     >
@@ -112,7 +113,7 @@ export function ReadCell({ value, w, onClick }: { value: string; w: number; onCl
       style={{ width: w, minWidth: w, maxWidth: w }}
       onClick={onClick}
       className={cn(
-        "border border-slate-200 bg-white px-[6px] py-[4px] align-top text-[12px] leading-[1.4] transition-colors dark:border-slate-600 dark:bg-slate-800",
+        "border-b border-r border-slate-100 bg-transparent px-[6px] py-[4px] align-top text-[12px] leading-[1.4] transition-colors dark:border-white/5",
         onClick ? "cursor-text hover:bg-slate-50 dark:hover:bg-slate-700/70" : "text-slate-700 dark:text-slate-300",
       )}
     >
@@ -130,8 +131,8 @@ export function BadgeCell({ value, w, fieldKey, onClick }: { value: string; w: n
       style={{ width: w, minWidth: w, maxWidth: w }}
       onClick={onClick}
       className={cn(
-        "border border-slate-200 p-0 align-top dark:border-slate-600",
-        toneClass || "bg-white dark:bg-slate-800",
+        "border-b border-r border-slate-100 p-0 align-top dark:border-white/5",
+        toneClass || "bg-transparent",
       )}
     >
       <div className="flex min-h-[28px] h-full w-full items-center px-[6px] py-[4px] text-[11px] font-bold uppercase tracking-wide">
@@ -220,7 +221,7 @@ export function EditTextCell({
     <td
       style={{ width: w, minWidth: w, maxWidth: w }}
       onClick={() => innerRef.current?.focus()}
-      className="relative border border-slate-200 bg-white p-0 align-top focus-within:ring-2 focus-within:ring-inset focus-within:ring-sky-400 dark:border-slate-600 dark:bg-slate-800"
+      className="relative border-b border-r border-slate-100 bg-transparent p-0 align-top focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-400 dark:border-white/5"
     >
       {multiline ? (
         <textarea
@@ -333,8 +334,8 @@ export function CustomSelect({
       style={{ width: w, minWidth: w, maxWidth: w }}
       onClick={openDropdown}
       className={cn(
-        "relative border border-slate-200 p-0 align-top cursor-pointer dark:border-slate-600",
-        toneClass || "bg-white dark:bg-slate-800",
+        "relative border-b border-r border-slate-100 p-0 align-top cursor-pointer dark:border-white/5",
+        toneClass || "bg-transparent",
       )}
     >
       <button
@@ -353,10 +354,10 @@ export function CustomSelect({
         </span>
         <CaretDown size={10} weight="bold" className="shrink-0 opacity-70" />
       </button>
-      {open && rect && (
+      {open && rect && typeof document !== 'undefined' && createPortal(
         <ul
           ref={listRef}
-          style={{ position: "fixed", top: rect.top, left: rect.left, minWidth: rect.width, zIndex: 9999 }}
+          style={{ position: "fixed", top: rect.top, left: rect.left, minWidth: rect.width, zIndex: 99999 }}
           className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-800"
         >
           {options.map((opt) => {
@@ -379,7 +380,8 @@ export function CustomSelect({
               </li>
             );
           })}
-        </ul>
+        </ul>,
+        document.body
       )}
     </td>
   );

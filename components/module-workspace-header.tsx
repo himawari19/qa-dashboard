@@ -39,7 +39,7 @@ export function ModuleWorkspaceHeader({
 }: WorkspaceHeaderProps) {
   return (
     <>
-      <div className="border-b border-slate-200 bg-slate-50 px-6 py-6 dark:border-slate-700 dark:bg-slate-800">
+      <div className="border-b border-slate-200/60 bg-transparent px-6 py-6 dark:border-white/10">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700 dark:text-blue-400">{shortTitle}</p>
@@ -53,7 +53,7 @@ export function ModuleWorkspaceHeader({
                 <button
                   type="button"
                   onClick={onToggleForm}
-                  className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:border-emerald-600 hover:bg-emerald-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  className="inline-flex h-11 items-center gap-2 rounded-lg glass-card px-5 text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:bg-emerald-500 hover:text-white hover:border-emerald-500 dark:hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   <Plus size={16} weight="bold" className="shrink-0" />
                   Add {shortTitle}
@@ -64,7 +64,7 @@ export function ModuleWorkspaceHeader({
                 href={`/api/export/${module}`}
                 title="Export Excel"
                 aria-label="Export Excel"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-lg glass-card text-slate-600 dark:text-slate-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:bg-blue-500 hover:text-white hover:border-blue-500 dark:hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 <FileXls size={16} weight="bold" />
               </Link>
@@ -73,7 +73,7 @@ export function ModuleWorkspaceHeader({
                 href={`/api/export/${module}?format=pdf`}
                 title="Print / Export PDF"
                 aria-label="Print / Export PDF"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-lg glass-card text-slate-600 dark:text-slate-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:bg-blue-500 hover:text-white hover:border-blue-500 dark:hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 <FilePdf size={16} weight="bold" />
               </Link>
@@ -82,7 +82,7 @@ export function ModuleWorkspaceHeader({
                 <label
                   title="Import Excel"
                   aria-label="Import Excel"
-                  className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg glass-card text-slate-600 dark:text-slate-300 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:bg-blue-500 hover:text-white hover:border-blue-500 dark:hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <UploadSimple size={16} weight="bold" />
                   <input
@@ -104,18 +104,18 @@ export function ModuleWorkspaceHeader({
       </div>
 
       {!showForm && (
-        <div className="sticky top-0 z-[var(--z-sticky)] space-y-4 border-b border-slate-200 bg-white/95 px-6 py-5 text-sm text-slate-600 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-400 lg:px-6">
+        <div className="sticky top-0 z-[var(--z-sticky)] space-y-4 border-b border-slate-200/60 bg-white px-6 py-5 text-sm text-slate-600 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400 lg:px-6">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-3">
               {hasKanban ? (
-                <div className="flex h-10 items-center overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex h-10 items-center overflow-hidden rounded-lg glass-card">
                   <button
                     type="button"
                     onClick={() => onSetViewMode("table")}
-                    className={`h-full px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 ${
+                    className={`h-full px-4 text-sm font-bold transition-colors focus-visible:outline-none ${
                       viewMode === "table"
-                        ? "bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100"
-                        : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700/50"
+                        ? "bg-slate-200 text-slate-900 dark:bg-slate-700/60 dark:text-slate-100"
+                        : "text-slate-600 hover:bg-slate-100/50 dark:text-slate-300 dark:hover:bg-slate-800/50"
                     }`}
                   >
                     Table
@@ -123,10 +123,10 @@ export function ModuleWorkspaceHeader({
                   <button
                     type="button"
                     onClick={() => onSetViewMode("kanban")}
-                    className={`h-full border-l border-slate-200 px-4 text-sm font-semibold transition dark:border-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 ${
+                    className={`h-full border-l border-slate-200/60 px-4 text-sm font-bold transition-colors dark:border-white/10 focus-visible:outline-none ${
                       viewMode === "kanban"
-                        ? "bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100"
-                        : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700/50"
+                        ? "bg-slate-200 text-slate-900 dark:bg-slate-700/60 dark:text-slate-100"
+                        : "text-slate-600 hover:bg-slate-100/50 dark:text-slate-300 dark:hover:bg-slate-800/50"
                     }`}
                   >
                     Kanban

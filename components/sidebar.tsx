@@ -153,7 +153,7 @@ export function NotificationPanel({
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full z-[var(--z-notification)] mt-2 w-80 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in fade-in slide-in-from-top-2 duration-150 dark:bg-slate-800 dark:ring-slate-700/50"
+      className="absolute right-0 top-full z-[var(--z-notification)] mt-2 w-80 overflow-hidden rounded-2xl glass-card shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150"
     >
       <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
         <p className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Notifications</p>
@@ -232,11 +232,11 @@ function SidebarNavItem({
       onMouseEnter={(e) => showTooltip(e, item.label)}
       onMouseLeave={hideTooltip}
       className={cn(
-        "group relative flex h-10 items-center rounded-md text-sm font-semibold transition-all duration-200",
+        "group relative flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-300",
         collapsed ? "justify-center px-0" : "gap-3 px-3",
         active
-          ? "bg-sky-500/15 text-sky-700 ring-1 ring-sky-300/40 dark:bg-sky-400/10 dark:text-sky-300 dark:ring-sky-500/30"
-          : "text-slate-600 dark:text-slate-400 hover:bg-sky-100 hover:text-sky-800 dark:hover:bg-white/10 dark:hover:text-white",
+          ? "glass-card bg-sky-500/10 text-sky-700 border-sky-200/50 dark:bg-sky-400/10 dark:text-sky-300 dark:border-sky-500/30 shadow-sm"
+          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 dark:hover:text-slate-200",
       )}
     >
       {active && !collapsed && <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sky-600 shadow-[0_0_10px_rgba(14,165,233,0.7)]" />}
@@ -321,7 +321,7 @@ function SidebarActionButton({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={cn(
-        "flex h-10 w-full items-center rounded-md text-sm font-semibold transition-all duration-200",
+        "flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-300",
         tone,
         collapsed ? "justify-center px-0" : "gap-3 px-3",
       )}
@@ -363,7 +363,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/50 dark:border-slate-700/30 bg-white/70 dark:bg-slate-900/80 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] backdrop-blur-xl",
+          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0B1120] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
           collapsed ? "w-[72px]" : "w-[240px]",
         )}
       >

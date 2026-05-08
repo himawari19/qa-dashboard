@@ -156,7 +156,7 @@ export function ModuleWorkspaceShell({
 }: Props) {
   return (
     <>
-      <section className="border border-[#c9d7e3] overflow-hidden rounded-md bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <section className="overflow-hidden rounded-2xl glass-card">
         <ModuleWorkspaceHeader
           module={module as any}
           title={config.title}
@@ -229,7 +229,7 @@ export function ModuleWorkspaceShell({
             onNextPage={onNextPage}
           />
         ) : !showForm ? (
-          <div className="overflow-hidden bg-slate-50 dark:bg-slate-800/50 border-t border-[#d9e2ea] dark:border-slate-700 p-5">
+          <div className="overflow-hidden bg-transparent border-t border-slate-200/60 dark:border-white/10 p-5">
             <KanbanBoard rows={visibleRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
           </div>
         ) : null}

@@ -158,10 +158,10 @@ function StatCard({ label, value, icon, color, onClick, active, caption }: {
   return (
     <button onClick={onClick}
       className={cn(
-        "flex flex-col gap-3 rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg group",
+        "flex flex-col gap-3 p-5 text-left transition-all hover:-translate-y-1 hover:shadow-xl group glass-card bg-white rounded-2xl",
         active
-          ? "border-blue-400 ring-2 ring-blue-400/30 bg-white dark:bg-slate-800/80"
-          : "border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600/50"
+          ? "border-blue-400 ring-2 ring-blue-400/30"
+          : "hover:border-slate-300 dark:hover:border-slate-600/50"
       )}>
       <div className="flex items-center justify-between">
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", color)}>{icon}</div>
@@ -437,7 +437,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-3">
 
         {/* Bug by Module */}
-        <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="flex min-h-0 min-w-0 flex-col rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bugs by Module</h3>
             <ChartBar size={15} className="text-slate-400" weight="bold" />
@@ -466,7 +466,7 @@ export function Dashboard({
         </div>
 
         {/* Bug Severity donut */}
-        <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="flex min-h-0 flex-col rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bug Severity</h3>
             <Bug size={15} className="text-slate-400" weight="bold" />
@@ -494,7 +494,7 @@ export function Dashboard({
         </div>
 
         {/* Task Status donut */}
-        <div className="flex min-h-0 flex-col min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="flex min-h-0 flex-col min-w-0 rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Task Status</h3>
             <Kanban size={15} className="text-slate-400" weight="bold" />
@@ -526,7 +526,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-3">
 
         {/* Session execution trend */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="lg:col-span-2 rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Execution Trend</h3>
             <TrendUp size={15} className="text-slate-400" weight="bold" />
@@ -562,7 +562,7 @@ export function Dashboard({
         </div>
 
         {/* Sprint */}
-        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5 flex flex-col">
+        <div className="rounded-2xl glass-card bg-white p-5 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Active Sprint</h3>
             <CalendarBlank size={15} className="text-slate-400" weight="bold" />
@@ -605,7 +605,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-2">
 
         {/* Sprint Burndown */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="min-w-0 rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Sprint Burndown</h3>
             <TrendUp size={15} className="text-violet-400" weight="bold" />
@@ -631,7 +631,7 @@ export function Dashboard({
         </div>
 
         {/* Pass Rate per Sprint */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="min-w-0 rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Pass Rate per Sprint</h3>
             <Checks size={15} className="text-emerald-400" weight="bold" />
@@ -663,7 +663,7 @@ export function Dashboard({
       {/* ── Bug Trend (7 days) ── */}
       {bugTrendData.length > 0 && (
         <section>
-          <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+          <div className="min-w-0 rounded-2xl glass-card bg-white p-5">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Bug Trend</h3>
               <Bug size={15} className="text-rose-400" weight="bold" />
@@ -716,7 +716,7 @@ export function Dashboard({
         </div>
 
         {/* Critical bugs */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="min-w-0 rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-rose-500">Critical Bugs</h3>
             <Link href="/bugs" prefetch={false} className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
@@ -737,7 +737,7 @@ export function Dashboard({
         </div>
 
         {/* Priority tasks */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="min-w-0 rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-blue-500">Priority Tasks</h3>
             <Link href="/tasks" prefetch={false} className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-0.5">View All <ArrowRight size={10} /></Link>
@@ -762,7 +762,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-2">
 
         {/* Activity timeline */}
-        <div className="flex h-[28rem] min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="flex h-[28rem] min-h-0 flex-col rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Recent Activity</h3>
             <Clock size={15} className="text-slate-400" weight="bold" />
@@ -796,7 +796,7 @@ export function Dashboard({
         </div>
 
         {/* Team workload */}
-        <div className="flex h-[28rem] min-h-0 flex-col rounded-xl border border-slate-200 bg-white dark:border-slate-700/40 dark:bg-slate-800/60 p-5">
+        <div className="flex h-[28rem] min-h-0 flex-col rounded-2xl glass-card bg-white p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white">Team Workload</h3>
             <User size={15} className="text-slate-400" weight="bold" />

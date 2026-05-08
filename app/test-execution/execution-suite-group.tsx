@@ -61,18 +61,22 @@ export function ExecutionSuiteGroup({ suites }: { suites: Suite[] }) {
     <div className="relative">
       {showArrows && canScrollLeft && (
         <button
+          type="button"
           onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-md bg-white border border-slate-200 shadow-md text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Scroll left"
         >
-          <CaretLeft size={16} weight="bold" />
+          <CaretLeft size={17} weight="bold" className="text-slate-700 dark:text-slate-100" />
         </button>
       )}
       {showArrows && canScrollRight && (
         <button
+          type="button"
           onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-md bg-white border border-slate-200 shadow-md text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Scroll right"
         >
-          <CaretRight size={16} weight="bold" />
+          <CaretRight size={17} weight="bold" className="text-slate-700 dark:text-slate-100" />
         </button>
       )}
 
@@ -84,16 +88,16 @@ export function ExecutionSuiteGroup({ suites }: { suites: Suite[] }) {
         {suites.map((suite) => (
           <div
             key={suite.id}
-            className="group relative flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white p-5 transition-all hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-900 flex-shrink-0 w-[300px]"
+            className="group relative flex flex-col overflow-hidden rounded-2xl glass-card bg-white dark:bg-slate-900/60 p-5 transition-all duration-300 hover:border-blue-400 hover:shadow-xl dark:hover:border-blue-500/50 flex-shrink-0 w-[300px]"
           >
             <div className="mb-4 flex items-start justify-between">
-              <div className="h-10 w-10 rounded-md bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors dark:bg-slate-800 dark:group-hover:bg-blue-950/30">
+              <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-50 transition-colors dark:bg-slate-800 dark:group-hover:bg-blue-900/30">
                 <Table size={20} weight="bold" />
               </div>
               <Badge value={suite.status} />
             </div>
 
-            <h4 className="mb-1 text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <h4 className="mb-1 text-base font-bold text-slate-900 dark:text-white transition-colors">
               {suite.title}
             </h4>
             <p className="mb-6 text-sm text-slate-500 line-clamp-2 min-h-[40px]">

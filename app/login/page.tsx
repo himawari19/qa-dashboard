@@ -87,9 +87,9 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50 font-sans">
+    <div className="flex min-h-screen w-full bg-slate-50 dark:bg-[#0B1120] font-sans">
       {/* Left Side: Visual/Branding */}
-      <div className="hidden lg:flex w-1/2 bg-[#2563eb] relative overflow-hidden items-center justify-center p-12">
+      <div className="hidden lg:flex w-1/2 bg-slate-950 mesh-gradient relative overflow-hidden items-center justify-center p-12 border-r border-white/5">
         {/* Animated Background Shapes */}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-400/20 rounded-full blur-3xl animate-pulse delay-700" />
@@ -108,10 +108,10 @@ function LoginContent() {
       </div>
 
       {/* Right Side: Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 md:p-12 bg-white overflow-y-auto max-h-screen">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 md:p-12 bg-slate-50 dark:bg-[#0B1120] overflow-y-auto max-h-screen">
+        <div className="w-full max-w-md rounded-2xl glass-card p-6 sm:p-8 shadow-2xl">
           <div className="mb-6 text-center lg:text-left">
-            <h2 className="text-2xl font-bold text-slate-900 mb-1">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
               {mode === "signup" ? "Get started now" :
                mode === "forgot" ? "Reset password" :
                "Welcome back"}
@@ -133,7 +133,7 @@ function LoginContent() {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="John Doe"
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
+                  className="w-full glass-card bg-white/50 dark:bg-slate-900/50 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 px-4 py-2.5 rounded-xl outline-none transition-all duration-300 text-slate-900 dark:text-slate-100 font-medium text-sm"
                   required
                 />
               </div>
@@ -147,7 +147,7 @@ function LoginContent() {
                       value={formData.email}
                 onChange={handleInputChange}
                 placeholder="name@company.com"
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
+                className="w-full glass-card bg-white/50 dark:bg-slate-900/50 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 px-4 py-2.5 rounded-xl outline-none transition-all duration-300 text-slate-900 dark:text-slate-100 font-medium text-sm"
                 required
               />
             </div>
@@ -174,7 +174,7 @@ function LoginContent() {
                       value={formData.password}
                       onChange={handleInputChange}
                       placeholder="••••••••"
-                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 pr-11 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
+                      className="w-full glass-card bg-white/50 dark:bg-slate-900/50 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 px-4 py-2.5 pr-11 rounded-xl outline-none transition-all duration-300 text-slate-900 dark:text-slate-100 font-medium text-sm"
                       required
                     />
                     <button
@@ -195,7 +195,7 @@ function LoginContent() {
                       name="role"
                       value={formData.role}
                       onChange={handleInputChange}
-                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium appearance-none text-sm"
+                      className="w-full glass-card bg-white/50 dark:bg-slate-900/50 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 px-4 py-2.5 rounded-xl outline-none transition-all duration-300 text-slate-900 dark:text-slate-100 font-medium appearance-none text-sm"
                       required
                     >
                       <option value="" disabled>Select your role</option>
@@ -215,7 +215,7 @@ function LoginContent() {
                       value={formData.company}
                       onChange={handleInputChange}
                       placeholder="e.g. Acme Corp"
-                      className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-600 focus:bg-white px-4 py-2.5 rounded-xl outline-none transition-all text-slate-900 font-medium text-sm"
+                      className="w-full glass-card bg-white/50 dark:bg-slate-900/50 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 px-4 py-2.5 rounded-xl outline-none transition-all duration-300 text-slate-900 dark:text-slate-100 font-medium text-sm"
                       required
                     />
                   </div>
@@ -232,7 +232,7 @@ function LoginContent() {
             <button
               type="submit"
               disabled={pending}
-              className="w-full bg-blue-600 text-white font-black py-3 rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2 text-sm uppercase tracking-widest"
+              className="w-full bg-blue-600 text-white font-black py-3 rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-500 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 mt-2 text-sm uppercase tracking-widest"
             >
               <span>{pending ? "Processing..." :
                     mode === "signup" ? "Create Account" :

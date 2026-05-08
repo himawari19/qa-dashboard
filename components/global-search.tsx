@@ -395,7 +395,7 @@ export function GlobalSearch({
     <div className="fixed inset-0 z-[500] flex items-start justify-center px-3 pt-[6vh]">
       <button type="button" aria-label="Close search" onClick={() => setOpen(false)} className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" />
 
-      <div className="relative z-[501] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+      <div className="relative z-[501] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-900">
         <div className="border-b border-slate-100 px-4 py-3 dark:border-white/5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-300">
@@ -410,7 +410,7 @@ export function GlobalSearch({
 
         <div className="space-y-3 px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
+            <div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 dark:border-white/10 dark:bg-slate-800/60 transition-all focus-within:border-slate-300 focus-within:shadow-sm dark:focus-within:border-slate-700">
               <MagnifyingGlass size={15} weight="bold" className="shrink-0 text-slate-400" />
               <input
                 ref={inputRef}
@@ -418,7 +418,10 @@ export function GlobalSearch({
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search..."
-                className="w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                className="w-full border-none bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-none focus:outline-none focus:ring-0 dark:text-slate-100"
               />
               {query && (
                 <button type="button" onClick={() => setQuery("")} className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white">
@@ -427,7 +430,7 @@ export function GlobalSearch({
               )}
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 shadow-sm dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300">
               {scopeLabel}
             </div>
 
@@ -436,10 +439,10 @@ export function GlobalSearch({
               onClick={() => setShowFilters((v) => !v)}
               aria-label="More filters"
               className={cn(
-                "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border shadow-sm transition",
+                "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border shadow-sm transition-all",
                 showFilters
-                  ? "border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-950/30 dark:text-sky-200"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300",
+                  ? "border-sky-400 bg-sky-100 text-sky-700 dark:border-sky-500/50 dark:bg-sky-900/50 dark:text-sky-200"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300",
               )}
             >
               <SlidersHorizontal size={13} weight="bold" />
@@ -452,10 +455,10 @@ export function GlobalSearch({
               onClick={() => scrollScopes("left")}
               aria-label="Scroll scopes left"
               className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full border shadow-sm transition",
+                "flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full border shadow-sm transition-all",
                 scopeCanScrollLeft
-                  ? "border-slate-200 bg-white text-slate-500 hover:border-sky-300 hover:text-sky-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
-                  : "border-slate-100 bg-slate-50 text-slate-300 cursor-default dark:border-white/5 dark:bg-white/[0.02] dark:text-slate-600",
+                  ? "border-slate-200 bg-white text-slate-500 hover:border-sky-400 hover:text-sky-700 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300"
+                  : "border-slate-100 bg-white text-slate-300 cursor-default dark:border-white/5 dark:bg-white/5 dark:text-slate-600",
               )}
             >
               <CaretLeft size={12} weight="bold" />
@@ -504,10 +507,10 @@ export function GlobalSearch({
               onClick={() => scrollScopes("right")}
               aria-label="Scroll scopes right"
               className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full border shadow-sm transition",
+                "flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full border shadow-sm transition-all",
                 scopeCanScrollRight
-                  ? "border-slate-200 bg-white text-slate-500 hover:border-sky-300 hover:text-sky-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
-                  : "border-slate-100 bg-slate-50 text-slate-300 cursor-default dark:border-white/5 dark:bg-white/[0.02] dark:text-slate-600",
+                  ? "border-slate-200 bg-white text-slate-500 hover:border-sky-400 hover:text-sky-700 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300"
+                  : "border-slate-100 bg-white text-slate-300 cursor-default dark:border-white/5 dark:bg-white/5 dark:text-slate-600",
               )}
             >
               <CaretRight size={12} weight="bold" />
@@ -520,25 +523,25 @@ export function GlobalSearch({
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
                 placeholder="Status"
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400 transition-all focus:border-slate-300 focus:ring-0 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-200 dark:focus:border-slate-700"
               />
               <input
                 value={assignee}
                 onChange={(event) => setAssignee(event.target.value)}
                 placeholder="Assignee"
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400 transition-all focus:border-slate-300 focus:ring-0 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-200 dark:focus:border-slate-700"
               />
               <input
                 value={from}
                 onChange={(event) => setFrom(event.target.value)}
                 type="date"
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none transition-all focus:border-slate-300 focus:ring-0 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-200 dark:focus:border-slate-700"
               />
               <input
                 value={to}
                 onChange={(event) => setTo(event.target.value)}
                 type="date"
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none transition-all focus:border-slate-300 focus:ring-0 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-200 dark:focus:border-slate-700"
               />
             </div>
           )}
@@ -579,7 +582,7 @@ export function GlobalSearch({
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
                       Search once to populate recent queries.
                     </div>
                   )}
@@ -593,7 +596,7 @@ export function GlobalSearch({
                   <ResultSkeleton />
                 </div>
               ) : flatResults.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 dark:border-white/10 dark:bg-white/5">
+                <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 dark:border-white/10 dark:bg-white/5">
                   <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                     No results for <span className="text-sky-600 dark:text-sky-400">&ldquo;{query}&rdquo;</span>
                   </p>
@@ -702,7 +705,7 @@ export function GlobalSearch({
             </div>
 
             <aside className="hidden lg:block self-stretch">
-              <div className="sticky top-0 h-full rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="sticky top-0 h-full rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-800/40">
                 {activeResult ? (
                   <div className="flex h-full flex-col space-y-3">
                     <div className="flex items-start justify-between gap-3">
@@ -715,18 +718,18 @@ export function GlobalSearch({
                         {activeResult.type}
                       </span>
                     </div>
-                    <div className="rounded-xl bg-white p-3 text-xs text-slate-600 shadow-sm dark:bg-slate-950 dark:text-slate-300">
+                    <div className="rounded-xl border border-slate-100 bg-white p-3 text-xs text-slate-600 shadow-sm dark:border-white/5 dark:bg-slate-800/60 dark:text-slate-300">
                       <HighlightText text={activeResult.snippet} query={query} linkify={false} />
                     </div>
                     <div className="flex flex-wrap gap-2 text-[10px] font-semibold text-slate-500">
-                      <span className="rounded-full bg-white px-2.5 py-1 dark:bg-slate-950">{activeResult.code}</span>
-                      <span className="rounded-full bg-white px-2.5 py-1 dark:bg-slate-950">{activeResult.matchedField}</span>
+                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 dark:border-white/10 dark:bg-slate-800/60">{activeResult.code}</span>
+                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 dark:border-white/10 dark:bg-slate-800/60">{activeResult.matchedField}</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => copyCode(activeResult.code)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200"
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-200 hover:scale-105"
                         title="Copy code"
                       >
                         <CopySimple size={14} weight="bold" />
@@ -735,7 +738,7 @@ export function GlobalSearch({
                       <button
                         type="button"
                         onClick={() => openResultNewTab(activeResult)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-100 dark:border-violet-500/20 dark:bg-violet-950/20 dark:text-violet-300"
+                        className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-100 dark:border-violet-500/20 dark:bg-violet-900/30 dark:text-violet-300 hover:scale-105"
                         title="Open in new tab (Ctrl+Enter)"
                       >
                         <ArrowSquareOut size={14} weight="bold" />
@@ -744,7 +747,7 @@ export function GlobalSearch({
                       <button
                         type="button"
                         onClick={() => openResult(activeResult)}
-                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800 dark:bg-white/90 dark:text-slate-900 dark:hover:bg-white hover:scale-105 shadow-md"
                         title="Open (Enter)"
                       >
                         <ArrowRight size={14} weight="bold" />

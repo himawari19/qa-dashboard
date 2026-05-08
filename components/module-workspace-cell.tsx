@@ -78,7 +78,7 @@ export function ModuleWorkspaceCell({
       <td
         key={column.key}
         rowSpan={rowSpan}
-        className="max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-top whitespace-pre-wrap break-words"
+        className="max-w-64 border-b border-slate-200/60 dark:border-white/10 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-top whitespace-pre-wrap break-words"
       >
         {column.internalLink && value ? (
           <Link href={column.internalLink(row)} className="break-all text-blue-700 font-semibold hover:underline">
@@ -94,7 +94,7 @@ export function ModuleWorkspaceCell({
   return (
     <td
       key={column.key}
-      className={cn("max-w-64 border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-top whitespace-pre-wrap break-words")}
+      className={cn("max-w-64 border-b border-slate-200/60 dark:border-white/10 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 align-top whitespace-pre-wrap break-words")}
     >
       {column.internalLink && value ? (
         <Link href={column.internalLink(row)} className="break-all text-blue-700 font-semibold hover:underline">

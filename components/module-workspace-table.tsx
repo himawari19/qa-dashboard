@@ -73,20 +73,20 @@ export function ModuleWorkspaceTable({
   return (
     <div className="max-w-full overflow-x-auto px-6 pb-32 pt-6">
       <table className="w-full min-w-[980px] border-collapse table-auto">
-        <thead className="bg-slate-100 dark:bg-slate-800">
+        <thead className="bg-transparent">
           <tr>
-            <th className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400 w-12">
+            <th className="border-b border-slate-200/60 dark:border-white/10 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400 w-12">
               No.
             </th>
             {visibleColumns.map((column) => (
               <th
                 key={column.key}
-                className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400"
+                className="border-b border-slate-200/60 dark:border-white/10 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400"
               >
                 {column.label}
               </th>
             ))}
-            <th className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400">
+            <th className="border-b border-slate-200/60 dark:border-white/10 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400">
               Action
             </th>
           </tr>
@@ -104,11 +104,11 @@ export function ModuleWorkspaceTable({
               <tr
                 key={String(row.id)}
                 className={cn(
-                  "bg-white dark:bg-slate-900 align-top transition-colors even:bg-slate-50/70 dark:even:bg-slate-800/50",
+                  "bg-transparent align-top transition-all duration-200 hover:bg-slate-50 dark:hover:bg-white/5",
                   pendingDeleteId === row.id && "opacity-40 pointer-events-none",
                 )}
               >
-                <td className="relative border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 text-center text-xs font-bold text-slate-400 align-top">
+                <td className="relative border-b border-slate-200/60 dark:border-white/10 px-3 py-2 text-center text-xs font-bold text-slate-400 align-top">
                   {(safePage - 1) * PAGE_SIZE + index + 1}
                   {module === "bugs" && row.status !== "fixed" && row.status !== "closed" && row.createdAt && !isNaN(new Date(String(row.createdAt)).getTime()) && (() => {
                     const days = Math.floor((new Date().getTime() - new Date(String(row.createdAt)).getTime()) / (24 * 60 * 60 * 1000));
@@ -131,7 +131,7 @@ export function ModuleWorkspaceTable({
                     value={row[column.key]}
                   />
                 ))}
-                <td className="border border-[#d9e2ea] dark:border-slate-700 px-3 py-2 align-top">
+                <td className="border-b border-slate-200/60 dark:border-white/10 px-3 py-2 align-top">
                   <ModuleRowActions
                     module={module}
                     row={row}

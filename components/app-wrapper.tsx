@@ -127,7 +127,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={cn(
-      "flex min-h-screen bg-slate-50 dark:bg-[#0f172a] mesh-gradient overflow-x-hidden"
+      "flex min-h-screen bg-slate-50 dark:bg-[#0B1120] mesh-gradient overflow-x-hidden"
     )}>
       {isAuthScreen ? (
         children
@@ -152,7 +152,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
               className="flex flex-1 flex-col transition-[margin-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:ml-[var(--sidebar-w)]"
               style={{ "--sidebar-w": sidebarWidth } as React.CSSProperties}
             >
-              <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/50 dark:border-slate-700/30 bg-white/60 dark:bg-slate-900/60 px-4 md:px-6 backdrop-blur-xl">
+              <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0B1120]/60 px-4 md:px-6 backdrop-blur-xl">
                 <button
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
@@ -167,7 +167,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                     onClick={() => setDark((v) => !v)}
                     title={dark ? "Switch to light mode" : "Switch to dark mode"}
                     aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-                    className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 shadow-sm transition-all hover:scale-105 active:scale-95"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl glass-card text-slate-600 dark:text-slate-300 shadow-sm transition-all duration-300 hover:scale-110 active:scale-95"
                   >
                     {dark ? <Sun size={18} weight="bold" /> : <Moon size={18} weight="bold" />}
                   </button>
@@ -178,7 +178,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                       onClick={() => setNotifOpen((v) => !v)}
                       title="Notifications"
                       aria-label="Notifications"
-                      className="relative flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 shadow-sm transition-all hover:scale-105 active:scale-95"
+                      className="relative flex h-10 w-10 items-center justify-center rounded-xl glass-card text-slate-600 dark:text-slate-300 shadow-sm transition-all duration-300 hover:scale-110 active:scale-95"
                     >
                       <Bell size={18} weight="bold" />
                       {notifCount > 0 && (
@@ -193,7 +193,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                     <button
                       type="button"
                       onClick={() => setAccountOpen((v) => !v)}
-                      className="flex h-10 items-center gap-2 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-2.5 text-left shadow-sm transition hover:scale-[1.02]"
+                      className="flex h-10 items-center gap-2 rounded-xl glass-card px-2.5 text-left shadow-sm transition-all duration-300 hover:scale-105"
                     >
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white dark:bg-white dark:text-slate-900">
                         {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
@@ -210,7 +210,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                     </button>
 
                     {accountOpen && (
-                      <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700/40 dark:bg-slate-800">
+                      <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl glass-card p-4 shadow-2xl">
                         <div className="flex items-start gap-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white dark:bg-white dark:text-slate-900">
                             {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
@@ -229,7 +229,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
                           </div>
                         </div>
 
-                        <div className="mt-4 grid gap-2 rounded-2xl bg-slate-50 p-3 text-xs dark:bg-white/5">
+                        <div className="mt-4 grid gap-2 rounded-2xl glass-card bg-white dark:bg-slate-800/40 p-3 text-xs">
                           <div className="flex items-center justify-between">
                             <span className="text-slate-500 dark:text-slate-400">Email</span>
                             <span className="font-bold text-slate-800 dark:text-slate-100">{user?.email || "-"}</span>

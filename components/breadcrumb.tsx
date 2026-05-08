@@ -14,7 +14,7 @@ export function Breadcrumb({ crumbs, className }: { crumbs: Crumb[]; className?:
               {crumb.label}
             </Link>
           ) : (
-            <span className="text-slate-800">{crumb.label}</span>
+            <span className="text-slate-800 dark:text-slate-100">{crumb.label}</span>
           )}
         </span>
       ))}

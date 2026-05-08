@@ -113,8 +113,8 @@ export function KanbanBoard({
               <div
                 key={status.value}
                 className={cn(
-                  "flex flex-col rounded-md border-2 bg-white dark:bg-slate-800/60 p-4 shadow-sm transition-all duration-200",
-                  isDropTarget ? accent.drop + " shadow-lg scale-[1.01]" : accent.border,
+                  "flex flex-col rounded-2xl glass-card p-4 transition-all duration-300 border-t-4",
+                  isDropTarget ? accent.drop + " shadow-xl scale-[1.02]" : accent.border,
                 )}
                 onDragOver={(e) => handleDragOver(e, status.value)}
                 onDragLeave={() => setDragOverStatus(null)}
@@ -141,7 +141,7 @@ export function KanbanBoard({
                         setDraggedId(null);
                         setDragOverStatus(null);
                       }}
-                      className="cursor-pointer rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70"
+                      className="cursor-pointer rounded-xl glass-card bg-white dark:bg-slate-800/60 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
                     >
                       <div className="mb-2.5 flex items-start justify-between gap-2">
                         <span className="truncate text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
@@ -166,10 +166,10 @@ export function KanbanBoard({
 
                 <div
                   className={cn(
-                    "mt-2.5 flex min-h-[4rem] shrink-0 items-center justify-center rounded-md border-2 border-dashed transition-all duration-200",
+                    "mt-2.5 flex min-h-[4rem] shrink-0 items-center justify-center rounded-xl border-2 border-dashed transition-all duration-300",
                     isDropTarget
-                      ? "border-sky-400 bg-sky-50/60 dark:bg-sky-900/20"
-                      : "border-slate-200 dark:border-slate-700 bg-transparent",
+                      ? "border-sky-400 bg-sky-500/10 dark:bg-sky-400/10"
+                      : "border-slate-200/60 dark:border-white/10 bg-transparent",
                   )}
                 >
                   <p
@@ -191,7 +191,7 @@ export function KanbanBoard({
         <button
           type="button"
           onClick={() => scrollByAmount(-320)}
-          className="absolute left-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          className="absolute left-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
           aria-label="Scroll left"
         >
           <CaretLeft size={17} weight="bold" className="text-slate-700 dark:text-slate-100" />
@@ -201,7 +201,7 @@ export function KanbanBoard({
         <button
           type="button"
           onClick={() => scrollByAmount(320)}
-          className="absolute right-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          className="absolute right-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
           aria-label="Scroll right"
         >
           <CaretRight size={17} weight="bold" className="text-slate-700 dark:text-slate-100" />

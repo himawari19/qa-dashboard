@@ -30,8 +30,8 @@ export function PageShell({
           <Breadcrumb crumbs={crumbs} />
         </div>
       )}
-      <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
-        <div className="border-b border-slate-200 dark:border-slate-700 bg-[#f4f8fb] dark:bg-slate-800 px-6 py-6">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10">
+        <div className="border-b border-slate-200 px-6 py-6 dark:border-slate-800">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700 dark:text-blue-400">{eyebrow}</p>
@@ -45,7 +45,7 @@ export function PageShell({
             ) : null}
           </div>
         </div>
-        {controls ? <div className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-5 text-sm text-slate-600 dark:text-slate-400">{controls}</div> : null}
+        {controls ? <div className="border-b border-slate-200/60 dark:border-white/10 bg-white dark:bg-slate-900/40 px-6 py-5 text-sm text-slate-600 dark:text-slate-400">{controls}</div> : null}
         <div className="min-w-0 px-6 py-6">{children}</div>
       </div>
     </section>
@@ -61,7 +61,7 @@ export function ActionButton({
     <button
       {...props}
       className={cn(
-        "inline-flex h-11 items-center gap-2 rounded-md border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-700 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md",
+        "inline-flex h-11 items-center gap-2 rounded-xl glass-card px-5 text-sm font-bold text-blue-700 dark:text-blue-400 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:bg-blue-50 dark:hover:bg-blue-900/30",
         className,
       )}
     >
@@ -79,7 +79,7 @@ export function IconActionLink({
     <a
       {...props}
       className={cn(
-        "inline-flex h-11 w-11 items-center justify-center rounded-md border border-blue-200 bg-white text-blue-700 shadow-sm transition duration-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md",
+        "inline-flex h-11 w-11 items-center justify-center rounded-xl glass-card text-blue-700 dark:text-blue-400 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:bg-blue-50 dark:hover:bg-blue-900/30",
         className,
       )}
     >

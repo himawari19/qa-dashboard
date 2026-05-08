@@ -74,9 +74,9 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
     >
       <div
         ref={ref}
-        className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-xl border border-slate-200 bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 dark:border-slate-700 dark:bg-slate-900 sm:slide-in-from-bottom-0"
+        className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl glass-card bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:slide-in-from-bottom-0"
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+        <div className="flex items-center justify-between border-b border-slate-200/60 px-4 py-3 dark:border-white/10">
           <div className="min-w-0 flex-1 pr-3">
             <p className="mb-0.5 text-[9px] font-black uppercase tracking-widest text-blue-500">{config.shortTitle}</p>
             <h2 className="truncate text-sm font-black leading-snug text-slate-900 dark:text-white">
@@ -112,7 +112,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
                 <div
                   key={field.name}
                   className={cn(
-                    "rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2 dark:border-slate-800 dark:bg-slate-800/40",
+                    "rounded-xl glass-card bg-white/40 dark:bg-slate-800/40 px-3 py-2",
                     isLong ? "sm:col-span-2" : "",
                   )}
                 >
@@ -139,18 +139,18 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200/60 px-4 py-3 dark:border-white/10">
           {canEdit && (
             <button
               onClick={onEdit}
-              className="h-8 rounded-md bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700"
+              className="h-8 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:bg-blue-500 hover:-translate-y-0.5 hover:shadow-md"
             >
               Edit
             </button>
           )}
           <button
             onClick={onClose}
-            className="h-8 rounded-md bg-red-600 px-4 text-xs font-bold text-white transition hover:bg-red-700"
+            className="h-8 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:bg-rose-500 hover:-translate-y-0.5 hover:shadow-md"
           >
             Close
           </button>

@@ -152,14 +152,13 @@ export function TestCaseGridRow({
       />
     );
   };
-
   return (
     <tr className="align-top transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
       <td
         style={{ width: colMap.__row__, minWidth: colMap.__row__, maxWidth: colMap.__row__ }}
         className={cn(
-          "border border-slate-200 px-2 py-[4px] text-center text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:border-slate-600",
-          mode === "draft" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-700",
+          "border-b border-r border-slate-100 px-2 py-[4px] text-center text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:border-white/5",
+          mode === "draft" ? "bg-blue-50/50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-300" : "bg-transparent",
         )}
       >
         {rowLabel}
@@ -178,7 +177,7 @@ export function TestCaseGridRow({
 
       <td
         style={{ width: colMap.__action__, minWidth: colMap.__action__, maxWidth: colMap.__action__ }}
-        className="border border-slate-200 bg-white px-2 py-[4px] align-middle dark:border-slate-600 dark:bg-slate-800"
+        className="border-b border-slate-100 bg-transparent px-2 py-[4px] align-middle dark:border-white/5"
       >
         <div className="flex items-center justify-center gap-2">
           {mode === "view" ? (
@@ -590,7 +589,7 @@ export function TestCaseDetailEditor({
         </div>
       </div>
 
-      <div className="overflow-auto rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="overflow-auto rounded-2xl glass-card">
         <table className="border-collapse" style={{ width: TOTAL_WIDTH, tableLayout: "fixed" }}>
           <colgroup>
             {COLS.map((column) => (
