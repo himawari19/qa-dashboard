@@ -102,13 +102,13 @@ export class ErrorBoundary extends Component<Props, State> {
               {detailsOpen && (
                 <div className="mt-2 rounded-md border border-rose-200 bg-white p-4 text-left">
                   <p className="text-xs font-bold text-rose-700 mb-1">{error.message}</p>
-                  <pre className="text-[10px] text-slate-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
+                  <pre className="text-[11px] text-slate-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
                     {error.stack}
                   </pre>
                   {errorInfo?.componentStack && (
                     <>
                       <p className="text-xs font-bold text-slate-500 mt-3 mb-1">Component Stack:</p>
-                      <pre className="text-[10px] text-slate-500 overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                      <pre className="text-[11px] text-slate-500 overflow-auto max-h-32 whitespace-pre-wrap break-all">
                         {errorInfo.componentStack}
                       </pre>
                     </>

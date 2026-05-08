@@ -84,7 +84,7 @@ function LoginContent() {
     <div className="flex min-h-screen w-full bg-slate-100 font-sans text-slate-900">
       <div className="hidden lg:flex w-1/2 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.16),transparent_32%),linear-gradient(135deg,#020617_0%,#0f172a_55%,#111827_100%)] p-12">
         <div className="relative z-10 max-w-md">
-          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.32em] text-sky-200">QA Daily Hub</p>
+          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-sky-200">QA Daily Hub</p>
           <h1 className="text-5xl font-black leading-tight tracking-tight text-slate-50 sm:text-6xl">
             Quality control, made sharp.
           </h1>
@@ -97,7 +97,7 @@ function LoginContent() {
       <div className="flex max-h-screen w-full items-center justify-center overflow-y-auto p-6 sm:p-8 md:p-12 lg:w-1/2">
         <div className="w-full max-w-md">
           <div className="mb-10 text-center lg:text-left">
-            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.32em] text-slate-500">
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.32em] text-slate-500">
               {mode === "signup" ? "Create account" : mode === "forgot" ? "Recover access" : "Sign in"}
             </p>
             <h2 className="text-3xl font-black tracking-tight text-slate-900">
@@ -115,7 +115,7 @@ function LoginContent() {
           <form onSubmit={submit} className="space-y-6">
             {mode === "signup" && (
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Full Name</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Full Name</label>
                 <input
                   type="text"
                   name="name"
@@ -129,7 +129,7 @@ function LoginContent() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Email Address</label>
+              <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Email Address</label>
               <input
                 type="email"
                 name="email"
@@ -145,12 +145,12 @@ function LoginContent() {
               <>
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Password</label>
+                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Password</label>
                     {mode === "signin" && (
                       <button
                         type="button"
                         onClick={() => setMode("forgot")}
-                        className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700"
+                        className="text-[11px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700"
                       >
                         Forgot?
                       </button>
@@ -180,7 +180,7 @@ function LoginContent() {
                 {mode === "signup" && (
                   <>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Software Role</label>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Software Role</label>
                       <select
                         name="role"
                         value={formData.role}
@@ -198,7 +198,7 @@ function LoginContent() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Company Name</label>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Company Name</label>
                       <input
                         type="text"
                         name="company"

@@ -20,16 +20,3 @@ export function logError(error: unknown, context: string) {
   }
 }
 
-export function logInfo(message: string, context: string) {
-  const timestamp = new Date().toISOString();
-  const logEntry = `[${timestamp}] [INFO] [${context}] ${message}\n`;
-  
-  try {
-    if (!fs.existsSync(path.join(process.cwd(), "logs"))) {
-      fs.mkdirSync(path.join(process.cwd(), "logs"));
-    }
-    fs.appendFileSync(LOG_FILE, logEntry);
-  } catch (err) {
-    console.error("Failed to write log:", err);
-  }
-}

@@ -70,7 +70,7 @@ export default function Error({
             {detailsOpen && (
               <div className="mt-2 rounded-md border border-rose-200 bg-white p-4">
                 <p className="text-xs font-bold text-rose-700 mb-1">{error.message}</p>
-                <pre className="text-[10px] text-slate-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
+                <pre className="text-[11px] text-slate-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
                   {error.stack}
                 </pre>
               </div>

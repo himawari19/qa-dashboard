@@ -1,181 +1,181 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CaretDown, Plus, Trash } from "@phosphor-icons/react";
-import { toast } from "@/components/ui/toast";
-import { getInviteRoleOptions, getRoleLabel } from "@/lib/roles";
-import { cn } from "@/lib/utils";
+import { useEffect, useState } from"react";
+import { CaretDown, Plus, Trash } from"@phosphor-icons/react";
+import { toast } from"@/components/ui/toast";
+import { getInviteRoleOptions, getRoleLabel } from"@/lib/roles";
+import { cn } from"@/lib/utils";
 
 type Invite = {
-  token: string;
-  company: string;
-  role: string;
-  status: string;
-  expiresAt: string;
-  createdAt: string;
+ token: string;
+ company: string;
+ role: string;
+ status: string;
+ expiresAt: string;
+ createdAt: string;
 };
 
 export function InviteManager({ embedded = false, compact = false }: { embedded?: boolean; compact?: boolean } = {}) {
-  const [role, setRole] = useState("");
-  const [expiresInDays, setExpiresInDays] = useState("");
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showInviteForm, setShowInviteForm] = useState(!embedded);
+ const [role, setRole] = useState("");
+ const [expiresInDays, setExpiresInDays] = useState("");
+ const [invites, setInvites] = useState<Invite[]>([]);
+ const [loading, setLoading] = useState(false);
+ const [showInviteForm, setShowInviteForm] = useState(!embedded);
 
-  const loadInvites = async () => {
-    const res = await fetch("/api/invites");
-    const data = await res.json().catch(() => null);
-    setInvites(Array.isArray(data?.invites) ? data.invites : []);
-  };
+ const loadInvites = async () => {
+ const res = await fetch("/api/invites");
+ const data = await res.json().catch(() => null);
+ setInvites(Array.isArray(data?.invites) ? data.invites : []);
+ };
 
-  useEffect(() => {
-    void loadInvites();
-  }, []);
+ useEffect(() => {
+ void loadInvites();
+ }, []);
 
-  const createInvite = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/invites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role,
-          expiresInDays: Number(expiresInDays) || 7,
-        }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || "Failed to create invite");
-      toast("Invite link generated", "success");
-      await loadInvites();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to create invite", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+ const createInvite = async () => {
+ setLoading(true);
+ try {
+ const res = await fetch("/api/invites", {
+ method:"POST",
+ headers: {"Content-Type":"application/json" },
+ body: JSON.stringify({
+ role,
+ expiresInDays: Number(expiresInDays) || 7,
+ }),
+ });
+ const data = await res.json().catch(() => null);
+ if (!res.ok) throw new Error(data?.error ||"Failed to create invite");
+ toast("Invite link generated","success");
+ await loadInvites();
+ } catch (err) {
+ toast(err instanceof Error ? err.message :"Failed to create invite","error");
+ } finally {
+ setLoading(false);
+ }
+ };
 
-  const revoke = async (token: string) => {
-    try {
-      const res = await fetch(`/api/invites/${encodeURIComponent(token)}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Failed to revoke invite");
-      }
-      setInvites((prev) => prev.filter((invite) => invite.token !== token));
-      toast("Invite revoked", "success");
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to revoke invite", "error");
-    }
-  };
+ const revoke = async (token: string) => {
+ try {
+ const res = await fetch(`/api/invites/${encodeURIComponent(token)}`, { method:"DELETE" });
+ if (!res.ok) {
+ const data = await res.json().catch(() => null);
+ throw new Error(data?.error ||"Failed to revoke invite");
+ }
+ setInvites((prev) => prev.filter((invite) => invite.token !== token));
+ toast("Invite revoked","success");
+ } catch (err) {
+ toast(err instanceof Error ? err.message :"Failed to revoke invite","error");
+ }
+ };
 
-  const copyInviteLink = async (token: string) => {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/register?inviteToken=${token}`);
-      toast("Invite link copied", "success");
-    } catch {
-      toast("Copy failed", "error");
-    }
-  };
+ const copyInviteLink = async (token: string) => {
+ try {
+ await navigator.clipboard.writeText(`${window.location.origin}/register?inviteToken=${token}`);
+ toast("Invite link copied","success");
+ } catch {
+ toast("Copy failed","error");
+ }
+ };
 
-  const content = (
-    <>
-      <div className={compact ? "flex items-center justify-end gap-2" : embedded ? "flex items-center justify-end gap-2" : "flex flex-wrap items-center justify-between gap-3"}>
-        {!embedded && !compact ? (
-          <div>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white">Invite users</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Invite-only access. Role is fixed by you.</p>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => setShowInviteForm((prev) => !prev)}
-          className={cn(
-            "inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-bold transition-colors",
-            showInviteForm
-              ? "border-emerald-500 bg-emerald-500 text-white dark:border-emerald-500 dark:bg-emerald-500 dark:text-white"
-              : "border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:bg-emerald-500 hover:text-white dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-500 dark:hover:bg-emerald-500 dark:hover:text-white",
-          )}
-        >
-          <Plus size={16} weight="bold" />
-          Invite User
-        </button>
-      </div>
+ const content = (
+ <>
+ <div className={compact ?"flex items-center justify-end gap-2" : embedded ?"flex items-center justify-end gap-2" :"flex flex-wrap items-center justify-between gap-3"}>
+ {!embedded && !compact ? (
+ <div>
+ <h2 className="text-xl font-black text-slate-900">Invite users</h2>
+ <p className="mt-1 text-sm text-slate-500">Invite-only access. Role is fixed by you.</p>
+ </div>
+ ) : null}
+ <button
+ type="button"
+ onClick={() => setShowInviteForm((prev) => !prev)}
+ className={cn(
+"inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-bold transition-colors",
+ showInviteForm
+ ?"border-emerald-500 bg-emerald-500 text-white"
+ :"border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:bg-emerald-500 hover:text-white",
+ )}
+ >
+ <Plus size={16} weight="bold" />
+ Invite User
+ </button>
+ </div>
 
-      {!compact && showInviteForm && (
-        <div className={embedded ? "mt-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]" : "mt-5 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]"}>
-          <div className="relative min-w-0">
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
-            >
-              <option value="" disabled hidden>
-                Select a role
-              </option>
-              {getInviteRoleOptions().map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <CaretDown size={14} weight="bold" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          </div>
-          <input
-            value={expiresInDays}
-            onChange={(e) => setExpiresInDays(e.target.value)}
-            type="number"
-            min="1"
-            max="30"
-            placeholder="Days"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
-          />
-          <button
-            onClick={createInvite}
-            disabled={loading || !role}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-60 dark:bg-white dark:text-slate-900"
-          >
-            <Plus size={16} weight="bold" />
-            {loading ? "Creating..." : "Generate"}
-          </button>
-          <button
-            onClick={() => void loadInvites()}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 dark:border-white/10 dark:text-slate-300"
-          >
-            Refresh
-          </button>
-        </div>
-      )}
+ {!compact && showInviteForm && (
+ <div className={embedded ?"mt-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]" :"mt-5 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]"}>
+ <div className="relative min-w-0">
+ <select
+ value={role}
+ onChange={(e) => setRole(e.target.value)}
+ className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm outline-none"
+ >
+ <option value="" disabled hidden>
+ Select a role
+ </option>
+ {getInviteRoleOptions().map((option) => (
+ <option key={option.value} value={option.value}>
+ {option.label}
+ </option>
+ ))}
+ </select>
+ <CaretDown size={14} weight="bold" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+ </div>
+ <input
+ value={expiresInDays}
+ onChange={(e) => setExpiresInDays(e.target.value)}
+ type="number"
+ min="1"
+ max="30"
+ placeholder="Days"
+ className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+ />
+ <button
+ onClick={createInvite}
+ disabled={loading || !role}
+ className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-60"
+ >
+ <Plus size={16} weight="bold" />
+ {loading ?"Creating..." :"Generate"}
+ </button>
+ <button
+ onClick={() => void loadInvites()}
+ className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600"
+ >
+ Refresh
+ </button>
+ </div>
+ )}
 
-      {invites.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-xs font-black uppercase tracking-[0.28em] text-slate-400">Pending invites</h3>
-          <div className="mt-3 space-y-2">
-            {invites.map((invite) => (
-              <div key={invite.token} className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-3 dark:border-white/10 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{getRoleLabel(invite.role)}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{invite.status} · expires {new Date(invite.expiresAt).toLocaleDateString()}</p>
-                </div>
-                <div className="flex flex-wrap gap-2 md:justify-end">
-                  <button onClick={() => void copyInviteLink(invite.token)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 dark:border-white/10 dark:text-slate-300">Copy</button>
-                  <button onClick={() => void revoke(invite.token)} className="inline-flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 dark:bg-rose-950/30 dark:text-rose-200">
-                    <Trash size={14} weight="bold" />
-                    Revoke
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
-  );
+ {invites.length > 0 && (
+ <div className="mt-6">
+ <h3 className="text-xs font-black uppercase tracking-[0.28em] text-slate-400">Pending invites</h3>
+ <div className="mt-3 space-y-2">
+ {invites.map((invite) => (
+ <div key={invite.token} className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-3 md:flex-row md:items-center md:justify-between">
+ <div>
+ <p className="text-sm font-bold text-slate-900">{getRoleLabel(invite.role)}</p>
+ <p className="text-xs text-slate-500">{invite.status} · expires {new Date(invite.expiresAt).toLocaleDateString()}</p>
+ </div>
+ <div className="flex flex-wrap gap-2 md:justify-end">
+ <button onClick={() => void copyInviteLink(invite.token)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">Copy</button>
+ <button onClick={() => void revoke(invite.token)} className="inline-flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">
+ <Trash size={14} weight="bold" />
+ Revoke
+ </button>
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+ </>
+ );
 
-  return embedded ? (
-    <div>{content}</div>
-  ) : (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-950">
-      {content}
-    </section>
-  );
+ return embedded ? (
+ <div>{content}</div>
+ ) : (
+ <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+ {content}
+ </section>
+ );
 }

@@ -1,690 +1,690 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Bug, PencilSimple, Trash } from "@phosphor-icons/react";
-import { toast } from "@/components/ui/toast";
+import { useEffect, useMemo, useRef, useState, useTransition } from"react";
+import { useRouter } from"next/navigation";
+import { Bug, PencilSimple, Trash } from"@phosphor-icons/react";
+import { toast } from"@/components/ui/toast";
 import {
-  BadgeCell,
-  COLS,
-  CustomSelect,
-  EditTextCell,
-  ReadCell,
-  TOTAL_WIDTH,
-  Th,
-  colMap,
-  priorityOptions,
-  statusOptions,
-  type TestCaseRow,
-  type FieldKey,
-  typeOptions,
-} from "@/components/test-case-detail-helpers";
-import { cn } from "@/lib/utils";
+ BadgeCell,
+ COLS,
+ CustomSelect,
+ EditTextCell,
+ ReadCell,
+ TOTAL_WIDTH,
+ Th,
+ colMap,
+ priorityOptions,
+ statusOptions,
+ type TestCaseRow,
+ type FieldKey,
+ typeOptions,
+} from"@/components/test-case-detail-helpers";
+import { cn } from"@/lib/utils";
 
-export type { TestCaseRow } from "@/components/test-case-detail-helpers";
+export type { TestCaseRow } from"@/components/test-case-detail-helpers";
 
 type FieldRef = HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement;
 
 function normalizeRow(row: Record<string, unknown>, suiteId: string): TestCaseRow {
-  return {
-    id: row.id === undefined || row.id === null || row.id === "" ? undefined : Number(row.id),
-    testSuiteId: String(row.testSuiteId ?? suiteId),
-    tcId: String(row.tcId ?? ""),
-    caseName: String(row.caseName ?? ""),
-    typeCase: String(row.typeCase ?? ""),
-    preCondition: String(row.preCondition ?? ""),
-    testStep: String(row.testStep ?? ""),
-    expectedResult: String(row.expectedResult ?? ""),
-    actualResult: String(row.actualResult ?? ""),
-    status: String(row.status ?? ""),
-    evidence: String(row.evidence ?? ""),
-    priority: String(row.priority ?? ""),
-  };
+ return {
+ id: row.id === undefined || row.id === null || row.id ==="" ? undefined : Number(row.id),
+ testSuiteId: String(row.testSuiteId ?? suiteId),
+ tcId: String(row.tcId ??""),
+ caseName: String(row.caseName ??""),
+ typeCase: String(row.typeCase ??""),
+ preCondition: String(row.preCondition ??""),
+ testStep: String(row.testStep ??""),
+ expectedResult: String(row.expectedResult ??""),
+ actualResult: String(row.actualResult ??""),
+ status: String(row.status ??""),
+ evidence: String(row.evidence ??""),
+ priority: String(row.priority ??""),
+ };
 }
 
 function createBlankDraft(suiteId: string, tcId: string): TestCaseRow {
-  return {
-    testSuiteId: suiteId,
-    tcId,
-    caseName: "",
-    typeCase: "",
-    preCondition: "",
-    testStep: "",
-    expectedResult: "",
-    actualResult: "",
-    status: "",
-    evidence: "",
-    priority: "",
-  };
+ return {
+ testSuiteId: suiteId,
+ tcId,
+ caseName:"",
+ typeCase:"",
+ preCondition:"",
+ testStep:"",
+ expectedResult:"",
+ actualResult:"",
+ status:"",
+ evidence:"",
+ priority:"",
+ };
 }
 
 function suggestNextId(rows: TestCaseRow[]) {
-  if (rows.length === 0) return "TC-001";
-  const last = String(rows[rows.length - 1]?.tcId ?? "");
-  const match = last.match(/(\d+)$/);
-  if (match) {
-    const suffix = match[1] ?? "0";
-    const next = Number.parseInt(suffix, 10) + 1;
-    const prefix = last.replace(/\d+$/, "");
-    return `${prefix}${String(next).padStart(suffix.length, "0")}`;
-  }
-  return `TC-${String(rows.length + 1).padStart(3, "0")}`;
+ if (rows.length === 0) return"TC-001";
+ const last = String(rows[rows.length - 1]?.tcId ??"");
+ const match = last.match(/(\d+)$/);
+ if (match) {
+ const suffix = match[1] ??"0";
+ const next = Number.parseInt(suffix, 10) + 1;
+ const prefix = last.replace(/\d+$/,"");
+ return`${prefix}${String(next).padStart(suffix.length,"0")}`;
+ }
+ return`TC-${String(rows.length + 1).padStart(3,"0")}`;
 }
 
 function isFailedStatus(value: string) {
-  return ["Failed", "FAILURE", "FAILED"].includes(String(value).toUpperCase()) || String(value).toLowerCase() === "failed";
+ return ["Failed","FAILURE","FAILED"].includes(String(value).toUpperCase()) || String(value).toLowerCase() ==="failed";
 }
 
 function requiredEditReady(row: TestCaseRow | null) {
-  return Boolean(row?.tcId && row.caseName && row.expectedResult && row.status && row.priority);
+ return Boolean(row?.tcId && row.caseName && row.expectedResult && row.status && row.priority);
 }
 
 export function TestCaseGridRow({
-  row,
-  index,
-  rowKey,
-  mode,
-  canSave,
-  onChange,
-  onSave,
-  onEdit,
-  onDelete,
-  onReportBug,
-  setRef,
-  focusNext,
-  focusPrevious,
+ row,
+ index,
+ rowKey,
+ mode,
+ canSave,
+ onChange,
+ onSave,
+ onEdit,
+ onDelete,
+ onReportBug,
+ setRef,
+ focusNext,
+ focusPrevious,
 }: {
-  row: TestCaseRow;
-  index: number;
-  rowKey: string;
-  mode: "view" | "edit" | "draft";
-  canSave?: boolean;
-  onChange: (field: FieldKey, value: string) => void;
-  onSave: () => void;
-  onEdit?: () => void;
-  onDelete: () => void;
-  onReportBug?: () => void;
-  setRef?: (field: string, el: FieldRef | null) => void;
-  focusNext?: (field: FieldKey) => void;
-  focusPrevious?: (field: FieldKey) => void;
-  focusAction?: () => void;
+ row: TestCaseRow;
+ index: number;
+ rowKey: string;
+ mode:"view" |"edit" |"draft";
+ canSave?: boolean;
+ onChange: (field: FieldKey, value: string) => void;
+ onSave: () => void;
+ onEdit?: () => void;
+ onDelete: () => void;
+ onReportBug?: () => void;
+ setRef?: (field: string, el: FieldRef | null) => void;
+ focusNext?: (field: FieldKey) => void;
+ focusPrevious?: (field: FieldKey) => void;
+ focusAction?: () => void;
 }) {
-  const showSave = mode !== "view";
-  const rowLabel = mode === "draft" ? "NEW" : String(index + 1);
+ const showSave = mode !=="view";
+ const rowLabel = mode ==="draft" ?"NEW" : String(index + 1);
 
-  const renderTextCell = (field: FieldKey, value: string, multiline?: boolean) => {
-    if (mode === "view") {
-      return (
-        <ReadCell value={value} w={colMap[field]} />
-      );
-    }
+ const renderTextCell = (field: FieldKey, value: string, multiline?: boolean) => {
+ if (mode ==="view") {
+ return (
+ <ReadCell value={value} w={colMap[field]} />
+ );
+ }
 
-    return (
-      <EditTextCell
-        value={value}
-        w={colMap[field]}
-        multiline={multiline}
-        onChange={(next) => onChange(field, next)}
-        onEnter={() => focusNext?.(field)}
-        setRef={(el) => setRef?.(`${rowKey}:${field}`, el)}
-        autoFocus={mode === "edit" && field === "caseName"}
-      />
-    );
-  };
+ return (
+ <EditTextCell
+ value={value}
+ w={colMap[field]}
+ multiline={multiline}
+ onChange={(next) => onChange(field, next)}
+ onEnter={() => focusNext?.(field)}
+ setRef={(el) => setRef?.(`${rowKey}:${field}`, el)}
+ autoFocus={mode ==="edit" && field ==="caseName"}
+ />
+ );
+ };
 
-  const renderToneCell = (field: Extract<FieldKey, "typeCase" | "status" | "priority">, value: string, options: readonly string[]) => {
-    if (mode === "view") {
-      return (
-        <BadgeCell value={value} w={colMap[field]} fieldKey={field} />
-      );
-    }
+ const renderToneCell = (field: Extract<FieldKey,"typeCase" |"status" |"priority">, value: string, options: readonly string[]) => {
+ if (mode ==="view") {
+ return (
+ <BadgeCell value={value} w={colMap[field]} fieldKey={field} />
+ );
+ }
 
-    return (
-      <CustomSelect
-        value={value}
-        w={colMap[field]}
-        fieldKey={field}
-        options={options}
-        placeholder="Select"
-        onChange={(next) => onChange(field, next)}
-        onEnter={() => focusNext?.(field)}
-        setRef={(el) => setRef?.(`${rowKey}:${field}`, el)}
-      />
-    );
-  };
-  return (
-    <tr className="align-top transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-      <td
-        style={{ width: colMap.__row__, minWidth: colMap.__row__, maxWidth: colMap.__row__ }}
-        className={cn(
-          "border-b border-r border-slate-100 px-2 py-[4px] text-center text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:border-white/5",
-          mode === "draft" ? "bg-blue-50/50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-300" : "bg-transparent",
-        )}
-      >
-        {rowLabel}
-      </td>
+ return (
+ <CustomSelect
+ value={value}
+ w={colMap[field]}
+ fieldKey={field}
+ options={options}
+ placeholder="Select"
+ onChange={(next) => onChange(field, next)}
+ onEnter={() => focusNext?.(field)}
+ setRef={(el) => setRef?.(`${rowKey}:${field}`, el)}
+ />
+ );
+ };
+ return (
+ <tr className="align-top transition-colors hover:bg-slate-50/70">
+ <td
+ style={{ width: colMap.__row__, minWidth: colMap.__row__, maxWidth: colMap.__row__ }}
+ className={cn(
+"border-b border-r border-slate-100 px-2 py-[4px] text-center text-xs font-bold uppercase tracking-wide text-slate-400",
+ mode ==="draft" ?"bg-blue-50/50 text-blue-600" :"bg-transparent",
+ )}
+ >
+ {rowLabel}
+ </td>
 
-      {renderTextCell("tcId", String(row.tcId ?? ""))}
-      {renderTextCell("caseName", String(row.caseName ?? ""), true)}
-      {renderToneCell("typeCase", String(row.typeCase ?? ""), typeOptions)}
-      {renderTextCell("preCondition", String(row.preCondition ?? ""), true)}
-      {renderTextCell("testStep", String(row.testStep ?? ""), true)}
-      {renderTextCell("expectedResult", String(row.expectedResult ?? ""), true)}
-      {renderTextCell("actualResult", String(row.actualResult ?? ""), true)}
-      {renderToneCell("status", String(row.status ?? ""), statusOptions)}
-      {renderToneCell("priority", String(row.priority ?? ""), priorityOptions)}
-      {renderTextCell("evidence", String(row.evidence ?? ""), true)}
+ {renderTextCell("tcId", String(row.tcId ??""))}
+ {renderTextCell("caseName", String(row.caseName ??""), true)}
+ {renderToneCell("typeCase", String(row.typeCase ??""), typeOptions)}
+ {renderTextCell("preCondition", String(row.preCondition ??""), true)}
+ {renderTextCell("testStep", String(row.testStep ??""), true)}
+ {renderTextCell("expectedResult", String(row.expectedResult ??""), true)}
+ {renderTextCell("actualResult", String(row.actualResult ??""), true)}
+ {renderToneCell("status", String(row.status ??""), statusOptions)}
+ {renderToneCell("priority", String(row.priority ??""), priorityOptions)}
+ {renderTextCell("evidence", String(row.evidence ??""), true)}
 
-      <td
-        style={{ width: colMap.__action__, minWidth: colMap.__action__, maxWidth: colMap.__action__ }}
-        className="border-b border-slate-100 bg-transparent px-2 py-[4px] align-middle dark:border-white/5"
-      >
-        <div className="flex items-center justify-center gap-2">
-          {mode === "view" ? (
-            <>
-              <button
-                type="button"
-                onClick={onEdit}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-sky-50 text-sky-600 transition hover:bg-sky-100 dark:bg-sky-950/30 dark:text-sky-300"
-                title="Edit"
-              >
-                <PencilSimple size={12} weight="bold" />
-              </button>
-              <button
-                type="button"
-                onClick={onDelete}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-rose-50 text-rose-600 transition hover:bg-rose-100 dark:bg-rose-950/30 dark:text-rose-300"
-                title="Delete"
-              >
-                <Trash size={12} weight="bold" />
-              </button>
-            </>
-          ) : showSave ? (
-            <button
-              data-cell-ref={`${rowKey}:action`}
-              ref={(el) => setRef?.(`${rowKey}:action`, el)}
-              type="button"
-              onClick={onSave}
-              disabled={!canSave}
-              className="inline-flex h-8 items-center justify-center rounded-md bg-blue-600 px-3 text-[11px] font-bold uppercase tracking-wide text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Save
-            </button>
-          ) : null}
+ <td
+ style={{ width: colMap.__action__, minWidth: colMap.__action__, maxWidth: colMap.__action__ }}
+ className="border-b border-slate-100 bg-transparent px-2 py-[4px] align-middle"
+ >
+ <div className="flex items-center justify-center gap-2">
+ {mode ==="view" ? (
+ <>
+ <button
+ type="button"
+ onClick={onEdit}
+ className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+ title="Edit"
+ >
+ <PencilSimple size={12} weight="bold" />
+ </button>
+ <button
+ type="button"
+ onClick={onDelete}
+ className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+ title="Delete"
+ >
+ <Trash size={12} weight="bold" />
+ </button>
+ </>
+ ) : showSave ? (
+ <button
+ data-cell-ref={`${rowKey}:action`}
+ ref={(el) => setRef?.(`${rowKey}:action`, el)}
+ type="button"
+ onClick={onSave}
+ disabled={!canSave}
+ className="inline-flex h-8 items-center justify-center rounded-md bg-blue-600 px-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+ >
+ Save
+ </button>
+ ) : null}
 
-          {!showSave && isFailedStatus(row.status) && onReportBug && (
-            <button
-              type="button"
-              onClick={onReportBug}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-amber-50 text-amber-600 transition hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-300"
-              title="Report Bug"
-            >
-              <Bug size={14} weight="bold" />
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+ {!showSave && isFailedStatus(row.status) && onReportBug && (
+ <button
+ type="button"
+ onClick={onReportBug}
+ className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-amber-50 text-amber-600 transition hover:bg-amber-100"
+ title="Report Bug"
+ >
+ <Bug size={14} weight="bold" />
+ </button>
+ )}
+ </div>
+ </td>
+ </tr>
+ );
 }
 
 export function TestCaseDetailEditor({
-  suiteId,
-  suiteTitle: _suiteTitle,
-  initialCases,
+ suiteId,
+ suiteTitle: _suiteTitle,
+ initialCases,
 }: {
-  suiteId: string;
-  suiteTitle: string;
-  initialCases: TestCaseRow[];
+ suiteId: string;
+ suiteTitle: string;
+ initialCases: TestCaseRow[];
 }) {
-  void _suiteTitle;
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [cases, setCases] = useState<TestCaseRow[]>(() => initialCases.map((row) => normalizeRow(row, suiteId)));
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<TestCaseRow | null>(null);
-  const [draftRow, setDraftRow] = useState<TestCaseRow>(() => createBlankDraft(suiteId, suggestNextId(initialCases)));
-  const editSaveLockRef = useRef(false);
-  const draftSaveLockRef = useRef(false);
-  const editDirtyRef = useRef(false);
-  const draftDirtyRef = useRef(false);
-  const editDraftRef = useRef<TestCaseRow | null>(null);
-  const draftRowRef = useRef<TestCaseRow>(draftRow);
-  const editingIdRef = useRef<number | null>(null);
-  const editFocusFieldRef = useRef<FieldKey | null>(null);
-  const refs = useRef<Partial<Record<string, FieldRef | null>>>({});
+ void _suiteTitle;
+ const router = useRouter();
+ const [pending, startTransition] = useTransition();
+ const [cases, setCases] = useState<TestCaseRow[]>(() => initialCases.map((row) => normalizeRow(row, suiteId)));
+ const [editingId, setEditingId] = useState<number | null>(null);
+ const [editForm, setEditForm] = useState<TestCaseRow | null>(null);
+ const [draftRow, setDraftRow] = useState<TestCaseRow>(() => createBlankDraft(suiteId, suggestNextId(initialCases)));
+ const editSaveLockRef = useRef(false);
+ const draftSaveLockRef = useRef(false);
+ const editDirtyRef = useRef(false);
+ const draftDirtyRef = useRef(false);
+ const editDraftRef = useRef<TestCaseRow | null>(null);
+ const draftRowRef = useRef<TestCaseRow>(draftRow);
+ const editingIdRef = useRef<number | null>(null);
+ const editFocusFieldRef = useRef<FieldKey | null>(null);
+ const refs = useRef<Partial<Record<string, FieldRef | null>>>({});
 
-  useEffect(() => {
-    editingIdRef.current = editingId;
-  }, [editingId]);
+ useEffect(() => {
+ editingIdRef.current = editingId;
+ }, [editingId]);
 
-  useEffect(() => {
-    draftRowRef.current = draftRow;
-  }, [draftRow]);
+ useEffect(() => {
+ draftRowRef.current = draftRow;
+ }, [draftRow]);
 
-  useEffect(() => {
-    const editingIdValue = editingIdRef.current;
-    const focusField = editFocusFieldRef.current;
-    if (!editingIdValue) return;
+ useEffect(() => {
+ const editingIdValue = editingIdRef.current;
+ const focusField = editFocusFieldRef.current;
+ if (!editingIdValue) return;
 
-    const targetField = focusField ?? "caseName";
-    const key = `edit-${editingIdValue}:${targetField}`;
+ const targetField = focusField ??"caseName";
+ const key =`edit-${editingIdValue}:${targetField}`;
 
-    const frame = window.requestAnimationFrame(() => {
-      const ref = refs.current[key];
-      if (ref && "focus" in ref) {
-        ref.focus();
-        if ("select" in ref) {
-          ref.select?.();
-        }
-      }
-      editFocusFieldRef.current = null;
-    });
+ const frame = window.requestAnimationFrame(() => {
+ const ref = refs.current[key];
+ if (ref &&"focus" in ref) {
+ ref.focus();
+ if ("select" in ref) {
+ ref.select?.();
+ }
+ }
+ editFocusFieldRef.current = null;
+ });
 
-    return () => window.cancelAnimationFrame(frame);
-  }, [editingId, editForm]);
+ return () => window.cancelAnimationFrame(frame);
+ }, [editingId, editForm]);
 
-  useEffect(() => {
-    setCases(initialCases.map((row) => normalizeRow(row, suiteId)));
-  }, [initialCases, suiteId]);
+ useEffect(() => {
+ setCases(initialCases.map((row) => normalizeRow(row, suiteId)));
+ }, [initialCases, suiteId]);
 
-  useEffect(() => {
-    const draft = localStorage.getItem(`qa-draft-suite-${suiteId}`);
-    if (!draft) return;
+ useEffect(() => {
+ const draft = localStorage.getItem(`qa-draft-suite-${suiteId}`);
+ if (!draft) return;
 
-    try {
-      const parsed = JSON.parse(draft) as Partial<TestCaseRow>;
-      setDraftRow((current) => ({
-        ...current,
-        ...parsed,
-        testSuiteId: suiteId,
-        tcId: String(parsed.tcId ?? current.tcId),
-      }));
-      draftDirtyRef.current = true;
-      toast("Restored draft from last session", "info");
-    } catch {
-      // Ignore corrupt draft data.
-    }
-  }, [suiteId]);
+ try {
+ const parsed = JSON.parse(draft) as Partial<TestCaseRow>;
+ setDraftRow((current) => ({
+ ...current,
+ ...parsed,
+ testSuiteId: suiteId,
+ tcId: String(parsed.tcId ?? current.tcId),
+ }));
+ draftDirtyRef.current = true;
+ toast("Restored draft from last session","info");
+ } catch {
+ // Ignore corrupt draft data.
+ }
+ }, [suiteId]);
 
-  useEffect(() => {
-    if (draftRow.caseName || draftRow.preCondition || draftRow.testStep || draftRow.expectedResult || draftRow.actualResult) {
-      const { testSuiteId: _testSuiteId, ...rest } = draftRow;
-      void _testSuiteId;
-      localStorage.setItem(`qa-draft-suite-${suiteId}`, JSON.stringify(rest));
-    }
-  }, [draftRow, suiteId]);
+ useEffect(() => {
+ if (draftRow.caseName || draftRow.preCondition || draftRow.testStep || draftRow.expectedResult || draftRow.actualResult) {
+ const { testSuiteId: _testSuiteId, ...rest } = draftRow;
+ void _testSuiteId;
+ localStorage.setItem(`qa-draft-suite-${suiteId}`, JSON.stringify(rest));
+ }
+ }, [draftRow, suiteId]);
 
-  function clearDraft() {
-    localStorage.removeItem(`qa-draft-suite-${suiteId}`);
-  }
+ function clearDraft() {
+ localStorage.removeItem(`qa-draft-suite-${suiteId}`);
+ }
 
-  function clearEditDraft(id: number | string) {
-    if (String(editingIdRef.current ?? "") !== String(id)) return;
+ function clearEditDraft(id: number | string) {
+ if (String(editingIdRef.current ??"") !== String(id)) return;
 
-    editDirtyRef.current = false;
-    editDraftRef.current = null;
-    editFocusFieldRef.current = null;
-    setEditForm(null);
-    setEditingId(null);
-  }
+ editDirtyRef.current = false;
+ editDraftRef.current = null;
+ editFocusFieldRef.current = null;
+ setEditForm(null);
+ setEditingId(null);
+ }
 
-  function setDraft<K extends FieldKey>(key: K, value: string) {
-    draftDirtyRef.current = true;
-    setDraftRow((current) => ({ ...current, [key]: value }));
-  }
+ function setDraft<K extends FieldKey>(key: K, value: string) {
+ draftDirtyRef.current = true;
+ setDraftRow((current) => ({ ...current, [key]: value }));
+ }
 
-  function setEdit<K extends FieldKey>(key: K, value: string) {
-    if (!editDraftRef.current) return;
-    editDirtyRef.current = true;
-    editDraftRef.current = { ...editDraftRef.current, [key]: value };
-    setEditForm((current) => (current ? { ...current, [key]: value } : null));
-  }
+ function setEdit<K extends FieldKey>(key: K, value: string) {
+ if (!editDraftRef.current) return;
+ editDirtyRef.current = true;
+ editDraftRef.current = { ...editDraftRef.current, [key]: value };
+ setEditForm((current) => (current ? { ...current, [key]: value } : null));
+ }
 
-  function startEdit(row: TestCaseRow, field?: FieldKey) {
-    if (editingIdRef.current && editingIdRef.current !== row.id && editDirtyRef.current) {
-      toast("Save the current row before switching.", "info");
-      return;
-    }
+ function startEdit(row: TestCaseRow, field?: FieldKey) {
+ if (editingIdRef.current && editingIdRef.current !== row.id && editDirtyRef.current) {
+ toast("Save the current row before switching.","info");
+ return;
+ }
 
-    setEditingId(row.id ?? null);
-    const draft = { ...row };
-    editDraftRef.current = draft;
-    editDirtyRef.current = false;
-    setEditForm(draft);
-    editFocusFieldRef.current = field ?? "caseName";
-  }
+ setEditingId(row.id ?? null);
+ const draft = { ...row };
+ editDraftRef.current = draft;
+ editDirtyRef.current = false;
+ setEditForm(draft);
+ editFocusFieldRef.current = field ??"caseName";
+ }
 
-  async function saveEdit() {
-    const savedId = editingIdRef.current;
-    const savedEntry = editDraftRef.current ? { ...editDraftRef.current } : null;
+ async function saveEdit() {
+ const savedId = editingIdRef.current;
+ const savedEntry = editDraftRef.current ? { ...editDraftRef.current } : null;
 
-    if (!savedEntry || !savedId || pending || !requiredEditReady(savedEntry) || !editDirtyRef.current || editSaveLockRef.current) return;
+ if (!savedEntry || !savedId || pending || !requiredEditReady(savedEntry) || !editDirtyRef.current || editSaveLockRef.current) return;
 
-    editSaveLockRef.current = true;
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/items/test-cases", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: savedId, entry: savedEntry }),
-        });
-        const data = await res.json();
+ editSaveLockRef.current = true;
+ startTransition(async () => {
+ try {
+ const res = await fetch("/api/items/test-cases", {
+ method:"PATCH",
+ headers: {"Content-Type":"application/json" },
+ body: JSON.stringify({ id: savedId, entry: savedEntry }),
+ });
+ const data = await res.json();
 
-        if (res.ok) {
-          setCases((current) => current.map((row) => (row.id === savedId ? { ...row, ...savedEntry } : row)));
-          editDirtyRef.current = false;
-          editDraftRef.current = null;
-          setEditForm(null);
-          setEditingId(null);
-          toast(data.message || "Case updated", "success");
-          router.refresh();
-        } else {
-          toast(data.error || "Failed to update", "error");
-        }
-      } catch {
-        toast("Error occurred", "error");
-      } finally {
-        editSaveLockRef.current = false;
-      }
-    });
-  }
+ if (res.ok) {
+ setCases((current) => current.map((row) => (row.id === savedId ? { ...row, ...savedEntry } : row)));
+ editDirtyRef.current = false;
+ editDraftRef.current = null;
+ setEditForm(null);
+ setEditingId(null);
+ toast(data.message ||"Case updated","success");
+ router.refresh();
+ } else {
+ toast(data.error ||"Failed to update","error");
+ }
+ } catch {
+ toast("Error occurred","error");
+ } finally {
+ editSaveLockRef.current = false;
+ }
+ });
+ }
 
-  async function saveDraft() {
-    const savedEntry = { ...draftRowRef.current };
+ async function saveDraft() {
+ const savedEntry = { ...draftRowRef.current };
 
-    if (pending || !requiredEditReady(savedEntry) || !draftDirtyRef.current || draftSaveLockRef.current) return;
+ if (pending || !requiredEditReady(savedEntry) || !draftDirtyRef.current || draftSaveLockRef.current) return;
 
-    draftSaveLockRef.current = true;
-    startTransition(async () => {
-      try {
-        const data = new FormData();
-        Object.entries(savedEntry).forEach(([key, value]) => data.append(key, String(value ?? "")));
+ draftSaveLockRef.current = true;
+ startTransition(async () => {
+ try {
+ const data = new FormData();
+ Object.entries(savedEntry).forEach(([key, value]) => data.append(key, String(value ??"")));
 
-        const res = await fetch("/api/items/test-cases", { method: "POST", body: data });
-        const result = await res.json();
+ const res = await fetch("/api/items/test-cases", { method:"POST", body: data });
+ const result = await res.json();
 
-        if (res.ok) {
-          const created = result.item ? normalizeRow(result.item as Record<string, unknown>, suiteId) : null;
-          if (created?.id) {
-            setCases((current) => [...current, created]);
-            const nextId = suggestNextId([...cases, created]);
-            const nextDraft = createBlankDraft(suiteId, nextId);
-            setDraftRow(nextDraft);
-            draftRowRef.current = nextDraft;
-            draftDirtyRef.current = false;
-            clearDraft();
-          } else {
-            const nextDraft = createBlankDraft(suiteId, suggestNextId(cases));
-            setDraftRow(nextDraft);
-            draftRowRef.current = nextDraft;
-            draftDirtyRef.current = false;
-            clearDraft();
-          }
-          toast(result.message || "Case added", "success");
-          router.refresh();
-        } else {
-          toast(result.error || "Failed to add", "error");
-        }
-      } catch {
-        toast("Error occurred", "error");
-      } finally {
-        draftSaveLockRef.current = false;
-      }
-    });
-  }
+ if (res.ok) {
+ const created = result.item ? normalizeRow(result.item as Record<string, unknown>, suiteId) : null;
+ if (created?.id) {
+ setCases((current) => [...current, created]);
+ const nextId = suggestNextId([...cases, created]);
+ const nextDraft = createBlankDraft(suiteId, nextId);
+ setDraftRow(nextDraft);
+ draftRowRef.current = nextDraft;
+ draftDirtyRef.current = false;
+ clearDraft();
+ } else {
+ const nextDraft = createBlankDraft(suiteId, suggestNextId(cases));
+ setDraftRow(nextDraft);
+ draftRowRef.current = nextDraft;
+ draftDirtyRef.current = false;
+ clearDraft();
+ }
+ toast(result.message ||"Case added","success");
+ router.refresh();
+ } else {
+ toast(result.error ||"Failed to add","error");
+ }
+ } catch {
+ toast("Error occurred","error");
+ } finally {
+ draftSaveLockRef.current = false;
+ }
+ });
+ }
 
-  async function deleteCase(id: number | string) {
-    startTransition(async () => {
-      try {
-        const res = await fetch(`/api/items/test-cases?id=${id}`, { method: "DELETE" });
-        const data = await res.json();
+ async function deleteCase(id: number | string) {
+ startTransition(async () => {
+ try {
+ const res = await fetch(`/api/items/test-cases?id=${id}`, { method:"DELETE" });
+ const data = await res.json();
 
-        if (res.ok) {
-          setCases((current) => current.filter((row) => String(row.id) !== String(id)));
-          clearEditDraft(id);
-          toast(data.message || "Deleted successfully", "success");
-        } else {
-          toast(data.error || "Failed to delete", "error");
-        }
-      } catch {
-        toast("Error occurred", "error");
-      }
-    });
-  }
+ if (res.ok) {
+ setCases((current) => current.filter((row) => String(row.id) !== String(id)));
+ clearEditDraft(id);
+ toast(data.message ||"Deleted successfully","success");
+ } else {
+ toast(data.error ||"Failed to delete","error");
+ }
+ } catch {
+ toast("Error occurred","error");
+ }
+ });
+ }
 
-  const canSaveEdit = useMemo(() => requiredEditReady(editForm), [editForm]);
-  const canSaveDraft = useMemo(() => requiredEditReady(draftRow), [draftRow]);
+ const canSaveEdit = useMemo(() => requiredEditReady(editForm), [editForm]);
+ const canSaveDraft = useMemo(() => requiredEditReady(draftRow), [draftRow]);
 
-  const passed = cases.filter((row) => row.status === "Passed" || row.status === "Success").length;
-  const failed = cases.filter((row) => row.status === "Failed").length;
-  const blocked = cases.filter((row) => row.status === "Blocked").length;
-  const pendingCount = cases.filter((row) => row.status === "Pending").length;
+ const passed = cases.filter((row) => row.status ==="Passed" || row.status ==="Success").length;
+ const failed = cases.filter((row) => row.status ==="Failed").length;
+ const blocked = cases.filter((row) => row.status ==="Blocked").length;
+ const pendingCount = cases.filter((row) => row.status ==="Pending").length;
 
-  const positive = cases.filter((row) => row.typeCase === "Positive").length;
-  const negative = cases.filter((row) => row.typeCase === "Negative").length;
+ const positive = cases.filter((row) => row.typeCase ==="Positive").length;
+ const negative = cases.filter((row) => row.typeCase ==="Negative").length;
 
-  const critical = cases.filter((row) => row.priority === "Critical").length;
-  const high = cases.filter((row) => row.priority === "High").length;
-  const medium = cases.filter((row) => row.priority === "Medium").length;
-  const low = cases.filter((row) => row.priority === "Low").length;
-  const editableFieldOrder: FieldKey[] = ["tcId", "caseName", "typeCase", "preCondition", "testStep", "expectedResult", "actualResult", "status", "priority", "evidence"];
+ const critical = cases.filter((row) => row.priority ==="Critical").length;
+ const high = cases.filter((row) => row.priority ==="High").length;
+ const medium = cases.filter((row) => row.priority ==="Medium").length;
+ const low = cases.filter((row) => row.priority ==="Low").length;
+ const editableFieldOrder: FieldKey[] = ["tcId","caseName","typeCase","preCondition","testStep","expectedResult","actualResult","status","priority","evidence"];
 
-  function focusCell(key: string) {
-    const el = refs.current[key];
-    if (el && "focus" in el) {
-      el.focus();
-    }
-  }
+ function focusCell(key: string) {
+ const el = refs.current[key];
+ if (el &&"focus" in el) {
+ el.focus();
+ }
+ }
 
-  function focusNextInRow(rowKey: string, rowIndex: number, field: FieldKey, isDraft?: boolean) {
-    const currentIndex = editableFieldOrder.indexOf(field);
-    const nextField = editableFieldOrder[currentIndex + 1];
-    if (nextField) {
-      window.setTimeout(() => focusCell(`${rowKey}:${nextField}`), 0);
-      return;
-    }
-    if (isDraft) {
-      window.setTimeout(() => focusCell(`${rowKey}:action`), 0);
-      return;
-    }
-    const nextRow = cases[rowIndex + 1];
-    if (nextRow) {
-      const nextRowKey = `view-${nextRow.id ?? rowIndex + 1}`;
-      window.setTimeout(() => focusCell(`${nextRowKey}:${editableFieldOrder[0]}`), 0);
-      return;
-    }
-    window.setTimeout(() => focusCell(`draft:${editableFieldOrder[0]}`), 0);
-  }
+ function focusNextInRow(rowKey: string, rowIndex: number, field: FieldKey, isDraft?: boolean) {
+ const currentIndex = editableFieldOrder.indexOf(field);
+ const nextField = editableFieldOrder[currentIndex + 1];
+ if (nextField) {
+ window.setTimeout(() => focusCell(`${rowKey}:${nextField}`), 0);
+ return;
+ }
+ if (isDraft) {
+ window.setTimeout(() => focusCell(`${rowKey}:action`), 0);
+ return;
+ }
+ const nextRow = cases[rowIndex + 1];
+ if (nextRow) {
+ const nextRowKey =`view-${nextRow.id ?? rowIndex + 1}`;
+ window.setTimeout(() => focusCell(`${nextRowKey}:${editableFieldOrder[0]}`), 0);
+ return;
+ }
+ window.setTimeout(() => focusCell(`draft:${editableFieldOrder[0]}`), 0);
+ }
 
-  function focusPreviousInRow(rowKey: string, rowIndex: number, field: FieldKey, isDraft?: boolean) {
-    const currentIndex = editableFieldOrder.indexOf(field);
-    const prevField = editableFieldOrder[currentIndex - 1];
-    if (prevField) {
-      window.setTimeout(() => focusCell(`${rowKey}:${prevField}`), 0);
-      return;
-    }
-    if (isDraft) {
-      const prevRow = cases[cases.length - 1];
-      if (prevRow) {
-        const prevRowKey = `view-${prevRow.id ?? cases.length - 1}`;
-        window.setTimeout(() => focusCell(`${prevRowKey}:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
-      }
-      return;
-    }
-    const prevRow = cases[rowIndex - 1];
-    if (prevRow) {
-      const prevRowKey = `view-${prevRow.id ?? rowIndex - 1}`;
-      window.setTimeout(() => focusCell(`${prevRowKey}:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
-    } else {
-      window.setTimeout(() => focusCell(`draft:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
-    }
-  }
+ function focusPreviousInRow(rowKey: string, rowIndex: number, field: FieldKey, isDraft?: boolean) {
+ const currentIndex = editableFieldOrder.indexOf(field);
+ const prevField = editableFieldOrder[currentIndex - 1];
+ if (prevField) {
+ window.setTimeout(() => focusCell(`${rowKey}:${prevField}`), 0);
+ return;
+ }
+ if (isDraft) {
+ const prevRow = cases[cases.length - 1];
+ if (prevRow) {
+ const prevRowKey =`view-${prevRow.id ?? cases.length - 1}`;
+ window.setTimeout(() => focusCell(`${prevRowKey}:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
+ }
+ return;
+ }
+ const prevRow = cases[rowIndex - 1];
+ if (prevRow) {
+ const prevRowKey =`view-${prevRow.id ?? rowIndex - 1}`;
+ window.setTimeout(() => focusCell(`${prevRowKey}:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
+ } else {
+ window.setTimeout(() => focusCell(`draft:${editableFieldOrder[editableFieldOrder.length - 1]}`), 0);
+ }
+ }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="glass-card space-y-3 p-4">
-          <div className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:border-white/5">
-            Execution Status
-          </div>
-          <div className="flex gap-6">
-            <div>
-              <div className="text-xl font-black text-emerald-500">{passed}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">PASS</div>
-            </div>
-            <div>
-              <div className="text-xl font-black text-rose-500">{failed}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">FAIL</div>
-            </div>
-            <div>
-              <div className="text-xl font-black text-amber-500">{blocked}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">BLOCK</div>
-            </div>
-            <div>
-              <div className="text-xl font-black text-slate-400">{pendingCount}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">PEND</div>
-            </div>
-          </div>
-        </div>
+ return (
+ <div className="flex flex-col gap-6">
+ <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+ <div className="glass-card space-y-3 p-4">
+ <div className="border-b border-slate-100 pb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+ Execution Status
+ </div>
+ <div className="flex gap-6">
+ <div>
+ <div className="text-xl font-black text-emerald-500">{passed}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">PASS</div>
+ </div>
+ <div>
+ <div className="text-xl font-black text-rose-500">{failed}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">FAIL</div>
+ </div>
+ <div>
+ <div className="text-xl font-black text-amber-500">{blocked}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">BLOCK</div>
+ </div>
+ <div>
+ <div className="text-xl font-black text-slate-400">{pendingCount}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">PEND</div>
+ </div>
+ </div>
+ </div>
 
-        <div className="glass-card space-y-3 p-4">
-          <div className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:border-white/5">
-            Test Type
-          </div>
-          <div className="flex gap-6">
-            <div>
-              <div className="text-xl font-black text-emerald-500">{positive}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">POS</div>
-            </div>
-            <div>
-              <div className="text-xl font-black text-rose-500">{negative}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">NEG</div>
-            </div>
-          </div>
-        </div>
+ <div className="glass-card space-y-3 p-4">
+ <div className="border-b border-slate-100 pb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+ Test Type
+ </div>
+ <div className="flex gap-6">
+ <div>
+ <div className="text-xl font-black text-emerald-500">{positive}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">POS</div>
+ </div>
+ <div>
+ <div className="text-xl font-black text-rose-500">{negative}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">NEG</div>
+ </div>
+ </div>
+ </div>
 
-        <div className="glass-card space-y-3 p-4">
-          <div className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:border-white/5">
-            Priority
-          </div>
-          <div className="flex gap-5">
-            <div>
-              <div className="text-xl font-black text-red-700">{critical}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">CRIT</div>
-            </div>
-            <div>
-              <div className="text-xl font-black text-rose-500">{high}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">HIGH</div>
-            </div>
-            <div>
-              <div className="text-xl font-black text-sky-500">{medium}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">MED</div>
-            </div>
-            <div>
-              <div className="text-xl font-black text-slate-400">{low}</div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">LOW</div>
-            </div>
-          </div>
-        </div>
-      </div>
+ <div className="glass-card space-y-3 p-4">
+ <div className="border-b border-slate-100 pb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+ Priority
+ </div>
+ <div className="flex gap-5">
+ <div>
+ <div className="text-xl font-black text-red-700">{critical}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">CRIT</div>
+ </div>
+ <div>
+ <div className="text-xl font-black text-rose-500">{high}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">HIGH</div>
+ </div>
+ <div>
+ <div className="text-xl font-black text-sky-500">{medium}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">MED</div>
+ </div>
+ <div>
+ <div className="text-xl font-black text-slate-400">{low}</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400">LOW</div>
+ </div>
+ </div>
+ </div>
+ </div>
 
-      <div className="overflow-auto rounded-2xl glass-card">
-        <table className="border-collapse" style={{ width: TOTAL_WIDTH, tableLayout: "fixed" }}>
-          <colgroup>
-            {COLS.map((column) => (
-              <col key={column.key} style={{ width: column.width }} />
-            ))}
-          </colgroup>
+ <div className="overflow-auto rounded-2xl glass-card">
+ <table className="border-collapse" style={{ width: TOTAL_WIDTH, tableLayout:"fixed" }}>
+ <colgroup>
+ {COLS.map((column) => (
+ <col key={column.key} style={{ width: column.width }} />
+ ))}
+ </colgroup>
 
-          <thead className="sticky top-0 z-20">
-            <tr>
-              {COLS.map((column) => (
-                <Th
-                  key={column.key}
-                  w={column.width}
-                  className={cn(column.key === "__row__" || column.key === "__action__" ? "text-center" : "")}
-                >
-                  {column.label}
-                </Th>
-              ))}
-            </tr>
-          </thead>
+ <thead className="sticky top-0 z-20">
+ <tr>
+ {COLS.map((column) => (
+ <Th
+ key={column.key}
+ w={column.width}
+ className={cn(column.key ==="__row__" || column.key ==="__action__" ?"text-center" :"")}
+ >
+ {column.label}
+ </Th>
+ ))}
+ </tr>
+ </thead>
 
-          <tbody>
-            {cases.map((row, index) => {
-              const isEditing = editingId === row.id;
-              const rowKey = isEditing ? `edit-${row.id}` : `view-${row.id ?? index}`;
-              const displayRow = isEditing && editForm && row.id === editForm.id ? editForm : row;
-              return (
-                <TestCaseGridRow
-                  key={row.id ?? `${row.tcId}-${index}`}
-                  row={displayRow}
-                  index={index}
-                  rowKey={rowKey}
-                  mode={isEditing ? "edit" : "view"}
-                  canSave={canSaveEdit}
-                  onChange={(field, value) => setEdit(field, value)}
-                  onSave={saveEdit}
-                  onEdit={() => startEdit(row, "caseName")}
-                  onDelete={() => row.id && deleteCase(row.id)}
-                  onReportBug={
-                    isFailedStatus(row.status)
-                      ? () => {
-                          window.open(
-                            `/bugs?action=new&title=${encodeURIComponent(`[Failed] ${row.caseName}`)}&preconditions=${encodeURIComponent(row.preCondition)}&stepsToReproduce=${encodeURIComponent(row.testStep)}&expectedResult=${encodeURIComponent(row.expectedResult)}&actualResult=${encodeURIComponent(row.actualResult || "")}`,
-                            "_blank",
-                          );
-                        }
-                      : undefined
-                  }
-                  setRef={(field, el) => {
-                    refs.current[`${rowKey}:${field}`] = el;
-                  }}
-                  focusNext={(field) => focusNextInRow(rowKey, index, field, false)}
-                  focusPrevious={(field) => focusPreviousInRow(rowKey, index, field, false)}
-                />
-              );
-            })}
+ <tbody>
+ {cases.map((row, index) => {
+ const isEditing = editingId === row.id;
+ const rowKey = isEditing ?`edit-${row.id}` :`view-${row.id ?? index}`;
+ const displayRow = isEditing && editForm && row.id === editForm.id ? editForm : row;
+ return (
+ <TestCaseGridRow
+ key={row.id ??`${row.tcId}-${index}`}
+ row={displayRow}
+ index={index}
+ rowKey={rowKey}
+ mode={isEditing ?"edit" :"view"}
+ canSave={canSaveEdit}
+ onChange={(field, value) => setEdit(field, value)}
+ onSave={saveEdit}
+ onEdit={() => startEdit(row,"caseName")}
+ onDelete={() => row.id && deleteCase(row.id)}
+ onReportBug={
+ isFailedStatus(row.status)
+ ? () => {
+ window.open(
+`/bugs?action=new&title=${encodeURIComponent(`[Failed] ${row.caseName}`)}&preconditions=${encodeURIComponent(row.preCondition)}&stepsToReproduce=${encodeURIComponent(row.testStep)}&expectedResult=${encodeURIComponent(row.expectedResult)}&actualResult=${encodeURIComponent(row.actualResult ||"")}`,
+"_blank",
+ );
+ }
+ : undefined
+ }
+ setRef={(field, el) => {
+ refs.current[`${rowKey}:${field}`] = el;
+ }}
+ focusNext={(field) => focusNextInRow(rowKey, index, field, false)}
+ focusPrevious={(field) => focusPreviousInRow(rowKey, index, field, false)}
+ />
+ );
+ })}
 
-            {(() => {
-              const rowKey = "draft";
-              return (
-            <TestCaseGridRow
-              row={draftRow}
-              index={cases.length}
-              rowKey={rowKey}
-              mode="draft"
-              canSave={canSaveDraft}
-              onChange={(field, value) => setDraft(field, value)}
-              onSave={saveDraft}
-              onEdit={() => undefined}
-              onDelete={() => undefined}
-              setRef={(field, el) => {
-                refs.current[`${rowKey}:${field}`] = el;
-              }}
-              focusNext={(field) => focusNextInRow(rowKey, cases.length, field, true)}
-              focusPrevious={(field) => focusPreviousInRow(rowKey, cases.length, field, true)}
-            />
-              );
-            })()}
-          </tbody>
-        </table>
-      </div>
+ {(() => {
+ const rowKey ="draft";
+ return (
+ <TestCaseGridRow
+ row={draftRow}
+ index={cases.length}
+ rowKey={rowKey}
+ mode="draft"
+ canSave={canSaveDraft}
+ onChange={(field, value) => setDraft(field, value)}
+ onSave={saveDraft}
+ onEdit={() => undefined}
+ onDelete={() => undefined}
+ setRef={(field, el) => {
+ refs.current[`${rowKey}:${field}`] = el;
+ }}
+ focusNext={(field) => focusNextInRow(rowKey, cases.length, field, true)}
+ focusPrevious={(field) => focusPreviousInRow(rowKey, cases.length, field, true)}
+ />
+ );
+ })()}
+ </tbody>
+ </table>
+ </div>
 
-      <div className="flex flex-wrap items-center gap-3 px-1 text-[11px] text-slate-500">
-        <span className="font-semibold text-slate-600 dark:text-slate-400">
-          Total: {cases.length} test case{cases.length !== 1 ? "s" : ""}
-        </span>
-        <span className="text-slate-300 dark:text-slate-600">|</span>
-        {passed > 0 && <span className="font-semibold text-emerald-600">{passed} Passed</span>}
-        {failed > 0 && <span className="font-semibold text-rose-500">{failed} Failed</span>}
-        {pendingCount > 0 && <span className="font-semibold text-amber-500">{pendingCount} Pending</span>}
-        {blocked > 0 && <span className="font-semibold text-amber-600">{blocked} Blocked</span>}
-        {passed === 0 && failed === 0 && pendingCount === 0 && blocked === 0 && (
-          <span className="text-slate-400">No test results yet</span>
-        )}
-      </div>
-    </div>
-  );
+ <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-slate-500">
+ <span className="font-semibold text-slate-600">
+ Total: {cases.length} test case{cases.length !== 1 ?"s" :""}
+ </span>
+ <span className="text-slate-300">|</span>
+ {passed > 0 && <span className="font-semibold text-emerald-600">{passed} Passed</span>}
+ {failed > 0 && <span className="font-semibold text-rose-500">{failed} Failed</span>}
+ {pendingCount > 0 && <span className="font-semibold text-amber-500">{pendingCount} Pending</span>}
+ {blocked > 0 && <span className="font-semibold text-amber-600">{blocked} Blocked</span>}
+ {passed === 0 && failed === 0 && pendingCount === 0 && blocked === 0 && (
+ <span className="text-slate-400">No test results yet</span>
+ )}
+ </div>
+ </div>
+ );
 }

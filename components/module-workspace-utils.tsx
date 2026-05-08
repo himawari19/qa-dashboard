@@ -62,17 +62,17 @@ export function getModuleWorkspaceCrumbs(module: ModuleKey, title: string) {
 
 export function getModuleWorkspaceIcon(module: ModuleKey) {
   const icons: Record<ModuleKey, ReactNode> = {
-    tasks: <Kanban size={18} weight="bold" />,
-    bugs: <Bug size={18} weight="bold" />,
-    "test-cases": <Checks size={18} weight="bold" />,
-    "test-plans": <ClipboardText size={18} weight="bold" />,
-    "test-sessions": <PlayCircle size={18} weight="bold" />,
-    "test-suites": <Table size={18} weight="bold" />,
-    "meeting-notes": <Note size={18} weight="bold" />,
-    assignees: <Users size={18} weight="bold" />,
-    sprints: <Kanban size={18} weight="bold" />,
-    users: <Gear size={18} weight="bold" />,
-    deployments: <RocketLaunch size={18} weight="bold" />,
+    tasks: <Kanban size={22} weight="bold" />,
+    bugs: <Bug size={22} weight="bold" />,
+    "test-cases": <Checks size={22} weight="bold" />,
+    "test-plans": <ClipboardText size={22} weight="bold" />,
+    "test-sessions": <PlayCircle size={22} weight="bold" />,
+    "test-suites": <Table size={22} weight="bold" />,
+    "meeting-notes": <Note size={22} weight="bold" />,
+    assignees: <Users size={22} weight="bold" />,
+    sprints: <Kanban size={22} weight="bold" />,
+    users: <Gear size={22} weight="bold" />,
+    deployments: <RocketLaunch size={22} weight="bold" />,
   };
 
   return icons[module];

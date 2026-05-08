@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
-import { normalizeTestPlanRow, normalizeTestSuiteRow, normalizeTestCaseRow } from "@/lib/data-helpers";
+import { normalizeTestPlanRow, normalizeTestSuiteRow, normalizeTestCaseRow, toSqliteDatetime } from "@/lib/data-helpers";
 
 async function selectAll(sqlStr: string, params: unknown[] = []): Promise<Array<Record<string, string | number | null>>> {
   return db.query<Record<string, string | number | null>>(sqlStr, params);
@@ -134,11 +134,6 @@ export async function getReleaseNotes() {
     completedTasks: tasks.map((t) => ({ code: codeFromId("TASK", Number(t.id)), title: t.title })),
   };
 }
-
-function toSqliteDatetime(d: Date): string {
-  return d.toISOString().replace("T", " ").slice(0, 19);
-}
-
 export async function getQualityTrend() {
   const user = await getCurrentUser();
   const company = user?.company || "";

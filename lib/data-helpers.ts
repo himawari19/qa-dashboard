@@ -113,9 +113,7 @@ export async function logActivity(company: string, type: string, id: string, act
   }
 }
 
-export async function selectAll(sqlStr: string, params: any[] = []) {
-  return db.query<Record<string, string | number | null>>(sqlStr, params);
-}
+
 
 export async function runInsert(sqlStr: string, params: any[]) {
   return db.run(sqlStr, params);
@@ -167,34 +165,3 @@ export async function syncSprintFromTestPlan({
   }
 }
 
-export function getRoleRecommendations(role: string, data: any) {
-  const r = role.toLowerCase();
-  if (r.includes("qa")) {
-    return {
-      title: "QA Focus",
-      items: [
-        { label: "Verify Open Bugs", count: data.bugs.length },
-        { label: "Pending Test Sessions", count: data.todayActivity.filter((a: any) => a.type === "Session").length },
-      ],
-    };
-  }
-  if (r.includes("developer") || r.includes("backend") || r.includes("frontend")) {
-    return {
-      title: "Development Focus",
-      items: [
-        { label: "Assigned Bugs to Fix", count: data.bugs.filter((b: any) => b.status === "open" || b.status === "in_progress").length },
-        { label: "Ready for Retest", count: data.bugs.filter((b: any) => b.status === "ready_to_retest").length },
-      ],
-    };
-  }
-  if (r.includes("manager") || r.includes("analyst")) {
-    return {
-      title: "Project Health",
-      items: [
-        { label: "Critical Blockers", count: data.critBugs.length },
-        { label: "High Priority Tasks", count: data.prioTasks.length },
-      ],
-    };
-  }
-  return null;
-}

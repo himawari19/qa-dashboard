@@ -18,7 +18,7 @@ export default async function TestCasesPage({
 
   return (
     <PageShell
-      icon={<Checks size={18} weight="bold" />}
+      icon={<Checks size={22} weight="bold" />}
       title="Test Case Library"
       description="All test cases across every suite. Filter by status, review assignee ownership, and jump directly to execution."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Cases" }]}

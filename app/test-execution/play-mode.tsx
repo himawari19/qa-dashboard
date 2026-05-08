@@ -100,7 +100,7 @@ export function PlayModeView({
           </div>
           <div>
             <h2 className="text-lg font-black leading-none">{suite.title}</h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Play Mode · {index + 1} of {items.length}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">Play Mode · {index + 1} of {items.length}</p>
           </div>
         </div>
 
@@ -131,7 +131,7 @@ export function PlayModeView({
         <div className="flex-1 rounded-3xl bg-white/5 border border-white/10 p-8 flex flex-col gap-8 shadow-2xl overflow-hidden">
           <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
-              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/30">
+              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[11px] font-black uppercase tracking-widest border border-blue-500/30">
                 {currentCase.code}
               </span>
               <h1 className="text-3xl md:text-4xl font-black mt-4 leading-tight">{currentCase.caseName}</h1>
@@ -141,7 +141,7 @@ export function PlayModeView({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 overflow-y-auto pr-2 scrollbar-thin">
             <div className="space-y-8">
               <section>
-                <h5 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 flex items-center gap-2">
+                <h5 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> Steps to Reproduce
                 </h5>
                 <div className="text-lg font-medium leading-relaxed text-slate-200 whitespace-pre-line">
@@ -150,7 +150,7 @@ export function PlayModeView({
               </section>
               {currentCase.preCondition && (
                 <section>
-                  <h5 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Pre-Condition</h5>
+                  <h5 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Pre-Condition</h5>
                   <p className="text-sm text-slate-400 italic">{currentCase.preCondition}</p>
                 </section>
               )}
@@ -158,7 +158,7 @@ export function PlayModeView({
 
             <div className="space-y-8">
               <section>
-                <h5 className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-3 flex items-center gap-2">
+                <h5 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Expected Result
                 </h5>
                 <div className="text-lg font-bold text-emerald-400/90 leading-relaxed">
@@ -167,9 +167,9 @@ export function PlayModeView({
               </section>
 
               <section className={cn("transition-all duration-300", showNotes ? "opacity-100" : "opacity-40 hover:opacity-100")}>
-                <h5 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 flex items-center justify-between">
+                <h5 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3 flex items-center justify-between">
                   Actual Result / Notes
-                  <button onClick={() => setShowNotes(!showNotes)} className="text-[9px] hover:text-white transition">
+                  <button onClick={() => setShowNotes(!showNotes)} className="text-[10px] hover:text-white transition">
                     {showNotes ? "Minimize" : "Expand"}
                   </button>
                 </h5>
@@ -233,7 +233,7 @@ export function PlayModeView({
             </button>
           </div>
 
-          <div className="hidden lg:flex items-center gap-4 text-slate-500 text-[10px] font-bold">
+          <div className="hidden lg:flex items-center gap-4 text-slate-500 text-[11px] font-bold">
             <div className="flex items-center gap-1.5"><kbd className="bg-white/10 px-1.5 py-0.5 rounded border border-white/10">P</kbd> Pass</div>
             <div className="flex items-center gap-1.5"><kbd className="bg-white/10 px-1.5 py-0.5 rounded border border-white/10">F</kbd> Fail</div>
             <div className="flex items-center gap-1.5"><kbd className="bg-white/10 px-1.5 py-0.5 rounded border border-white/10">B</kbd> Block</div>
