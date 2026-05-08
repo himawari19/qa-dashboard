@@ -61,17 +61,17 @@ describe("TestPlanDetail", () => {
 
     expect(html).toContain("Release Plan");
     expect(html).toContain("Search suites or cases");
-    expect(html).toContain("All Suites");
     expect(html).toContain("Needs Attention");
-    expect(html).toContain("Empty Suites");
     expect(html).toContain("Smoke Suite");
     expect(html).toContain("Manage");
     expect(html).toContain("Execute");
+    expect(html).toContain("1 suites");
+    expect(html).toContain("2 cases");
     expect(mocks.breadcrumb).toHaveBeenCalled();
     expect(mocks.breadcrumb.mock.calls[0][0].crumbs.map((crumb: { label: string }) => crumb.label)).toEqual([
       "Dashboard",
       "Test Plans",
-      "Detail Test Plans",
+      "Release Plan",
     ]);
   });
 });

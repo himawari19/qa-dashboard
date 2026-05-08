@@ -117,7 +117,7 @@ export function ExecutionSuiteGroup({ suites }: { suites: Suite[] }) {
               </div>
 
               <Link
-                href={`/test-suites/execute/${suite.publicToken}`}
+                href={`/test-execution/${suite.publicToken}`}
                 className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-black uppercase tracking-wider text-white transition-all hover:bg-blue-600 hover:pr-5 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-50"
               >
                 Execute

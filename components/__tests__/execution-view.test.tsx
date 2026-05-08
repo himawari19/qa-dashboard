@@ -39,7 +39,7 @@ vi.mock("@/lib/utils", () => ({
   formatDisplayText: (value: string) => value,
 }));
 
-import { SuiteExecutionView } from "@/app/test-suites/execute/[id]/execution-view";
+import { SuiteExecutionView } from "@/app/test-execution/[id]/execution-view";
 
 describe("SuiteExecutionView", () => {
   it("renders execution controls and test case list", () => {
@@ -69,8 +69,12 @@ describe("SuiteExecutionView", () => {
 
     expect(html).toContain("Checkout Suite");
     expect(html).toContain("Login works");
-    expect(html).toContain("Detail Test Execution");
     expect(html).toContain("Finish Session");
     expect(mocks.breadcrumb).toHaveBeenCalled();
+    expect(mocks.breadcrumb.mock.calls[0][0].crumbs.map((c: { label: string }) => c.label)).toEqual([
+      "Dashboard",
+      "Test Execution",
+      "Checkout Suite",
+    ]);
   });
 });

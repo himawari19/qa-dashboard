@@ -48,7 +48,7 @@ export function ModuleRowActions({
             Detail
           </Link>
           <Link
-            href={`/test-suites/execute/${publicToken}`}
+            href={`/test-execution/${publicToken}`}
             className="rounded-sm bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
           >
             Execute

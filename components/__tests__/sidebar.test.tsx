@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/test-suites/execute/session-1",
+  usePathname: () => "/test-execution/session-1",
 }));
 
 vi.mock("next/link", () => ({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { CheckCircle, XCircle, ArrowLeft, Database, Play, FastForward, Keyboard, Warning, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CheckCircle, XCircle, ArrowLeft, Database, FastForward, Keyboard, Warning, CaretLeft, CaretRight, Play, ArrowSquareOut } from "@phosphor-icons/react";
 import { cn, formatDisplayText } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast";
@@ -50,6 +50,7 @@ export function SuiteExecutionView({
     cases.length > 0 ? cases[0].id : null,
   );
   const [showModal, setShowModal] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [sessionForm, setSessionForm] = useState<SessionForm>({
     project: suite.project || "",
     sprint: suite.sprint || "",
@@ -66,6 +67,9 @@ export function SuiteExecutionView({
   const blocked = items.filter((i) => i.status === "Blocked").length;
   const completed = passed + failed + blocked;
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const passW = total > 0 ? (passed / total) * 100 : 0;
+  const failW = total > 0 ? (failed / total) * 100 : 0;
+  const blockW = total > 0 ? (blocked / total) * 100 : 0;
 
   const goToNext = useCallback(() => {
     if (selectedIndex < items.length - 1) setSelectedId(items[selectedIndex + 1].id);
@@ -86,11 +90,6 @@ export function SuiteExecutionView({
   const updateActualResult = useCallback((id: string | number, actualResult: string) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, actualResult } : item)));
   }, []);
-
-  const setAllStatus = (status: string) => {
-    setItems((prev) => prev.map((item) => ({ ...item, status })));
-    toast(`All cases set to ${formatDisplayText(status)}`, "info");
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -114,6 +113,9 @@ export function SuiteExecutionView({
         case "k":
           e.preventDefault();
           goToPrev();
+          break;
+        case "?":
+          setShowShortcuts((p) => !p);
           break;
       }
     };
@@ -170,16 +172,15 @@ export function SuiteExecutionView({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
+      {/* ── Finish Session Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            {/* Header */}
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
               <h2 className="text-sm font-black text-slate-900 dark:text-white">Finish Session</h2>
               <p className="text-[11px] text-slate-500 mt-0.5">Confirm details before saving.</p>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
               {[
                 { label: "Passed", value: passed, color: "text-emerald-600" },
@@ -193,10 +194,9 @@ export function SuiteExecutionView({
               ))}
             </div>
 
-            {/* Form */}
             <div className="px-4 py-3 space-y-2.5 max-h-[50vh] overflow-y-auto">
               {[
-                { key: "project", label: "Test Plan", placeholder: "Test plan name", required: false },
+                { key: "project", label: "Project", placeholder: "Project name", required: false },
                 { key: "sprint", label: "Sprint", placeholder: "e.g. Sprint 5", required: false },
                 { key: "tester", label: "Tester", placeholder: "Your name", required: true },
               ].map((f) => (
@@ -225,7 +225,6 @@ export function SuiteExecutionView({
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex gap-2 px-4 py-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setShowModal(false)}
@@ -246,17 +245,44 @@ export function SuiteExecutionView({
         </div>
       )}
 
+      {/* ── Keyboard Shortcuts Tooltip ── */}
+      {showShortcuts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowShortcuts(false)}>
+          <div className="w-full max-w-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-5 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <Keyboard size={16} weight="bold" /> Keyboard Shortcuts
+            </h3>
+            <div className="space-y-2 text-xs">
+              {[
+                { key: "P", desc: "Pass current case" },
+                { key: "F", desc: "Fail current case" },
+                { key: "B", desc: "Block current case" },
+                { key: "J / ↓", desc: "Next case" },
+                { key: "K / ↑", desc: "Previous case" },
+                { key: "?", desc: "Toggle this dialog" },
+              ].map((s) => (
+                <div key={s.key} className="flex items-center justify-between">
+                  <span className="text-slate-500">{s.desc}</span>
+                  <kbd className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{s.key}</kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="animate-in fade-in slide-in-from-top-2 duration-500">
         <Breadcrumb
           crumbs={[
             { label: "Dashboard", href: "/dashboard" },
             { label: "Test Execution", href: "/test-execution" },
-            { label: "Detail Test Execution" },
+            { label: suite.title },
           ]}
         />
       </div>
 
-      <div className="rounded-md bg-white p-2 shadow-sm dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      {/* ── Header ── */}
+      <div className="rounded-xl bg-white p-2 shadow-sm dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-6 py-5">
           <div className="flex items-center gap-5">
             <Link
@@ -267,16 +293,18 @@ export function SuiteExecutionView({
             </Link>
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <Link
-                  href="/test-suites"
-                  className="text-xs font-semibold text-blue-700 hover:text-blue-600 uppercase tracking-widest transition-colors"
-                >
-                  Test Suites
-                </Link>
-                <div className="h-1 w-1 rounded-md bg-slate-300" />
-                <span className="text-xs font-semibold tracking-widest text-slate-500 uppercase">
-                  {suite.project}
-                </span>
+                {suite.project && (
+                  <Link
+                    href={`/test-plans/projects/${encodeURIComponent(suite.project)}`}
+                    className="text-xs font-semibold text-blue-600 hover:underline uppercase tracking-widest transition-colors"
+                  >
+                    {suite.project}
+                  </Link>
+                )}
+                {suite.sprint && (<>
+                  <div className="h-1 w-1 rounded-full bg-slate-300" />
+                  <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">{suite.sprint}</span>
+                </>)}
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">
                 {suite.title}
@@ -285,17 +313,30 @@ export function SuiteExecutionView({
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowShortcuts(true)}
+              title="Keyboard shortcuts (?)"
+              className="flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition dark:border-slate-700"
+            >
+              <Keyboard size={18} weight="bold" />
+            </button>
+            <Link
+              href={`/test-suites/${suiteToken}`}
+              title="View Suite Detail"
+              className="flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition dark:border-slate-700"
+            >
+              <ArrowSquareOut size={18} weight="bold" />
+            </Link>
             <Link
               href={`/test-cases/detail/${suiteToken}`}
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-blue-200 bg-white px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 hover:border-blue-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
             >
               Add Test Case
             </Link>
-            <div className="h-6 w-px bg-slate-200 mx-2 dark:bg-slate-700" />
             <button
               onClick={() => setShowModal(true)}
               disabled={total === 0}
-              className="group relative inline-flex h-11 items-center gap-2 overflow-hidden rounded-md bg-slate-900 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-30 dark:bg-white dark:text-slate-900"
+              className="group relative inline-flex h-11 items-center gap-2 overflow-hidden rounded-md bg-slate-900 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-600 active:scale-95 disabled:opacity-30 dark:bg-white dark:text-slate-900"
             >
               <CheckCircle
                 size={18}
@@ -307,20 +348,25 @@ export function SuiteExecutionView({
           </div>
         </div>
 
+        {/* Progress bar */}
         {total > 0 && (
-          <div className="px-6 pb-2">
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-md overflow-hidden">
-              <div
-                style={{ width: `${progress}%` }}
-                className="bg-blue-600 h-full transition-all duration-1000"
-              />
-            </div>
-            <div className="flex justify-between mt-2 mb-2">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
-                Progress: {progress}%
+          <div className="px-6 pb-4">
+            <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="flex h-full">
+                <div style={{ width: `${passW}%` }} className="bg-emerald-500 transition-all duration-500" />
+                <div style={{ width: `${failW}%` }} className="bg-rose-500 transition-all duration-500" />
+                <div style={{ width: `${blockW}%` }} className="bg-amber-400 transition-all duration-500" />
               </div>
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
-                {completed} of {total} Cases
+            </div>
+            <div className="flex flex-wrap items-center justify-between mt-2">
+              <div className="flex gap-4 text-[11px] font-semibold text-slate-400">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />{passed} Passed</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />{failed} Failed</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />{blocked} Blocked</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />{total - completed} Pending</span>
+              </div>
+              <div className="text-xs font-bold text-slate-500">
+                {completed}/{total} completed · {progress}%
               </div>
             </div>
           </div>
@@ -328,7 +374,7 @@ export function SuiteExecutionView({
       </div>
 
       {total === 0 ? (
-        <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-md border border-slate-200 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900 shadow-sm">
           <div className="h-20 w-20 rounded-md bg-slate-50 flex items-center justify-center text-slate-400 mb-6 dark:bg-slate-800">
             <Database size={40} weight="duotone" />
           </div>
@@ -354,6 +400,7 @@ export function SuiteExecutionView({
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-12">
+          {/* ── Left: Case list ── */}
           <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
@@ -367,7 +414,7 @@ export function SuiteExecutionView({
                   key={item.id}
                   onClick={() => setSelectedId(item.id)}
                   className={cn(
-                    "group relative cursor-pointer overflow-hidden rounded-md border p-3.5 transition-all duration-200",
+                    "group relative cursor-pointer overflow-hidden rounded-xl border p-3.5 transition-all duration-200",
                     selectedId === item.id
                       ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600 shadow-sm dark:bg-blue-950/20"
                       : "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-800 dark:bg-slate-900",
@@ -378,7 +425,7 @@ export function SuiteExecutionView({
                       <div className="flex items-center gap-2 mb-1">
                         <span
                           className={cn(
-                            "h-2 w-2 rounded-md",
+                            "h-2 w-2 rounded-full",
                             item.status === "Passed"
                               ? "bg-emerald-500 shadow-[0_0_8px_#10b981]"
                               : item.status === "Failed"
@@ -429,21 +476,21 @@ export function SuiteExecutionView({
                 </div>
               ))}
             </div>
-
           </div>
 
+          {/* ── Right: Case detail ── */}
           <div className="lg:col-span-8">
             {selectedCase && (
               <div className="sticky top-6 flex flex-col gap-5">
-                <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800/80">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-blue-600 text-white shadow-sm animate-pulse">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-blue-600 text-white shadow-sm">
                         <Play size={24} weight="fill" />
                       </div>
                       <div>
                         <p className="text-xs font-semibold tracking-widest text-slate-500 uppercase mb-1">
-                          Execution Mode
+                          {selectedCase.code}
                         </p>
                         <h2 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                           {selectedCase.caseName}
@@ -454,7 +501,7 @@ export function SuiteExecutionView({
                       <button
                         onClick={goToPrev}
                         disabled={selectedIndex === 0}
-                        title="Previous Case"
+                        title="Previous Case (K / ↑)"
                         className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-blue-600 active:scale-90 disabled:opacity-30 dark:bg-slate-800 dark:border-slate-700"
                       >
                         <CaretLeft size={18} weight="bold" />
@@ -465,7 +512,7 @@ export function SuiteExecutionView({
                       <button
                         onClick={goToNext}
                         disabled={selectedIndex === items.length - 1}
-                        title="Next Case"
+                        title="Next Case (J / ↓)"
                         className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-50 hover:text-blue-600 active:scale-90 disabled:opacity-30 dark:bg-slate-800 dark:border-slate-700"
                       >
                         <CaretRight size={18} weight="bold" />
@@ -477,7 +524,7 @@ export function SuiteExecutionView({
                     <div className="space-y-6">
                       <section>
                         <div className="flex items-center gap-2 mb-2.5">
-                          <div className="h-1.5 w-1.5 rounded-md bg-slate-400" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                           <h5 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                             Pre-conditions
                           </h5>
@@ -489,7 +536,7 @@ export function SuiteExecutionView({
 
                       <section>
                         <div className="flex items-center gap-2 mb-2.5">
-                          <div className="h-1.5 w-1.5 rounded-md bg-blue-500" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                           <h5 className="text-xs font-semibold uppercase tracking-widest text-blue-600">
                             Steps to Reproduce
                           </h5>
@@ -503,7 +550,7 @@ export function SuiteExecutionView({
                     <div className="space-y-6">
                       <section>
                         <div className="flex items-center gap-2 mb-2.5">
-                          <div className="h-1.5 w-1.5 rounded-md bg-emerald-500" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                           <h5 className="text-xs font-semibold uppercase tracking-widest text-emerald-600">
                             Expected Outcome
                           </h5>
@@ -513,7 +560,7 @@ export function SuiteExecutionView({
                         </div>
                       </section>
 
-                      <div className="rounded-md bg-slate-900 p-6 text-white shadow-sm dark:bg-black border border-slate-800">
+                      <div className="rounded-xl bg-slate-900 p-6 text-white shadow-sm dark:bg-black border border-slate-800">
                         <div className="flex items-center justify-between mb-4">
                           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                             Execution Verdict
@@ -591,8 +638,6 @@ export function SuiteExecutionView({
                     </div>
                   </div>
                 </div>
-
-
               </div>
             )}
           </div>

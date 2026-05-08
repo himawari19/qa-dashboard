@@ -88,7 +88,7 @@ describe("test-cases route", () => {
       expect.arrayContaining(["acme", "public-token", "7", "TC-1", "Positive"]),
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/test-cases");
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/test-suites/execute/suite-token");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/test-execution/suite-token");
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ message: "Test case added successfully." });
   });

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     revalidatePath("/test-cases");
     const suite = await getTestSuite(testSuiteId);
     if (suite && (suite as Record<string, unknown>).publicToken) {
-      revalidatePath(`/test-suites/execute/${String((suite as Record<string, unknown>).publicToken)}`);
+      revalidatePath(`/test-execution/${String((suite as Record<string, unknown>).publicToken)}`);
     }
 
     return NextResponse.json({ message: "Test case added successfully." });
@@ -94,7 +94,7 @@ export async function DELETE(request: NextRequest) {
     if (tc.testSuiteId) {
       const suite = await getTestSuite(tc.testSuiteId);
       if (suite && (suite as Record<string, unknown>).publicToken) {
-        revalidatePath(`/test-suites/execute/${String((suite as Record<string, unknown>).publicToken)}`);
+        revalidatePath(`/test-execution/${String((suite as Record<string, unknown>).publicToken)}`);
       }
     }
 

@@ -319,7 +319,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "title", label: "Title" },
-      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "relatedFeature", label: "Feature" },
       { key: "category", label: "Category" },
       { key: "status", label: "Status", tone: "status" },
@@ -373,7 +373,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/log-file" },
     ],
     columns: [
-      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "module", label: "Module" },
       { key: "bugType", label: "Bug Type" },
       { key: "title", label: "Title" },
@@ -461,7 +461,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "title", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
-      { key: "project", label: "Project Name", internalLink: (row) => `/projects/${encodeURIComponent(String(row.project))}` },
+      { key: "project", label: "Project Name", internalLink: (row) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "sprint", label: "Sprint" },
       { key: "startDate", label: "Start" },
       { key: "endDate", label: "End" },
@@ -510,7 +510,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "date", label: "Date" },
-      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "sprint", label: "Sprint" },
       { key: "tester", label: "Tester" },
       { key: "result", label: "Result", tone: "status" },
@@ -581,7 +581,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
     columns: [
       { key: "date", label: "Date" },
-      { key: "project", label: "Project Name", internalLink: (row: any) => `/projects/${encodeURIComponent(String(row.project))}` },
+      { key: "project", label: "Project Name", internalLink: (row: any) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "title", label: "Topic" },
       { key: "attendees", label: "Attendees" },
       { key: "content", label: "Summary", multiline: true },

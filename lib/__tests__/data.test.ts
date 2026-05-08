@@ -746,9 +746,13 @@ describe("module row queries", () => {
       totalPlans: 1,
       totalBugs: 1,
       totalTasks: 1,
+      openBugs: 1,
+      openTasks: 0,
       totalCases: 1,
       passed: 1,
       failed: 0,
+      blocked: 0,
+      pending: 0,
       successRate: 100,
     });
     expect(project.plans[0]).toMatchObject({ id: "1", code: "", title: "Plan A" });
@@ -756,6 +760,7 @@ describe("module row queries", () => {
     expect(project.tasks[0]).toMatchObject({ id: 3, code: "TASK-003", title: "Task 1" });
     expect(project.sessions[0]).toMatchObject({ id: 4, code: "SES-004", tester: "Rina" });
     expect(project.meetings[0]).toMatchObject({ id: 5, code: "MEET-005", title: "Daily" });
+    expect(project.suites[0]).toMatchObject({ id: "6", title: "Suite A", total: 1, passed: 1 });
   });
 
   it("loads test cases with suite and plan context", async () => {

@@ -22,6 +22,7 @@ import {
   TrendUp,
   TrendDown,
   Minus,
+  Tag,
 } from "@phosphor-icons/react";
 
 type TestCase = {
@@ -111,7 +112,6 @@ export function SuiteDetail({
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"cases" | "history">("cases");
 
-  // Stats
   const total = cases.length;
   const passed = cases.filter((c) => c.status === "Passed").length;
   const failed = cases.filter((c) => c.status === "Failed").length;
@@ -122,7 +122,6 @@ export function SuiteDetail({
   const failW = total > 0 ? (failed / total) * 100 : 0;
   const blockW = total > 0 ? (blocked / total) * 100 : 0;
 
-  // Trend: compare last 2 sessions
   const trend = useMemo(() => {
     if (sessions.length < 2) return null;
     const last = Number(sessions[0].passed) / Math.max(Number(sessions[0].totalCases), 1);
@@ -149,7 +148,7 @@ export function SuiteDetail({
         <Breadcrumb crumbs={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Test Suites", href: "/test-suites" },
-          { label: "Detail Test Suites" },
+          { label: suite.title },
         ]} />
 
         {/* ── Hero ── */}
@@ -182,9 +181,10 @@ export function SuiteDetail({
                     </Link>
                   )}
                   {plan?.project && (
-                    <span className="flex items-center gap-1.5 text-slate-500">
+                    <Link href={`/test-plans/projects/${encodeURIComponent(plan.project)}`} className="flex items-center gap-1.5 text-slate-500 hover:text-blue-600 transition">
+                      <Tag size={13} weight="bold" className="text-blue-500" />
                       <span className="font-semibold text-slate-700 dark:text-slate-300">{plan.project}</span>
-                    </span>
+                    </Link>
                   )}
                   {suite.assignee && (
                     <span className="flex items-center gap-1.5 text-slate-500">
@@ -209,8 +209,8 @@ export function SuiteDetail({
                 )}
               </div>
 
-              {/* Right: ring + counters */}
-              <div className="flex items-center gap-6 shrink-0">
+              {/* Right: ring */}
+              <div className="shrink-0">
                 <div className="relative flex h-28 w-28 items-center justify-center">
                   <svg viewBox="0 0 36 36" className="h-28 w-28 -rotate-90">
                     <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3" className="text-slate-100 dark:text-slate-800" />
@@ -225,26 +225,10 @@ export function SuiteDetail({
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pass</span>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  {[
-                    { label: "Total", value: total, cls: "text-slate-700 dark:text-slate-200" },
-                    { label: "Passed", value: passed, cls: "text-emerald-600" },
-                    { label: "Failed", value: failed, cls: "text-rose-600" },
-                    { label: "Blocked", value: blocked, cls: "text-amber-500" },
-                    { label: "Pending", value: pending, cls: "text-slate-400" },
-                    { label: "Sessions", value: sessions.length, cls: "text-blue-600" },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between gap-8">
-                      <span className="text-xs font-semibold text-slate-400">{row.label}</span>
-                      <span className={cn("text-sm font-black", row.cls)}>{row.value}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
 
-            {/* Progress bar */}
+            {/* Progress bar + legend */}
             {total > 0 && (
               <div className="mt-6">
                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -257,6 +241,7 @@ export function SuiteDetail({
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />{failed} Failed</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />{blocked} Blocked</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />{pending} Pending</span>
+                  <span className="ml-auto font-bold text-slate-500">{total} cases · {sessions.length} sessions</span>
                 </div>
               </div>
             )}
@@ -264,7 +249,7 @@ export function SuiteDetail({
             {/* Action buttons */}
             <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-100 dark:border-slate-800 pt-6">
               <Link
-                href={`/test-suites/execute/${suite.publicToken}`}
+                href={`/test-execution/${suite.publicToken}`}
                 className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-900 px-5 text-sm font-black text-white hover:bg-blue-600 transition dark:bg-white dark:text-slate-900"
               >
                 <Play size={15} weight="fill" />
@@ -350,54 +335,56 @@ export function SuiteDetail({
                 <p className="text-sm font-semibold">No cases found</p>
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[80px]">ID</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[160px]">Assignee</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[110px]">Type</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden lg:table-cell w-[90px]">Priority</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[120px]">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-                  {filteredCases.map((tc) => (
-                    <tr key={tc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <span className="font-mono text-xs font-bold text-slate-400">{tc.tcId}</span>
-                      </td>
-                      <td className="px-3 py-3.5 max-w-xs">
-                        <p className="truncate font-semibold text-slate-800 dark:text-slate-200">{tc.caseName}</p>
-                        {tc.actualResult && (
-                          <p className="truncate text-[11px] text-slate-400 mt-0.5">{tc.actualResult}</p>
-                        )}
-                      </td>
-                      <td className="px-3 py-3.5 hidden md:table-cell">
-                        <span className="text-xs text-slate-500">{tc.assignee || suite.assignee || "Unassigned"}</span>
-                      </td>
-                      <td className="px-3 py-3.5 hidden md:table-cell">
-                        <span className="text-xs text-slate-500">{formatDisplayText(tc.typeCase)}</span>
-                      </td>
-                      <td className="px-3 py-3.5 hidden lg:table-cell">
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[tc.priority] ?? "bg-slate-300")} />
-                          <span className="text-xs font-semibold text-slate-500">{formatDisplayText(tc.priority)}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <span className={cn(
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold",
-                          STATUS_PILL[tc.status] ?? STATUS_PILL.Pending
-                        )}>
-                          {STATUS_ICON[tc.status] ?? STATUS_ICON.Pending}
-                          {formatDisplayText(tc.status || "Pending")}
-                        </span>
-                      </td>
+              <div className="max-h-[480px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white dark:bg-slate-900 z-10">
+                    <tr className="border-b border-slate-100 dark:border-slate-800">
+                      <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[80px]">ID</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[160px]">Assignee</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[110px]">Type</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden lg:table-cell w-[90px]">Priority</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[120px]">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
+                    {filteredCases.map((tc) => (
+                      <tr key={tc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <span className="font-mono text-xs font-bold text-slate-400">{tc.tcId}</span>
+                        </td>
+                        <td className="px-3 py-3.5 max-w-xs">
+                          <p className="truncate font-semibold text-slate-800 dark:text-slate-200">{tc.caseName}</p>
+                          {tc.actualResult && (
+                            <p className="truncate text-[11px] text-slate-400 mt-0.5">{tc.actualResult}</p>
+                          )}
+                        </td>
+                        <td className="px-3 py-3.5 hidden md:table-cell">
+                          <span className="text-xs text-slate-500">{tc.assignee || suite.assignee || "Unassigned"}</span>
+                        </td>
+                        <td className="px-3 py-3.5 hidden md:table-cell">
+                          <span className="text-xs text-slate-500">{formatDisplayText(tc.typeCase)}</span>
+                        </td>
+                        <td className="px-3 py-3.5 hidden lg:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[tc.priority] ?? "bg-slate-300")} />
+                            <span className="text-xs font-semibold text-slate-500">{formatDisplayText(tc.priority)}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3.5">
+                          <span className={cn(
+                            "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold",
+                            STATUS_PILL[tc.status] ?? STATUS_PILL.Pending
+                          )}>
+                            {STATUS_ICON[tc.status] ?? STATUS_ICON.Pending}
+                            {formatDisplayText(tc.status || "Pending")}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
@@ -412,68 +399,70 @@ export function SuiteDetail({
                 <p className="text-xs">Execute this suite to start tracking history.</p>
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
-                    <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Tester</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden sm:table-cell">Sprint</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Stats</th>
-                    <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[100px]">Result</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-                  {sessions.map((s) => {
-                    const total = Number(s.totalCases) || 0;
-                    const sp = Number(s.passed) || 0;
-                    const sf = Number(s.failed) || 0;
-                    const sb = Number(s.blocked) || 0;
-                    const rate = total > 0 ? Math.round((sp / total) * 100) : 0;
-                    return (
-                      <tr key={s.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
-                        <td className="px-5 py-3.5">
-                          <p className="font-semibold text-slate-800 dark:text-slate-200">{formatDate(s.date)}</p>
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs font-black dark:bg-slate-800">
-                              {s.tester?.[0]?.toUpperCase() || "?"}
+              <div className="max-h-[480px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white dark:bg-slate-900 z-10">
+                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
+                      <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Tester</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden sm:table-cell">Sprint</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Stats</th>
+                      <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[100px]">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
+                    {sessions.map((s) => {
+                      const total = Number(s.totalCases) || 0;
+                      const sp = Number(s.passed) || 0;
+                      const sf = Number(s.failed) || 0;
+                      const sb = Number(s.blocked) || 0;
+                      const rate = total > 0 ? Math.round((sp / total) * 100) : 0;
+                      return (
+                        <tr key={s.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
+                          <td className="px-5 py-3.5">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200">{formatDate(s.date)}</p>
+                          </td>
+                          <td className="px-3 py-3.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs font-black dark:bg-slate-800">
+                                {s.tester?.[0]?.toUpperCase() || "?"}
+                              </div>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">{s.tester || "—"}</span>
                             </div>
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">{s.tester || "—"}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3.5 hidden sm:table-cell">
-                          <span className="text-xs text-slate-500">{s.sprint || "—"}</span>
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <div className="flex items-center gap-3 text-xs font-bold text-slate-400">
-                            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-emerald-500" />{sp}</span>
-                            <span className="flex items-center gap-1"><XCircle size={12} className="text-rose-500" />{sf}</span>
-                            <span className="flex items-center gap-1"><Warning size={12} className="text-amber-500" />{sb}</span>
-                            <span className="text-slate-300">·</span>
-                            <span>{rate}%</span>
-                          </div>
-                          {total > 0 && (
-                            <div className="mt-1.5 flex h-1 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                              <div style={{ width: `${(sp / total) * 100}%` }} className="bg-emerald-500" />
-                              <div style={{ width: `${(sf / total) * 100}%` }} className="bg-rose-500" />
-                              <div style={{ width: `${(sb / total) * 100}%` }} className="bg-amber-400" />
+                          </td>
+                          <td className="px-3 py-3.5 hidden sm:table-cell">
+                            <span className="text-xs text-slate-500">{s.sprint || "—"}</span>
+                          </td>
+                          <td className="px-3 py-3.5">
+                            <div className="flex items-center gap-3 text-xs font-bold text-slate-400">
+                              <span className="flex items-center gap-1"><CheckCircle size={12} className="text-emerald-500" />{sp}</span>
+                              <span className="flex items-center gap-1"><XCircle size={12} className="text-rose-500" />{sf}</span>
+                              <span className="flex items-center gap-1"><Warning size={12} className="text-amber-500" />{sb}</span>
+                              <span className="text-slate-300">·</span>
+                              <span>{rate}%</span>
                             </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <span className={cn(
-                            "inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-bold capitalize",
-                            RESULT_STYLE[s.result] ?? RESULT_STYLE.blocked
-                          )}>
-                            {s.result || "—"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            {total > 0 && (
+                              <div className="mt-1.5 flex h-1 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div style={{ width: `${(sp / total) * 100}%` }} className="bg-emerald-500" />
+                                <div style={{ width: `${(sf / total) * 100}%` }} className="bg-rose-500" />
+                                <div style={{ width: `${(sb / total) * 100}%` }} className="bg-amber-400" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-3.5">
+                            <span className={cn(
+                              "inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-bold capitalize",
+                              RESULT_STYLE[s.result] ?? RESULT_STYLE.blocked
+                            )}>
+                              {s.result || "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}

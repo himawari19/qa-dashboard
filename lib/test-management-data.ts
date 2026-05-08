@@ -236,6 +236,38 @@ export async function getProjectData(projectName: string) {
   const totalCases = cases.length;
   const passed = cases.filter((c) => String(c.status).toLowerCase() === "passed").length;
   const failed = cases.filter((c) => String(c.status).toLowerCase() === "failed").length;
+  const blocked = cases.filter((c) => String(c.status).toLowerCase() === "blocked").length;
+  const pending = totalCases - passed - failed - blocked;
+
+  const casesBySuite: Record<string, any[]> = {};
+  for (const c of cases) {
+    const sid = String(c.testSuiteId);
+    if (!casesBySuite[sid]) casesBySuite[sid] = [];
+    casesBySuite[sid].push(c);
+  }
+
+  const suitesWithStats = suites.map((s) => {
+    const sc = casesBySuite[String(s.id)] || [];
+    const sp = sc.filter((c) => String(c.status).toLowerCase() === "passed").length;
+    const sf = sc.filter((c) => String(c.status).toLowerCase() === "failed").length;
+    const sb = sc.filter((c) => String(c.status).toLowerCase() === "blocked").length;
+    return {
+      id: String(s.id),
+      title: s.title,
+      status: s.status,
+      assignee: s.assignee || "",
+      publicToken: s.publicToken || "",
+      total: sc.length,
+      passed: sp,
+      failed: sf,
+      blocked: sb,
+      pending: sc.length - sp - sf - sb,
+    };
+  });
+
+  const openStatuses = ["open", "in progress", "new", "reopen", "active"];
+  const openBugs = bugs.filter((b) => openStatuses.includes(String(b.status).toLowerCase())).length;
+  const openTasks = tasks.filter((t) => openStatuses.includes(String(t.status).toLowerCase())).length;
 
   return {
     projectName,
@@ -244,13 +276,18 @@ export async function getProjectData(projectName: string) {
     tasks: tasks.map((t) => ({ ...t, code: codeFromId("TASK", Number(t.id)) })),
     sessions: sessions.map((s) => ({ ...s, code: codeFromId("SES", Number(s.id)) })),
     meetings: meetings.map((m) => ({ ...m, code: codeFromId("MEET", Number(m.id)) })),
+    suites: suitesWithStats,
     stats: {
       totalPlans: plans.length,
       totalBugs: bugs.length,
       totalTasks: tasks.length,
+      openBugs,
+      openTasks,
       totalCases,
       passed,
       failed,
+      blocked,
+      pending,
       successRate: totalCases > 0 ? Math.round((passed / totalCases) * 100) : 0,
     },
   };

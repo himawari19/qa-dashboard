@@ -11,7 +11,6 @@ import {
   XCircle,
   Warning,
   Clock,
-  Table,
   CalendarBlank,
   User,
   Tag,
@@ -103,9 +102,13 @@ export function TestPlanDetail({
 }) {
   const [openSuites, setOpenSuites] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState(ALL);
+  const [filterStatusMap, setFilterStatusMap] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<"all" | "attention" | "empty">("all");
   const [copied, setCopied] = useState(false);
+
+  const getFilterStatus = (suiteId: string) => filterStatusMap[suiteId] || ALL;
+  const setFilterStatus = (suiteId: string, status: string) =>
+    setFilterStatusMap((p) => ({ ...p, [suiteId]: status }));
 
   const copyReportLink = () => {
     if (!plan.publicToken) return;
@@ -126,7 +129,6 @@ export function TestPlanDetail({
   };
   const collapseAll = () => setOpenSuites({});
 
-  // Compute per-suite stats
   const suitesWithStats = useMemo(() =>
     suites.map((s) => {
       let passed = 0, failed = 0, blocked = 0, pending = 0;
@@ -142,7 +144,6 @@ export function TestPlanDetail({
     [suites]
   );
 
-  // Totals
   const totalCases = suitesWithStats.reduce((a, s) => a + s.total, 0);
   const totalPassed = suitesWithStats.reduce((a, s) => a + s.passed, 0);
   const totalFailed = suitesWithStats.reduce((a, s) => a + s.failed, 0);
@@ -153,14 +154,12 @@ export function TestPlanDetail({
   const failW = totalCases > 0 ? (totalFailed / totalCases) * 100 : 0;
   const blockW = totalCases > 0 ? (totalBlocked / totalCases) * 100 : 0;
 
-  // Tab filter
   const tabFiltered = useMemo(() => {
     if (activeTab === "attention") return suitesWithStats.filter((s) => s.failed > 0);
     if (activeTab === "empty") return suitesWithStats.filter((s) => s.total === 0);
     return suitesWithStats;
   }, [suitesWithStats, activeTab]);
 
-  // Search filter on visible suites
   const filteredSuites = useMemo(() => {
     if (!search) return tabFiltered;
     const q = search.toLowerCase();
@@ -180,7 +179,7 @@ export function TestPlanDetail({
         <Breadcrumb crumbs={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Test Plans", href: "/test-plans" },
-          { label: "Detail Test Plans" },
+          { label: plan.title || "Untitled Plan" },
         ]} />
 
         {/* ── Hero ── */}
@@ -211,7 +210,10 @@ export function TestPlanDetail({
                 </h1>
                 <div className="flex flex-wrap gap-4 text-sm">
                   {plan.project && (
-                    <span className="flex items-center gap-1.5 text-slate-500"><Tag size={13} weight="bold" className="text-blue-500" /><span className="font-semibold text-slate-700 dark:text-slate-300">{plan.project}</span></span>
+                    <Link href={`/test-plans/projects/${encodeURIComponent(plan.project)}`} className="flex items-center gap-1.5 text-slate-500 hover:text-blue-600 transition">
+                      <Tag size={13} weight="bold" className="text-blue-500" />
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{plan.project}</span>
+                    </Link>
                   )}
                   {plan.sprint && (
                     <span className="flex items-center gap-1.5 text-slate-500"><CircleNotch size={13} weight="bold" className="text-indigo-500" /><span className="font-semibold text-slate-700 dark:text-slate-300">{plan.sprint}</span></span>
@@ -230,8 +232,8 @@ export function TestPlanDetail({
                 )}
               </div>
 
-              {/* Ring + counters */}
-              <div className="flex items-center gap-6 shrink-0">
+              {/* Ring chart */}
+              <div className="shrink-0">
                 <div className="relative flex h-28 w-28 items-center justify-center">
                   <svg viewBox="0 0 36 36" className="h-28 w-28 -rotate-90">
                     <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3" className="text-slate-100 dark:text-slate-800" />
@@ -246,24 +248,10 @@ export function TestPlanDetail({
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pass</span>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {[
-                    { label: "Suites", value: suites.length, cls: "text-slate-700 dark:text-slate-200" },
-                    { label: "Total Cases", value: totalCases, cls: "text-slate-700 dark:text-slate-200" },
-                    { label: "Passed", value: totalPassed, cls: "text-emerald-600" },
-                    { label: "Failed", value: totalFailed, cls: "text-rose-600" },
-                    { label: "Blocked", value: totalBlocked, cls: "text-amber-500" },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between gap-8">
-                      <span className="text-xs font-semibold text-slate-400">{row.label}</span>
-                      <span className={cn("text-sm font-black", row.cls)}>{row.value}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
 
-            {/* Progress bar */}
+            {/* Progress bar + legend */}
             {totalCases > 0 && (
               <div className="mt-6">
                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -276,41 +264,11 @@ export function TestPlanDetail({
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />{totalFailed} Failed</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />{totalBlocked} Blocked</span>
                   <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" />{totalPending} Pending</span>
+                  <span className="ml-auto font-bold text-slate-500">{suites.length} suites · {totalCases} cases</span>
                 </div>
               </div>
             )}
           </div>
-        </div>
-
-        {/* ── Stat cards (clickable tabs) ── */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { key: "all" as const, label: "All Suites", value: suitesWithStats.length, sub: `${totalCases} cases`, icon: <Table size={18} weight="bold" className="text-blue-500" />, bg: "bg-blue-50 dark:bg-blue-950/20" },
-            { key: "attention" as const, label: "Needs Attention", value: needsAttentionCount, sub: `${totalFailed} failed cases`, icon: <XCircle size={18} weight="fill" className="text-rose-500" />, bg: "bg-rose-50 dark:bg-rose-950/20" },
-            { key: null, label: "Pass Rate", value: `${successRate}%`, sub: `${totalPassed}/${totalCases} verified`, icon: <CheckCircle size={18} weight="fill" className="text-emerald-500" />, bg: "bg-emerald-50 dark:bg-emerald-950/20" },
-            { key: "empty" as const, label: "Empty Suites", value: emptyCount, sub: "no cases yet", icon: <Checks size={18} weight="bold" className="text-slate-400" />, bg: "bg-slate-50 dark:bg-slate-800/40" },
-          ].map((card) => (
-            <button
-              key={card.label}
-              onClick={() => card.key && setActiveTab(activeTab === card.key ? "all" : card.key)}
-              className={cn(
-                "flex items-center gap-3 rounded-xl border p-4 text-left transition hover:shadow-md",
-                card.key && activeTab === card.key
-                  ? "border-blue-300 ring-1 ring-blue-400 bg-white dark:bg-slate-900"
-                  : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800",
-                !card.key && "cursor-default"
-              )}
-            >
-              <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg shrink-0", card.bg)}>
-                {card.icon}
-              </div>
-              <div>
-                <p className="text-xl font-black text-slate-900 dark:text-white leading-none">{card.value}</p>
-                <p className="text-[11px] font-semibold text-slate-400 mt-0.5">{card.label}</p>
-                <p className="text-[10px] text-slate-300 dark:text-slate-600">{card.sub}</p>
-              </div>
-            </button>
-          ))}
         </div>
 
         {/* ── Suite accordion ── */}
@@ -318,9 +276,9 @@ export function TestPlanDetail({
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
               {[
-                { key: "all" as const, label: "All" },
-                { key: "attention" as const, label: `Needs Attention${needsAttentionCount > 0 ? ` (${needsAttentionCount})` : ""}` },
-                { key: "empty" as const, label: `Empty${emptyCount > 0 ? ` (${emptyCount})` : ""}` },
+                { key: "all" as const, label: "All", count: suitesWithStats.length },
+                { key: "attention" as const, label: "Needs Attention", count: needsAttentionCount },
+                { key: "empty" as const, label: "Empty", count: emptyCount },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -331,7 +289,7 @@ export function TestPlanDetail({
                       ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
                       : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
                   )}
-                >{tab.label}</button>
+                >{tab.label}{tab.count > 0 ? ` (${tab.count})` : ""}</button>
               ))}
             </div>
 
@@ -357,7 +315,7 @@ export function TestPlanDetail({
               <p className="mt-1 text-sm text-slate-500">Try changing the filter or search term.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
               {filteredSuites.map((suite) => {
                 const ready = suiteReadiness(suite.passed, suite.failed, suite.blocked, suite.total);
                 const isOpen = !!openSuites[suite.id];
@@ -365,9 +323,10 @@ export function TestPlanDetail({
                 const suiteFailW = suite.total > 0 ? (suite.failed / suite.total) * 100 : 0;
                 const suiteBlockW = suite.total > 0 ? (suite.blocked / suite.total) * 100 : 0;
 
-                const visibleCases = filterStatus === ALL
+                const currentFilter = getFilterStatus(suite.id);
+                const visibleCases = currentFilter === ALL
                   ? suite.cases
-                  : suite.cases.filter((c) => c.status === filterStatus);
+                  : suite.cases.filter((c) => c.status === currentFilter);
 
                 return (
                   <div key={suite.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -433,7 +392,7 @@ export function TestPlanDetail({
                           Manage
                         </Link>
                         <Link
-                            href={`/test-suites/execute/${suite.token || suite.publicToken || ""}`}
+                            href={`/test-execution/${suite.token || suite.publicToken || ""}`}
                           className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-black text-white hover:bg-blue-600 transition dark:bg-white dark:text-slate-900"
                         >
                           <Play size={12} weight="fill" />
@@ -452,10 +411,10 @@ export function TestPlanDetail({
                           {["All", "Passed", "Failed", "Blocked", "Pending"].map((s) => (
                             <button
                               key={s}
-                              onClick={() => setFilterStatus(s)}
+                              onClick={() => setFilterStatus(suite.id, s)}
                               className={cn(
                                 "h-6 rounded px-2 text-[11px] font-semibold transition",
-                                filterStatus === s
+                                currentFilter === s
                                   ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
                                   : "text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
                               )}
@@ -467,50 +426,52 @@ export function TestPlanDetail({
                         {visibleCases.length === 0 ? (
                           <div className="py-8 text-center text-sm text-slate-400">No cases match this filter.</div>
                         ) : (
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[80px]">ID</th>
-                                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
-                                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[100px]">Type</th>
-                                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden lg:table-cell w-[90px]">Priority</th>
-                                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[120px]">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-                              {visibleCases.map((tc) => (
-                                <tr key={tc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
-                                  <td className="px-5 py-3">
-                                    <span className="font-mono text-xs font-bold text-slate-400">{tc.tcId}</span>
-                                  </td>
-                                  <td className="px-3 py-3 max-w-xs">
-                                    <p className="truncate font-semibold text-slate-800 dark:text-slate-200">{tc.caseName}</p>
-                                    {tc.actualResult && (
-                                      <p className="truncate text-[11px] text-slate-400 mt-0.5">{tc.actualResult}</p>
-                                    )}
-                                  </td>
-                                  <td className="px-3 py-3 hidden md:table-cell">
-                                    <span className="text-xs text-slate-500">{formatDisplayText(tc.typeCase)}</span>
-                                  </td>
-                                  <td className="px-3 py-3 hidden lg:table-cell">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className={cn("h-1.5 w-1.5 rounded-full", PRIORITY_DOT[tc.priority] ?? "bg-slate-300")} />
-                                      <span className="text-xs font-semibold text-slate-500">{formatDisplayText(tc.priority)}</span>
-                                    </div>
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <span className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold",
-                                      STATUS_PILL[tc.status] ?? STATUS_PILL.Pending
-                                    )}>
-                                      {STATUS_ICON[tc.status] ?? STATUS_ICON.Pending}
-                                      {formatDisplayText(tc.status || "Pending")}
-                                    </span>
-                                  </td>
+                          <div className="max-h-[360px] overflow-y-auto">
+                            <table className="w-full text-sm">
+                              <thead className="sticky top-0 bg-white dark:bg-slate-900 z-10">
+                                <tr className="border-b border-slate-100 dark:border-slate-800">
+                                  <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[80px]">ID</th>
+                                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
+                                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[100px]">Type</th>
+                                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden lg:table-cell w-[90px]">Priority</th>
+                                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[120px]">Status</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
+                                {visibleCases.map((tc) => (
+                                  <tr key={tc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
+                                    <td className="px-5 py-3">
+                                      <span className="font-mono text-xs font-bold text-slate-400">{tc.tcId}</span>
+                                    </td>
+                                    <td className="px-3 py-3 max-w-xs">
+                                      <p className="truncate font-semibold text-slate-800 dark:text-slate-200">{tc.caseName}</p>
+                                      {tc.actualResult && (
+                                        <p className="truncate text-[11px] text-slate-400 mt-0.5">{tc.actualResult}</p>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-3 hidden md:table-cell">
+                                      <span className="text-xs text-slate-500">{formatDisplayText(tc.typeCase)}</span>
+                                    </td>
+                                    <td className="px-3 py-3 hidden lg:table-cell">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={cn("h-1.5 w-1.5 rounded-full", PRIORITY_DOT[tc.priority] ?? "bg-slate-300")} />
+                                        <span className="text-xs font-semibold text-slate-500">{formatDisplayText(tc.priority)}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-3">
+                                      <span className={cn(
+                                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold",
+                                        STATUS_PILL[tc.status] ?? STATUS_PILL.Pending
+                                      )}>
+                                        {STATUS_ICON[tc.status] ?? STATUS_ICON.Pending}
+                                        {formatDisplayText(tc.status || "Pending")}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
                       </div>
                     )}
