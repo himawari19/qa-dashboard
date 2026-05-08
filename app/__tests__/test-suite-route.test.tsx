@@ -47,7 +47,7 @@ import TestSuiteDetailPage from "@/app/test-suites/[token]/page";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getCurrentUser.mockResolvedValue({ role: "lead", company: "acme" });
+  mocks.getCurrentUser.mockResolvedValue({ role: "pm", company: "acme" });
   mocks.isAdminUser.mockReturnValue(false);
   mocks.db.query.mockResolvedValue([]);
   mocks.db.get.mockResolvedValue(null);
@@ -141,3 +141,4 @@ describe("test suite route", () => {
     ).rejects.toThrow("NEXT_NOT_FOUND");
   });
 });
+

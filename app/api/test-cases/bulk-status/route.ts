@@ -6,7 +6,7 @@ import { isAdminUser } from "@/lib/auth-core";
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.role === "viewer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user.role) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const company = user.company || "";
   const isAdmin = isAdminUser(user.role, company);

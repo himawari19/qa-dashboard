@@ -4,10 +4,17 @@ import { ClipboardText } from "@phosphor-icons/react/dist/ssr";
 import { Play } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ExecutionSuiteGroup } from "./execution-suite-group";
+import { SuitesHeaderActions } from "@/components/suites-header-actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function TestExecutionPage() {
+export default async function TestExecutionPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+} = {}) {
+  const query = searchParams ? await searchParams : {};
+  const initialSearch = typeof query.q === "string" ? query.q : Array.isArray(query.q) ? query.q[0] : "";
   const suitesRaw = await getModuleRows("test-suites");
   const plansRaw = await getModuleRows("test-plans");
 
@@ -32,15 +39,21 @@ export default async function TestExecutionPage() {
     grouped.get(planId).suites.push(suite);
   });
 
-  const planGroups = Array.from(grouped.values());
+  const planGroups = Array.from(grouped.values()).filter((group: any) => {
+    if (!initialSearch) return true;
+    const term = initialSearch.toLowerCase();
+    return [group.project, group.planName, ...group.suites.map((suite: any) => suite.title)].some((value) =>
+      String(value || "").toLowerCase().includes(term),
+    );
+  });
 
   return (
     <PageShell
       icon={<Play size={18} weight="bold" />}
-      eyebrow="Execution"
       title="Execution Center"
       description="Select a test suite to begin your execution session. All results are tracked automatically."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Execution" }]}
+      actions={<SuitesHeaderActions initialSearch={initialSearch} placeholder="Search suites..." exportModule="test-suites" importModule="test-suites" />}
     >
       {planGroups.length === 0 ? (
         <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/50 p-20 text-center dark:border-slate-800 dark:bg-slate-900/50">
@@ -54,10 +67,12 @@ export default async function TestExecutionPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-10 pb-20">
+        <>
+          <div className="border-b border-slate-200/60 px-6 py-4 dark:border-white/10" />
+          <div className="space-y-6 pb-6 pt-6">
           {planGroups.map((group, gIdx) => (
-            <div key={gIdx} className="space-y-4">
-              <div className="flex items-end justify-between px-1">
+            <div key={gIdx} className="space-y-3">
+              <div className="flex items-end justify-between">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-500 mb-1">
                     <ClipboardText size={14} weight="bold" />
@@ -71,11 +86,11 @@ export default async function TestExecutionPage() {
                   {group.suites.length} Suite{group.suites.length !== 1 ? "s" : ""}
                 </div>
               </div>
-
               <ExecutionSuiteGroup suites={group.suites} />
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
     </PageShell>
   );

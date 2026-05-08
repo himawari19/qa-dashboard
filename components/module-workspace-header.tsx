@@ -45,21 +45,20 @@ export function ModuleWorkspaceHeader({
 }: WorkspaceHeaderProps) {
   return (
     <>
-      <div className="border-b border-slate-200/60 bg-transparent px-6 py-6 dark:border-white/10">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+      <div className="border-b border-slate-200/60 bg-transparent px-6 py-5 dark:border-white/10">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               {icon ? (
-                <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20">
                   {icon}
                 </div>
               ) : null}
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700 dark:text-blue-400">{shortTitle}</p>
-                <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{title}</h2>
+                <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{title}</h2>
               </div>
             </div>
-            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">{description}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{description}</p>
           </div>
 
           {!showForm ? (

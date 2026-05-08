@@ -9,7 +9,6 @@ import {
   XCircle,
   Warning,
   Clock,
-  MagnifyingGlass,
   Checks,
   DotsThreeVertical,
   PencilSimple,
@@ -182,100 +181,45 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
         : selected.cases)
     : [];
   return (
-    <div className="space-y-4 pb-20">
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
-        <div className="border-b border-slate-200/60 bg-transparent px-6 py-6 dark:border-white/10">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700 dark:text-blue-400">Test Case Library</p>
-              <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Test Management</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">
-                Centralized library for all test cases. Filter by status, search across projects, and manage execution flows.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
-              <div className="relative w-full md:w-80">
-                <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search case name, suite, assignee..."
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-white/10 dark:text-slate-100"
-                />
-              </div>
-              <select
-                value={filterAssignee}
-                onChange={(e) => setFilterAssignee(e.target.value)}
-                className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-white/10 dark:text-slate-300"
-              >
-                {assigneeOptions.map((name) => (
-                  <option key={name} value={name}>{name === ALL ? "All Assignees" : name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-white/5">
-              {STATUS_FILTERS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setFilterStatus(s)}
-                  className={cn(
-                    "h-9 rounded-lg px-4 text-xs font-bold transition-all duration-300",
-                    filterStatus === s
-                      ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-700 dark:text-white dark:ring-white/10"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700"
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-
-        <div className="flex flex-col gap-4 px-4 pb-4 lg:h-[calc(100vh-310px)] lg:min-h-[500px] lg:flex-row">
-          <div className="flex max-h-[320px] w-full shrink-0 flex-col gap-1 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-4 lg:h-full lg:max-h-none lg:w-72">
+    <div className="space-y-3 pb-6">
+      <div>
+        <div className="flex flex-col gap-4 lg:h-[calc(100vh-310px)] lg:min-h-[500px] lg:flex-row">
+          <div className="flex max-h-[320px] w-full shrink-0 flex-col gap-1 overflow-y-auto border-b border-slate-200/70 bg-transparent p-3 dark:border-slate-800 lg:h-full lg:max-h-none lg:w-[360px] lg:border-b-0 lg:border-r">
             {filteredGroups.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400">
                 <Checks size={32} weight="bold" />
                 <p className="text-xs font-semibold">No suites found</p>
               </div>
             ) : (
-              filteredGroups.map((g) => {
-                const isActive = (selectedKey ?? filteredGroups[0]?.key) === g.key;
-                const displayCount = filterStatus !== ALL || search || filterAssignee !== ALL ? g.filteredCases.length : g.cases.length;
+              filteredGroups.map((group) => {
+                const isActive = (selectedKey ?? filteredGroups[0]?.key) === group.key;
+                const displayCount = filterStatus !== ALL || search || filterAssignee !== ALL ? group.filteredCases.length : group.cases.length;
                 return (
                   <button
-                    key={g.key}
+                    key={group.key}
                     type="button"
-                    onClick={() => setSelectedKey(g.key)}
+                    onClick={() => setSelectedKey(group.key)}
                     className={cn(
-                      "w-full rounded-md px-3 py-3 text-left transition-all",
+                      "w-full rounded-lg px-4 py-4 text-left transition-all",
                       isActive ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/60",
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        {g.planProject && (
+                        {group.planProject && (
                           <p className={cn("mb-0.5 truncate text-[9px] font-bold uppercase tracking-widest", isActive ? "text-blue-200" : "text-blue-500")}>
-                            {g.planProject}
+                            {group.planProject}
                           </p>
                         )}
                         <p className={cn("truncate text-sm font-bold leading-snug", isActive ? "text-white" : "text-slate-800 dark:text-slate-200")}>
-                          {g.suiteTitle}
+                          {group.suiteTitle}
                         </p>
                         <p className={cn("mt-0.5 truncate text-[10px] font-semibold", isActive ? "text-blue-200" : "text-slate-400")}>
-                          {g.planTitle || "No plan"}
+                          {group.planTitle || "No plan"}
                         </p>
-                        {g.suiteAssignee && (
+                        {group.suiteAssignee && (
                           <p className={cn("mt-0.5 truncate text-[10px] font-semibold", isActive ? "text-blue-100" : "text-slate-500")}>
-                            {g.suiteAssignee}
+                            {group.suiteAssignee}
                           </p>
                         )}
                       </div>
@@ -289,20 +233,20 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                     <div className={cn("mt-2 flex items-center gap-2.5 text-[10px] font-bold", isActive ? "text-blue-200" : "text-slate-400")}>
                       <span className="flex items-center gap-1">
                         <span className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-emerald-300" : "bg-emerald-500")} />
-                        {g.passed}
+                        {group.passed}
                       </span>
                       <span className="flex items-center gap-1">
                         <span className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-rose-300" : "bg-rose-500")} />
-                        {g.failed}
+                        {group.failed}
                       </span>
                       <span className="flex items-center gap-1">
                         <span className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-amber-300" : "bg-amber-400")} />
-                        {g.blocked}
+                        {group.blocked}
                       </span>
-                      {g.cases.length > 0 && (
+                      {group.cases.length > 0 && (
                         <div className="ml-auto flex h-1 flex-1 max-w-[48px] overflow-hidden rounded-full bg-white/20 dark:bg-slate-700">
                           <div
-                            style={{ width: `${(g.passed / g.cases.length) * 100}%` }}
+                            style={{ width: `${(group.passed / group.cases.length) * 100}%` }}
                             className={cn("h-full transition-all", isActive ? "bg-emerald-300" : "bg-emerald-500")}
                           />
                         </div>
@@ -314,7 +258,7 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
             )}
           </div>
 
-          <div className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex min-h-[520px] flex-1 flex-col overflow-hidden">
             {!selected ? (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
                 <Table size={40} weight="bold" />
@@ -326,7 +270,7 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                   <div className="min-w-0">
                     {selected.planProject && (
                       <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-blue-500">
-                        {selected.planProject}{selected.planTitle ? ` · ${selected.planTitle}` : ""}
+                        {selected.planProject}{selected.planTitle ? ` ? ${selected.planTitle}` : ""}
                       </p>
                     )}
                     <div className="flex items-center gap-2">
@@ -343,15 +287,12 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                     </div>
                     {(selected.suiteToken || selected.key) && (
                       <details className="relative">
-                        <summary className="flex h-9 w-9 list-none items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white [&::-webkit-details-marker]:hidden">
+                        <summary className="flex h-9 w-9 list-none items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800">
                           <DotsThreeVertical size={18} weight="bold" />
                         </summary>
-                        <div className="absolute right-0 top-11 z-20 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
-                          <Link
-                            href={`/test-cases/detail/${selected.suiteToken || selected.key}`}
-                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                          >
-                            <PencilSimple size={14} weight="bold" />
+                        <div className="absolute right-0 top-11 z-20 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                          <Link href={`/test-cases/${selected.suiteToken || selected.key}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                            <PencilSimple size={16} weight="bold" />
                             Edit Test Case
                           </Link>
                         </div>
@@ -368,24 +309,24 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                 ) : (
                   <div className="flex flex-1 flex-col overflow-hidden">
                     <div className="grid gap-3 px-4 py-4 md:hidden">
-                      {displayCases.map((tc) => (
-                        <div key={tc.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                      {displayCases.map((testCase) => (
+                        <div key={testCase.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <h3 className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{tc.caseName}</h3>
-                              <p className="mt-1 text-[11px] text-slate-500">{tc.assignee || selected.suiteAssignee || "Unassigned"}</p>
+                              <h3 className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{testCase.caseName}</h3>
+                              <p className="mt-1 text-[11px] text-slate-500">{testCase.assignee || selected.suiteAssignee || "Unassigned"}</p>
                             </div>
-                            <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold", STATUS_PILL[tc.status] ?? STATUS_PILL.Pending)}>
-                              {STATUS_ICON[tc.status] ?? STATUS_ICON.Pending}
-                              {formatDisplayText(tc.status || "Pending")}
+                            <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
+                              {STATUS_ICON[testCase.status] ?? STATUS_ICON.Pending}
+                              {formatDisplayText(testCase.status || "Pending")}
                             </span>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
-                            <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">{formatDisplayText(tc.typeCase)}</span>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">{formatDisplayText(tc.priority)}</span>
+                            <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">{formatDisplayText(testCase.typeCase)}</span>
+                            <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">{formatDisplayText(testCase.priority)}</span>
                           </div>
-                          {tc.actualResult && (
-                            <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-500">{tc.actualResult}</p>
+                          {testCase.actualResult && (
+                            <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-500">{testCase.actualResult}</p>
                           )}
                         </div>
                       ))}
@@ -404,37 +345,37 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {displayCases.map((tc, index) => (
-                            <tr key={tc.id} className="group/row transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
+                          {displayCases.map((testCase, index) => (
+                            <tr key={testCase.id} className="group/row transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
                               <td className="px-5 py-3.5 align-top">
                                 <span className="font-mono text-xs font-bold text-slate-400">{index + 1}</span>
                               </td>
                               <td className="max-w-[360px] px-3 py-3.5 align-top">
                                 <div className="space-y-1">
-                                  <p className="truncate font-semibold text-slate-800 dark:text-slate-200">{tc.caseName}</p>
-                                  {tc.actualResult && (
-                                    <p className="mt-0 truncate text-[11px] text-slate-400">{tc.actualResult}</p>
+                                  <p className="truncate font-semibold text-slate-800 dark:text-slate-200">{testCase.caseName}</p>
+                                  {testCase.actualResult && (
+                                    <p className="mt-0 truncate text-[11px] text-slate-400">{testCase.actualResult}</p>
                                   )}
                                 </div>
                               </td>
                               <td className="hidden px-3 py-3.5 align-top md:table-cell">
                                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                  {tc.assignee || selected.suiteAssignee || "Unassigned"}
+                                  {testCase.assignee || selected.suiteAssignee || "Unassigned"}
                                 </span>
                               </td>
                               <td className="hidden px-3 py-3.5 align-top md:table-cell">
-                                <span className="text-xs text-slate-500">{formatDisplayText(tc.typeCase)}</span>
+                                <span className="text-xs text-slate-500">{formatDisplayText(testCase.typeCase)}</span>
                               </td>
                               <td className="hidden px-3 py-3.5 align-top lg:table-cell">
                                 <div className="flex items-center gap-1.5">
-                                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[tc.priority] ?? "bg-slate-300")} />
-                                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{formatDisplayText(tc.priority)}</span>
+                                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[testCase.priority] ?? "bg-slate-300")} />
+                                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{formatDisplayText(testCase.priority)}</span>
                                 </div>
                               </td>
                               <td className="px-3 py-3.5 align-top">
-                                <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold", STATUS_PILL[tc.status] ?? STATUS_PILL.Pending)}>
-                                  {STATUS_ICON[tc.status] ?? STATUS_ICON.Pending}
-                                  {formatDisplayText(tc.status || "Pending")}
+                                <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
+                                  {STATUS_ICON[testCase.status] ?? STATUS_ICON.Pending}
+                                  {formatDisplayText(testCase.status || "Pending")}
                                 </span>
                               </td>
                             </tr>
@@ -451,4 +392,5 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
       </div>
     </div>
   );
+
 }

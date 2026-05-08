@@ -66,7 +66,7 @@ beforeEach(() => {
   mocks.db.query.mockReset();
   mocks.db.exec.mockReset();
   vi.clearAllMocks();
-  mocks.getCurrentUser.mockResolvedValue({ company: "acme", role: "lead" });
+  mocks.getCurrentUser.mockResolvedValue({ company: "acme", role: "pm" });
   mocks.db.run.mockResolvedValue({ changes: 1 });
   mocks.db.get.mockResolvedValue(undefined);
   mocks.db.query.mockResolvedValue([]);
@@ -302,7 +302,7 @@ describe("module data access", () => {
     await updateModuleRecord("users", 2, {
       name: "Rina",
       email: "rina@example.com",
-      role: "lead",
+      role: "pm",
       password: "secret",
     });
 
@@ -315,7 +315,7 @@ describe("module data access", () => {
     await updateModuleRecord("users", 2, {
       name: "Rina",
       email: "rina@example.com",
-      role: "editor",
+      role: "fullstack",
     });
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "User"');
@@ -331,8 +331,8 @@ describe("module data access", () => {
 
   it("hard deletes non-archived tables and soft deletes notes/suites/cases", async () => {
     await deleteModuleRecord("users", 7);
-    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "Assignee" WHERE "userId" = ?');
-    expect(mocks.db.run.mock.calls[1][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
+    expect(mocks.db.run.mock.calls[0][0]).toBe('UPDATE "Assignee" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "userId" = ?');
+    expect(mocks.db.run.mock.calls[1][0]).toBe('UPDATE "User" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER) AND "company" = ?');
     expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "User" && params?.[2] === "7" && params?.[3] === "Deleted")).toBe(true);
 
     vi.clearAllMocks();
@@ -442,8 +442,8 @@ describe("module data access", () => {
 
     await deleteModuleRecord("users", 9);
 
-    expect(mocks.db.run.mock.calls[0][0]).toBe('DELETE FROM "Assignee" WHERE "userId" = ?');
-    expect(mocks.db.run.mock.calls[1][0]).toBe('DELETE FROM "User" WHERE id = CAST(? AS INTEGER) AND "company" = ?');
+    expect(mocks.db.run.mock.calls[0][0]).toBe('UPDATE "Assignee" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "userId" = ?');
+    expect(mocks.db.run.mock.calls[1][0]).toBe('UPDATE "User" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER) AND "company" = ?');
     expect(mocks.db.run.mock.calls[1][1]).toEqual([9, "acme"]);
   });
 
@@ -482,7 +482,7 @@ describe("module data access", () => {
       name: "Budi",
       email: "budi@example.com",
       password: "secret",
-      role: "editor",
+      role: "fullstack",
     });
 
     expect(mocks.hashPassword).toHaveBeenCalledWith("secret");
@@ -493,7 +493,7 @@ describe("module data access", () => {
       "Budi",
       "budi@example.com",
       "hashed:secret",
-      "editor",
+      "fullstack",
     ]);
   });
 
@@ -635,7 +635,7 @@ describe("module row queries", () => {
   });
 
   it("loads dashboard data with shaped metrics and summary", async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ role: "lead", company: "acme" });
+    mocks.getCurrentUser.mockResolvedValueOnce({ role: "pm", company: "acme" });
     mocks.db.query.mockImplementation(async (sql: string) => {
       if (sql.includes('SELECT * FROM "Task"') && sql.includes('LIMIT 5')) return [{ id: 1, title: "Task 1", priority: "P1", status: "todo" }];
       if (sql.includes('SELECT * FROM "Bug"') && sql.includes('LIMIT 5')) return [{ id: 2, title: "Bug 1", severity: "high", priority: "P1", status: "open" }];
@@ -681,7 +681,7 @@ describe("module row queries", () => {
 
     const dashboard = await getDashboardData();
 
-    expect(dashboard.rolePersona).toBe("lead");
+    expect(dashboard.rolePersona).toBe("pm");
     expect(dashboard.metrics[0]).toMatchObject({ label: "Open Tasks", value: 3 });
     expect(dashboard.recent.tasks[0]).toMatchObject({ id: 1, code: "TASK-001" });
     expect(dashboard.distribution.tasks).toEqual([{ name: "todo", value: 2 }]);
@@ -696,7 +696,7 @@ describe("module row queries", () => {
       totalScenarios: 4,
       totalBugs: 2,
     });
-    expect(dashboard.rolePersona).toBe("lead");
+    expect(dashboard.rolePersona).toBe("pm");
   });
 
   it("keeps project filters off company-only dashboard tables", async () => {
@@ -785,7 +785,7 @@ describe("module row queries", () => {
 
   it("loads user rows with company scope", async () => {
     mocks.db.query.mockResolvedValueOnce([
-      { id: 1, name: "Rina", email: "rina@example.com", role: "lead", company: "acme", createdAt: "2026-04-30" },
+      { id: 1, name: "Rina", email: "rina@example.com", role: "pm", company: "acme", createdAt: "2026-04-30" },
     ]);
 
     const rows = await getModuleRows("users");
@@ -795,7 +795,7 @@ describe("module row queries", () => {
       ["acme"],
     );
     expect(rows).toEqual([
-      { id: 1, name: "Rina", email: "rina@example.com", role: "lead", company: "acme", createdAt: "2026-04-30" },
+      { id: 1, name: "Rina", email: "rina@example.com", role: "pm", company: "acme", createdAt: "2026-04-30" },
     ]);
   });
 
@@ -889,3 +889,4 @@ describe("module row queries", () => {
     ]);
   });
 });
+

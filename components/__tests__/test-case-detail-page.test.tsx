@@ -43,7 +43,7 @@ vi.mock("@/components/page-shell", () => ({
 
 vi.mock("@/components/test-case-detail-editor", () => ({
   TestCaseDetailEditor: ({ suiteTitle }: { suiteTitle: string }) => (
-    <div data-testid="editor">{suiteTitle}</div>
+    <div data-testid="fullstack">{suiteTitle}</div>
   ),
 }));
 
@@ -69,7 +69,7 @@ describe("TestCaseDetailPage", () => {
     expect(html).toContain("Test Cases");
     expect(html).toContain("Checkout Suite");
     expect(html).toContain("Submit for Test Execution");
-    expect(html).toContain("data-testid=\"editor\"");
+    expect(html).toContain("data-testid=\"fullstack\"");
 
     expect(mocks.pageShell).toHaveBeenCalled();
     const props = mocks.pageShell.mock.calls[0]?.[0] as {
@@ -82,3 +82,4 @@ describe("TestCaseDetailPage", () => {
     ]);
   });
 });
+

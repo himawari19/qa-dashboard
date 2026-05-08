@@ -61,7 +61,7 @@ describe("users page", () => {
   it("redirects non-admin users", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 2,
-      role: "viewer",
+      role: "qa",
       company: "acme",
       email: "viewer@example.com",
     });
@@ -71,3 +71,4 @@ describe("users page", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/");
   });
 });
+

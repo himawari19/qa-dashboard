@@ -25,8 +25,8 @@ export async function syncAssigneeFromUser(user: UserRow) {
   }
 
   await db.run(
-    `INSERT INTO "Assignee" ("company", "userId", "name", "role", "email", "skills", "status", "updatedAt")
-     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `INSERT INTO "Assignee" ("company", "userId", "name", "role", "email", "skills", "status", "deletedAt", "updatedAt")
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
      ON CONFLICT("userId") DO UPDATE SET
        "company" = excluded."company",
        "name" = excluded."name",
@@ -34,13 +34,14 @@ export async function syncAssigneeFromUser(user: UserRow) {
        "email" = excluded."email",
        "skills" = excluded."skills",
        "status" = excluded."status",
+       "deletedAt" = NULL,
        "updatedAt" = CURRENT_TIMESTAMP`,
     [company, user.id, name, role, email, "", "active"],
   );
 }
 
 export async function deleteAssigneeForUser(userId: number) {
-  await db.run('DELETE FROM "Assignee" WHERE "userId" = ?', [userId]);
+  await db.run('UPDATE "Assignee" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "userId" = ?', [userId]);
 }
 
 export async function backfillAssigneesFromUsers() {

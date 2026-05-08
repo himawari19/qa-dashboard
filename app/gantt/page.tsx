@@ -593,7 +593,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
     <PageShell
       icon={<Lightning size={18} weight="bold" />}
       title="Gantt / Timeline"
-      eyebrow="Reports"
+      description="View timelines, dependencies, and delivery windows across your workspace."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Gantt / Timeline" }]}
       actions={
         <div className="flex items-center gap-2 flex-wrap">

@@ -16,6 +16,7 @@ export const tables = [
       "endDate" TEXT,
       "status" TEXT NOT NULL DEFAULT 'active',
       "goal" TEXT DEFAULT '',
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -39,6 +40,7 @@ export const tables = [
       "relatedItems" TEXT DEFAULT '',
       "assignee" TEXT DEFAULT '',
       "attachments" TEXT DEFAULT '',
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -64,6 +66,7 @@ export const tables = [
       "relatedItems" TEXT DEFAULT '',
       "suggestedDev" TEXT DEFAULT '',
       "attachments" TEXT DEFAULT '',
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -131,6 +134,7 @@ export const tables = [
       "result" TEXT NOT NULL,
       "notes" TEXT,
       "evidence" TEXT,
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -191,6 +195,7 @@ export const tables = [
       "email" TEXT,
       "skills" TEXT DEFAULT '',
       "status" TEXT NOT NULL DEFAULT 'active',
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -203,7 +208,8 @@ export const tables = [
       "name" TEXT,
       "email" TEXT UNIQUE,
       "password" TEXT NOT NULL,
-      "role" TEXT NOT NULL DEFAULT 'user',
+      "role" TEXT NOT NULL DEFAULT 'qa',
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -214,7 +220,7 @@ export const tables = [
       "id" SERIAL_OR_PK,
       "token" TEXT NOT NULL UNIQUE,
       "company" TEXT NOT NULL,
-      "role" TEXT NOT NULL DEFAULT 'viewer',
+      "role" TEXT NOT NULL DEFAULT 'qa',
       "status" TEXT NOT NULL DEFAULT 'pending',
       "createdBy" TEXT NOT NULL DEFAULT '',
       "expiresAt" DATE_TYPE NOT NULL,
@@ -236,6 +242,7 @@ export const tables = [
       "changelog" TEXT NOT NULL DEFAULT '',
       "status" TEXT NOT NULL DEFAULT 'success',
       "notes" TEXT DEFAULT '',
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -445,7 +452,16 @@ async function getSqlite() {
 async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
   if (useSqlite) {
     const sqlite = await getSqlite();
-    return sqlite.prepare(queryStr).all(...params) as T[];
+    try {
+      return sqlite.prepare(queryStr).all(...params) as T[];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('no such column: deletedAt') || message.includes('no such column: "deletedAt"')) {
+        await applyMissingColumns();
+        return sqlite.prepare(queryStr).all(...params) as T[];
+      }
+      throw error;
+    }
   }
 
   const pool = await getPostgresPool();

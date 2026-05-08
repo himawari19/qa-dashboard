@@ -151,19 +151,12 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
           {canEdit && (
             <button
               onClick={onEdit}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-md"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-md"
             >
               <PencilSimple size={12} weight="bold" />
               Edit
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-rose-500 hover:shadow-md"
-          >
-            <X size={12} weight="bold" />
-            Close
-          </button>
         </div>
       </div>
     </div>

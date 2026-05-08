@@ -74,14 +74,22 @@ export async function getAssigneeOptions() {
   const rows = await selectAll(
     `SELECT DISTINCT COALESCE("name", "email") as value, "role"
      FROM "User"
-     WHERE COALESCE("name", '') != '' OR COALESCE("email", '') != ''
+     WHERE (COALESCE("name", '') != '' OR COALESCE("email", '') != '') AND "deletedAt" IS NULL
      ${isAdmin ? "" : ' AND "company" = ?'}
      ORDER BY COALESCE("name", "email") ASC`,
     isAdmin ? [] : [company],
   );
   return rows
     .filter((row) => normalizeRole(String(row.role ?? "")) !== "admin")
-    .map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }))
+    .map((row) => {
+      const name = String(row.value ?? "").trim();
+      const role = normalizeRole(String(row.role ?? "").trim());
+      return {
+        value: name,
+        label: role ? `${name} (${role.toUpperCase()})` : name,
+        role,
+      };
+    })
     .filter((row) => Boolean(row.value));
 }
 
@@ -591,13 +599,13 @@ export async function getModuleRows(module: ModuleKey) {
         };
       });
     case "test-sessions":
-      return await selectAll(`SELECT * FROM "TestSession" ${where} ORDER BY "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT * FROM "TestSession" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
     case "test-cases":
       return (await selectAll(`SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams)).map((item) => normalizeTestCaseRow(item));
     case "bugs":
-      return await selectAll(`SELECT * FROM "Bug" ${where} ORDER BY "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT * FROM "Bug" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
     case "tasks":
-      return await selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT * FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
     case "test-suites": {
       const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
       return (await selectAll(
@@ -640,7 +648,7 @@ export async function getModuleRows(module: ModuleKey) {
       const assigneeRows = await selectAll(`SELECT u."id", u."name", u."role", u."email", COALESCE(a."skills", '') as "skills", 'active' as "status"
         FROM "User" u
         LEFT JOIN "Assignee" a ON a."userId" = u."id"
-        ${isAdmin ? "" : ' WHERE u."company" = ?'}
+        WHERE u."deletedAt" IS NULL${isAdmin ? "" : ' AND u."company" = ?'}
         ORDER BY u."name" ASC`, qParams);
       return assigneeRows
         .filter((item: any) => normalizeRole(String(item.role ?? "")) !== "admin")
@@ -772,7 +780,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "assignees": {
       const total = await countRows("User", isAdmin ? undefined : company);
       const rows = await selectAll(`SELECT id, name, role, email, '' as skills, 'active' as status, "createdAt", "updatedAt"
-        FROM "User" ${where.replace(/"company"/g, '"company"')} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+        FROM "User" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
       return { rows, total };
     }
     case "meeting-notes": {
@@ -811,14 +819,14 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
             AND tp2."deletedAt" IS NULL
             ORDER BY tp2."updatedAt" DESC LIMIT 1) AS project
         FROM "Sprint" s
-        ${sprintWhere}
+        ${sprintWhere}${isAdmin ? ' WHERE s."deletedAt" IS NULL' : ' AND s."deletedAt" IS NULL'}
         ORDER BY s."startDate" DESC${limitClause}
       `, [...subParams, ...subParams, ...qParams]);
       return { rows, total };
     }
     case "deployments": {
       const total = await countRows("Deployment", isAdmin ? undefined : company);
-      const rows = (await selectAll(`SELECT * FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC${limitClause}`, qParams)).map(hydrateDeploymentNotes);
+      const rows = (await selectAll(`SELECT * FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "createdAt" DESC${limitClause}`, qParams)).map(hydrateDeploymentNotes);
       return { rows, total };
     }
     default:
@@ -1140,19 +1148,12 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
 
   const entityId = String(id);
 
-  if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
-    const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
-    await logActivity(company, table, entityId, "Deleted", `${table} removed`);
-    invalidateDashboardCache(company);
-    return res;
-  }
-
   if (table === "User") {
     await deleteAssigneeForUser(Number(id));
   }
 
-  const res = await db.run(`DELETE FROM "${table}" WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
-  await logActivity(company, table, entityId, "Deleted", `${table} permanently deleted`);
+  const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+  await logActivity(company, table, entityId, "Deleted", `${table} removed`);
   invalidateDashboardCache(company);
   return res;
 }
@@ -1167,17 +1168,10 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
 
   const placeholderList = ids.map(() => "?").join(", ");
 
-  if (["TestCase", "TestPlan", "TestSuite", "MeetingNote"].includes(table)) {
-    await db.run(
-      `UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id IN (${placeholderList})${companyFilter}`,
-      [...ids, ...companyParam]
-    );
-  } else {
-    await db.run(
-      `DELETE FROM "${table}" WHERE id IN (${placeholderList})${companyFilter}`,
-      [...ids, ...companyParam]
-    );
-  }
+  await db.run(
+    `UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id IN (${placeholderList})${companyFilter}`,
+    [...ids, ...companyParam]
+  );
 
   await logActivity(company, table, ids.join(","), "Deleted", `${ids.length} ${table} records deleted`);
   invalidateDashboardCache(company);

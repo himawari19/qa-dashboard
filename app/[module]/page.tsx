@@ -193,13 +193,30 @@ export default async function ModulePage({
       }
     }
 
-    const teamOptions = await getAssigneeOptions();
+    const teamOptionsRaw = await getAssigneeOptions() as Array<{ value: string; label: string; role?: string }>;
+    const devRoles = new Set(["fe", "be", "fullstack", "ai"]);
+    const qaRoles = new Set(["qa"]);
+    const qaPmRoles = new Set(["qa", "pm"]);
+    const filterByRoles = (roles: Set<string>) => teamOptionsRaw.filter((option) => roles.has(String(option.role ?? "")));
+    const teamOptionsAll = teamOptionsRaw.map(({ value, label }) => ({ value, label }));
 
     const config = moduleConfigs[moduleKey as ModuleKey];
     if (config) {
       config.fields.forEach((field) => {
-        if (["assignee", "tester", "suggestedDev", "developer"].includes(field.name)) {
-          relatedOptions[field.name] = teamOptions;
+        if (field.name === "tester") {
+          relatedOptions[field.name] = filterByRoles(qaRoles).map(({ value, label }) => ({ value, label }));
+          return;
+        }
+        if (["suggestedDev", "developer"].includes(field.name)) {
+          relatedOptions[field.name] = filterByRoles(devRoles).map(({ value, label }) => ({ value, label }));
+          return;
+        }
+        if (field.name === "assignee") {
+          if (["test-plans", "test-suites", "test-cases", "test-sessions", "sprints"].includes(moduleKey)) {
+            relatedOptions[field.name] = filterByRoles(qaPmRoles).map(({ value, label }) => ({ value, label }));
+          } else {
+            relatedOptions[field.name] = teamOptionsAll;
+          }
         }
       });
     }

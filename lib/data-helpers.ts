@@ -122,10 +122,16 @@ export async function runInsert(sqlStr: string, params: any[]) {
 }
 
 export async function countRows(table: string, company?: string) {
-  const where = company ? ' WHERE "company" = ?' : "";
+  const whereBase = company ? ' WHERE "company" = ?' : "";
   const params = company ? [company] : [];
-  const row = await db.get(`SELECT COUNT(*) as total FROM "${table}"${where}`, params) as { total?: number } | undefined;
-  return Number(row?.total ?? 0);
+  try {
+    const whereDeleted = company ? ' WHERE "company" = ? AND "deletedAt" IS NULL' : ' WHERE "deletedAt" IS NULL';
+    const rowWithDeleted = await db.get(`SELECT COUNT(*) as total FROM "${table}"${whereDeleted}`, params) as { total?: number } | undefined;
+    return Number(rowWithDeleted?.total ?? 0);
+  } catch {
+    const row = await db.get(`SELECT COUNT(*) as total FROM "${table}"${whereBase}`, params) as { total?: number } | undefined;
+    return Number(row?.total ?? 0);
+  }
 }
 
 export async function syncSprintFromTestPlan({

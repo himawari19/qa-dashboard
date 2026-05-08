@@ -182,6 +182,8 @@ export function ModuleWorkspaceShell({
           onSearchChange={onSearchChange}
         />
 
+        {!showForm && module === "test-suites" ? <div className="border-b border-slate-200/60 px-6 py-4 dark:border-white/10" /> : null}
+
         {showForm ? (
           <ModuleWorkspaceForm
             key={`${module}-${editingRow?.id ?? "new"}`}

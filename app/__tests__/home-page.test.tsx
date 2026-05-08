@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   dashboard: vi.fn(() => <div data-testid="dashboard" />),
   skeleton: vi.fn(() => <div data-testid="dashboard-skeleton" />),
   fetch: vi.fn(),
-  getCurrentUser: vi.fn(async () => ({ id: 1, role: "lead", company: "acme", email: "lead@example.com" })),
+  getCurrentUser: vi.fn(async () => ({ id: 1, role: "pm", company: "acme", email: "lead@example.com" })),
   getDashboardData: vi.fn(async () => ({
     metrics: [{ label: "Open Tasks", value: 3, caption: "" }],
     distribution: { tasks: [], bugs: [], bugByModule: [] },
@@ -172,3 +172,4 @@ describe("home page", () => {
     expect(markup).toContain("dashboard");
   });
 });
+

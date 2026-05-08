@@ -82,8 +82,8 @@ describe("project detail page", () => {
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "QA Hub",
-      eyebrow: "Project Overview",
     }));
+    expect(props.description).toContain("test plans");
     expect(props.crumbs).toEqual([
       { label: "Dashboard", href: "/dashboard" },
       { label: "Test Plans", href: "/test-plans" },

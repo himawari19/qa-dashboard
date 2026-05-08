@@ -73,7 +73,7 @@ export default function SettingsPage() {
     <PageShell 
       icon={<Gear size={18} weight="bold" />}
       title="Settings" 
-      eyebrow="Configure your workspace"
+      description="Manage profile, users, assignees, and workspace configuration."
     >
       <div className="max-w-4xl space-y-12">
         {settingsGroups.map((group, groupIdx) => (

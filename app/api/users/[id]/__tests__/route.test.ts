@@ -5,8 +5,8 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   isAdminUser: vi.fn(),
   normalizeRole: vi.fn((role: string) => String(role).trim().toLowerCase()),
-  isInviteRole: vi.fn((role: string) => ["viewer", "editor", "lead"].includes(role)),
-  isAssignableRole: vi.fn((role: string) => ["editor", "lead", "viewer", "qa", "pm", "fe", "be", "fullstack", "ai"].includes(role)),
+  isInviteRole: vi.fn((role: string) => ["qa", "pm", "fe", "be", "fullstack", "ai"].includes(role)),
+  isAssignableRole: vi.fn((role: string) => ["qa", "pm", "fe", "be", "fullstack", "ai"].includes(role)),
   hashPassword: vi.fn(async (password: string) => `hashed:${password}`),
   db: {
     run: vi.fn(),
@@ -47,13 +47,13 @@ beforeEach(() => {
 
 describe("user id route", () => {
   it("rejects non-admin users", async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "lead", company: "acme" });
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "pm", company: "acme" });
     mocks.isAdminUser.mockReturnValue(false);
 
     const response = await PATCH(
       new Request("http://localhost/api/users/1", {
         method: "PATCH",
-        body: JSON.stringify({ name: "User", email: "user@example.com", role: "viewer" }),
+        body: JSON.stringify({ name: "User", email: "user@example.com", role: "qa" }),
       }) as NextRequest,
       { params: Promise.resolve({ id: "1" }) },
     );
@@ -86,7 +86,7 @@ describe("user id route", () => {
     const response = await PATCH(
       new Request("http://localhost/api/users/2", {
         method: "PATCH",
-        body: JSON.stringify({ name: "User", email: "user@example.com", role: "editor", password: "secret1" }),
+        body: JSON.stringify({ name: "User", email: "user@example.com", role: "fullstack", password: "secret1" }),
       }) as NextRequest,
       { params: Promise.resolve({ id: "2" }) },
     );
@@ -94,14 +94,14 @@ describe("user id route", () => {
     expect(mocks.hashPassword).toHaveBeenCalledWith("secret1");
     expect(mocks.db.run).toHaveBeenCalledWith(
       'UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-      ["User", "user@example.com", "editor", "hashed:secret1", "2"],
+      ["User", "user@example.com", "fullstack", "hashed:secret1", "2"],
     );
     expect(mocks.syncAssigneeFromUser).toHaveBeenCalledWith({
       id: 2,
       company: "",
       name: "User",
       email: "user@example.com",
-      role: "editor",
+      role: "fullstack",
     });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });

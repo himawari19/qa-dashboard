@@ -59,7 +59,7 @@ describe("test cases page", () => {
     expect(mocks.pageShell).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Test Case Library",
-        eyebrow: "Test Management",
+        description: "All test cases across every suite. Filter by status, review assignee ownership, and jump directly to execution.",
       }),
       undefined,
     );

@@ -363,7 +363,7 @@ export default function WeeklyReportPage() {
 
   if (loading) {
     return (
-      <PageShell icon={<TrendUp size={18} weight="bold" />} title="Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}>
+      <PageShell icon={<TrendUp size={18} weight="bold" />} title="Report" description="Track bugs, tasks, sessions, and sprint activity for the selected period." crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}>
         <div className="space-y-4 animate-pulse">
           <div className="h-24 rounded-2xl bg-slate-100 dark:bg-slate-800" />
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -380,7 +380,7 @@ export default function WeeklyReportPage() {
 
   if (error || !report) {
     return (
-      <PageShell icon={<TrendUp size={18} weight="bold" />} title="Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}>
+      <PageShell icon={<TrendUp size={18} weight="bold" />} title="Report" description="Track bugs, tasks, sessions, and sprint activity for the selected period." crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}>
         <div className="glass-card p-8">
           <p className="text-sm font-semibold text-slate-900 dark:text-white">Failed to load report.</p>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{error ?? "No data available."}</p>
@@ -405,7 +405,7 @@ export default function WeeklyReportPage() {
     <PageShell
       icon={<TrendUp size={18} weight="bold" />}
       title="Report"
-      eyebrow="Reports"
+      description="Track bugs, tasks, sessions, and sprint activity for the selected period."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}
       actions={
         <button

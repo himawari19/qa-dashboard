@@ -68,9 +68,9 @@ vi.mock("@/components/module-workspace-utils", () => ({
   ],
   getModuleWorkspacePermissions: (role: string) => {
     const isAdmin = role === "admin";
-    const isLead = role === "lead";
-    const isEditor = role === "editor";
-    const isViewer = role === "viewer";
+    const isLead = role === "pm";
+    const isEditor = role === "fullstack";
+    const isViewer = role === "qa";
     return {
       isAdmin,
       isLead,
@@ -105,7 +105,7 @@ function renderWorkspace(module: ModuleKey, userRole: string) {
           id: 1,
           name: "Alice",
           email: "alice@example.com",
-          role: "lead",
+          role: "pm",
         },
       ]}
       currentPage={1}
@@ -118,7 +118,7 @@ function renderWorkspace(module: ModuleKey, userRole: string) {
 
 describe("ModuleWorkspace smoke", () => {
   it("keeps viewer read-only for user management", () => {
-    const html = renderWorkspace("users", "viewer");
+    const html = renderWorkspace("users", "qa");
 
     expect(html).toContain("User Management");
     expect(html).not.toContain("Add Users");
@@ -127,7 +127,7 @@ describe("ModuleWorkspace smoke", () => {
   });
 
   it("shows edit actions but not delete for editors", () => {
-    const html = renderWorkspace("users", "editor");
+    const html = renderWorkspace("users", "fullstack");
 
     expect(html).toContain("Add Users");
     expect(html).toContain(">Edit<");
@@ -149,7 +149,7 @@ describe("ModuleWorkspace smoke", () => {
         currentPage={1}
         totalPages={1}
         totalItems={1}
-        user={{ role: "editor", company: "acme" }}
+        user={{ role: "fullstack", company: "acme" }}
       />,
     );
 
@@ -157,3 +157,4 @@ describe("ModuleWorkspace smoke", () => {
     expect(html).not.toContain(">Qa<");
   });
 });
+

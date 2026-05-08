@@ -30,6 +30,14 @@ export function ModuleRowActions({
 
   return (
     <div className="flex items-center gap-2">
+      {module === "test-suites" && (
+        <Link
+          href={`/test-execution/${publicToken}`}
+          className="rounded-sm bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
+        >
+          Execute
+        </Link>
+      )}
       {!["users", "assignees"].includes(module) && (
         <button
           type="button"
@@ -38,22 +46,6 @@ export function ModuleRowActions({
         >
           View
         </button>
-      )}
-      {module === "test-suites" && (
-        <>
-          <Link
-            href={`/test-suites/${publicToken}`}
-            className="rounded-sm border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-blue-600"
-          >
-            Detail
-          </Link>
-          <Link
-            href={`/test-execution/${publicToken}`}
-            className="rounded-sm bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
-          >
-            Execute
-          </Link>
-        </>
       )}
       {canEdit && module !== "sprints" && (
         <button

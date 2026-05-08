@@ -63,7 +63,7 @@ describe("test-cases route", () => {
   });
 
   it("creates a test case and revalidates dependent pages", async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "lead", company: "acme" });
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "pm", company: "acme" });
     mocks.db.get.mockResolvedValueOnce({ company: "acme" });
     mocks.getTestSuite.mockResolvedValueOnce({ publicToken: "suite-token" });
 
@@ -108,7 +108,7 @@ describe("test-cases route", () => {
   });
 
   it("updates execution rows", async () => {
-    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "editor", company: "acme" });
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "fullstack", company: "acme" });
     mocks.isAdminUser.mockReturnValue(false);
 
     const response = await PUT(
@@ -132,3 +132,4 @@ describe("test-cases route", () => {
     await expect(response.json()).resolves.toEqual({ message: "Execution saved successfully." });
   });
 });
+

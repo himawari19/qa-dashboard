@@ -109,7 +109,7 @@ describe("gantt page", () => {
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "Gantt / Timeline",
-      eyebrow: "Reports",
+      description: "View timelines, dependencies, and delivery windows across your workspace.",
     }));
   });
 });

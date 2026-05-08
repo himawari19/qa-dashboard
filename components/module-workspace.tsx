@@ -99,7 +99,7 @@ export function ModuleWorkspace({
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
   const { canAdd, canEdit, canDelete, isViewer } = useMemo(
-    () => getModuleWorkspacePermissions(String(user?.role || "user")),
+    () => getModuleWorkspacePermissions(String(user?.role || "qa")),
     [user?.role],
   );
   const assigneeLocked = module === "assignees";

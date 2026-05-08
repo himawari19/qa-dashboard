@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/data", () => ({
+  getTestSuite: mocks.getTestSuiteByToken,
   getTestSuiteByToken: mocks.getTestSuiteByToken,
   getTestPlanById: mocks.getTestPlanById,
   getTestCasesByScenario: mocks.getTestCasesByScenario,

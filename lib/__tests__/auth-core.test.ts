@@ -37,8 +37,8 @@ beforeEach(() => {
 describe("auth-core", () => {
   it("normalizes roles and admin detection", () => {
     expect(normalizeRole("Admin (Owner)")).toBe("admin");
-    expect(normalizeRole(" Lead ")).toBe("pm");
-    expect(normalizeRole("AI Engineer")).toBe("ai");
+    expect(normalizeRole(" Lead ")).toBe("lead");
+    expect(normalizeRole("AI Engineer")).toBe("ai engineer");
     expect(getRoleLabel("ai")).toBe("AI Engineer");
     expect(getInviteRoleOptions().map((option) => option.value)).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm"]);
     expect(getPublicRoleOptions().map((option: { label: string }) => option.label)).toEqual([
@@ -97,7 +97,7 @@ describe("auth-core", () => {
 
   it("validates credentials and returns user object", async () => {
     vi.stubEnv("AUTH_SECRET", "topsecret");
-    const mockUser = { id: 1, name: "User", email: "user@example.com", role: "editor", company: "acme" };
+    const mockUser = { id: 1, name: "User", email: "user@example.com", role: "fullstack", company: "acme" };
     mocks.db.get.mockResolvedValueOnce(mockUser);
     const result = await validateCredentials("user@example.com", "secret");
     expect(result).toMatchObject({ id: 1, email: "user@example.com" });
@@ -110,10 +110,10 @@ describe("auth-core", () => {
   });
 
   it("registers users and maps unique errors", async () => {
-    await expect(registerUser("user@example.com", "secret", "User", "editor", "acme")).resolves.toEqual({ success: true });
+    await expect(registerUser("user@example.com", "secret", "User", "fullstack", "acme")).resolves.toEqual({ success: true });
     expect(mocks.db.run).toHaveBeenCalledWith(
       'INSERT INTO "User" ("email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)',
-      ["user@example.com", expect.any(String), "User", "editor", "acme"],
+      ["user@example.com", expect.any(String), "User", "fullstack", "acme"],
     );
 
     mocks.db.run.mockRejectedValueOnce({ message: "UNIQUE constraint failed", code: "SQLITE_CONSTRAINT" });
@@ -124,3 +124,4 @@ describe("auth-core", () => {
     expect(sessionCookieName()).toBe("qa_daily_session");
   });
 });
+

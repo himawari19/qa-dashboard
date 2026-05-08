@@ -29,7 +29,10 @@ describe("user assignee sync", () => {
       role: "admin",
     });
 
-    expect(mocks.db.run).toHaveBeenCalledWith('DELETE FROM "Assignee" WHERE "userId" = ?', [1]);
+    expect(mocks.db.run).toHaveBeenCalledWith(
+      'UPDATE "Assignee" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "userId" = ?',
+      [1],
+    );
     expect(mocks.db.run).not.toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO "Assignee"'),
       expect.any(Array),

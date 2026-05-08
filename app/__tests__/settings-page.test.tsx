@@ -27,7 +27,7 @@ describe("settings page", () => {
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "Settings",
-      eyebrow: "Configure your workspace",
+      description: "Manage profile, users, assignees, and workspace configuration.",
     }));
   });
 });

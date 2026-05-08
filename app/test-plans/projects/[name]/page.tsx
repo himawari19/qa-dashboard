@@ -74,7 +74,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   return (
     <PageShell
       icon={<FolderSimple size={18} weight="bold" />}
-      eyebrow="Project Overview"
       title={projectName}
       description={`${stats.totalPlans} test plans · ${stats.totalCases} test cases · ${stats.totalBugs} defects tracked`}
       crumbs={[

@@ -57,7 +57,6 @@ describe("test execution page", () => {
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "Execution Center",
-      eyebrow: "Execution",
       description: "Select a test suite to begin your execution session. All results are tracked automatically.",
     }));
   });

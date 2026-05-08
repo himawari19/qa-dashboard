@@ -34,7 +34,7 @@ describe("profile page", () => {
       id: 1,
       name: "Rina",
       email: "rina@example.com",
-      role: "lead",
+      role: "pm",
     });
 
     const element = await ProfilePage();
@@ -45,7 +45,7 @@ describe("profile page", () => {
     expect(html).toContain("rina@example.com");
     expect(mocks.profileForm).toHaveBeenCalledWith(
       expect.objectContaining({
-        user: expect.objectContaining({ name: "Rina", role: "lead" }),
+        user: expect.objectContaining({ name: "Rina", role: "pm" }),
       }),
       undefined,
     );
@@ -59,3 +59,4 @@ describe("profile page", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/login");
   });
 });
+

@@ -96,7 +96,7 @@ export default function WorkloadPage() {
     <PageShell
       icon={<TrendUp size={18} weight="bold" />}
       title="Resource Workload"
-      eyebrow="Reports"
+      description="Visual breakdown of task and plan assignments per team member."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Workload Heatmap" }]}
       actions={
         <div className="relative">

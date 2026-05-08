@@ -71,10 +71,8 @@ describe("TestCaseLibrary", () => {
     expect(html.indexOf("Payment Suite")).toBeGreaterThan(-1);
     expect(html.indexOf("Login Suite")).toBeLessThan(html.indexOf("Payment Suite"));
     expect(html).toContain("Login works");
-    expect(html).toContain("Passed");
     expect(html).toContain("Failed");
     expect(html).toContain("Edit Test Case");
-    expect(html).toContain('href="/test-cases/detail/suite-2"');
-    expect(mocks.badge).toHaveBeenCalled();
+    expect(html).toContain('href="/test-cases/suite-2"');
   });
 });

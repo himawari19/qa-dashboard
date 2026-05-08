@@ -86,7 +86,6 @@ export function TestCaseDetailPage({
 
   return (
       <PageShell
-        eyebrow="Test Cases"
         title={suiteLabel || "Test Case Detail"}
         description={plan?.title
           ? `Spreadsheet-style input for all test cases in this suite. Test Plan: ${plan.title}.`

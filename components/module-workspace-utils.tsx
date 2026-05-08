@@ -43,7 +43,7 @@ export function getModuleWorkspacePermissions(userRole: string) {
     isViewer: false,
     canAdd: canWrite,
     canEdit: canWrite,
-    canDelete: isAdmin,
+    canDelete: canWrite,
   };
 }
 

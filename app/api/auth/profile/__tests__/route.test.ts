@@ -67,14 +67,14 @@ describe("auth profile route", () => {
       id: 1,
       email: "user@example.com",
       name: "User",
-      role: "editor",
+      role: "fullstack",
       company: "acme",
     });
 
     const response = await PATCH(
       new Request("http://localhost/api/auth/profile", {
         method: "PATCH",
-        body: JSON.stringify({ name: "User", role: "editor", password: "123" }),
+        body: JSON.stringify({ name: "User", role: "fullstack", password: "123" }),
       }) as NextRequest,
     );
 
@@ -87,7 +87,7 @@ describe("auth profile route", () => {
       id: 1,
       email: "user@example.com",
       name: "User",
-      role: "editor",
+      role: "fullstack",
       company: "acme",
     });
     mocks.createSessionToken.mockResolvedValueOnce("token-123");
@@ -95,19 +95,19 @@ describe("auth profile route", () => {
     const response = await PATCH(
       new Request("http://localhost/api/auth/profile", {
         method: "PATCH",
-        body: JSON.stringify({ name: " Updated User ", role: "viewer", password: "secret1" }),
+        body: JSON.stringify({ name: " Updated User ", role: "qa", password: "secret1" }),
       }) as NextRequest,
     );
 
     expect(mocks.hashPassword).toHaveBeenCalledWith("secret1");
     expect(mocks.db.run).toHaveBeenCalledWith(
       'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-      ["Updated User", "viewer", "hashed:secret1", 1],
+      ["Updated User", "qa", "hashed:secret1", 1],
     );
     expect(mocks.createSessionToken).toHaveBeenCalledWith("user@example.com", {
       id: 1,
       name: "Updated User",
-      role: "viewer",
+      role: "qa",
       company: "acme",
     });
     expect(response.status).toBe(200);
@@ -116,7 +116,7 @@ describe("auth profile route", () => {
       user: {
         id: 1,
         name: "Updated User",
-        role: "viewer",
+        role: "qa",
         company: "acme",
       },
     });

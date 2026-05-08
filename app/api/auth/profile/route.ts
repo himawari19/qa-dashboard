@@ -53,33 +53,33 @@ export async function PATCH(request: NextRequest) {
       
       await db.run(
         'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name.trim(), role?.trim() || "viewer", hashedPassword, user.id]
+        [name.trim(), role?.trim() || "qa", hashedPassword, user.id]
       );
       await syncAssigneeFromUser({
         id: user.id,
         company: user.company,
         name: name.trim(),
         email: user.email,
-        role: role?.trim() || "viewer",
+        role: role?.trim() || "qa",
       });
     } else {
       await db.run(
         'UPDATE "User" SET "name" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name.trim(), role?.trim() || "viewer", user.id]
+        [name.trim(), role?.trim() || "qa", user.id]
       );
       await syncAssigneeFromUser({
         id: user.id,
         company: user.company,
         name: name.trim(),
         email: user.email,
-        role: role?.trim() || "viewer",
+        role: role?.trim() || "qa",
       });
     }
 
     const updatedUser = {
       id: user.id,
       name: name.trim(),
-      role: (role?.trim() || "viewer"),
+      role: (role?.trim() || "qa"),
       company: user.company,
     };
     const response = NextResponse.json({ success: true, user: updatedUser });
