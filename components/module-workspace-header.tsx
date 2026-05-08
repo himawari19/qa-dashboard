@@ -63,8 +63,8 @@ export function ModuleWorkspaceHeader({
           </div>
 
           {!showForm ? (
-            <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
-              <div className="relative mr-2 w-full md:w-64">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-2 xl:w-auto xl:flex-1 xl:justify-end">
+              <div className="relative w-full min-w-0 md:w-64 xl:max-w-64">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
                   <MagnifyingGlass size={14} weight="bold" />
                 </div>
@@ -87,7 +87,6 @@ export function ModuleWorkspaceHeader({
                   Add {shortTitle}
                 </button>
               )}
-
               <Link
                 href={`/api/export/${module}`}
                 title="Export Excel"
@@ -125,13 +124,12 @@ export function ModuleWorkspaceHeader({
                   />
                 </label>
               )}
+
+              {topContent ? <div className="flex w-full basis-full flex-col items-end">{topContent}</div> : null}
             </div>
           ) : null}
         </div>
-        {topContent ? <div className="mt-6">{topContent}</div> : null}
       </div>
-
-
       {!showForm && (
         <div className="sticky top-0 z-[var(--z-sticky)] space-y-4 border-b border-slate-200/60 bg-white px-6 py-5 text-sm text-slate-600 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400 lg:px-6">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -170,9 +168,9 @@ export function ModuleWorkspaceHeader({
               ) : null}
             </div>
 
-            <div className="flex w-full shrink-0 items-center gap-3 xl:ml-auto xl:w-auto">
-              {(pending || refreshing) && (
-                <span role="status" className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600">
+              <div className="flex w-full min-w-0 shrink-0 items-center gap-3 xl:ml-auto xl:w-auto xl:justify-end">
+                {(pending || refreshing) && (
+                  <span role="status" className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600">
                   <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CaretDown, LinkSimple, Plus, Trash } from "@phosphor-icons/react";
+import { CaretDown, Plus, Trash } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { getInviteRoleOptions, getRoleLabel } from "@/lib/roles";
+import { cn } from "@/lib/utils";
 
 type Invite = {
   token: string;
@@ -14,11 +15,12 @@ type Invite = {
   createdAt: string;
 };
 
-export function InviteManager({ embedded = false }: { embedded?: boolean } = {}) {
+export function InviteManager({ embedded = false, compact = false }: { embedded?: boolean; compact?: boolean } = {}) {
   const [role, setRole] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("");
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(!embedded);
 
   const loadInvites = async () => {
     const res = await fetch("/api/invites");
@@ -77,56 +79,72 @@ export function InviteManager({ embedded = false }: { embedded?: boolean } = {})
 
   const content = (
     <>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 dark:text-white">Invite users</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Invite-only access. Role is fixed by you.</p>
-        </div>
-        <LinkSimple size={18} weight="bold" className="text-slate-400" />
-      </div>
-
-      <div className={embedded ? "mt-4 grid gap-2 md:grid-cols-[minmax(0,1.8fr)_104px_auto_auto]" : "mt-5 grid gap-2 md:grid-cols-[minmax(0,1.8fr)_104px_auto_auto]"}>
-        <div className="relative min-w-0">
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
-          >
-            <option value="" disabled hidden>
-              Select a role
-            </option>
-            {getInviteRoleOptions().map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <CaretDown size={14} weight="bold" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        </div>
-        <input
-          value={expiresInDays}
-          onChange={(e) => setExpiresInDays(e.target.value)}
-          type="number"
-          min="1"
-          max="30"
-          placeholder="Days"
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
-        />
+      <div className={compact ? "flex items-center justify-end gap-2" : embedded ? "flex items-center justify-end gap-2" : "flex flex-wrap items-center justify-between gap-3"}>
+        {!embedded && !compact ? (
+          <div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">Invite users</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Invite-only access. Role is fixed by you.</p>
+          </div>
+        ) : null}
         <button
-          onClick={createInvite}
-          disabled={loading || !role}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-60 dark:bg-white dark:text-slate-900"
+          type="button"
+          onClick={() => setShowInviteForm((prev) => !prev)}
+          className={cn(
+            "inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-bold transition-colors",
+            showInviteForm
+              ? "border-emerald-500 bg-emerald-500 text-white dark:border-emerald-500 dark:bg-emerald-500 dark:text-white"
+              : "border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:bg-emerald-500 hover:text-white dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-500 dark:hover:bg-emerald-500 dark:hover:text-white",
+          )}
         >
           <Plus size={16} weight="bold" />
-          {loading ? "Creating..." : "Generate"}
-        </button>
-        <button
-          onClick={() => void loadInvites()}
-          className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 dark:border-white/10 dark:text-slate-300"
-        >
-          Refresh
+          Invite User
         </button>
       </div>
+
+      {!compact && showInviteForm && (
+        <div className={embedded ? "mt-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]" : "mt-5 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]"}>
+          <div className="relative min-w-0">
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
+            >
+              <option value="" disabled hidden>
+                Select a role
+              </option>
+              {getInviteRoleOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <CaretDown size={14} weight="bold" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          </div>
+          <input
+            value={expiresInDays}
+            onChange={(e) => setExpiresInDays(e.target.value)}
+            type="number"
+            min="1"
+            max="30"
+            placeholder="Days"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
+          />
+          <button
+            onClick={createInvite}
+            disabled={loading || !role}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-60 dark:bg-white dark:text-slate-900"
+          >
+            <Plus size={16} weight="bold" />
+            {loading ? "Creating..." : "Generate"}
+          </button>
+          <button
+            onClick={() => void loadInvites()}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 dark:border-white/10 dark:text-slate-300"
+          >
+            Refresh
+          </button>
+        </div>
+      )}
 
       {invites.length > 0 && (
         <div className="mt-6">

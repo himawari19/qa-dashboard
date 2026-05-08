@@ -161,7 +161,7 @@ export function ModuleWorkspaceShell({
 }: Props) {
   return (
     <>
-      <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10">
+      <section className={showForm ? "overflow-visible rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10" : "overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10"}>
         <ModuleWorkspaceHeader
           module={module as any}
           title={config.title}
