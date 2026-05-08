@@ -21,6 +21,7 @@ import {
   ClockCountdown,
   ChartLineUp,
   RocketLaunch,
+  Users,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
@@ -61,7 +62,8 @@ const groups: SidebarGroup[] = [
   {
     title: "Reports",
     items: [
-      { href: "/weekly-report", label: "Weekly Report", icon: ChartLineUp },
+      { href: "/weekly-report", label: "Report", icon: ChartLineUp },
+      { href: "/reports/workload", label: "Workload Heatmap", icon: Users },
       { href: "/gantt", label: "Gantt / Timeline", icon: Rows },
     ],
   },
@@ -80,13 +82,13 @@ type SidebarItem = { href: string; label: string; icon: SidebarIcon };
 type SidebarGroup = { title: string; items: SidebarItem[] };
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt", "/settings"],
-  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
-  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
-  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/weekly-report", "/gantt"],
-  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
-  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/gantt"],
-  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/gantt"],
+  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/reports/workload", "/gantt", "/settings"],
+  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/reports/workload", "/gantt"],
+  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/reports/workload", "/gantt"],
+  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/weekly-report", "/reports/workload", "/gantt"],
+  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/reports/workload", "/gantt"],
+  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/weekly-report", "/reports/workload", "/gantt"],
+  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/weekly-report", "/reports/workload", "/gantt"],
 };
 
 function canSeeHref(role: string, href: string) {

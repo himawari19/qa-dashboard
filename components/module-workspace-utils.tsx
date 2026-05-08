@@ -1,18 +1,29 @@
 import type { ReactNode } from "react";
 import {
+  Bug,
+  Calendar,
+  CheckCircle,
+  Checks,
+  ClipboardText,
+  Clock,
   Tag,
   Folder,
   Compass,
-  SquaresFour,
-  Pulse,
-  Shield,
-  Calendar,
-  TextAlignLeft,
+  EnvelopeSimple,
+  Gear,
+  Kanban,
   Note,
   Paperclip,
-  CheckCircle,
+  PlayCircle,
+  Pulse,
+  RocketLaunch,
+  SquaresFour,
+  Shield,
+  Table,
+  TextAlignLeft,
   WarningCircle,
-  Clock,
+  Users,
+  User,
   X,
 } from "@phosphor-icons/react";
 import type { ModuleKey } from "@/lib/modules";
@@ -47,6 +58,24 @@ export function getModuleWorkspaceCrumbs(module: ModuleKey, title: string) {
     ...(scopeCrumb ? [scopeCrumb] : []),
     { label: title },
   ];
+}
+
+export function getModuleWorkspaceIcon(module: ModuleKey) {
+  const icons: Record<ModuleKey, ReactNode> = {
+    tasks: <Kanban size={18} weight="bold" />,
+    bugs: <Bug size={18} weight="bold" />,
+    "test-cases": <Checks size={18} weight="bold" />,
+    "test-plans": <ClipboardText size={18} weight="bold" />,
+    "test-sessions": <PlayCircle size={18} weight="bold" />,
+    "test-suites": <Table size={18} weight="bold" />,
+    "meeting-notes": <Note size={18} weight="bold" />,
+    assignees: <Users size={18} weight="bold" />,
+    sprints: <Kanban size={18} weight="bold" />,
+    users: <Gear size={18} weight="bold" />,
+    deployments: <RocketLaunch size={18} weight="bold" />,
+  };
+
+  return icons[module];
 }
 
 export function linkifyToMarkdown(text: string) {
@@ -98,8 +127,10 @@ export function getPreferredColumnOrder(module: ModuleKey) {
 export function getFieldIcons(): Record<string, ReactNode> {
   return {
     title: <Tag size={16} className="text-sky-500" />,
+    name: <Tag size={16} className="text-sky-500" />,
     project: <Folder size={16} className="text-amber-500" />,
     projectName: <Folder size={16} className="text-amber-500" />,
+    scope: <Folder size={16} className="text-amber-500" />,
     relatedFeature: <Compass size={16} className="text-purple-500" />,
     feature: <Compass size={16} className="text-purple-500" />,
     module: <SquaresFour size={16} className="text-indigo-500" />,
@@ -108,10 +139,34 @@ export function getFieldIcons(): Record<string, ReactNode> {
     status: <Pulse size={16} className="text-emerald-500" />,
     priority: <Shield size={16} className="text-orange-500" />,
     severity: <WarningCircle size={16} className="text-rose-500" />,
+    bugType: <Bug size={16} className="text-rose-500" />,
     dueDate: <Calendar size={16} className="text-rose-500" />,
+    startDate: <Calendar size={16} className="text-emerald-500" />,
+    endDate: <Calendar size={16} className="text-rose-500" />,
     date: <Calendar size={16} className="text-rose-500" />,
-    description: <TextAlignLeft size={16} className="text-slate-500" />,
+    version: <Tag size={16} className="text-indigo-500" />,
+    sprint: <Kanban size={16} className="text-blue-500" />,
+    testPlanId: <ClipboardText size={16} className="text-indigo-500" />,
+    testPlanTitle: <ClipboardText size={16} className="text-indigo-500" />,
+    testSuiteId: <Table size={16} className="text-cyan-500" />,
+    tcId: <ClipboardText size={16} className="text-sky-500" />,
+    caseName: <ClipboardText size={16} className="text-sky-500" />,
+    assignee: <User size={16} className="text-blue-500" />,
+    tester: <User size={16} className="text-blue-500" />,
+    developer: <User size={16} className="text-blue-500" />,
+    email: <EnvelopeSimple size={16} className="text-slate-500" />,
+    role: <Users size={16} className="text-violet-500" />,
+    skills: <Gear size={16} className="text-slate-500" />,
+    environment: <Gear size={16} className="text-slate-500" />,
+    result: <CheckCircle size={16} className="text-emerald-500" />,
+    preCondition: <Clock size={16} className="text-amber-600" />,
     preconditions: <Clock size={16} className="text-amber-600" />,
+    testStep: <TextAlignLeft size={16} className="text-blue-600" />,
+    description: <TextAlignLeft size={16} className="text-slate-500" />,
+    content: <TextAlignLeft size={16} className="text-slate-500" />,
+    changelog: <TextAlignLeft size={16} className="text-slate-500" />,
+    actionItems: <CheckCircle size={16} className="text-emerald-500" />,
+    attendees: <Users size={16} className="text-blue-500" />,
     stepsToReproduce: <TextAlignLeft size={16} className="text-blue-600" />,
     expectedResult: <CheckCircle size={16} className="text-emerald-600" />,
     actualResult: <WarningCircle size={16} className="text-rose-600" />,
@@ -125,6 +180,9 @@ export function getFieldIcons(): Record<string, ReactNode> {
     progressSummary: <Pulse size={16} className="text-emerald-500" />,
     blockers: <X size={16} className="text-rose-600" />,
     nextPlan: <Clock size={16} className="text-indigo-500" />,
+    relatedItems: <Tag size={16} className="text-fuchsia-500" />,
+    suggestedDev: <User size={16} className="text-blue-500" />,
+    goal: <ClipboardText size={16} className="text-indigo-500" />,
   };
 }
 

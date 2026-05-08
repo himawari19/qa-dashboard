@@ -1,6 +1,7 @@
 import { getAllTestCasesWithSuite } from "@/lib/data";
 import { PageShell } from "@/components/page-shell";
 import { TestCaseLibrary } from "./test-case-library";
+import { Checks } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default async function TestCasesPage({
 
   return (
     <PageShell
+      icon={<Checks size={18} weight="bold" />}
       eyebrow="Test Management"
       title="Test Case Library"
       description="All test cases across every suite. Filter by status, review assignee ownership, and jump directly to execution."

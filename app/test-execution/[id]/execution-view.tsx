@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/badge";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { PlayModeView } from "../play-mode";
 
 type TestCase = {
   id: string | number;
@@ -57,6 +58,7 @@ export function SuiteExecutionView({
     tester: "",
     notes: "",
   });
+  const [isPlayMode, setIsPlayMode] = useState(false);
 
   const selectedCase = items.find((i) => i.id === selectedId);
   const selectedIndex = items.findIndex((i) => i.id === selectedId);
@@ -172,6 +174,16 @@ export function SuiteExecutionView({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
+      {isPlayMode && (
+        <PlayModeView 
+          suite={suite} 
+          cases={items} 
+          onClose={(updated) => {
+            setItems(updated);
+            setIsPlayMode(false);
+          }} 
+        />
+      )}
       {/* ── Finish Session Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -333,6 +345,13 @@ export function SuiteExecutionView({
             >
               Add Test Case
             </Link>
+            <button
+              onClick={() => setIsPlayMode(true)}
+              className="inline-flex h-11 items-center gap-2 rounded-md bg-blue-600 px-5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700 active:scale-95"
+            >
+              <Play size={18} weight="fill" />
+              Play Mode
+            </button>
             <button
               onClick={() => setShowModal(true)}
               disabled={total === 0}

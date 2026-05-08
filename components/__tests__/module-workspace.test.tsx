@@ -61,6 +61,7 @@ vi.mock("@/components/attachment-uploader", () => ({
 vi.mock("@/components/module-workspace-utils", () => ({
   PAGE_SIZE: 10,
   getFieldIcons: () => ({}),
+  getModuleWorkspaceIcon: () => null,
   getModuleWorkspaceCrumbs: (_module: string, title: string) => [
     { label: "Dashboard" },
     { label: title },

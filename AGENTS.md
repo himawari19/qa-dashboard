@@ -56,6 +56,7 @@ const dayExpr = isPostgres
 - **Imports**: Always check if `moduleConfigs` is imported in `app/[module]/page.tsx` before use.
 - **Visuals**: Modern, premium UI. Tailwind classes only. NO hardcoded hex (except CSS vars).
 - **Versioning**: `package.json` version is source of truth.
+- **Deploy rule**: before every deploy or push intended for release, bump `package.json` version first.
 
 ## Do NOT
 - Add npm packages without checking `package.json`.

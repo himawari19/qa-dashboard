@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, type ReactNode } from "react";
+import { getFieldIcons } from "@/components/module-workspace-utils";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/badge";
 import { cn, formatDate, formatDisplayText } from "@/lib/utils";
@@ -16,6 +17,8 @@ import {
   Printer,
   WarningCircle,
   Clock,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react";
 import {
   BarChart,
@@ -163,30 +166,117 @@ function TrendIcon({ direction }: { direction: "up" | "down" | "flat" }) {
   return <Minus size={13} weight="bold" />;
 }
 
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+function getSunday(monday: Date): Date {
+  const d = new Date(monday);
+  d.setDate(d.getDate() + 6);
+  return d;
+}
+
 export default function WeeklyReportPage() {
   const [report, setReport] = useState<WeeklyReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
+  const [calOpen, setCalOpen] = useState(false);
+  const [calMonth, setCalMonth] = useState(() => new Date());
+  const [rangeFrom, setRangeFrom] = useState<Date | null>(null);
+  const [rangeTo, setRangeTo] = useState<Date | null>(null);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+  type DetailModal = { type: string; module: string; id: number; fields: Array<{ label: string; value: string; icon?: string }> } | null;
+  const [detailModal, setDetailModal] = useState<DetailModal>(null);
+  const fieldIcons = useMemo(() => getFieldIcons(), []);
+  const calRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/weekly-report")
+  const [customEnd, setCustomEnd] = useState(() => getSunday(getMonday(new Date())));
+  const weekEnd = customEnd;
+  const isCurrentWeek = useMemo(() => toDateStr(weekStart) === toDateStr(getMonday(new Date())) && toDateStr(customEnd) === toDateStr(getSunday(getMonday(new Date()))), [weekStart, customEnd]);
+
+  const fetchReport = useCallback((from: Date, to: Date) => {
+    setLoading(true);
+    setError(null);
+    fetch(`/api/weekly-report?from=${toDateStr(from)}&to=${toDateStr(to)}`)
       .then(async (response) => {
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload?.error || "Failed to load weekly report");
-        if (alive) setReport(payload);
+        if (!response.ok) throw new Error(payload?.error || "Failed to load report");
+        setReport(payload);
       })
       .catch((err) => {
-        if (alive) setError(err instanceof Error ? err.message : "Failed to load weekly report");
+        setError(err instanceof Error ? err.message : "Failed to load report");
       })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-
-    return () => {
-      alive = false;
-    };
+      .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchReport(weekStart, customEnd); }, [weekStart, customEnd, fetchReport]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (calRef.current && !calRef.current.contains(e.target as Node)) {
+        setCalOpen(false);
+        setRangeFrom(null);
+        setRangeTo(null);
+        setRangeError(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const goWeek = (dir: -1 | 1) => {
+    setWeekStart((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + dir * 7);
+      const newStart = d;
+      const newEnd = getSunday(newStart);
+      setCustomEnd(newEnd);
+      return newStart;
+    });
+  };
+
+  const pickDate = (d: Date) => {
+    setRangeError(null);
+    if (!rangeFrom || (rangeFrom && rangeTo)) {
+      setRangeFrom(d);
+      setRangeTo(null);
+    } else {
+      const start = d < rangeFrom ? d : rangeFrom;
+      const end = d < rangeFrom ? rangeFrom : d;
+      setRangeFrom(start);
+      setRangeTo(end);
+    }
+  };
+
+  const applyRange = () => {
+    if (!rangeFrom || !rangeTo) return;
+    setWeekStart(rangeFrom);
+    setCustomEnd(rangeTo);
+    setRangeFrom(null);
+    setRangeTo(null);
+    setCalOpen(false);
+  };
+
+  const calDays = useMemo(() => {
+    const year = calMonth.getFullYear();
+    const month = calMonth.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
+    return days;
+  }, [calMonth]);
 
   const severityChartData = useMemo(() => {
     return (report?.bugsBySeverity ?? [])
@@ -256,7 +346,7 @@ export default function WeeklyReportPage() {
     if (!items.length) {
       items.push({
         title: "Weekly status is stable",
-        detail: "No critical issues to escalate this week.",
+        detail: "No critical issues to escalate this period.",
         tone: "info",
       });
     }
@@ -273,7 +363,7 @@ export default function WeeklyReportPage() {
 
   if (loading) {
     return (
-      <PageShell title="Weekly Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Weekly Report" }]}>
+      <PageShell icon={<TrendUp size={18} weight="bold" />} title="Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}>
         <div className="space-y-4 animate-pulse">
           <div className="h-24 rounded-2xl bg-slate-100 dark:bg-slate-800" />
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -290,16 +380,16 @@ export default function WeeklyReportPage() {
 
   if (error || !report) {
     return (
-      <PageShell title="Weekly Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Weekly Report" }]}>
+      <PageShell icon={<TrendUp size={18} weight="bold" />} title="Report" eyebrow="Reports" crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}>
         <div className="glass-card p-8">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">Failed to load weekly report.</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">Failed to load report.</p>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{error ?? "No data available."}</p>
         </div>
       </PageShell>
     );
   }
 
-  const { summary, period, newBugs, newTasks, activeSprints, recentActivity } = report;
+  const { summary, newBugs, newTasks, activeSprints, recentActivity } = report;
   const passRateTone = summary.passRate !== null
     ? summary.passRate >= 85
       ? "bg-emerald-600"
@@ -308,14 +398,15 @@ export default function WeeklyReportPage() {
         : "bg-rose-600"
     : "bg-slate-400";
   const insightLine = summary.passRate === null
-    ? "No test sessions recorded this week."
-    : `${summary.sessions} session${summary.sessions === 1 ? "" : "s"} this week — pass rate ${summary.passRate}%.`;
+    ? "No test sessions recorded this period."
+    : `${summary.sessions} session${summary.sessions === 1 ? "" : "s"} this period — pass rate ${summary.passRate}%.`;
 
   return (
     <PageShell
-      title="Weekly Report"
+      icon={<TrendUp size={18} weight="bold" />}
+      title="Report"
       eyebrow="Reports"
-      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Weekly Report" }]}
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Report" }]}
       actions={
         <button
           onClick={() => window.print()}
@@ -326,10 +417,114 @@ export default function WeeklyReportPage() {
         </button>
       }
     >
-      <div className="mb-4 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-        <CalendarBlank size={13} weight="bold" />
-        Period: <span className="font-bold text-slate-700 dark:text-slate-200">{formatDate(period.from)}</span> —
-        <span className="font-bold text-slate-700 dark:text-slate-200">{formatDate(period.to)}</span>
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 print:justify-between dark:text-slate-400">
+        <div className="relative flex items-center gap-1 print:hidden" ref={calRef}>
+          <button
+            onClick={() => goWeek(-1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-800"
+          >
+            <CaretLeft size={14} weight="bold" />
+          </button>
+          <button
+            onClick={() => { setCalMonth(new Date(weekStart)); setCalOpen(!calOpen); }}
+            className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200"
+          >
+            <CalendarBlank size={14} weight="bold" />
+            {formatDate(toDateStr(weekStart))} — {formatDate(toDateStr(weekEnd))}
+          </button>
+          <button
+            onClick={() => goWeek(1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-800"
+          >
+            <CaretRight size={14} weight="bold" />
+          </button>
+          {!isCurrentWeek && (
+            <button
+              onClick={() => { const m = getMonday(new Date()); setWeekStart(m); setCustomEnd(getSunday(m)); }}
+              className="ml-1 flex h-8 items-center rounded-lg bg-blue-100 px-2.5 text-[10px] font-black uppercase tracking-wider text-blue-700 transition hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
+            >
+              This period
+            </button>
+          )}
+
+          {calOpen && (
+            <div className="absolute left-0 top-10 z-50 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:border-white/10 dark:bg-slate-900">
+              <div className="mb-2 text-center text-[10px] font-bold text-slate-400">
+                {!rangeFrom ? "Pilih tanggal awal" : !rangeTo ? "Pilih tanggal akhir" : `${formatDate(toDateStr(rangeFrom))} — ${formatDate(toDateStr(rangeTo))}`}
+              </div>
+              <div className="mb-3 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <CaretLeft size={14} weight="bold" />
+                </button>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  {calMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <CaretRight size={14} weight="bold" />
+                </button>
+              </div>
+              <div className="mb-1 grid grid-cols-7 gap-1 text-center">
+                {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
+                  <div key={d} className="text-[10px] font-bold uppercase text-slate-400">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {calDays.map((day, idx) => {
+                  if (!day) return <div key={`e-${idx}`} className="h-7" />;
+                  const ds = toDateStr(day);
+                  const isRangeStart = rangeFrom && ds === toDateStr(rangeFrom);
+                  const isRangeEnd = rangeTo && ds === toDateStr(rangeTo);
+                  const inPickedRange = rangeFrom && rangeTo && ds >= toDateStr(rangeFrom) && ds <= toDateStr(rangeTo);
+                  const inCurrentRange = !rangeFrom && ds >= toDateStr(weekStart) && ds <= toDateStr(weekEnd);
+                  const isToday = day.toDateString() === new Date().toDateString();
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => pickDate(day)}
+                      className={cn(
+                        "flex h-7 w-full items-center justify-center text-[11px] font-semibold transition hover:bg-blue-100 dark:hover:bg-blue-900/30",
+                        (isRangeStart || isRangeEnd) ? "rounded-md bg-blue-700 text-white ring-2 ring-blue-300" :
+                        inPickedRange ? "bg-blue-500 text-white" :
+                        inCurrentRange ? "rounded-md bg-blue-600 text-white hover:bg-blue-700" :
+                        "rounded-md text-slate-700 dark:text-slate-300",
+                        isRangeStart && "rounded-l-md rounded-r-none",
+                        isRangeEnd && "rounded-r-md rounded-l-none",
+                        inPickedRange && !isRangeStart && !isRangeEnd && "rounded-none",
+                        isToday && !inCurrentRange && !inPickedRange && !isRangeStart && "font-black text-blue-600 bg-blue-50 dark:bg-blue-950/30"
+                      )}
+                    >
+                      {day.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+              {rangeFrom && rangeTo && (
+                <button
+                  type="button"
+                  onClick={applyRange}
+                  className="mt-3 flex h-9 w-full items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-500"
+                >
+                  Terapkan Filter
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="hidden print:flex items-center gap-2">
+          <CalendarBlank size={13} weight="bold" />
+          Period: <span className="font-bold text-slate-700">{formatDate(toDateStr(weekStart))}</span> — <span className="font-bold text-slate-700">{formatDate(toDateStr(weekEnd))}</span>
+        </div>
+
         <span className={cn("ml-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest text-white", passRateTone)}>
           <TrendIcon direction={reportMood?.tone ?? "flat"} />
           {reportMood?.label}
@@ -337,7 +532,7 @@ export default function WeeklyReportPage() {
       </div>
 
       <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={<Bug size={18} weight="bold" />} label="New Bugs" value={summary.newBugs} sub={`${summary.closedBugs} closed this week`} color="bg-red-600" />
+        <StatCard icon={<Bug size={18} weight="bold" />} label="New Bugs" value={summary.newBugs} sub={`${summary.closedBugs} closed this period`} color="bg-red-600" />
         <StatCard icon={<CheckCircle size={18} weight="bold" />} label="Tasks Done" value={summary.doneTasks} sub={`${summary.newTasks} new, ${summary.openTasks} open`} color="bg-emerald-600" />
         <StatCard icon={<ClipboardText size={18} weight="bold" />} label="Test Sessions" value={summary.sessions} sub={`${summary.testCasesRun} cases run`} color="bg-blue-600" />
         <StatCard
@@ -350,7 +545,7 @@ export default function WeeklyReportPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <Panel title="Execution Trend" subtitle="Passed / failed / blocked from this week's test sessions.">
+        <Panel title="Execution Trend" subtitle="Passed / failed / blocked from this period's test sessions.">
           {sessionTrendData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280} minWidth={1} minHeight={1}>
               <BarChart data={sessionTrendData} margin={{ left: -12, right: 8, top: 8 }}>
@@ -365,16 +560,16 @@ export default function WeeklyReportPage() {
             </ResponsiveContainer>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-              No test session data this week.
+              No test session data this period.
             </div>
           )}
         </Panel>
 
-        <Panel title="Weekly Focus" subtitle="Priority items to close out this week.">
+        <Panel title="Focus Area" subtitle="Priority items to close out this period.">
           <div className="space-y-3">
-            {actionItems.map((item) => (
+            {actionItems.map((item, idx) => (
               <div
-                key={item.title}
+                key={`${item.title}-${idx}`}
                 className={cn(
                   "rounded-2xl border p-4",
                   item.tone === "danger" && "border-rose-200 bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10",
@@ -431,7 +626,7 @@ export default function WeeklyReportPage() {
           )}
         </Panel>
 
-        <Panel title="Bug by Test Plan" subtitle="Test plans with the most bugs this week.">
+        <Panel title="Bug by Test Plan" subtitle="Test plans with the most bugs this period.">
           {projectChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240} minWidth={1} minHeight={1}>
               <BarChart data={projectChartData} layout="vertical" margin={{ top: 8, right: 16, left: 10 }}>
@@ -451,10 +646,10 @@ export default function WeeklyReportPage() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[0.75fr_0.75fr_0.5fr]">
-        <Panel title="New Bugs" subtitle="Bugs reported this week.">
-          <div className="space-y-2">
-            {(newBugs as WeeklyReportData["newBugs"]).slice(0, 5).map((bug) => (
-              <div key={bug.id} className="rounded-2xl border border-slate-200/70 p-3 dark:border-white/10">
+        <Panel title="New Bugs" subtitle="Bugs reported this period.">
+          <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
+            {(newBugs as WeeklyReportData["newBugs"]).map((bug) => (
+              <button key={bug.id} type="button" onClick={() => setDetailModal({ type: "Bug", module: "bugs", id: bug.id, fields: [{ label: "Code", value: bug.code, icon: "title" }, { label: "Title", value: bug.title, icon: "title" }, { label: "Project", value: bug.project, icon: "project" }, { label: "Status", value: formatDisplayText(bug.status), icon: "status" }, { label: "Priority", value: formatDisplayText(bug.priority), icon: "priority" }, { label: "Severity", value: formatDisplayText(bug.severity), icon: "severity" }] })} className="w-full text-left rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-white/10 dark:hover:border-blue-800/40 dark:hover:bg-blue-950/20">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{bug.code} · {bug.title}</p>
@@ -462,16 +657,15 @@ export default function WeeklyReportPage() {
                   </div>
                   <Badge value={bug.status} />
                 </div>
-                <p className="mt-2 text-[10px] font-semibold tracking-widest text-slate-400">{formatDisplayText(bug.severity)}</p>
-              </div>
+              </button>
             ))}
           </div>
         </Panel>
 
-        <Panel title="New Tasks" subtitle="Tasks created this week.">
-          <div className="space-y-2">
-            {(newTasks as WeeklyReportData["newTasks"]).slice(0, 5).map((task) => (
-              <div key={task.id} className="rounded-2xl border border-slate-200/70 p-3 dark:border-white/10">
+        <Panel title="New Tasks" subtitle="Tasks created this period.">
+          <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
+            {(newTasks as WeeklyReportData["newTasks"]).map((task) => (
+              <button key={task.id} type="button" onClick={() => setDetailModal({ type: "Task", module: "tasks", id: task.id, fields: [{ label: "Code", value: task.code, icon: "title" }, { label: "Title", value: task.title, icon: "title" }, { label: "Project", value: task.project, icon: "project" }, { label: "Status", value: formatDisplayText(task.status), icon: "status" }, { label: "Priority", value: formatDisplayText(task.priority), icon: "priority" }] })} className="w-full text-left rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-white/10 dark:hover:border-blue-800/40 dark:hover:bg-blue-950/20">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{task.code} · {task.title}</p>
@@ -479,15 +673,15 @@ export default function WeeklyReportPage() {
                   </div>
                   <Badge value={task.status} />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </Panel>
 
-        <Panel title="Top Assignees" subtitle="Most active contributors this week.">
-          <div className="space-y-2">
+        <Panel title="Top Assignees" subtitle="Most active contributors this period.">
+          <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
             {assigneeLoad.length > 0 ? assigneeLoad.map((person, idx) => (
-              <div key={person.name} className="flex items-center justify-between rounded-2xl border border-slate-200/70 px-3 py-2 dark:border-white/10">
+              <button key={`${person.name}-${idx}`} type="button" onClick={() => setDetailModal({ type: "Assignee", module: "reports/workload", id: 0, fields: [{ label: "Name", value: person.name, icon: "title" }, { label: "Rank", value: `#${idx + 1}`, icon: "status" }, { label: "Active Items", value: String(person.count), icon: "progressSummary" }] })} className="w-full flex items-center justify-between rounded-2xl border border-slate-200/70 px-3 py-2 transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-white/10 dark:hover:border-blue-800/40 dark:hover:bg-blue-950/20">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-black text-slate-500 dark:bg-white/5 dark:text-slate-300">
                     {idx + 1}
@@ -495,7 +689,7 @@ export default function WeeklyReportPage() {
                   <p className="truncate text-xs font-bold text-slate-800 dark:text-white">{person.name}</p>
                 </div>
                 <span className="text-xs font-black text-slate-500">{person.count}</span>
-              </div>
+              </button>
             )) : (
               <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
                 No assignee data.
@@ -511,9 +705,9 @@ export default function WeeklyReportPage() {
           subtitle="Currently active sprints."
           actions={<span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-600">{activeSprints.length} items</span>}
         >
-          <div className="space-y-2">
+          <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
             {(activeSprints as WeeklyReportData["activeSprints"]).map((sprint) => (
-              <div key={sprint.id} className="rounded-2xl border border-slate-200/70 p-3 dark:border-white/10">
+              <button key={sprint.id} type="button" onClick={() => setDetailModal({ type: "Sprint", module: "sprints", id: sprint.id, fields: [{ label: "Name", value: sprint.name, icon: "title" }, { label: "Status", value: formatDisplayText(sprint.status), icon: "status" }, { label: "Goal", value: sprint.goal || "-", icon: "description" }, { label: "Start Date", value: formatDate(sprint.startDate), icon: "date" }, { label: "End Date", value: formatDate(sprint.endDate), icon: "dueDate" }] })} className="w-full text-left rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-white/10 dark:hover:border-blue-800/40 dark:hover:bg-blue-950/20">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{sprint.name}</p>
@@ -525,7 +719,7 @@ export default function WeeklyReportPage() {
                   <Clock size={11} weight="bold" />
                   {formatDate(sprint.startDate)} – {formatDate(sprint.endDate)}
                 </p>
-              </div>
+              </button>
             ))}
           </div>
         </Panel>
@@ -546,6 +740,60 @@ export default function WeeklyReportPage() {
           </div>
         </Panel>
       </div>
+
+      {detailModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setDetailModal(null); }}
+        >
+          <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:slide-in-from-bottom-0 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200/60 px-4 py-3 dark:border-white/10">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-blue-500">{detailModal.type}</p>
+                <h2 className="text-sm font-black text-slate-900 dark:text-white">
+                  {detailModal.fields.find(f => f.label === "Title")?.value || detailModal.fields.find(f => f.label === "Name")?.value || "Detail"}
+                </h2>
+                {detailModal.fields.find(f => f.label === "Code") && (
+                  <p className="text-[10px] font-semibold text-slate-400">{detailModal.fields.find(f => f.label === "Code")?.value}</p>
+                )}
+              </div>
+              <button onClick={() => setDetailModal(null)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800">×</button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {detailModal.fields.filter(f => f.label !== "Code").map((f) => {
+                  const isLong = f.label === "Title" || f.label === "Goal" || f.label === "Name";
+                  const icon = f.icon ? fieldIcons[f.icon] : null;
+                  return (
+                    <div key={f.label} className={cn("rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/40", isLong && "sm:col-span-2")}>
+                      <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                        {icon}
+                        {f.label}
+                      </div>
+                      <p className="whitespace-pre-wrap text-xs font-semibold text-slate-800 dark:text-slate-200">{f.value || "-"}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-200/60 px-4 py-3 dark:border-white/10">
+              {detailModal.id > 0 && (
+                <button
+                  onClick={() => {
+                    if (typeof window === "undefined") return;
+                    setDetailModal(null);
+                    window.location.href = `/${detailModal.module}?edit=${detailModal.id}`;
+                  }}
+                  className="h-8 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:bg-blue-500 hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  Edit
+                </button>
+              )}
+              <button onClick={() => setDetailModal(null)} className="h-8 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:bg-rose-500 hover:-translate-y-0.5 hover:shadow-md">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }

@@ -162,7 +162,7 @@ describe("TestCaseDetailEditor", () => {
       </table>,
     );
 
-    expect(html).toContain("bg-emerald-500 text-white");
-    expect(html).toContain("bg-orange-500 text-white");
+    expect(html).toContain("bg-emerald-100 text-emerald-700");
+    expect(html).toContain("bg-orange-100 text-orange-700");
   });
 });

@@ -8,6 +8,7 @@ import { ModuleWorkspaceTable } from "@/components/module-workspace-table";
 import { ModuleWorkspaceForm } from "@/components/module-workspace-form";
 import { ModuleWorkspaceModals } from "@/components/module-workspace-modals";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { getModuleWorkspaceIcon } from "@/components/module-workspace-utils";
 
 type Row = Record<string, string | number> & { id: string | number };
 
@@ -85,6 +86,8 @@ type Props = {
   onReopenConfirm: () => void;
   onCloseView: () => void;
   onEditView: () => void;
+  search: string;
+  onSearchChange: (value: string) => void;
 };
 
 export function ModuleWorkspaceShell({
@@ -153,15 +156,18 @@ export function ModuleWorkspaceShell({
   onReopenConfirm,
   onCloseView,
   onEditView,
+  search,
+  onSearchChange,
 }: Props) {
   return (
     <>
-      <section className="overflow-hidden rounded-2xl glass-card">
+      <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10">
         <ModuleWorkspaceHeader
           module={module as any}
           title={config.title}
           shortTitle={config.shortTitle}
           description={config.description}
+          icon={getModuleWorkspaceIcon(module as any)}
           canAdd={canAdd}
           topContent={topContent}
           showForm={showForm}
@@ -172,7 +178,10 @@ export function ModuleWorkspaceShell({
           onToggleForm={onToggleForm}
           onSetViewMode={onSetViewMode}
           onImportFile={onImportFile}
+          search={search}
+          onSearchChange={onSearchChange}
         />
+
         {showForm ? (
           <ModuleWorkspaceForm
             key={`${module}-${editingRow?.id ?? "new"}`}

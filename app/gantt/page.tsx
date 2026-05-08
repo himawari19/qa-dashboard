@@ -5,6 +5,7 @@ import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/badge";
 import { cn, formatDate, formatDisplayText } from "@/lib/utils";
 import { Lightning, ClipboardText, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { toast } from "@/components/ui/toast";
 import {
   DAY_NAMES,
   DAY_PX,
@@ -69,6 +70,15 @@ export default function GanttPage() {
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [visibleRowWindow, setVisibleRowWindow] = useState({ start: 0, end: 24 });
   const [storageScopeKey, setStorageScopeKey] = useState("global");
+  const [dragState, setDragState] = useState<{
+    key: string;
+    type: "move" | "resize-start" | "resize-end";
+    startX: number;
+    origStart: string;
+    origEnd: string;
+  } | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ key: string; start: string; end: string } | null>(null);
+
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowAreaRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -79,9 +89,15 @@ export default function GanttPage() {
   const dataRef = useRef<GanttData | null>(null);
   const currentYear = focusDate.getFullYear();
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
+    setLoading(true);
     fetch(`/api/gantt?year=${currentYear}`).then(r => r.json()).then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
   }, [currentYear]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
 
   useEffect(() => {
     fetch(`/api/gantt/holidays?year=${currentYear}`).then(r => r.json()).then(setHolidays).catch(() => {});
@@ -270,10 +286,20 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
 
   const rowGeometry = useMemo(() => {
     return timelineRows.map((item, idx) => {
-      const s = diffDays(viewStart, parseDate(item.startDate));
-      const e = diffDays(viewStart, parseDate(item.endDate));
-      const left = Math.max(0, s) * dayPx;
-      const right = Math.min(totalCols, e + 1) * dayPx;
+      const itemKey = getItemKey(item);
+      let sStr = item.startDate;
+      let eStr = item.endDate;
+
+      if (dragPreview && dragPreview.key === itemKey) {
+        sStr = dragPreview.start;
+        eStr = dragPreview.end;
+      }
+
+      const s = diffDays(viewStart, parseDate(sStr));
+      const e = diffDays(viewStart, parseDate(eStr));
+      const left = Math.max(-totalCols, s) * dayPx;
+      const right = Math.min(totalCols * 2, e + 1) * dayPx;
+
       const width = Math.max(dayPx, right - left);
       return {
         item,
@@ -384,6 +410,64 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
     });
   }, [dayPx, viewStart]);
 
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragState) return;
+      const diffX = e.clientX - dragState.startX;
+      const diffDaysVal = Math.round(diffX / dayPx);
+      
+      let newStart = dragState.origStart;
+      let newEnd = dragState.origEnd;
+
+      if (dragState.type === "move") {
+        newStart = toKey(addDays(parseDate(dragState.origStart), diffDaysVal));
+        newEnd = toKey(addDays(parseDate(dragState.origEnd), diffDaysVal));
+      } else if (dragState.type === "resize-start") {
+        newStart = toKey(addDays(parseDate(dragState.origStart), diffDaysVal));
+        if (parseDate(newStart) > parseDate(newEnd)) newStart = newEnd;
+      } else if (dragState.type === "resize-end") {
+        newEnd = toKey(addDays(parseDate(dragState.origEnd), diffDaysVal));
+        if (parseDate(newEnd) < parseDate(newStart)) newEnd = newStart;
+      }
+
+      setDragPreview({ key: dragState.key, start: newStart, end: newEnd });
+    };
+
+    const handleMouseUp = async () => {
+      if (!dragState) return;
+      if (dragPreview && (dragPreview.start !== dragState.origStart || dragPreview.end !== dragState.origEnd)) {
+        const [type, id] = dragPreview.key.split(":");
+        try {
+          const res = await fetch("/api/gantt/update", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: Number(id),
+              type,
+              startDate: dragPreview.start,
+              endDate: dragPreview.end,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to update");
+          refresh();
+        } catch (err) {
+          toast("Gagal memperbarui jadwal", "error");
+        }
+      }
+      setDragState(null);
+      setDragPreview(null);
+    };
+
+    if (dragState) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragState, dragPreview, dayPx, refresh]);
+
   // sync header with body scroll
   useEffect(() => {
     const body = bodyRef.current;
@@ -459,6 +543,17 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
     };
   }, [updateVisibleRowWindow, loading]);
 
+  const handleDragStart = (e: React.MouseEvent, item: GanttItem, type: "move" | "resize-start" | "resize-end") => {
+    e.stopPropagation();
+    setDragState({
+      key: getItemKey(item),
+      type,
+      startX: e.clientX,
+      origStart: item.startDate,
+      origEnd: item.endDate,
+    });
+  };
+
   const scrollToDate = useCallback((d: Date, behavior: ScrollBehavior = "auto", align: "start" | "center" = "start") => {
     const body = bodyRef.current;
     if (!body) return;
@@ -496,6 +591,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
 
   return (
     <PageShell
+      icon={<Lightning size={18} weight="bold" />}
       title="Gantt / Timeline"
       eyebrow="Reports"
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Gantt / Timeline" }]}
@@ -896,6 +992,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
                           isHovered ? "ring-2 ring-sky-400/50 brightness-95" : "hover:brightness-95",
                         )}
                         style={{ backgroundColor: item.color + "20", border: `1.5px solid ${item.color}50` }}
+                        onMouseDown={(e) => handleDragStart(e, item, "move")}
                         onClick={() => {
                           setEditModal({ key: itemKey, item, startDate: item.startDate, endDate: item.endDate });
                           focusTimelineItem(item);
@@ -909,6 +1006,16 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
                           setTooltip(null);
                         }}
                       >
+                        {/* Resize handles */}
+                        <div 
+                          className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-10 hover:bg-white/20 transition-colors"
+                          onMouseDown={(e) => handleDragStart(e, item, "resize-start")}
+                        />
+                        <div 
+                          className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-10 hover:bg-white/20 transition-colors"
+                          onMouseDown={(e) => handleDragStart(e, item, "resize-end")}
+                        />
+
                         {/* Left accent */}
                         <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-md" style={{ backgroundColor: item.color }} />
                         {item.depth === 1 && (

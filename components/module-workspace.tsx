@@ -94,6 +94,7 @@ export function ModuleWorkspace({
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
   // Undo delete
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
@@ -123,7 +124,17 @@ export function ModuleWorkspace({
   const fieldIcons = useMemo(() => getFieldIcons(), []);
 
   const safePage = Math.min(currentPage, totalPages);
-  const visibleRows = localRows;
+  const filteredRows = useMemo(() => {
+    if (!search.trim()) return localRows;
+    const q = search.toLowerCase();
+    return localRows.filter((row) => {
+      return Object.values(row).some((val) => 
+        String(val ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [localRows, search]);
+
+  const visibleRows = filteredRows;
   const preferredColumnOrder = useMemo(() => getPreferredColumnOrder(module), [module]);
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
@@ -233,6 +244,8 @@ export function ModuleWorkspace({
         reopenOpen={reopenId !== null}
         reopenReason={reopenReason}
         viewingRow={viewingRow}
+        search={search}
+        onSearchChange={setSearch}
         onToggleForm={() => {
           if (showForm) closeFormEditor();
           else openFormEditor();

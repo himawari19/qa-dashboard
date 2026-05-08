@@ -71,6 +71,7 @@ export default function SettingsPage() {
 
   return (
     <PageShell 
+      icon={<Gear size={18} weight="bold" />}
       title="Settings" 
       eyebrow="Configure your workspace"
     >

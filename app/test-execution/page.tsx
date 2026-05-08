@@ -36,6 +36,7 @@ export default async function TestExecutionPage() {
 
   return (
     <PageShell
+      icon={<Play size={18} weight="bold" />}
       eyebrow="Execution"
       title="Execution Center"
       description="Select a test suite to begin your execution session. All results are tracked automatically."

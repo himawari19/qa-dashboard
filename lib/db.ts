@@ -719,11 +719,13 @@ export const db = {
 export async function resetTables() {
   const tableNames = tables.map(t => `"${t.name}"`);
   if (useSqlite) {
+    await db.exec("PRAGMA foreign_keys = OFF");
     for (const name of tableNames) {
       await db.run(`DELETE FROM ${name}`);
       await db.run(`DELETE FROM sqlite_sequence WHERE name = ${name.replace(/"/g, "'")}`);
     }
+    await db.exec("PRAGMA foreign_keys = ON");
   } else {
-    await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY;`);
+    await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY CASCADE;`);
   }
 }

@@ -183,54 +183,52 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
     : [];
   return (
     <div className="space-y-4 pb-20">
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0 space-y-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-blue-600">Test Case Library</p>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Search by case, suite, assignee, or status.
-                </p>
-              </div>
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+        <div className="border-b border-slate-200/60 bg-transparent px-6 py-6 dark:border-white/10">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700 dark:text-blue-400">Test Case Library</p>
+              <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Test Management</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">
+                Centralized library for all test cases. Filter by status, search across projects, and manage execution flows.
+              </p>
             </div>
-            <div />
           </div>
 
-          <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
-              <div className="relative">
-                <MagnifyingGlass size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative w-full md:w-80">
+                <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search case name, suite, assignee..."
-                  className="h-10 w-full rounded-md border border-slate-200 bg-white pl-8 pr-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
+                  className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-white/10 dark:text-slate-100"
                 />
               </div>
               <select
                 value={filterAssignee}
                 onChange={(e) => setFilterAssignee(e.target.value)}
-                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
+                className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-white/10 dark:text-slate-300"
               >
                 {assigneeOptions.map((name) => (
-                  <option key={name} value={name}>{name === ALL ? "All assignees" : name}</option>
+                  <option key={name} value={name}>{name === ALL ? "All Assignees" : name}</option>
                 ))}
               </select>
             </div>
 
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-white/5">
               {STATUS_FILTERS.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setFilterStatus(s)}
                   className={cn(
-                    "h-10 rounded-md px-3 text-xs font-semibold transition",
+                    "h-9 rounded-lg px-4 text-xs font-bold transition-all duration-300",
                     filterStatus === s
-                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                      : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400",
+                      ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-700 dark:text-white dark:ring-white/10"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700"
                   )}
                 >
                   {s}
@@ -239,6 +237,7 @@ export function TestCaseLibrary({ cases, initialSearch = "" }: { cases: TestCase
             </div>
           </div>
         </div>
+
 
         <div className="flex flex-col gap-4 px-4 pb-4 lg:h-[calc(100vh-310px)] lg:min-h-[500px] lg:flex-row">
           <div className="flex max-h-[320px] w-full shrink-0 flex-col gap-1 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-4 lg:h-full lg:max-h-none lg:w-72">

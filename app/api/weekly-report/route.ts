@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
@@ -60,7 +60,20 @@ type ActivityRow = {
   createdAt: string;
 };
 
-export async function GET() {
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -68,6 +81,26 @@ export async function GET() {
   const isAdmin = isAdminUser(user.role, company);
   const andCompany = isAdmin ? "" : ` AND "company" = ?`;
   const cp: unknown[] = isAdmin ? [] : [company];
+
+  const { searchParams } = new URL(request.url);
+  const fromParam = searchParams.get("from");
+  const toParam = searchParams.get("to");
+
+  let fromDate: string;
+  let toDate: string;
+
+  if (fromParam && toParam) {
+    fromDate = fromParam;
+    toDate = toParam;
+  } else {
+    const monday = getMonday(new Date());
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+    fromDate = toDateStr(monday);
+    toDate = toDateStr(sunday);
+  }
+
+  const dp = [fromDate, toDate]; // date params
 
   const [
     newBugs,
@@ -87,101 +120,105 @@ export async function GET() {
     db.query<BugRow>(
       `SELECT id, title, severity, priority, project, status
        FROM "Bug"
-       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
        ORDER BY "createdAt" DESC`,
-      cp,
+      [...dp, ...cp],
     ),
     db.query<ClosedBugRow>(
       `SELECT id, title, severity
        FROM "Bug"
-       WHERE status IN ('closed','fixed') AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}`,
-      cp,
+       WHERE status IN ('closed','fixed') AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}`,
+      [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "Bug"
-       WHERE status = 'open'${andCompany}`,
-      cp,
+       WHERE status = 'open' AND DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}`,
+      [...dp, ...cp],
     ),
     db.query<TaskRow>(
       `SELECT id, title, priority, status, project
        FROM "Task"
-       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
        ORDER BY "createdAt" DESC`,
-      cp,
+      [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "Task"
-       WHERE status = 'done' AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}`,
-      cp,
+       WHERE status = 'done' AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}`,
+      [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "Task"
-       WHERE status != 'done'${andCompany}`,
-      cp,
+       WHERE status != 'done' AND DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}`,
+      [...dp, ...cp],
     ),
     db.query<SessionRow>(
       `SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result
        FROM "TestSession"
-       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
        ORDER BY date DESC`,
-      cp,
+      [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "TestCase"
-       WHERE DATE("updatedAt") >= DATE('now', '-7 days') AND status != 'Pending'${andCompany}`,
-      cp,
+       WHERE DATE("updatedAt") >= ? AND DATE("updatedAt") <= ? AND status != 'Pending'${andCompany}`,
+      [...dp, ...cp],
     ),
     db.query<SeverityRow>(
       `SELECT COALESCE(NULLIF(severity, ''), 'unknown') as name, COUNT(*) as count
        FROM "Bug"
-       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
        GROUP BY COALESCE(NULLIF(severity, ''), 'unknown')
        ORDER BY count DESC`,
-      cp,
+      [...dp, ...cp],
     ),
     db.query<ProjectRow>(
       `SELECT project as name, COUNT(*) as count
        FROM "Bug"
-       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
        GROUP BY project
        ORDER BY count DESC
        LIMIT 5`,
-      cp,
+      [...dp, ...cp],
     ),
     db.query<AssigneeRow>(
       `
-      SELECT assignee as name, COUNT(*) as taskCount
-      FROM "Task"
-      WHERE assignee != '' AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}
-      GROUP BY assignee
-      UNION ALL
-      SELECT "suggestedDev" as name, COUNT(*) as taskCount
-      FROM "Bug"
-      WHERE "suggestedDev" != '' AND DATE("updatedAt") >= DATE('now', '-7 days')${andCompany}
-      GROUP BY "suggestedDev"
+      SELECT name, SUM(taskCount) as taskCount
+      FROM (
+        SELECT assignee as name, COUNT(*) as taskCount
+        FROM "Task"
+        WHERE assignee != '' AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}
+        GROUP BY assignee
+        UNION ALL
+        SELECT "suggestedDev" as name, COUNT(*) as taskCount
+        FROM "Bug"
+        WHERE "suggestedDev" != '' AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}
+        GROUP BY "suggestedDev"
+      ) as combined
+      GROUP BY name
       ORDER BY taskCount DESC
       LIMIT 5
       `,
-      [...cp, ...cp],
+      [...dp, ...cp, ...dp, ...cp],
     ),
     db.query<SprintRow>(
       `SELECT id, name, "startDate", "endDate", status, goal
        FROM "Sprint"
-       WHERE status = 'active'${andCompany}
+       WHERE COALESCE("startDate",'') != '' AND "startDate" <= ? AND COALESCE("endDate","startDate") >= ?${andCompany}
        LIMIT 5`,
-      cp,
+      [toDate, fromDate, ...cp],
     ),
     db.query<ActivityRow>(
       `SELECT "entityType", action, summary, "createdAt"
        FROM "ActivityLog"
-       WHERE DATE("createdAt") >= DATE('now', '-7 days')${andCompany}
+       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
        ORDER BY "createdAt" DESC
        LIMIT 20`,
-      cp,
+      [...dp, ...cp],
     ),
   ]);
 
@@ -190,8 +227,8 @@ export async function GET() {
 
   return NextResponse.json({
     period: {
-      from: new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0],
-      to: new Date().toISOString().split("T")[0],
+      from: fromDate,
+      to: toDate,
     },
     summary: {
       newBugs: newBugs.length,

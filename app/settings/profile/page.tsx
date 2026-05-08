@@ -15,6 +15,7 @@ export default async function ProfilePage() {
 
   return (
     <PageShell 
+      icon={<User size={18} weight="bold" />}
       title="My Profile" 
       eyebrow="Personal Settings"
       description="View and update your personal information. Your email address is fixed for security."

@@ -94,18 +94,18 @@ describe("weekly report page", () => {
 
     expect(loadingMarkup).toContain("data-testid=\"page-shell\"");
     expect(loadingMarkup).toContain("animate-pulse");
-    expect(mocks.fetch).toHaveBeenCalledWith("/api/weekly-report");
+    expect(mocks.fetch).toHaveBeenCalledWith(expect.stringContaining("/api/weekly-report?from="));
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     const errorMarkup = renderReportPage();
 
-    expect(errorMarkup).toContain("Failed to load weekly report.");
+    expect(errorMarkup).toContain("Failed to load report.");
     expect(errorMarkup).toContain("weekly report unavailable");
     expect(mocks.pageShell).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        title: "Weekly Report",
+        title: "Report",
       }),
       undefined,
     );

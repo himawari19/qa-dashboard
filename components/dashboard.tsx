@@ -390,11 +390,16 @@ export function Dashboard({
 
       {/* Header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Overview</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          </p>
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20">
+            <ChartBar size={18} weight="bold" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Overview</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setShowStandup(true)}

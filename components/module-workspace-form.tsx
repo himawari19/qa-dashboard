@@ -84,7 +84,7 @@ export function ModuleWorkspaceForm({
 
       <form
         id={`${module}-form`}
-        className="rounded-2xl glass-card bg-white p-8 shadow-2xl"
+        className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl dark:border-white/10 dark:bg-slate-900"
         onChange={onFormChange}
         onSubmit={(event) => {
           event.preventDefault();
@@ -146,7 +146,7 @@ export function ModuleWorkspaceForm({
             <button
               type="button"
               onClick={onCancel}
-              className="h-12 rounded-lg glass-card px-5 text-sm font-bold text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+              className="h-12 rounded-lg bg-white border border-slate-200 px-5 text-sm font-bold text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-50 dark:bg-slate-800 dark:border-white/10 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               Cancel
             </button>

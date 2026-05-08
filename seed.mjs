@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
 const dbPaths = [join(process.cwd(), "prisma", "dev.db"), join(process.cwd(), "main.db")];
+let dbReused = false;
 for (const p of dbPaths) {
   if (!existsSync(p)) continue;
   try {
@@ -12,9 +13,11 @@ for (const p of dbPaths) {
     console.log("Deleted:", p);
   } catch (err) {
     if (String(err?.code || "") === "EBUSY") {
-      console.error(`Cannot reset ${p} because it is locked by a running app.`);
-      console.error("Stop the dev server, then run: node seed.mjs");
-      process.exit(1);
+      if (p.endsWith("dev.db")) {
+        console.log(`File locked, will drop & recreate tables instead: ${p}`);
+        dbReused = true;
+      }
+      continue;
     }
     throw err;
   }
@@ -23,6 +26,14 @@ for (const p of dbPaths) {
 mkdirSync(join(process.cwd(), "prisma"), { recursive: true });
 const DB_PATH = join(process.cwd(), "prisma", "dev.db");
 const db = new DatabaseSync(DB_PATH);
+
+if (dbReused) {
+  const tables = ["ActivityLog","Invite","Deployment","MeetingNote","TestSession","TestCase","TestSuite","TestPlan","Bug","Task","Assignee","User","Sprint"];
+  for (const t of tables) {
+    try { db.exec(`DROP TABLE IF EXISTS "${t}"`); } catch {}
+  }
+  console.log("✓ Dropped existing tables");
+}
 
 function loadEnvFile(filePath = join(process.cwd(), ".env")) {
   if (!existsSync(filePath)) return;
@@ -497,6 +508,20 @@ db.prepare(`INSERT INTO "User" ("company","name","email","password","role") VALU
   "admin"
 );
 console.log(`✓ Admin user seeded: ${ADMIN.email}`);
+
+// ── NON-ADMIN USERS ───────────────────────────────────────────
+const defaultPwHash = await hashPassword("Password123!");
+const iUser = db.prepare(`INSERT INTO "User" ("company","name","email","password","role") VALUES (?,?,?,?,?)`);
+const users = [
+  [C, "Andi Pratama",  "andi@ecoshop.id",  defaultPwHash, "qa"],
+  [C, "Dewi Kusuma",   "dewi@ecoshop.id",  defaultPwHash, "fe"],
+  [C, "Budi Santoso",  "budi@ecoshop.id",  defaultPwHash, "be"],
+  [C, "Citra Lestari", "citra@ecoshop.id", defaultPwHash, "fullstack"],
+  [C, "Eko Wijaya",    "eko@ecoshop.id",   defaultPwHash, "pm"],
+  [C, "Rina Sari",     "rina@ecoshop.id",  defaultPwHash, "ai"],
+];
+users.forEach(u => iUser.run(...u));
+console.log(`✓ Users (${users.length + 1} total, password for non-admin: Password123!)`);
 
 // ── INVITES ────────────────────────────────────────────────────
 const iInvite = db.prepare(`INSERT INTO "Invite" ("token","company","role","status","createdBy","expiresAt","acceptedAt") VALUES (?,?,?,?,?,?,?)`);
