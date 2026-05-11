@@ -926,6 +926,10 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       return res;
     }
     case "users": {
+      const existing = await db.get<{ id: number }>('SELECT "id" FROM "User" WHERE "email" = ?', [data.email]);
+      if (existing) {
+        throw new Error("Email address is already registered. Please use a different email.");
+      }
       const { hashPassword } = await import("@/lib/auth-core");
       const hashedPassword = await hashPassword(data.password || "password123");
       const res = await runInsert(
@@ -1078,6 +1082,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "users": {
+      const existingEmail = await db.get<{ id: number }>('SELECT "id" FROM "User" WHERE "email" = ? AND "id" != CAST(? AS INTEGER)', [data.email, id]);
+      if (existingEmail) {
+        throw new Error("Email address is already registered. Please use a different email.");
+      }
       const { hashPassword } = await import("@/lib/auth-core");
       if (data.password) {
         const hashedPassword = await hashPassword(data.password);

@@ -300,6 +300,7 @@ CREATE INDEX IF NOT EXISTS "idx_testcase_suite" ON "TestCase"("testSuiteId");
 CREATE INDEX IF NOT EXISTS "idx_invite_company" ON "Invite"("company");
 CREATE INDEX IF NOT EXISTS "idx_invite_token" ON "Invite"("token");
 CREATE INDEX IF NOT EXISTS "idx_invite_company_status" ON "Invite"("company", "status");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_assignee_userId" ON "Assignee"("userId") WHERE "userId" IS NOT NULL;
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_updated" ON "Assignee"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_name" ON "Assignee"("company", "name");
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_status" ON "Assignee"("company", "status");

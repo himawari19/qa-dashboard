@@ -97,9 +97,9 @@ export async function registerUser(email: string, password: string, name?: strin
     return { success: true };
   } catch (err: any) {
     if (err.message?.includes("UNIQUE constraint") || err.code === "23505") {
-      return { error: "Email already exists." };
+      return { error: "Email address is already registered. Please use a different email." };
     }
-    return { error: "Registration failed." };
+    return { error: "Registration failed. Please try again later." };
   }
 }
 

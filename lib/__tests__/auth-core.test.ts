@@ -117,7 +117,7 @@ describe("auth-core", () => {
     );
 
     mocks.db.run.mockRejectedValueOnce({ message: "UNIQUE constraint failed", code: "SQLITE_CONSTRAINT" });
-    await expect(registerUser("user@example.com", "secret")).resolves.toEqual({ error: "Email already exists." });
+    await expect(registerUser("user@example.com", "secret")).resolves.toEqual({ error: "Email address is already registered. Please use a different email." });
   });
 
   it("exposes the cookie name", () => {

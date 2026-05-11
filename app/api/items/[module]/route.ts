@@ -42,6 +42,17 @@ function getValidationMessage(module: ModuleKey, error: z.ZodError) {
   return issue?.message ?? "Invalid data provided.";
 }
 
+function friendlyErrorMessage(error: unknown, fallback: string): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (raw.includes("already registered") || raw.includes("already exists")) return raw;
+  if (/unique constraint/i.test(raw) && /email/i.test(raw)) return "Email address is already registered. Please use a different email.";
+  if (/unique constraint/i.test(raw)) return "A record with the same value already exists. Please check for duplicates.";
+  if (/ON CONFLICT/i.test(raw)) return "Unable to save due to a data conflict. Please try again.";
+  if (/foreign key/i.test(raw)) return "This record is linked to other data and cannot be modified.";
+  if (/not null/i.test(raw)) return "Please fill in all required fields.";
+  return fallback;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ module: string }> },
@@ -99,8 +110,7 @@ export async function POST(
     });
   } catch (error) {
     logError(error, `POST /api/items/${moduleKey}`);
-    const message = error instanceof Error ? error.message : "Failed to save data.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to save data.") }, { status: 400 });
   }
 }
 
@@ -151,8 +161,7 @@ export async function DELETE(
     });
   } catch (error) {
     logError(error, `DELETE /api/items/${moduleKey}`);
-    const message = error instanceof Error ? error.message : "Failed to delete data.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to delete data.") }, { status: 400 });
   }
 }
 
@@ -240,7 +249,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid update payload." }, { status: 400 });
   } catch (error) {
     logError(error, `PATCH /api/items/${moduleKey}`);
-    const message = error instanceof Error ? error.message : "Failed to update data.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to update data.") }, { status: 400 });
   }
 }
