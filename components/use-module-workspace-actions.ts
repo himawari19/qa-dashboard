@@ -295,6 +295,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     toast(message ?? "Data updated successfully.", "success");
     setEditingRow(null);
     closeFormEditor();
+    refreshPage();
   }
 
   function patchRow(id: string | number, patch: Record<string, string | number>) {
