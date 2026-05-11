@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
+import { friendlyErrorMessage } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -25,7 +26,6 @@ export async function POST(request: NextRequest) {
     await db.run(query, params);
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: friendlyErrorMessage(err, "Failed to update status.") }, { status: 500 });
   }
 }

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getTestSuite, makePublicToken } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
+import { friendlyErrorMessage } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -52,8 +53,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: "Test case added successfully." });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save test case.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to save test case.") }, { status: 400 });
   }
 }
 
@@ -100,8 +100,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ message: "Test case deleted successfully." });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete test case.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to delete test case.") }, { status: 400 });
   }
 }
 
@@ -139,7 +138,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ message: "Execution saved successfully." });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save test case execution.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to save test case execution.") }, { status: 400 });
   }
 }
