@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from"react";
+import { useEffect, useRef, useState, type ReactNode } from"react";
 import { cn, formatDisplayText } from"@/lib/utils";
 import { getRoleLabel } from"@/lib/roles";
 import { HighlightText } from"@/components/highlight-text";
 import { Note, PencilSimple, X } from"@phosphor-icons/react";
+import { CopyLinkButton } from"@/components/copy-link-button";
 
 type FieldConfig = {
  name: string;
@@ -12,6 +13,10 @@ type FieldConfig = {
  kind: string;
  options?: Array<{ label: string; value: string }>;
 };
+
+/** Available tabs in the detail view modal */
+const VIEW_MODAL_TABS = ["details"] as const;
+const DEFAULT_TAB = "details";
 
 type ViewModalProps = {
  row: Record<string, string | number>;
@@ -23,10 +28,22 @@ type ViewModalProps = {
  onClose: () => void;
  onEdit: () => void;
  canEdit: boolean;
+ module: string;
+ initialTab?: string | null;
+ onTabChange?: (tab: string) => void;
 };
 
-export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }: ViewModalProps) {
+function isValidTab(tab: string | null | undefined): tab is string {
+  if (!tab) return false;
+  return (VIEW_MODAL_TABS as readonly string[]).includes(tab);
+}
+
+export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, module, initialTab, onTabChange }: ViewModalProps) {
  const ref = useRef<HTMLDivElement>(null);
+ const [activeTab, setActiveTab] = useState<string>(() => {
+   // If initialTab is valid, use it; otherwise use default
+   return isValidTab(initialTab) ? initialTab : DEFAULT_TAB;
+ });
 
  useEffect(() => {
  const keyHandler = (e: KeyboardEvent) => {
@@ -35,6 +52,21 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
  document.addEventListener("keydown", keyHandler);
  return () => document.removeEventListener("keydown", keyHandler);
  }, [onClose]);
+
+ // Sync initialTab when it changes externally (e.g., from URL popstate)
+ useEffect(() => {
+   if (isValidTab(initialTab) && initialTab !== activeTab) {
+     setActiveTab(initialTab);
+   }
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [initialTab]);
+
+ // Notify parent when tab changes
+ const handleTabChange = (tab: string) => {
+   if (tab === activeTab) return;
+   setActiveTab(tab);
+   onTabChange?.(tab);
+ };
 
  const displayFields = config.fields.filter(
  (field) => row[field.name] !== undefined && row[field.name] !== null && String(row[field.name]).trim() !=="",
@@ -94,6 +126,8 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
  </div>
  </div>
  </div>
+ <div className="flex items-center gap-1">
+ <CopyLinkButton module={module} itemId={row.id} activeTab={activeTab} />
  <button
  onClick={onClose}
  className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
@@ -101,6 +135,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit }:
  >
  <X size={14} weight="bold" />
  </button>
+ </div>
  </div>
 
  <div className="flex-1 overflow-y-auto px-4 py-4">

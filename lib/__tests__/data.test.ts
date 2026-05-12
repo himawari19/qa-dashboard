@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     get: vi.fn(),
     query: vi.fn(),
     exec: vi.fn(),
+    transaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
   },
   getCurrentUser: vi.fn(),
   isAdminUser: vi.fn((role: string | null | undefined, company: string | null | undefined) => {

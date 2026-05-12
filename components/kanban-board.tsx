@@ -1,11 +1,48 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type DragEvent } from"react";
+import { useEffect, useMemo, useRef, useState, useTransition, type DragEvent } from"react";
 import { CaretLeft, CaretRight } from"@phosphor-icons/react";
 import { Badge } from"./badge";
 import { cn } from"@/lib/utils";
 
 type Row = Record<string, string | number>;
+
+function getRowOrder(row: Row) {
+ const raw = row.sortOrder ?? row.SortOrder ?? row.order ?? row.Order ?? row.position ?? row.Position ?? 0;
+ const parsed = Number(raw);
+ return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getRowStatus(row: Row) {
+ return String(
+  row.status ??
+  row.Status ??
+  row.state ??
+  row.State ??
+  row.currentStatus ??
+  row.CurrentStatus ??
+  "",
+ );
+}
+
+function normalizeStatus(value: string) {
+ return String(value ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function buildStatusAliases(statusOptions: { label: string; value: string }[]) {
+ const aliases = new Map<string, string>();
+ for (const status of statusOptions) {
+  const raw = String(status.value ?? "");
+  aliases.set(normalizeStatus(raw), raw);
+  aliases.set(normalizeStatus(status.label), raw);
+ }
+ aliases.set(normalizeStatus("idea"), "todo");
+ aliases.set(normalizeStatus("triage"), "todo");
+ aliases.set(normalizeStatus("ready"), "doing");
+ aliases.set(normalizeStatus("in progress"), "doing");
+ aliases.set(normalizeStatus("in_progress"), "doing");
+ return aliases;
+}
 
 const columnAccents: Record<string, { border: string; header: string; dot: string; drop: string }> = {
  todo: { border:"border-slate-300", header:"text-slate-500", dot:"bg-slate-400", drop:"border-slate-400 bg-slate-50/40" },
@@ -41,20 +78,37 @@ export function KanbanBoard({
 }: {
  rows: Row[];
  statusOptions: { label: string; value: string }[];
- onUpdateStatus: (id: number, newStatus: string) => Promise<void>;
+ onUpdateStatus: (id: number, newStatus: string, sortOrder?: number) => Promise<void>;
  onViewRow: (row: Row) => void;
 }) {
  const [, startTransition] = useTransition();
  const [draggedId, setDraggedId] = useState<number | null>(null);
+ const [dragOverCardId, setDragOverCardId] = useState<number | null>(null);
  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
  const [localRows, setLocalRows] = useState(rows);
  const scrollRef = useRef<HTMLDivElement>(null);
  const [canScrollLeft, setCanScrollLeft] = useState(false);
  const [canScrollRight, setCanScrollRight] = useState(false);
+ const statusAliases = useMemo(() => buildStatusAliases(statusOptions), [statusOptions]);
 
  useEffect(() => {
  setLocalRows(rows);
  }, [rows]);
+
+ useEffect(() => {
+ setLocalRows((prev) => {
+  let changed = false;
+  const next = prev.map((row) => {
+    const canonical = statusAliases.get(normalizeStatus(getRowStatus(row)));
+    if (canonical && canonical !== row.status) {
+     changed = true;
+     return { ...row, status: canonical };
+    }
+    return row;
+   });
+   return changed ? next : prev;
+  });
+ }, [statusAliases]);
 
  useEffect(() => {
  const el = scrollRef.current;
@@ -70,16 +124,58 @@ export function KanbanBoard({
  setDragOverStatus(statusValue);
  }
 
+ function moveRow(sourceId: number, targetStatus: string, targetId: number | null, placeAfter = false) {
+  let movedOrder = 0;
+  setLocalRows((prev) => {
+   const draggedRow = prev.find((row) => Number(row.id) === sourceId);
+   if (!draggedRow) return prev;
+   const nextStatus = targetStatus || String(getRowStatus(draggedRow));
+   const remaining = prev.filter((row) => Number(row.id) !== sourceId);
+   const moved = { ...draggedRow, status: nextStatus };
+   const targetIndex = targetId ? remaining.findIndex((row) => Number(row.id) === targetId) : -1;
+   const insertIndex = targetIndex < 0 ? remaining.length : placeAfter ? targetIndex + 1 : targetIndex;
+   const next = [...remaining.slice(0, insertIndex), moved, ...remaining.slice(insertIndex)];
+   const ordered = next.map((row, index) => ({ ...row, sortOrder: index + 1 } as Row & { sortOrder: number }));
+   const dragged = ordered.find((row) => Number(row.id) === sourceId);
+   movedOrder = Number(dragged?.sortOrder ?? 0);
+   return ordered;
+  });
+  return movedOrder;
+ }
+
  function handleDrop(statusValue: string) {
  setDragOverStatus(null);
  if (!draggedId) return;
- setLocalRows((prev) => prev.map((row) => (row.id === draggedId ? { ...row, status: statusValue } : row)));
+ const sortOrder = moveRow(draggedId, statusValue, null);
  const id = draggedId;
  setDraggedId(null);
  startTransition(() => {
- void onUpdateStatus(id, statusValue);
+  void onUpdateStatus(id, statusValue, sortOrder);
  });
+}
+
+ function handleCardDragOver(e: DragEvent, cardId: number, statusValue: string) {
+  e.preventDefault();
+  setDragOverStatus(statusValue);
+  setDragOverCardId(cardId);
  }
+
+ function handleCardDrop(e: DragEvent, cardId: number, statusValue: string) {
+  e.preventDefault();
+  if (!draggedId || draggedId === cardId) return;
+  const targetRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const shouldInsertAfter = e.clientY > targetRect.top + targetRect.height / 2;
+  const sortOrder = moveRow(draggedId, statusValue, cardId, shouldInsertAfter);
+  const id = draggedId;
+  setDraggedId(null);
+  setDragOverCardId(null);
+  setDragOverStatus(null);
+  startTransition(() => {
+   void onUpdateStatus(id, statusValue, sortOrder);
+  });
+ }
+
+ const orderedRows = useMemo(() => localRows.slice().sort((left, right) => getRowOrder(left) - getRowOrder(right)), [localRows]);
 
  function scrollByAmount(delta: number) {
  const el = scrollRef.current;
@@ -106,7 +202,7 @@ export function KanbanBoard({
  <div className="grid min-w-max grid-flow-col auto-cols-[minmax(17rem,17rem)] gap-4 pb-2">
  {statusOptions.map((status) => {
  const accent = getAccent(status.value);
- const columnCards = localRows.filter((row) => row.status === status.value);
+            const columnCards = orderedRows.filter((row) => statusAliases.get(normalizeStatus(getRowStatus(row))) === status.value);
  const isDropTarget = dragOverStatus === status.value && draggedId !== null;
 
  return (
@@ -137,11 +233,14 @@ export function KanbanBoard({
  draggable
  onClick={() => onViewRow(card)}
  onDragStart={() => setDraggedId(Number(card.id))}
+ onDragOver={(e) => handleCardDragOver(e, Number(card.id), status.value)}
+ onDrop={(e) => handleCardDrop(e, Number(card.id), status.value)}
  onDragEnd={() => {
  setDraggedId(null);
  setDragOverStatus(null);
+ setDragOverCardId(null);
  }}
- className="cursor-pointer rounded-xl glass-card bg-white p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+ className={cn("cursor-pointer rounded-xl glass-card bg-white p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg", dragOverCardId === Number(card.id) ? "ring-2 ring-sky-400" : "")}
  >
  <div className="mb-2.5 flex items-start justify-between gap-2">
  <span className="truncate text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">

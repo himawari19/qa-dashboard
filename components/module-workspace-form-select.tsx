@@ -30,6 +30,7 @@ export function ModuleWorkspaceFormSelect({
 }: Props) {
  const selectedValue = selectValues[field.name] ?? String(editingRow?.[field.name] ??"");
  const isLocked = Boolean(field.readonly);
+ const placeholderText = field.placeholder || `Select ${field.label}`;
 
  if (isLocked) {
  return (
@@ -59,7 +60,7 @@ export function ModuleWorkspaceFormSelect({
  {(() => {
  const options = relatedOptions[field.name] ?? field.options ?? [];
  const current = options.find((opt) => opt.value === selectedValue);
- return current?.label ||`Select ${field.label}`;
+ return current?.label || placeholderText;
  })()}
  </span>
  <CaretDown size={14} weight="bold" className="shrink-0 text-slate-400" />

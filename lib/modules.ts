@@ -47,6 +47,7 @@ type Field =
       label: string;
       kind: "select";
       options: Option[];
+      placeholder?: string;
       required?: boolean;
       span?: 1 | 2 | 3;
       helperKind?: "version-sequence";
@@ -94,10 +95,11 @@ const priorityOptions: Option[] = ["P0", "P1", "P2", "P3"].map((value) => ({
 }));
 
 const taskStatusOptions: Option[] = [
-  ["To Do", "todo"],
+  ["Todo", "todo"],
   ["Doing", "doing"],
+  ["Review", "review"],
   ["Done", "done"],
-  ["Deferred", "deferred"],
+  ["Blocked", "blocked"],
 ].map(([label, value]) => ({ label, value }));
 
 const bugStatusOptions: Option[] = [
@@ -129,11 +131,13 @@ const sprintStatusOptions: Option[] = [
 ].map(([label, value]) => ({ label, value }));
 
 const taskCategoryOptions: Option[] = [
-  ["Testing", "testing"],
-  ["Follow-up", "follow-up"],
-  ["Documentation", "documentation"],
-  ["Investigation", "investigation"],
-  ["Meeting Action", "meeting-action"],
+  ["Feature", "feature"],
+  ["Enhancement", "enhancement"],
+  ["Bugfix", "bugfix"],
+  ["Tech Debt", "tech-debt"],
+  ["Research", "research"],
+  ["Support", "support"],
+  ["Refactor", "refactor"],
 ].map(([label, value]) => ({ label, value }));
 
 const severityOptions: Option[] = [
@@ -157,12 +161,13 @@ const taskSchema = z.object({
   title: requiredText("Title"),
   project: requiredText("Project"),
   relatedFeature: requiredText("Feature"),
-  category: z.enum(["testing", "follow-up", "documentation", "investigation", "meeting-action"]),
-  status: z.enum(["todo", "doing", "done", "deferred"]),
+  category: z.enum(["feature", "enhancement", "bugfix", "tech-debt", "research", "support", "refactor"]),
+  status: z.enum(["todo", "doing", "review", "done", "blocked"]),
   priority: z.enum(["P0", "P1", "P2", "P3"]),
-  dueDate: z.string().optional().default(""),
+  startDate: z.string().optional().default(""),
+  endDate: z.string().optional().default(""),
   description: requiredText("Description"),
-  notes: optionalText,
+  acceptanceCriteria: requiredText("Acceptance Criteria"),
   evidence: urlField,
   assignee: optionalText,
 });
@@ -276,9 +281,9 @@ function normalizeEntry(entry: Record<string, string>) {
 
 export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   tasks: {
-    title: "Task Tracker",
+    title: "Product Backlog",
     shortTitle: "Tasks",
-    description: "Manage daily QA tasks, meeting follow-ups, and personal checklists.",
+    description: "Track product development, improvements, and follow-up work in one backlog.",
     prefix: "TASK",
     sheetName: "Tasks",
     schema: taskSchema,
@@ -286,7 +291,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       const clean = normalizeEntry(entry);
       return {
         ...clean,
-        dueDate: clean.dueDate ? new Date(clean.dueDate) : null,
+        startDate: clean.startDate ? new Date(clean.startDate) : null,
+        endDate: clean.endDate ? new Date(clean.endDate) : null,
       };
     },
     toRow: (item) => ({
@@ -297,36 +303,38 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Category: String(item.category),
       Status: String(item.status),
       Priority: String(item.priority),
-      "Due Date": item.dueDate ? new Date(String(item.dueDate)).toISOString().slice(0, 10) : "",
+      "Start Date": item.startDate ? new Date(String(item.startDate)).toISOString().slice(0, 10) : "",
+      "End Date": item.endDate ? new Date(String(item.endDate)).toISOString().slice(0, 10) : "",
       Description: String(item.description),
-      Notes: String(item.notes),
+      "Acceptance Criteria": String(item.acceptanceCriteria),
       Evidence: String(item.evidence),
       Assignee: String(item.assignee ?? ""),
     }),
     fields: [
-      { name: "title", label: "Title", kind: "text", placeholder: "e.g. Verify Login Validation", required: true },
-      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. E-Commerce Platform", required: true },
-      { name: "relatedFeature", label: "Feature", kind: "text", placeholder: "e.g. Authentication Module", required: true },
-      { name: "category", label: "Category", kind: "select", options: taskCategoryOptions, required: true },
+      { name: "title", label: "Title", kind: "text", placeholder: "Add export button", required: true },
+      { name: "project", label: "Project Name", kind: "select", options: [], placeholder: "Choose project", required: true },
+      { name: "relatedFeature", label: "Feature", kind: "text", placeholder: "Login flow", required: true },
+      { name: "category", label: "Type", kind: "select", options: taskCategoryOptions, required: true },
       { name: "status", label: "Status", kind: "select", options: taskStatusOptions, required: true },
       { name: "priority", label: "Priority", kind: "select", options: priorityOptions, required: true },
-      { name: "dueDate", label: "Due Date", kind: "date" },
-      { name: "description", label: "Description", kind: "textarea", placeholder: "Provide details about the task...", required: true },
-      { name: "relatedItems", label: "Linked Items", kind: "textarea", placeholder: "Mention related BUG IDs or Task IDs..." },
+      { name: "startDate", label: "Start Date", kind: "date" },
+      { name: "endDate", label: "End Date", kind: "date" },
+      { name: "description", label: "Description", kind: "textarea", placeholder: "What and why.", required: true },
+      { name: "acceptanceCriteria", label: "Acceptance Criteria", kind: "textarea", placeholder: "Done when...", required: true },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
-      { name: "notes", label: "Notes", kind: "textarea", placeholder: "Any additional context..." },
-      { name: "evidence", label: "Evidence", kind: "url", placeholder: "https://example.com/screenshot" },
+      { name: "evidence", label: "Evidence", kind: "url", placeholder: "Link or screenshot" },
     ],
     columns: [
       { key: "title", label: "Title" },
       { key: "project", label: "Project Name", internalLink: (row: any) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "relatedFeature", label: "Feature" },
-      { key: "category", label: "Category" },
+      { key: "category", label: "Type" },
       { key: "status", label: "Status", tone: "status" },
       { key: "priority", label: "Priority", tone: "priority" },
-      { key: "dueDate", label: "Due Date" },
+      { key: "startDate", label: "Start Date" },
+      { key: "endDate", label: "End Date" },
       { key: "description", label: "Description", multiline: true },
-      { key: "relatedItems", label: "Linked Items", multiline: true },
+      { key: "acceptanceCriteria", label: "Acceptance Criteria", multiline: true },
       { key: "assignee", label: "Assignee" },
       { key: "evidence", label: "Evidence", link: true },
     ],

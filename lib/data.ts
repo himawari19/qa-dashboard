@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 import { backfillAssigneesFromUsers, deleteAssigneeForUser, syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 import {
+  buildSearchClause,
   countRows,
   getAccessScope,
   getTableName,
@@ -18,7 +19,7 @@ import {
 } from "@/lib/data-helpers";
 import { getQualityTrend, getReleaseNotes } from "@/lib/test-management-data";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
-import { normalizeRole } from "@/lib/roles";
+import { getRoleLabel, normalizeRole } from "@/lib/roles";
 
 export {
   makePublicToken,
@@ -69,6 +70,21 @@ export async function getProjectOptions() {
   return rows.map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }));
 }
 
+export async function getBacklogOptions() {
+  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const rows = await selectAll(
+    `SELECT id, title, "project"
+     FROM "TestPlan"
+     WHERE COALESCE(title, '') != '' AND "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}
+     ORDER BY "updatedAt" DESC`,
+    isAdmin ? [] : [company],
+  );
+  return rows.map((row) => ({
+    value: String(row.title ?? ""),
+    label: row.project ? `${String(row.title ?? "")} (${String(row.project ?? "")})` : String(row.title ?? ""),
+  }));
+}
+
 export async function getAssigneeOptions() {
   const { company, isAdmin } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
@@ -86,7 +102,7 @@ export async function getAssigneeOptions() {
       const role = normalizeRole(String(row.role ?? "").trim());
       return {
         value: name,
-        label: role ? `${name} (${role.toUpperCase()})` : name,
+        label: role ? `${name} (${getRoleLabel(role)})` : name,
         role,
       };
     })
@@ -215,9 +231,9 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     recentSessions,
     heatmapRes
   ] = await Promise.all([
-    selectAll(`SELECT * FROM "Task" ${projectWhere} ORDER BY "updatedAt" DESC LIMIT 5`, projectParams),
-    selectAll(`SELECT * FROM "Bug" ${projectWhere} ORDER BY "updatedAt" DESC LIMIT 5`, projectParams),
-    selectAll(`SELECT * FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'} ORDER BY "updatedAt" DESC LIMIT 5`, companyParams),
+    selectAll(`SELECT * FROM "Task" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
+    selectAll(`SELECT * FROM "Bug" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
+    selectAll(`SELECT * FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, companyParams),
     countRows("Task", company),
     countRows("Bug", company),
     countRows("TestCase", company),
@@ -707,19 +723,20 @@ export async function getModuleRows(module: ModuleKey) {
   }
 }
 
-export async function getModuleRowsPage(module: ModuleKey, page: number, pageSize: number) {
+export async function getModuleRowsPage(module: ModuleKey, page: number, pageSize: number, search?: string) {
   const scope = getAccessScope(await getCurrentUser());
-  const { company, isAdmin, where, andWhere, params: qParams } = scope;
+  const { company, isAdmin, andWhere, params: qParams } = scope;
   const safePage = Math.max(1, Math.floor(page || 1));
   const safeSize = Math.max(1, Math.floor(pageSize || 10));
   const offset = (safePage - 1) * safeSize;
   const limitClause = ` LIMIT ${safeSize} OFFSET ${offset}`;
+  const { clause: searchClause, params: searchParams } = buildSearchClause(module, search ?? "");
 
   switch (module) {
     case "test-plans": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestPlan" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestPlan" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = (await selectAll(`SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC${limitClause}`, qParams)).map((item) => {
+      const rows = (await selectAll(`SELECT * FROM "TestPlan" WHERE "deletedAt" IS NULL ${andWhere}${searchClause} ORDER BY "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams])).map((item) => {
         const normalized = normalizeTestPlanRow(item);
         return {
           ...normalized,
@@ -730,29 +747,32 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total };
     }
     case "test-sessions": {
-      const total = await countRows("TestSession", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT * FROM "TestSession" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSession" WHERE 1=1${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = await selectAll(`SELECT * FROM "TestSession" WHERE 1=1${andWhere}${searchClause} ORDER BY "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "test-cases": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestCase" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestCase" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = (await selectAll(`SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC${limitClause}`, qParams)).map((item) => normalizeTestCaseRow(item));
+      const rows = (await selectAll(`SELECT * FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere}${searchClause} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams])).map((item) => normalizeTestCaseRow(item));
       return { rows, total };
     }
     case "bugs": {
-      const total = await countRows("Bug", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT * FROM "Bug" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Bug" WHERE 1=1${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = await selectAll(`SELECT * FROM "Bug" WHERE 1=1${andWhere}${searchClause} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "tasks": {
-      const total = await countRows("Task", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT * FROM "Task" ${where} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Task" WHERE 1=1${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = await selectAll(`SELECT * FROM "Task" WHERE 1=1${andWhere}${searchClause} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "test-suites": {
       const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${isAdmin ? "" : ' AND ts."company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${isAdmin ? "" : ' AND ts."company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
       const rows = (await selectAll(
         `WITH case_stats AS (
           SELECT tc."testSuiteId" as suiteId,
@@ -766,8 +786,8 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
         SELECT ts.*, COALESCE(cs.passed, 0) as passed, COALESCE(cs.failed, 0) as failed, COALESCE(cs.blocked, 0) as blocked
          FROM "TestSuite" ts
           LEFT JOIN case_stats cs ON CAST(cs.suiteId AS INTEGER) = ts.id
-         WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC${limitClause}`,
-        isAdmin ? [] : [company, company]
+         WHERE ts."deletedAt" IS NULL${suiteCompanyWhere}${searchClause} ORDER BY ts."updatedAt" DESC${limitClause}`,
+        isAdmin ? [...searchParams] : [company, company, ...searchParams]
       )).map((item) => ({
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", Number(item.id)),
@@ -778,27 +798,30 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total: Number(totalRow?.total ?? 0) };
     }
     case "assignees": {
-      const total = await countRows("User", isAdmin ? undefined : company);
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "User" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
       const rows = await selectAll(`SELECT id, name, role, email, '' as skills, 'active' as status, "createdAt", "updatedAt"
-        FROM "User" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC${limitClause}`, qParams);
+        FROM "User" WHERE "deletedAt" IS NULL ${andWhere}${searchClause} ORDER BY "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "meeting-notes": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "MeetingNote" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}`, isAdmin ? [] : [company]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "MeetingNote" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = (await selectAll(`SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "updatedAt" DESC${limitClause}`, qParams)).map((item) => ({
+      const rows = (await selectAll(`SELECT * FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere}${searchClause} ORDER BY "date" DESC, "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams])).map((item) => ({
         ...item,
         code: codeFromId("MEET", Number(item.id)),
       }));
       return { rows, total };
     }
     case "users": {
-      const total = await countRows("User", isAdmin ? undefined : company);
-      const rows = await selectAll(`SELECT id, name, email, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC${limitClause}`, qParams);
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "User" WHERE 1=1${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = await selectAll(`SELECT id, name, email, role, company, "createdAt" FROM "User" WHERE 1=1${andWhere}${searchClause} ORDER BY "createdAt" DESC${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "sprints": {
-      const total = await countRows("Sprint", isAdmin ? undefined : company);
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Sprint" s WHERE s."deletedAt" IS NULL${isAdmin ? "" : ' AND s."company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
       const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
       const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
       const subParams = isAdmin ? [] : [company];
@@ -819,14 +842,15 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
             AND tp2."deletedAt" IS NULL
             ORDER BY tp2."updatedAt" DESC LIMIT 1) AS project
         FROM "Sprint" s
-        ${sprintWhere}${isAdmin ? ' WHERE s."deletedAt" IS NULL' : ' AND s."deletedAt" IS NULL'}
+        ${sprintWhere}${isAdmin ? ' WHERE s."deletedAt" IS NULL' : ' AND s."deletedAt" IS NULL'}${searchClause}
         ORDER BY s."startDate" DESC${limitClause}
-      `, [...subParams, ...subParams, ...qParams]);
+      `, [...subParams, ...subParams, ...qParams, ...searchParams]);
       return { rows, total };
     }
     case "deployments": {
-      const total = await countRows("Deployment", isAdmin ? undefined : company);
-      const rows = (await selectAll(`SELECT * FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "createdAt" DESC${limitClause}`, qParams)).map(hydrateDeploymentNotes);
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Deployment" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const total = Number(totalRow?.total ?? 0);
+      const rows = (await selectAll(`SELECT * FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere}${searchClause} ORDER BY "date" DESC, "createdAt" DESC${limitClause}`, [...qParams, ...searchParams])).map(hydrateDeploymentNotes);
       return { rows, total };
     }
     default:
@@ -837,7 +861,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
 export async function createModuleRecord(module: ModuleKey, data: any) {
   const user = await getCurrentUser();
   const company = getWriteCompany(user, data.company);
-  const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+
 
   switch (module) {
     case "test-plans": {
@@ -853,26 +877,14 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
     }
     case "test-cases": {
       const publicToken = data.publicToken || makePublicToken();
-      try {
-        const res = await runInsert(
-          `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [company, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
-        );
-        await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
-        invalidateDashboardCache(company);
-        return res;
-      } catch (error) {
-        if (!getErrorMessage(error).includes("no such column: assignee")) throw error;
-        const res = await runInsert(
-          `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [company, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
-        );
-        await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
-        invalidateDashboardCache(company);
-        return res;
-      }
+      const res = await runInsert(
+        `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
+      );
+      await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
+      invalidateDashboardCache(company);
+      return res;
     }
     case "bugs": {
       const lastDevRes = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? AND "company" = ? ORDER BY "id" DESC LIMIT 1', [data.module, company]) as any;
@@ -949,6 +961,13 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       return res;
     }
     case "sprints": {
+      const existingSprint = await db.get<{ id: number }>(
+        `SELECT "id" FROM "Sprint" WHERE LOWER(TRIM("name")) = LOWER(TRIM(?)) AND "company" = ? AND "deletedAt" IS NULL`,
+        [data.name, company],
+      );
+      if (existingSprint) {
+        throw new Error("A sprint with this name already exists. Please use a different name.");
+      }
       const res = await runInsert(
         `INSERT INTO "Sprint" ("company", "name", "startDate", "endDate", "status", "goal")
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -987,7 +1006,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
   const scope = getAccessScope(await getCurrentUser());
   const { company, where: _where, andWhere: companyFilter, params: companyParam } = scope;
-  const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+
 
   switch (module) {
     case "tasks": {
@@ -1035,28 +1054,15 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "test-cases": {
-      try {
-        const res = await db.run(
-          `UPDATE "TestCase"
-           SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "assignee" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
-           WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-          [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
-        );
-        await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
-        invalidateDashboardCache(company);
-        return res;
-      } catch (error) {
-        if (!getErrorMessage(error).includes("no such column: assignee")) throw error;
-        const res = await db.run(
-          `UPDATE "TestCase"
-           SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
-           WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-          [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
-        );
-        await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
-        invalidateDashboardCache(company);
-        return res;
-      }
+      const res = await db.run(
+        `UPDATE "TestCase"
+         SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "assignee" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
+      );
+      await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
+      invalidateDashboardCache(company);
+      return res;
     }
     case "test-suites": {
       const suitePlanId = String(data.testPlanId ?? "");
@@ -1201,12 +1207,16 @@ export {
   getPublicReportData,
 } from "@/lib/test-management-data";
 
-export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string) {
+export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string, sortOrder?: number) {
   const { company, andWhere, params: qParams } = getAccessScope(await getCurrentUser());
 
   const table = getTableName(module);
   if (!table) return null;
-  const res = await db.run(`UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${andWhere}`, [status, id, ...qParams]);
+  const hasSortOrder = typeof sortOrder === "number" && Number.isFinite(sortOrder);
+  const res = await db.run(
+    `UPDATE "${table}" SET "status" = ?, ${hasSortOrder ? '"sortOrder" = ?, ' : ''}"updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+    hasSortOrder ? [status, sortOrder, id, ...qParams] : [status, id, ...qParams]
+  );
   await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`);
   invalidateDashboardCache(company);
   return res;

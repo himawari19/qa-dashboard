@@ -47,7 +47,7 @@ const mocks = vi.hoisted(() => ({
     }
     return [];
   }),
-  getCurrentUser: vi.fn(async () => ({ id: 1, role: "pm", company: "acme", email: "lead@example.com" })),
+  getCurrentUser: vi.fn(async () => ({ id: 1, name: "Lead", role: "pm", company: "acme", email: "lead@example.com" })),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -94,7 +94,7 @@ describe("module route", () => {
 
     renderToStaticMarkup(element);
 
-    expect(mocks.getModuleRowsPage).toHaveBeenCalledWith("users", 1, 10);
+    expect(mocks.getModuleRowsPage).toHaveBeenCalledWith("users", 1, 10, "");
     expect(mocks.getAssigneeOptions).toHaveBeenCalled();
     expect(mocks.moduleWorkspace).toHaveBeenCalled();
 
@@ -120,6 +120,7 @@ describe("module route", () => {
     });
     expect(props.user).toEqual({
       id: 1,
+      name: "Lead",
       role: "pm",
       company: "acme",
       email: "lead@example.com",
@@ -239,8 +240,8 @@ describe("module route", () => {
     renderToStaticMarkup(element);
 
     const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls[0]![0];
-    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(1, "test-plans", 5, 10);
-    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(2, "test-plans", 1, 10);
+    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(1, "test-plans", 5, 10, "");
+    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(2, "test-plans", 1, 10, "");
     expect(mocks.getTestSuitesByPlanIds).toHaveBeenCalledWith([7]);
     expect(props.currentPage).toBe(1);
     expect(props.rows).toEqual([
@@ -254,6 +255,48 @@ describe("module route", () => {
         ],
         projectRowSpan: 1,
       },
+    ]);
+  });
+
+  it("limits assignee and developer options to self for non-admin users", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 2,
+      name: "Rina",
+      email: "rina@example.com",
+      role: "pm",
+      company: "acme",
+    });
+
+    await ModulePage({
+      params: Promise.resolve({ module: "bugs" }),
+      searchParams: Promise.resolve({}),
+    }).then((element) => renderToStaticMarkup(element));
+
+    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls.at(-1)![0];
+    expect(props.relatedOptions.suggestedDev).toEqual([
+      { value: "Rina", label: "Rina (pm)" },
+    ]);
+    expect(props.relatedOptions.assignee).toBeUndefined();
+  });
+
+  it("keeps full assignee options for admin users", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 1,
+      name: "Admin",
+      email: "admin@example.com",
+      role: "admin",
+      company: "acme",
+    });
+
+    await ModulePage({
+      params: Promise.resolve({ module: "tasks" }),
+      searchParams: Promise.resolve({}),
+    }).then((element) => renderToStaticMarkup(element));
+
+    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls.at(-1)![0];
+    expect(props.relatedOptions.assignee).toEqual([
+      { value: "Rina", label: "Rina" },
+      { value: "Budi", label: "Budi" },
     ]);
   });
 

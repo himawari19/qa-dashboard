@@ -17,20 +17,28 @@ function assertModule(value: string): ModuleKey | null {
 }
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+let lastCleanup = Date.now();
 
 function checkRateLimit(ip: string) {
   const now = Date.now();
-  const limit = 60; // 60 requests
-  const window = 60 * 1000; // 1 minute
-  
+  const limit = 60;
+  const window = 60 * 1000;
+
+  if (now - lastCleanup > 5 * 60 * 1000) {
+    for (const [key, val] of rateLimitMap) {
+      if (now > val.resetTime) rateLimitMap.delete(key);
+    }
+    lastCleanup = now;
+  }
+
   const record = rateLimitMap.get(ip);
   if (!record || now > record.resetTime) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + window });
     return true;
   }
-  
+
   if (record.count >= limit) return false;
-  
+
   record.count++;
   return true;
 }
@@ -40,6 +48,39 @@ import { friendlyErrorMessage, logError } from "@/lib/logger";
 function getValidationMessage(module: ModuleKey, error: z.ZodError) {
   const issue = error.issues[0];
   return issue?.message ?? "Invalid data provided.";
+}
+
+function enforceSelfAssignment(
+  moduleKey: ModuleKey,
+  data: Record<string, string>,
+  user: Awaited<ReturnType<typeof getCurrentUser>>,
+) {
+  if (!user || isAdminUser(user.role, user.company)) return null;
+
+  const currentName = String(user.name ?? "").trim();
+  if (!currentName) return "Unable to resolve your profile name.";
+
+  const moduleRestrictedFields: Partial<Record<ModuleKey, string[]>> = {
+    tasks: ["assignee"],
+    bugs: ["suggestedDev"],
+    "test-cases": ["assignee"],
+    "test-plans": ["assignee"],
+    "test-sessions": ["tester"],
+    "test-suites": ["assignee"],
+    deployments: ["developer"],
+  };
+
+  const restrictedFields = moduleRestrictedFields[moduleKey] ?? [];
+  for (const field of restrictedFields) {
+    const targetValue = String(data[field] ?? "").trim();
+    if (!targetValue) continue;
+    if (targetValue !== currentName) {
+      const targetLabel = field === "suggestedDev" || field === "developer" ? "developer" : "assignee";
+      return `You can only assign ${targetLabel} to yourself.`;
+    }
+  }
+
+  return null;
 }
 
 export async function POST(
@@ -74,6 +115,11 @@ export async function POST(
         { error: getValidationMessage(moduleKey, parsed.error) },
         { status: 400 },
       );
+    }
+
+    const selfAssignmentError = enforceSelfAssignment(moduleKey, parsed.data as Record<string, string>, user);
+    if (selfAssignmentError) {
+      return NextResponse.json({ error: selfAssignmentError }, { status: 403 });
     }
 
     const data = moduleConfigs[moduleKey].coerce(parsed.data as Record<string, string>);
@@ -177,12 +223,12 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { id, status, entry, ids } = body;
+    const { id, status, sortOrder, entry, ids } = body;
 
     if (Array.isArray(ids) && ids.length > 0 && status) {
       const { updateModuleStatus } = await import("@/lib/data");
       for (const itemId of ids) {
-        await updateModuleStatus(moduleKey, itemId, status);
+        await updateModuleStatus(moduleKey, itemId, status, sortOrder);
       }
 
       revalidatePath("/");
@@ -211,6 +257,11 @@ export async function PATCH(
         );
       }
 
+      const selfAssignmentError = enforceSelfAssignment(moduleKey, parsed.data as Record<string, string>, user);
+      if (selfAssignmentError) {
+        return NextResponse.json({ error: selfAssignmentError }, { status: 403 });
+      }
+
       const { updateModuleRecord } = await import("@/lib/data");
       const data = moduleConfigs[moduleKey].coerce(parsed.data as Record<string, string>);
       await updateModuleRecord(moduleKey, id, data);
@@ -225,7 +276,7 @@ export async function PATCH(
 
     if (status) {
       const { updateModuleStatus } = await import("@/lib/data");
-      await updateModuleStatus(moduleKey, id, status);
+      await updateModuleStatus(moduleKey, id, status, sortOrder);
       
       revalidatePath("/");
       revalidatePath(`/${moduleKey}`);

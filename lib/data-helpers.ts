@@ -115,6 +115,35 @@ export async function logActivity(company: string, type: string, id: string, act
 
 
 
+export function getSearchableColumns(module: string): string[] {
+  switch (module) {
+    case "tasks": return ["title", "project", "assignee", "status", "description"];
+    case "bugs": return ["title", "project", "module", "severity", "priority", "status", "suggestedDev"];
+    case "test-cases": return ["tcId", "caseName", "typeCase", "assignee", "status", "priority"];
+    case "test-plans": return ["title", "project", "sprint", "scope", "status"];
+    case "test-sessions": return ["project", "sprint", "tester", "scope", "result"];
+    case "test-suites": return ["title", "assignee", "status", "notes"];
+    case "meeting-notes": return ["title", "project", "content", "attendees", "actionItems"];
+    case "assignees": return ["name", "role", "email"];
+    case "sprints": return ["name", "status", "goal"];
+    case "users": return ["name", "email", "role"];
+    case "deployments": return ["version", "project", "environment", "developer", "status", "changelog"];
+    default: return ["title", "name", "status"];
+  }
+}
+
+export function buildSearchClause(module: string, search: string): { clause: string; params: string[] } {
+  const q = search.trim();
+  if (!q) return { clause: "", params: [] };
+  const columns = getSearchableColumns(module);
+  const conditions = columns.map((col) => `LOWER(COALESCE("${col}", '')) LIKE ?`);
+  const param = `%${q.toLowerCase()}%`;
+  return {
+    clause: ` AND (${conditions.join(" OR ")})`,
+    params: columns.map(() => param),
+  };
+}
+
 export async function runInsert(sqlStr: string, params: any[]) {
   return db.run(sqlStr, params);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useRef, useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useState, useTransition, useRef, useMemo, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ModuleKey, moduleConfigs } from "@/lib/modules";
 import { toast } from "@/components/ui/toast";
@@ -9,6 +9,7 @@ import { type Attachment } from "@/components/attachment-uploader";
 import { getFieldIcons, getModuleWorkspaceCrumbs, getModuleWorkspacePermissions, getPreferredColumnOrder } from "@/components/module-workspace-utils";
 import { useModuleWorkspaceActions } from "@/components/use-module-workspace-actions";
 import { ModuleWorkspaceShell } from "@/components/module-workspace-shell";
+import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
 import { PAGE_SIZE } from "@/lib/pagination";
 
 
@@ -49,6 +50,7 @@ function getNextVersion(version: string) {
 export function ModuleWorkspace({
   module,
   rows,
+  kanbanRows = rows,
   currentPage,
   totalPages,
   totalItems,
@@ -58,9 +60,11 @@ export function ModuleWorkspace({
   user = null,
   topContent = null,
   versionSequenceDefaultValue = "",
+  viewId = null,
 }: {
   module: ModuleKey;
   rows: Row[]; 
+  kanbanRows?: Row[];
   currentPage: number;
   totalPages: number;
   totalItems: number;
@@ -70,6 +74,7 @@ export function ModuleWorkspace({
   user?: any;
   topContent?: ReactNode;
   versionSequenceDefaultValue?: string;
+  viewId?: string | null;
 }) {
   const config = moduleConfigs[module];
   const router = useRouter();
@@ -91,10 +96,14 @@ export function ModuleWorkspace({
   const [refreshing, setRefreshing] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
   const [viewingRow, setViewingRow] = useState<Row | null>(null);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(
+    () => new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("q") ?? "",
+  );
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Undo delete
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
@@ -111,6 +120,40 @@ export function ModuleWorkspace({
     setLocalRows(rows);
   }, [rows]);
 
+  // URL synchronization for shareable detail links
+  const handleOpenRow = useCallback((row: Row) => {
+    setViewingRow(row);
+  }, []);
+
+  const handleCloseRow = useCallback(() => {
+    setViewingRow(null);
+  }, []);
+
+  const handleNotFound = useCallback(() => {
+    toast("The requested item was not found", "error");
+  }, []);
+
+  const handleAccessDenied = useCallback(() => {
+    toast("You don't have permission to view this item", "error");
+  }, []);
+
+  const handleTabChange = useCallback((tab: string | null) => {
+    setActiveTab(tab);
+  }, []);
+
+  useDetailViewUrl({
+    module,
+    viewingRow,
+    initialViewId: viewId,
+    localRows,
+    onOpenRow: handleOpenRow,
+    onCloseRow: handleCloseRow,
+    onNotFound: handleNotFound,
+    onAccessDenied: handleAccessDenied,
+    activeTab,
+    onTabChange: handleTabChange,
+  });
+
   // Reset page when search/filter changes
   const statusField = config.fields.find((f) => f.name === "status");
   const statusOptions = statusField && "options" in statusField ? statusField.options : [];
@@ -124,17 +167,27 @@ export function ModuleWorkspace({
   const fieldIcons = useMemo(() => getFieldIcons(), []);
 
   const safePage = Math.min(currentPage, totalPages);
-  const filteredRows = useMemo(() => {
-    if (!search.trim()) return localRows;
-    const q = search.toLowerCase();
-    return localRows.filter((row) => {
-      return Object.values(row).some((val) => 
-        String(val ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [localRows, search]);
 
-  const visibleRows = filteredRows;
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value.trim()) {
+        params.set("q", value.trim());
+        params.set("page", "1");
+      } else {
+        params.delete("q");
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    }, 400);
+  };
+
+  useEffect(() => {
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, []);
+
+  const visibleRows = localRows;
   const preferredColumnOrder = useMemo(() => getPreferredColumnOrder(module), [module]);
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
@@ -234,6 +287,7 @@ export function ModuleWorkspace({
         dateWarnings={dateWarnings}
         editingRow={editingRow}
         visibleRows={visibleRows}
+        kanbanRows={kanbanRows}
         visibleColumns={visibleColumns}
         safePage={safePage}
         totalPages={totalPages}
@@ -245,7 +299,7 @@ export function ModuleWorkspace({
         reopenReason={reopenReason}
         viewingRow={viewingRow}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         onToggleForm={() => {
           if (showForm) closeFormEditor();
           else openFormEditor();
@@ -298,11 +352,16 @@ export function ModuleWorkspace({
             refreshPage();
           });
         }}
-        onCloseView={() => setViewingRow(null)}
+        onCloseView={() => {
+          setViewingRow(null);
+          setActiveTab(null);
+        }}
         onEditView={() => {
           setViewingRow(null);
           openFormEditor(viewingRow);
         }}
+        initialTab={activeTab}
+        onTabChange={handleTabChange}
       />
     </div>
   );

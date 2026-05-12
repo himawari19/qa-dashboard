@@ -51,7 +51,9 @@ export async function backfillAssigneesFromUsers() {
      WHERE COALESCE("email", '') != ''`,
   );
 
-  for (const user of users) {
-    await syncAssigneeFromUser(user);
-  }
+  await db.transaction(async () => {
+    for (const user of users) {
+      await syncAssigneeFromUser(user);
+    }
+  });
 }

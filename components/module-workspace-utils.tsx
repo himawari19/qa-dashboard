@@ -112,6 +112,9 @@ export function getPreferredColumnOrder(module: ModuleKey) {
   if (module === "test-sessions") {
     return ["date", "project", "sprint", "tester", "result"];
   }
+  if (module === "tasks") {
+    return ["title", "project", "status", "priority", "startDate", "endDate"];
+  }
   if (module === "assignees") {
     return ["name", "role", "email", "status"];
   }

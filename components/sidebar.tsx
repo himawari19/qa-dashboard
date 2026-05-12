@@ -45,11 +45,11 @@ const groups: SidebarGroup[] = [
  ],
  },
  {
- title:"Defects & Tasks",
- items: [
- { href:"/bugs", label:"Bugs", icon: Bug },
- { href:"/tasks", label:"Tasks", icon: Kanban },
- ],
+    title:"Defects & Tasks",
+    items: [
+      { href:"/bugs", label:"Bugs", icon: Bug },
+      { href:"/tasks", label:"Tasks", icon: Kanban },
+    ],
  },
  {
  title:"Documentation",

@@ -1,11 +1,88 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { ModuleWorkspace } from "@/components/module-workspace";
 import { getAssigneeOptions, getModuleRows, getModuleRowsPage, getProjectOptions, getTestCaseStatsBySuiteIds, getTestPlanReferenceRows, getTestSuitesByPlanIds } from "@/lib/data";
 import { moduleOrder, moduleConfigs, type ModuleKey } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
 import { PAGE_SIZE } from "@/lib/pagination";
+import { db } from "@/lib/db";
+import { getTableName, getAccessScope } from "@/lib/data-helpers";
+import { getItemTitleField, buildOgDescription } from "@/lib/og-helpers";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ module: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const { module: rawModule } = await params;
+  const query = searchParams ? await searchParams : {};
+
+  if (!moduleOrder.includes(rawModule as ModuleKey)) {
+    return { title: "QA Hub" };
+  }
+
+  const moduleKey = rawModule as ModuleKey;
+  const config = moduleConfigs[moduleKey];
+  const moduleLabel = config?.shortTitle ?? moduleKey;
+
+  const rawViewParam = Array.isArray(query.view) ? query.view[0] : query.view;
+  const viewId = rawViewParam ? String(rawViewParam).trim() || null : null;
+
+  if (viewId) {
+    try {
+      const parsedId = parseInt(viewId, 10);
+      if (Number.isFinite(parsedId) && parsedId > 0) {
+        const user = await getCurrentUser();
+        const { company, isAdmin } = getAccessScope(user);
+        const table = getTableName(moduleKey);
+
+        if (table) {
+          const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+          const queryParams: unknown[] = isAdmin ? [parsedId] : [parsedId, company];
+
+          const item = await db.get<Record<string, unknown>>(
+            `SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}`,
+            queryParams,
+          );
+
+          if (item) {
+            const itemTitle = getItemTitleField(moduleKey, item);
+            const ogTitle = `[${moduleLabel}] ${itemTitle}`;
+            const ogDescription = buildOgDescription(moduleKey, item);
+
+            return {
+              title: ogTitle,
+              openGraph: {
+                title: ogTitle,
+                description: ogDescription,
+                url: `/${moduleKey}?view=${viewId}`,
+                type: "article",
+                siteName: "QA Hub",
+              },
+            };
+          }
+        }
+      }
+    } catch {
+      // Fall through to module-level metadata on any error
+    }
+  }
+
+  // Default module-level metadata
+  return {
+    title: `${moduleLabel} - QA Hub`,
+    openGraph: {
+      title: `${moduleLabel} - QA Hub`,
+      description: `View and manage ${moduleLabel.toLowerCase()}`,
+      type: "website",
+      siteName: "QA Hub",
+    },
+  };
+}
 
 function getNextVersion(version: string) {
   const match = String(version ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
@@ -53,15 +130,21 @@ export default async function ModulePage({
   const { module: rawModule } = await params;
   const query = searchParams ? await searchParams : {};
   const moduleKey = rawModule;
+  const currentUser = await getCurrentUser();
   if (!moduleOrder.includes(moduleKey as ModuleKey)) {
     notFound();
   }
 
+  const rawViewParam = Array.isArray(query.view) ? query.view[0] : query.view;
+  const viewId = rawViewParam ? String(rawViewParam).trim() || null : null;
+
   const rawPage = Array.isArray(query.page) ? query.page[0] : query.page;
   const requestedPage = Number(rawPage ?? 1);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+  const searchQuery = String(Array.isArray(query.q) ? query.q[0] : query.q ?? "").trim();
 
   let rows: Record<string, unknown>[] = [];
+  let kanbanRows: Record<string, unknown>[] = [];
   let totalItems = 0;
   let relatedOptions: Record<string, Array<{ label: string; value: string }>> = {};
   const initialFormValues: Record<string, string> = {};
@@ -75,17 +158,23 @@ export default async function ModulePage({
 
   const hiddenFields: string[] = [];
   try {
-    const firstPageData = await getModuleRowsPage(moduleKey as ModuleKey, currentPage, PAGE_SIZE);
+    const firstPageData = await getModuleRowsPage(moduleKey as ModuleKey, currentPage, PAGE_SIZE, searchQuery);
     totalItems = firstPageData.total;
 
     const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
     const safePage = Math.min(currentPage, totalPages);
     const resolvedPageData =
       safePage !== currentPage
-        ? await getModuleRowsPage(moduleKey as ModuleKey, safePage, PAGE_SIZE)
+        ? await getModuleRowsPage(moduleKey as ModuleKey, safePage, PAGE_SIZE, searchQuery)
         : firstPageData;
 
     rows = resolvedPageData.rows as Record<string, unknown>[];
+    kanbanRows = rows;
+
+    if (moduleKey === "tasks" || moduleKey === "bugs" || moduleKey === "test-cases" || moduleKey === "sprints") {
+      const allRows = await getModuleRows(moduleKey as ModuleKey);
+      kanbanRows = allRows as Record<string, unknown>[];
+    }
 
     if (moduleKey === "test-suites") {
       const plans = await getTestPlanReferenceRows();
@@ -198,24 +287,46 @@ export default async function ModulePage({
     const qaRoles = new Set(["qa"]);
     const qaPmRoles = new Set(["qa", "pm"]);
     const filterByRoles = (roles: Set<string>) => teamOptionsRaw.filter((option) => roles.has(String(option.role ?? "")));
-    const teamOptionsAll = teamOptionsRaw.map(({ value, label }) => ({ value, label }));
+    const selfOnlyOptions = currentUser?.name?.trim()
+      ? [{ value: currentUser.name.trim(), label: `${currentUser.name.trim()} (${currentUser.role})` }]
+      : [];
+    const teamOptionsAll = currentUser?.role === "admin"
+      ? teamOptionsRaw.map(({ value, label }) => ({ value, label }))
+      : selfOnlyOptions;
+    const selfFieldByModule: Partial<Record<ModuleKey, string>> = {
+      tasks: "assignee",
+      bugs: "suggestedDev",
+      "test-cases": "assignee",
+      "test-plans": "assignee",
+      "test-sessions": "tester",
+      "test-suites": "assignee",
+      deployments: "developer",
+    };
 
     const config = moduleConfigs[moduleKey as ModuleKey];
     if (config) {
       config.fields.forEach((field) => {
         if (field.name === "tester") {
-          relatedOptions[field.name] = filterByRoles(qaRoles).map(({ value, label }) => ({ value, label }));
+          relatedOptions[field.name] = currentUser?.role === "admin"
+            ? filterByRoles(qaRoles).map(({ value, label }) => ({ value, label }))
+            : (selfFieldByModule[moduleKey as ModuleKey] === "tester" ? teamOptionsAll : []);
           return;
         }
         if (["suggestedDev", "developer"].includes(field.name)) {
-          relatedOptions[field.name] = filterByRoles(devRoles).map(({ value, label }) => ({ value, label }));
+          relatedOptions[field.name] = currentUser?.role === "admin"
+            ? filterByRoles(devRoles).map(({ value, label }) => ({ value, label }))
+            : (selfFieldByModule[moduleKey as ModuleKey] === field.name ? teamOptionsAll : []);
           return;
         }
         if (field.name === "assignee") {
-          if (["test-plans", "test-suites", "test-cases", "test-sessions", "sprints"].includes(moduleKey)) {
-            relatedOptions[field.name] = filterByRoles(qaPmRoles).map(({ value, label }) => ({ value, label }));
+          if (currentUser?.role === "admin") {
+            if (["test-plans", "test-suites", "test-cases", "test-sessions", "sprints"].includes(moduleKey)) {
+              relatedOptions[field.name] = filterByRoles(qaPmRoles).map(({ value, label }) => ({ value, label }));
+            } else {
+              relatedOptions[field.name] = teamOptionsRaw.map(({ value, label }) => ({ value, label }));
+            }
           } else {
-            relatedOptions[field.name] = teamOptionsAll;
+            relatedOptions[field.name] = selfFieldByModule[moduleKey as ModuleKey] === "assignee" ? teamOptionsAll : [];
           }
         }
       });
@@ -234,6 +345,7 @@ export default async function ModulePage({
     <ModuleWorkspace 
       module={moduleKey as ModuleKey} 
       rows={plainRows} 
+      kanbanRows={JSON.parse(JSON.stringify(kanbanRows))}
       currentPage={safePage}
       totalPages={totalPages}
       totalItems={totalItems} 
@@ -241,7 +353,8 @@ export default async function ModulePage({
       initialFormValues={initialFormValues} 
       versionSequenceDefaultValue={initialFormValues.version || ""}
       hiddenFields={hiddenFields} 
-      user={JSON.parse(JSON.stringify(await getCurrentUser()))}
+      user={JSON.parse(JSON.stringify(currentUser))}
+      viewId={viewId}
     />
   );
 }

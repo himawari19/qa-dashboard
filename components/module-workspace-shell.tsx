@@ -45,8 +45,9 @@ type Props = {
  lastSprint: string | null;
  dateWarnings: Record<string,"past" |"future">;
  editingRow: Row | null;
- visibleRows: any[];
- visibleColumns: any[];
+	visibleRows: any[];
+	kanbanRows: any[];
+	visibleColumns: any[];
  safePage: number;
  totalPages: number;
  totalItems: number;
@@ -78,7 +79,7 @@ type Props = {
  onReopenRow: (row: any) => void;
  onPrevPage: () => void;
  onNextPage: () => void;
- onUpdateStatus: (id: string | number, status: string) => Promise<void>;
+ onUpdateStatus: (id: string | number, status: string, sortOrder?: number) => Promise<void>;
  onDeleteConfirm: () => void;
  onDeleteCancel: () => void;
  onReopenReasonChange: (value: string) => void;
@@ -88,6 +89,8 @@ type Props = {
  onEditView: () => void;
  search: string;
  onSearchChange: (value: string) => void;
+ initialTab?: string | null;
+ onTabChange?: (tab: string) => void;
 };
 
 export function ModuleWorkspaceShell({
@@ -115,8 +118,9 @@ export function ModuleWorkspaceShell({
  lastSprint,
  dateWarnings,
  editingRow,
- visibleRows,
- visibleColumns,
+	visibleRows,
+	kanbanRows,
+	visibleColumns,
  safePage,
  totalPages,
  totalItems,
@@ -158,6 +162,8 @@ export function ModuleWorkspaceShell({
  onEditView,
  search,
  onSearchChange,
+ initialTab,
+ onTabChange,
 }: Props) {
  return (
  <>
@@ -241,9 +247,9 @@ export function ModuleWorkspaceShell({
  />
  ) : !showForm ? (
  <div className="overflow-hidden bg-transparent border-t border-slate-200/60 p-5">
- <KanbanBoard rows={visibleRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
- </div>
- ) : null}
+			<KanbanBoard rows={kanbanRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
+			</div>
+		) : null}
  </section>
 
  <ModuleWorkspaceModals
@@ -265,6 +271,9 @@ export function ModuleWorkspaceShell({
  onClose={onCloseView}
  onEdit={onEditView}
  canEdit={canEdit}
+ module={module}
+ initialTab={initialTab}
+ onTabChange={onTabChange}
  />
  )}
  </>

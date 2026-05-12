@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   pageShell: vi.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>),
-  badge: vi.fn(({ value }: { value: string }) => <span>{value}</span>),
   fetch: vi.fn(),
 }));
 
@@ -31,10 +30,6 @@ vi.mock("@/components/page-shell", () => ({
   PageShell: mocks.pageShell,
 }));
 
-vi.mock("@/components/badge", () => ({
-  Badge: mocks.badge,
-}));
-
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
@@ -42,6 +37,7 @@ vi.mock("next/link", () => ({
 vi.mock("@/lib/utils", () => ({
   cn: (...classes: Array<string | undefined | false>) => classes.filter(Boolean).join(" "),
   formatDate: (value: string) => value,
+  formatDisplayText: (value: string) => value,
 }));
 
 globalThis.fetch = mocks.fetch as unknown as typeof fetch;
@@ -80,14 +76,14 @@ beforeEach(() => {
     if (url.startsWith("/api/gantt?year=")) {
       return {
         ok: true,
-        json: async () => ({ sprints: [], plans: [] }),
+        json: async () => ({ sprints: [], plans: [], tasks: [] }),
       } as Response;
     }
 
-    if (url === "/api/auth/profile") {
+    if (url.startsWith("/api/gantt/holidays?year=")) {
       return {
         ok: true,
-        json: async () => ({ company: "acme" }),
+        json: async () => ({}),
       } as Response;
     }
 
@@ -103,13 +99,14 @@ describe("gantt page", () => {
   it("renders the loading shell and fetches gantt data", () => {
     const html = renderToStaticMarkup(<GanttPage />);
 
-    expect(html).toContain("animate-pulse");
-    expect(html).toContain("glass-card");
-    expect(mocks.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/gantt\?year=\d{4}$/));
+    expect(html).toContain("Timeline delivery");
+    expect(html).toContain("h-20 rounded-2xl bg-slate-50");
+    expect(mocks.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/gantt\?year=\d{4}$/), expect.objectContaining({ credentials: "include" }));
+    expect(mocks.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/gantt\/holidays\?year=\d{4}$/), expect.objectContaining({ credentials: "include" }));
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "Gantt / Timeline",
-      description: "View timelines, dependencies, and delivery windows across your workspace.",
+      description: "Track sprint, plan, and task windows at a glance.",
     }));
   });
 });

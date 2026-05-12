@@ -16,6 +16,7 @@ export const tables = [
       "endDate" TEXT,
       "status" TEXT NOT NULL DEFAULT 'active',
       "goal" TEXT DEFAULT '',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -40,6 +41,7 @@ export const tables = [
       "relatedItems" TEXT DEFAULT '',
       "assignee" TEXT DEFAULT '',
       "attachments" TEXT DEFAULT '',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -66,6 +68,7 @@ export const tables = [
       "relatedItems" TEXT DEFAULT '',
       "suggestedDev" TEXT DEFAULT '',
       "attachments" TEXT DEFAULT '',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -92,6 +95,7 @@ export const tables = [
       "priority" TEXT DEFAULT 'Medium',
       "lastRunAt" TEXT,
       "relatedItems" TEXT DEFAULT '',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -461,6 +465,10 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
         await applyMissingColumns();
         return sqlite.prepare(queryStr).all(...params) as T[];
       }
+      if (message.includes('no such column: sortOrder') || message.includes('no such column: "sortOrder"')) {
+        await ensureKanbanSortOrderColumns();
+        return sqlite.prepare(queryStr).all(...params) as T[];
+      }
       throw error;
     }
   }
@@ -641,6 +649,64 @@ async function backfillPublicTokens() {
   }
 }
 
+async function backfillSortOrder() {
+  const tablesToFill = ["Task", "Bug", "TestCase", "Sprint", "TestPlan", "TestSession", "TestSuite", "MeetingNote", "Deployment", "Assignee", "User"];
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    for (const table of tablesToFill) {
+      const hasSortOrder = (sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all("sortOrder") as any[]).length > 0;
+      if (!hasSortOrder) continue;
+      const rows = sqlite.prepare(`SELECT id FROM "${table}" ORDER BY COALESCE("updatedAt", "createdAt") ASC, id ASC`).all() as Array<{ id: string | number }>;
+      rows.forEach((row, index) => {
+        sqlite.prepare(`UPDATE "${table}" SET "sortOrder" = ? WHERE id = ?`).run(index + 1, row.id);
+      });
+    }
+  } else {
+    const pool = await getPostgresPool();
+    const existing = await Promise.all(tablesToFill.map(async (table) => {
+      const { rows } = await pool.query(`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'sortOrder' LIMIT 1`, [table]);
+      return rows.length > 0 ? table : null;
+    }));
+    await Promise.all(existing.filter(Boolean).map((table) =>
+      pool.query(`WITH ranked AS (
+        SELECT id, ROW_NUMBER() OVER (ORDER BY COALESCE("updatedAt", "createdAt") ASC, id ASC) AS rn
+        FROM "${table}"
+      ) UPDATE "${table}" t SET "sortOrder" = ranked.rn FROM ranked WHERE t.id = ranked.id`)
+    ));
+  }
+}
+
+async function ensureKanbanSortOrderColumns() {
+  const tablesToFix = ["Task", "Bug", "TestCase", "Sprint", "TestPlan", "TestSession", "TestSuite", "MeetingNote", "Deployment", "Assignee", "User"];
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    for (const table of tablesToFix) {
+      const exists = (sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all("sortOrder") as any[]).length > 0;
+      if (exists) continue;
+      try {
+        sqlite.prepare(`ALTER TABLE "${table}" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0`).run();
+      } catch {
+        // keep startup resilient
+      }
+    }
+    return;
+  }
+
+  const pool = await getPostgresPool();
+  for (const table of tablesToFix) {
+    try {
+      const { rows } = await pool.query(
+        `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'sortOrder' LIMIT 1`,
+        [table],
+      );
+      if (rows.length > 0) continue;
+      await pool.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER NOT NULL DEFAULT 0`);
+    } catch {
+      // keep startup resilient
+    }
+  }
+}
+
 async function ensureSchema() {
   if (typeof window !== 'undefined') return;
   if (!globalForDb.schemaInitPromise) {
@@ -653,8 +719,10 @@ async function ensureSchema() {
         }
         
         await applyMissingColumns();
+        await ensureKanbanSortOrderColumns();
         await execSchemaSql(schemaIndexSql);
         await backfillPublicTokens();
+        await backfillSortOrder();
       } catch (err) {
         globalForDb.schemaInitPromise = undefined;
         if (databaseUrl || useSqlite) {

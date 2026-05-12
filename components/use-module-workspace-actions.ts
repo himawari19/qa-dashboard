@@ -427,18 +427,19 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     setDeleteId(null);
   }
 
-  async function onUpdateStatus(id: number | string, status: string) {
+  async function onUpdateStatus(id: number | string, status: string, sortOrder?: number) {
     const { ok, data } = await requestModuleJson<ApiPayload>(`/api/items/${module}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
+      body: JSON.stringify({ id, status, sortOrder }),
     });
     if (!ok) {
       showApiError(toast, data, "Failed to update status.");
       return;
     }
     showApiSuccess(toast, data, "Status updated successfully.");
-    patchRow(id, { status });
+    patchRow(id, { status, ...(typeof sortOrder === "number" ? { sortOrder } : {}) });
+    refreshPage();
   }
 
   return {

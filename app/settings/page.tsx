@@ -70,11 +70,15 @@ export default function SettingsPage() {
  ];
 
  return (
- <PageShell 
- icon={<Gear size={22} weight="bold" />}
- title="Settings" 
- description="Manage profile, users, assignees, and workspace configuration."
- >
+  <PageShell 
+    icon={<Gear size={22} weight="bold" />}
+    title="Settings" 
+    description="Manage profile, users, assignees, and workspace configuration."
+    crumbs={[
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Settings" },
+    ]}
+  >
  <div className="max-w-4xl space-y-12">
  {settingsGroups.map((group, groupIdx) => (
  <div key={groupIdx} className="space-y-4">

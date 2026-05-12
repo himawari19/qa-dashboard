@@ -63,6 +63,7 @@ const dayExpr = isPostgres
 - Change DB schema without ensuring SQLite/Postgres compatibility.
 - Reintroduce `/test-case-management` URLs; use `/test-cases`.
 - Commit or push unless explicitly asked.
+- Generate `.md` spec/design/task files — implement changes directly in code.
 
 ## Checks
 ```
