@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from"react";
+import { createPortal } from"react-dom";
 import { PageShell } from"@/components/page-shell";
 import { Badge } from"@/components/badge";
 import { cn, formatDate, formatDisplayText } from"@/lib/utils";
-import { Lightning, ClipboardText, CaretLeft, CaretRight } from"@phosphor-icons/react";
+import { Lightning, ClipboardText, CaretRight, Lock, CheckCircle, ListChecks } from"@phosphor-icons/react";
 import { toast } from"@/components/ui/toast";
 import {
  DAY_NAMES,
@@ -13,34 +14,44 @@ import {
  ROW_H,
  STATUS_COLORS,
  TIMELINE_PREFS_KEY,
+ SECTION_ACCENT_COLORS,
  addDays,
- addYears,
  buildSubHeader,
  buildTopHeader,
+ buildTaskTooltip,
+ canEditTimeline,
+ computeProgress,
+ computeStatusBreakdown,
  deserializeDate,
  diffDays,
  endOfMonth,
+ filterItems,
  getDayLabel,
  getItemKey,
+ getItemNavigationLink,
  getJakartaNow,
  getPeriodWindow,
  getScopedStorageKey,
  getScrollTargetDate,
+ groupItemsByType,
+ isValidDateRange,
  overlapsWindow,
  parseDate,
  serializeDate,
  startOfMonth,
- startOfWeek,
  toKey,
  ZOOM_SCALE,
 } from"./gantt-helpers";
 import type {
  EditModalState,
+ EnhancedEditModalState,
  GanttData,
+ GanttFilter,
  GanttItem,
  HeaderCell,
  Holidays,
  PlanTimelineRow,
+ SectionCollapseState,
  SprintTimelineRow,
  TimelineRow,
  Tooltip,
@@ -54,7 +65,7 @@ export default function GanttPage() {
  const [data, setData] = useState<GanttData | null>(null);
  const [holidays, setHolidays] = useState<Holidays>({});
  const [loading, setLoading] = useState(true);
- const [filter, setFilter] = useState<"all" |"sprint" |"plan">("all");
+ const [filter, setFilter] = useState<GanttFilter>("all");
  const [viewMode, setViewMode] = useState<ViewMode>("year");
  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("normal");
  const [focusDate, setFocusDate] = useState(() => {
@@ -64,12 +75,13 @@ export default function GanttPage() {
  });
  const [viewportRange, setViewportRange] = useState<{ start: Date; end: Date } | null>(null);
  const [tooltip, setTooltip] = useState<Tooltip>(null);
- const [editModal, setEditModal] = useState<EditModalState | null>(null);
+ const [editModal, setEditModal] = useState<EnhancedEditModalState | null>(null);
  const [hoveredItemKey, setHoveredItemKey] = useState<string | null>(null);
  const [now, setNow] = useState(() => getJakartaNow());
  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
  const [visibleRowWindow, setVisibleRowWindow] = useState({ start: 0, end: 24 });
  const [storageScopeKey, setStorageScopeKey] = useState("global");
+ const [userRole, setUserRole] = useState<string>("viewer");
  const [dragState, setDragState] = useState<{
  key: string;
  type:"move" |"resize-start" |"resize-end";
@@ -78,16 +90,48 @@ export default function GanttPage() {
  origEnd: string;
  } | null>(null);
  const [dragPreview, setDragPreview] = useState<{ key: string; start: string; end: string } | null>(null);
+ const [periodPickerOpen, setPeriodPickerOpen] = useState(false);
+ const [periodPickerYear, setPeriodPickerYear] = useState(() => focusDate.getFullYear());
+ const [periodPickerAnchor, setPeriodPickerAnchor] = useState<{ x: number; y: number } | null>(null);
 
  const bodyRef = useRef<HTMLDivElement>(null);
  const rowAreaRef = useRef<HTMLDivElement>(null);
  const headerRef = useRef<HTMLDivElement>(null);
+ const periodPickerRef = useRef<HTMLDivElement>(null);
  const isSyncingScrollRef = useRef(false);
  const scrollFrameRef = useRef<number | null>(null);
  const viewportRangeTimerRef = useRef<number | null>(null);
  const visibleRowWindowKeyRef = useRef<string>("");
  const dataRef = useRef<GanttData | null>(null);
  const currentYear = focusDate.getFullYear();
+ const periodLabel = useMemo(() => viewMode === "month"
+  ? focusDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+  : focusDate.getFullYear().toString(), [focusDate, viewMode]);
+ const monthOptions = useMemo(() => [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+ ], []);
+
+ useEffect(() => {
+  setPeriodPickerYear(focusDate.getFullYear());
+ }, [focusDate]);
+
+ useEffect(() => {
+  if (!periodPickerOpen) return;
+  const onPointerDown = (event: MouseEvent) => {
+   if (!periodPickerRef.current) return;
+   if (!periodPickerRef.current.contains(event.target as Node)) setPeriodPickerOpen(false);
+  };
+  const onKeyDown = (event: KeyboardEvent) => {
+   if (event.key === "Escape") setPeriodPickerOpen(false);
+  };
+  document.addEventListener("mousedown", onPointerDown);
+  document.addEventListener("keydown", onKeyDown);
+  return () => {
+   document.removeEventListener("mousedown", onPointerDown);
+   document.removeEventListener("keydown", onKeyDown);
+  };
+ }, [periodPickerOpen]);
 
  const refresh = useCallback(() => {
  setLoading(true);
@@ -122,6 +166,7 @@ export default function GanttPage() {
  if (cancelled || !profile) return;
 const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  setStorageScopeKey(scopeParts.join(":") ||"global");
+ if (profile.role) setUserRole(profile.role);
  })
  .catch(() => {
  if (!cancelled) setStorageScopeKey("global");
@@ -137,7 +182,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const rawPrefs = window.localStorage.getItem(getScopedStorageKey(TIMELINE_PREFS_KEY, storageScopeKey));
  if (rawPrefs) {
  const prefs = JSON.parse(rawPrefs) as Partial<{
- filter:"all" |"sprint" |"plan";
+ filter: GanttFilter;
  viewMode: ViewMode;
  zoomLevel: ZoomLevel;
  focusDate: string;
@@ -187,7 +232,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const items: GanttItem[] = useMemo(() => {
  if (!data) return [];
  const result: GanttItem[] = [];
- if (filter !=="plan") {
+ if (filter !=="plan" && filter !== "task") {
  for (const s of data.sprints) {
  if (!s.startDate || !s.endDate) continue;
  result.push({
@@ -202,7 +247,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  });
  }
  }
- if (filter !=="sprint") {
+ if (filter !=="sprint" && filter !== "task") {
  for (const p of data.plans) {
  if (!p.startDate || !p.endDate) continue;
  result.push({
@@ -219,6 +264,22 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  });
  }
  }
+ if (filter !== "sprint" && filter !== "plan") {
+ for (const t of data.tasks) {
+ if (!t.startDate) continue;
+ result.push({
+ id: t.id,
+ label: t.title,
+ sublabel: t.project,
+ owner: t.assignee,
+ startDate: t.startDate,
+ endDate: t.endDate || t.startDate,
+ status: t.status,
+ type:"task",
+ color: STATUS_COLORS[t.status] ??"#94a3b8",
+ });
+ }
+ }
  return result.sort((a, b) => a.startDate.localeCompare(b.startDate));
  }, [data, filter]);
 
@@ -227,7 +288,12 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const periodEnd = periodWindow.end;
 
  const displayItems = useMemo(() => {
- return items.filter((item) => overlapsWindow(item, periodStart, periodEnd));
+ const filtered = items.filter((item) => overlapsWindow(item, periodStart, periodEnd));
+ // Group by type in fixed order: sprints → plans → tasks
+ const sprints = filtered.filter(i => i.type === "sprint");
+ const plans = filtered.filter(i => i.type === "plan");
+ const tasks = filtered.filter(i => i.type === "task");
+ return [...sprints, ...plans, ...tasks];
  }, [items, periodEnd, periodStart]);
 
  const sprintKeyByName = useMemo(() => {
@@ -246,15 +312,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
 
  const timelineRows = useMemo<TimelineRow[]>(() => {
  return displayItems.map((item) => {
- const progress = item.status ==="completed" || item.status ==="closed"
- ? 100
- : item.status ==="active"
- ? 68
- : item.status ==="planning"
- ? 24
- : item.status ==="draft"
- ? 12
- : 0;
+ const progress = data ? computeProgress(item, data) : 0;
  const parentKey = item.relatedSprint ? sprintKeyByName.get(item.relatedSprint) ?? null : null;
  return {
  ...item,
@@ -263,8 +321,10 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  parentKey,
  };
  });
- }, [displayItems, sprintKeyByName]);
+ }, [displayItems, sprintKeyByName, data]);
  const totalRowHeight = timelineRows.length * ROW_H;
+ const emptyRowHeight = ROW_H * 6;
+ const renderedRowHeight = Math.max(totalRowHeight, emptyRowHeight);
  const visibleTimelineRows = useMemo(() => {
  const start = Math.max(0, Math.min(visibleRowWindow.start, timelineRows.length));
  const end = Math.max(start, Math.min(visibleRowWindow.end, timelineRows.length));
@@ -375,9 +435,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const topHeader = useMemo(() => buildTopHeader(viewStart, totalCols, viewMode), [viewStart, totalCols, viewMode]);
  const subHeader = useMemo(() => buildSubHeader(viewStart, totalCols, viewMode, holidays), [viewStart, totalCols, viewMode, holidays]);
 
- // non-workday backgrounds (week mode only)
+ // non-workday backgrounds (month mode only)
  const nonWorkdayCols = useMemo(() => {
- if (viewMode !=="week") return [];
+ if (viewMode === "year") return [];
  return Array.from({ length: totalCols }, (_, col) => {
  const label = getDayLabel(addDays(viewStart, col), holidays);
  return label ? { col, label } : null;
@@ -438,8 +498,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  if (dragPreview && (dragPreview.start !== dragState.origStart || dragPreview.end !== dragState.origEnd)) {
  const [type, id] = dragPreview.key.split(":");
  try {
- const res = await fetch("/api/gantt/update", {
- method:"PUT",
+ const res = await fetch("/api/gantt", {
+ method:"PATCH",
  headers: {"Content-Type":"application/json" },
  body: JSON.stringify({
  id: Number(id),
@@ -451,7 +511,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  if (!res.ok) throw new Error("Failed to update");
  refresh();
  } catch (err) {
- toast("Gagal memperbarui jadwal","error");
+ toast("Failed to update schedule","error");
  }
  }
  setDragState(null);
@@ -544,6 +604,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  }, [updateVisibleRowWindow, loading]);
 
  const handleDragStart = (e: React.MouseEvent, item: GanttItem, type:"move" |"resize-start" |"resize-end") => {
+ if (!canEditTimeline(userRole)) return;
  e.stopPropagation();
  setDragState({
  key: getItemKey(item),
@@ -565,14 +626,6 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
 
  body.scrollTo({ left: Math.max(0, offset), behavior });
  }, [dayPx, timelineViewportWidth, viewStart]);
-
- const navPrev = useCallback(() => {
- setFocusDate((current) => addYears(current, -1));
- }, []);
-
- const navNext = useCallback(() => {
- setFocusDate((current) => addYears(current, 1));
- }, []);
 
  const focusTimelineItem = useCallback((item: TimelineRow, behavior: ScrollBehavior ="smooth") => {
  const start = parseDate(item.startDate);
@@ -596,30 +649,88 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  description="View timelines, dependencies, and delivery windows across your workspace."
  crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Gantt / Timeline" }]}
  actions={
- <div className="flex items-center gap-2 flex-wrap">
- {/* Type filter */}
- <div className="flex flex-col gap-1">
+ <div className="grid w-full gap-3 lg:grid-cols-[minmax(170px,220px)_minmax(180px,240px)_auto] lg:items-end lg:justify-items-end">
+ <div className="flex w-full flex-col gap-1 lg:max-w-[220px]">
  <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Filter by</label>
  <div className="relative">
  <select
  value={filter}
- onChange={(e) => setFilter(e.target.value as"all" |"sprint" |"plan")}
+ onChange={(e) => setFilter(e.target.value as GanttFilter)}
  className="h-9 min-w-[170px] appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-xs font-bold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus:border-sky-300"
  >
  <option value="all">All items</option>
  <option value="sprint">Sprints only</option>
  <option value="plan">Test plans only</option>
+ <option value="task">Tasks only</option>
  </select>
  <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
  <CaretRight size={12} weight="bold" className="rotate-90" />
  </div>
  </div>
- <p className="text-[11px] text-slate-400">Use this to filter by item type.</p>
  </div>
- <div className="h-5 w-px bg-slate-200" />
- {/* View mode */}
- <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
- {(["week","month","year"] as const).map(m => (
+ <div className="flex w-full flex-col gap-1 lg:max-w-[240px]">
+ <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Period</label>
+ <div className="relative w-full">
+ <button
+ type="button"
+ onClick={(event) => {
+ setPeriodPickerAnchor({ x: event.currentTarget.getBoundingClientRect().left, y: event.currentTarget.getBoundingClientRect().bottom });
+ setPeriodPickerOpen((open) => !open);
+ }}
+ className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:border-sky-300"
+ >
+ <span>{periodLabel}</span>
+ <CaretRight size={12} weight="bold" className={cn("transition", periodPickerOpen ? "rotate-90" : "rotate-90 text-slate-400")} />
+ </button>
+ {periodPickerOpen && typeof document !== "undefined" && createPortal(
+ <div
+ ref={periodPickerRef}
+ className="fixed z-[9999] w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl"
+ style={{ left: periodPickerAnchor?.x ?? 0, top: (periodPickerAnchor?.y ?? 0) + 44 }}
+ >
+ <div className="flex items-center justify-between">
+ <button type="button" onClick={() => setPeriodPickerYear((y) => y - 1)} className="h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">‹</button>
+ <div className="text-sm font-black text-slate-900">{periodPickerYear}</div>
+ <button type="button" onClick={() => setPeriodPickerYear((y) => y + 1)} className="h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">›</button>
+ </div>
+ <div className="mt-4 grid grid-cols-3 gap-2">
+ {monthOptions.map((monthName, index) => {
+ const isActive = focusDate.getFullYear() === periodPickerYear && focusDate.getMonth() === index;
+ return (
+ <button
+ key={monthName}
+ type="button"
+ onClick={() => {
+ setFocusDate(new Date(periodPickerYear, index, 1));
+ setViewMode("month");
+ setPeriodPickerOpen(false);
+ }}
+ className={cn(
+ "h-10 rounded-xl text-xs font-bold transition",
+ isActive ? "bg-indigo-600 text-white shadow-sm" : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+ )}
+ >
+ {monthName.slice(0, 3)}
+ </button>
+ );
+ })}
+ </div>
+ <div className="mt-4 flex items-center justify-between">
+ <button type="button" onClick={() => {
+  const now = getJakartaNow();
+  setPeriodPickerYear(now.getFullYear());
+  setFocusDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  setViewMode("month");
+  setPeriodPickerOpen(false);
+ }} className="text-xs font-semibold text-sky-600 hover:text-sky-700">Today</button>
+ <button type="button" onClick={() => setPeriodPickerOpen(false)} className="text-xs font-semibold text-slate-400 hover:text-slate-700">Close</button>
+ </div>
+ </div>, document.body)
+ }
+ </div>
+ </div>
+ <div className="flex h-9 items-center justify-self-end rounded-lg bg-slate-100 p-0.5">
+ {(["month","year"] as const).map(m => (
  <button key={m} onClick={() => setViewMode(m)}
  className={cn("h-7 rounded-md px-3 text-xs font-bold capitalize transition",
  viewMode === m ?"bg-indigo-600 text-white shadow-sm" :"text-slate-500 hover:text-slate-700"
@@ -628,33 +739,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </button>
  ))}
  </div>
- <div className="h-5 w-px bg-slate-200" />
- {/* Zoom */}
- <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
- {(["tight","normal","wide"] as const).map(z => (
- <button key={z} onClick={() => setZoomLevel(z)}
- className={cn("h-7 rounded-md px-3 text-xs font-bold capitalize transition",
- zoomLevel === z ?"bg-emerald-600 text-white shadow-sm" :"text-slate-500 hover:text-slate-700"
- )}>
- {z}
- </button>
- ))}
- </div>
- <div className="h-5 w-px bg-slate-200" />
- {/* Quick navigation */}
- <div className="flex items-center gap-1">
- <button onClick={navPrev}
- className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
- title="Go to previous year">
- <CaretLeft size={14} weight="bold" />
- </button>
- <button onClick={navNext}
- className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-900 transition"
- title="Go to next year">
- <CaretRight size={14} weight="bold" />
- </button>
- </div>
- </div>
+</div>
  }
  >
  {editModal && (
@@ -668,11 +753,14 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  >
  <div className="flex items-start justify-between gap-4">
  <div>
- <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Date details</p>
+ <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Timeline details</p>
  <h3 className="mt-2 text-xl font-black text-slate-900">{editModal.item.label}</h3>
- <p className="mt-1 text-sm text-slate-500">
- Read-only data from test plans and test suites.
- </p>
+ <a
+ href={editModal.navigationLink}
+ className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition"
+ >
+ Go to {editModal.item.type === "sprint" ? "Sprint" : editModal.item.type === "plan" ? "Test Plan" : "Task"} →
+ </a>
  </div>
  <button
  type="button"
@@ -687,7 +775,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
  <p className="text-xs font-black uppercase tracking-widest text-slate-400">Type</p>
  <p className="mt-2 text-sm font-bold text-slate-900">
- {editModal.item.type ==="sprint" ?"Sprint" :"Test Plan"}
+ {editModal.item.type ==="sprint" ?"Sprint" : editModal.item.type === "plan" ? "Test Plan" : "Task"}
  </p>
  </div>
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
@@ -697,27 +785,59 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
  </div>
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Duration</p>
- <p className="mt-2 text-sm font-bold text-slate-900">
- {Math.max(1, diffDays(parseDate(editModal.startDate), parseDate(editModal.endDate)) + 1)} hari
- </p>
+ <p className="text-xs font-black uppercase tracking-widest text-slate-400">Progress</p>
+ <p className="mt-2 text-sm font-bold text-slate-900">{editModal.progress}%</p>
+ <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+ <div className="h-full rounded-full bg-indigo-500" style={{ width: `${editModal.progress}%` }} />
+ </div>
  </div>
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">ID</p>
- <p className="mt-2 text-sm font-bold text-slate-900">#{editModal.item.id}</p>
+ <p className="text-xs font-black uppercase tracking-widest text-slate-400">Duration</p>
+ <p className="mt-2 text-sm font-bold text-slate-900">
+ {Math.max(1, diffDays(parseDate(editModal.startDate), parseDate(editModal.endDate)) + 1)} days
+ </p>
  </div>
  </div>
 
  <div className="mt-3 grid gap-3 sm:grid-cols-2">
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
  <p className="text-xs font-black uppercase tracking-widest text-slate-400">Start</p>
+ {editModal.canEdit ? (
+ <input type="date" value={editModal.startDate}
+ onChange={(e) => setEditModal({ ...editModal, startDate: e.target.value })}
+ className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm font-bold text-slate-900" />
+ ) : (
  <p className="mt-2 text-sm font-bold text-slate-900">{formatDate(editModal.startDate)}</p>
+ )}
  </div>
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
  <p className="text-xs font-black uppercase tracking-widest text-slate-400">End</p>
+ {editModal.canEdit ? (
+ <input type="date" value={editModal.endDate}
+ onChange={(e) => setEditModal({ ...editModal, endDate: e.target.value })}
+ className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm font-bold text-slate-900" />
+ ) : (
  <p className="mt-2 text-sm font-bold text-slate-900">{formatDate(editModal.endDate)}</p>
+ )}
  </div>
  </div>
+
+ {editModal.canEdit && !isValidDateRange(editModal.startDate, editModal.endDate) && (
+ <p className="mt-2 text-xs font-semibold text-red-500">End date must be on or after start date.</p>
+ )}
+
+ {editModal.statusBreakdown.length > 0 && (
+ <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
+ <p className="text-xs font-black uppercase tracking-widest text-slate-400">Child Items</p>
+ <div className="mt-2 flex flex-wrap gap-2">
+ {editModal.statusBreakdown.map((s) => (
+ <span key={s.status} className="rounded-full bg-white border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700">
+ {formatDisplayText(s.status)}: {s.count}
+ </span>
+ ))}
+ </div>
+ </div>
+ )}
 
  <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
@@ -733,13 +853,42 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <span className="text-slate-500">Owner:</span>{""}
  {editModal.item.owner ||"-"}
  </p>
+ {editModal.item.type === "plan" && (
  <p>
  <span className="text-slate-500">Sprint:</span>{""}
  {editModal.item.relatedSprint ||"-"}
  </p>
+ )}
  </div>
  </div>
  </div>
+
+ {editModal.canEdit && (
+ <div className="mt-4 flex justify-end">
+ <button
+ type="button"
+ disabled={!isValidDateRange(editModal.startDate, editModal.endDate)}
+ onClick={async () => {
+ const [type, id] = editModal.key.split(":");
+ try {
+ const res = await fetch("/api/gantt", {
+ method: "PATCH",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ id: Number(id), type, startDate: editModal.startDate, endDate: editModal.endDate }),
+ });
+ if (!res.ok) throw new Error("Failed");
+ setEditModal(null);
+ refresh();
+ } catch {
+ toast("Failed to save changes", "error");
+ }
+ }}
+ className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+ >
+ Save Changes
+ </button>
+ </div>
+ )}
  </div>
  </div>
  )}
@@ -760,54 +909,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
  )}
 
- {!loading && displayItems.length === 0 && (
- <div className="glass-card p-12 text-center">
- <p className="text-sm font-semibold text-slate-500">No items in the current period.</p>
- <p className="text-xs text-slate-400 mt-1">Only records that overlap the current range are shown.</p>
- </div>
- )}
-
- {!loading && displayItems.length > 0 && (
- <>
- <div className="mb-4 grid gap-3 lg:grid-cols-[1.4fr_0.9fr]">
- <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm backdrop-blur">
- <div className="flex items-center gap-2">
- <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600">
- <Lightning size={18} weight="bold" />
- </div>
- <div>
- <p className="text-sm font-bold text-slate-900">How to use</p>
- <p className="text-xs text-slate-500">Drag a bar left or right to shift both start and end dates together.</p>
- </div>
- </div>
- <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
- <span className="rounded-full bg-slate-100 px-2.5 py-1">Click a bar to view details</span>
- <span className="rounded-full bg-slate-100 px-2.5 py-1">Data follows test plans</span>
- </div>
- </div>
- <div className="grid gap-3 md:grid-cols-3">
- <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm backdrop-blur">
- <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Total items</p>
- <p className="mt-2 text-2xl font-black text-slate-900">{displayItems.length}</p>
- </div>
- <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm backdrop-blur">
- <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Type mix</p>
- <p className="mt-2 text-sm font-bold text-slate-900">{visibleSprintCount} sprints / {visiblePlanCount} plans</p>
- <p className="mt-1 text-xs text-slate-500">Bars are read-only in this view.</p>
- </div>
- <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-sm backdrop-blur">
- <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Overlap</p>
- <p className="mt-2 text-sm font-bold text-slate-900">{conflictItemCount} item</p>
- <p className="mt-1 text-xs text-slate-500">Items with potential date conflicts.</p>
- </div>
- </div>
- </div>
- {viewportRange && (
- <div className="mb-3 flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-xs font-semibold text-slate-500 shadow-sm backdrop-blur">
- <span>Showing {formatDate(viewportRange.start)} - {formatDate(viewportRange.end)}</span>
- <span>Swipe to shift the period</span>
- </div>
- )}
+ {!loading && (
  <div className="glass-card relative overflow-hidden flex flex-col">
  {/* ── sticky header ── */}
  <div className="flex border-b-2 border-slate-200 bg-slate-50 sticky top-0 z-20 shadow-sm">
@@ -826,29 +928,33 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  style={{ left: col * dayPx, width: dayPx }} />
  ))}
 
- {viewMode ==="month" && (
- <div className="absolute left-2 top-1 z-[3] rounded-full bg-indigo-600/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.22em] text-indigo-600">
- {periodStart.toLocaleString("id-ID", { month:"long", year:"numeric" }).toUpperCase()}
- </div>
- )}
+ {viewMode ==="month" && null}
 
  {/* Top row: month / quarter / year */}
  <div className="relative h-7 border-b border-slate-200">
  {topHeader.map((h, i) => (
- <div key={i}
- className="absolute top-0 bottom-0 flex items-center border-l border-slate-300/60 pl-2 overflow-hidden"
+ <button
+ key={i}
+ type="button"
+ onClick={() => {
+ setFocusDate(addDays(viewStart, h.colStart));
+ setViewMode("month");
+ }}
+ className="absolute top-0 bottom-0 flex items-center border-l border-slate-300/60 pl-2 overflow-hidden text-left hover:bg-slate-100/70"
  style={{ left: h.colStart * dayPx, width: h.colSpan * dayPx }}>
  <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">{h.label}</span>
- </div>
+ </button>
  ))}
  </div>
 
  {/* Sub row: day / week / month */}
  <div className="relative h-8">
  {subHeader.map((h, i) => (
- <div key={i}
+ <button
+ key={i}
+ type="button"
  className={cn(
-"absolute top-0 bottom-0 flex flex-col items-center justify-center border-l overflow-hidden cursor-default",
+"absolute top-0 bottom-0 flex flex-col items-center justify-center border-l overflow-hidden text-center transition hover:bg-slate-100/70",
  h.isToday
  ?"bg-sky-500/10 border-sky-400/60"
  : h.nonWorkLabel
@@ -856,6 +962,10 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  :"border-slate-200/70"
  )}
  style={{ left: h.colStart * dayPx, width: h.colSpan * dayPx }}
+ onClick={() => {
+ setFocusDate(addDays(viewStart, h.colStart));
+ setViewMode("month");
+ }}
  onMouseMove={h.nonWorkLabel ? (e) => setTooltip({ x: e.clientX, y: e.clientY, text: h.nonWorkLabel! }) : undefined}
  onMouseLeave={h.nonWorkLabel ? () => setTooltip(null) : undefined}
  >
@@ -869,7 +979,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  h.isToday ?"text-sky-500/70" : h.nonWorkLabel ?"text-rose-400/70" :"text-slate-400"
  )}>{h.sublabel}</span>
  )}
- </div>
+ </button>
  ))}
  </div>
  </div>
@@ -877,10 +987,10 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
 
  {/* ── body ── */}
- <div ref={rowAreaRef} className="flex relative" style={{ height: totalRowHeight }}>
+ <div ref={rowAreaRef} className="flex relative" style={{ height: renderedRowHeight }}>
 
  {/* Fixed label column */}
- <div className="relative shrink-0 border-r-2 border-slate-200 bg-white z-10" style={{ width: LABEL_W, height: totalRowHeight }}>
+ <div className="relative shrink-0 border-r-2 border-slate-200 bg-white z-10" style={{ width: LABEL_W, height: renderedRowHeight }}>
  {visibleTimelineRows.map(({ item, idx }) => (
  <div key={`lbl-${item.type}-${item.id}`}
  className={cn(
@@ -888,9 +998,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  item.depth === 1 &&"pl-8",
  idx % 2 === 1 ?"bg-slate-50/60" :"bg-white"
  )}
- style={{ top: idx * ROW_H, height: ROW_H }}>
+ style={{ top: idx * ROW_H, height: ROW_H, borderLeft: `3px solid ${SECTION_ACCENT_COLORS[item.type]}30` }}>
  <div className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: item.color }}>
- {item.type ==="sprint" ? <Lightning size={11} weight="bold" /> : <ClipboardText size={11} weight="bold" />}
+ {item.type ==="sprint" ? <Lightning size={11} weight="bold" /> : item.type === "task" ? <ListChecks size={11} weight="bold" /> : <ClipboardText size={11} weight="bold" />}
  </div>
  <div className="flex-1 min-w-0">
  <p className="text-[12px] font-bold text-slate-800 truncate leading-tight">{item.label}</p>
@@ -907,8 +1017,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
 
  {/* Scrollable bar area */}
- <div ref={bodyRef} className="relative flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollBehavior:"auto", height: totalRowHeight }}>
- <div style={{ width: totalWidth, minWidth: totalWidth, position:"relative", height: totalRowHeight }}>
+ <div ref={bodyRef} className="relative flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollBehavior:"auto", height: renderedRowHeight }}>
+ <div style={{ width: totalWidth, minWidth: totalWidth, position:"relative", height: renderedRowHeight }}>
 
  {/* Weekend/holiday column tints */}
  {nonWorkdayCols.map(({ col, label }) => (
@@ -947,7 +1057,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  />
  ))}
 
- <svg className="absolute inset-0 z-[3] pointer-events-none" width={totalWidth} height={totalRowHeight}>
+ <svg className="absolute inset-0 z-[3] pointer-events-none" width={totalWidth} height={renderedRowHeight}>
  {visibleRowGeometry.map((row) => {
  if (!row.item.parentKey) return null;
  const parent = visibleRowGeometryByKey.get(row.item.parentKey) ?? rowGeometryByKey.get(row.item.parentKey);
@@ -969,11 +1079,20 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  })}
  </svg>
 
+ {displayItems.length === 0 && (
+ <div className="absolute inset-x-0 top-16 z-[4] flex justify-center pointer-events-none">
+ <div className="rounded-2xl border border-dashed border-slate-200 bg-white/90 px-5 py-3 text-center shadow-sm backdrop-blur-sm">
+ <p className="text-sm font-semibold text-slate-500">No items in the current period.</p>
+ <p className="mt-1 text-xs text-slate-400">Tanggal tetap tampil, data akan muncul saat ada item yang overlap.</p>
+ </div>
+ </div>
+ )}
+
  {/* Bars */}
  {visibleRowGeometry.map((row) => {
  const item = row.item;
  const durationDays = Math.max(1, diffDays(parseDate(item.startDate), parseDate(item.endDate)) + 1);
- const dateRange =`${formatDate(item.startDate)} – ${formatDate(item.endDate)} · ${durationDays} hari`;
+ const dateRange =`${formatDate(item.startDate)} – ${formatDate(item.endDate)} · ${durationDays} days`;
  const itemKey = getItemKey(item);
  const isHovered = hoveredItemKey === itemKey;
  const isRelated = hoveredDescendantKeys.has(itemKey);
@@ -985,7 +1104,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  style={{ top: row.top, height: ROW_H - 20, left: row.left, width: row.width }}>
  <div
  className={cn(
-"w-full h-full rounded-md flex items-center px-2.5 overflow-hidden select-none group/bar relative transition-all cursor-pointer",
+"w-full h-full rounded-md flex items-center px-2.5 overflow-hidden select-none group/bar relative transition-all",
+ canEditTimeline(userRole) ? "cursor-grab" : "cursor-not-allowed",
  item.depth === 1 ?"rounded-l-none border-l-0" :"",
  hoveredItemKey && !isRelated ?"opacity-20 saturate-50" :"opacity-100",
  isRelated && !isHovered ?"shadow-[0_6px_18px_rgba(15,23,42,0.10)]" :"",
@@ -994,7 +1114,18 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  style={{ backgroundColor: item.color +"20", border:`1.5px solid ${item.color}50` }}
  onMouseDown={(e) => handleDragStart(e, item,"move")}
  onClick={() => {
- setEditModal({ key: itemKey, item, startDate: item.startDate, endDate: item.endDate });
+ const progress = data ? computeProgress(item, data) : 0;
+ const statusBreakdown = data ? computeStatusBreakdown(item, data) : [];
+ setEditModal({
+ key: itemKey,
+ item,
+ startDate: item.startDate,
+ endDate: item.endDate,
+ canEdit: canEditTimeline(userRole),
+ navigationLink: getItemNavigationLink(item),
+ progress,
+ statusBreakdown,
+ });
  focusTimelineItem(item);
  }}
  onMouseMove={(e) => {
@@ -1007,14 +1138,23 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  }}
  >
  {/* Resize handles */}
+ {canEditTimeline(userRole) && (
+ <>
  <div 
- className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-10 hover:bg-white/20 transition-colors"
+ className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 hover:bg-white/20 transition-colors"
  onMouseDown={(e) => handleDragStart(e, item,"resize-start")}
  />
  <div 
- className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-10 hover:bg-white/20 transition-colors"
+ className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-10 hover:bg-white/20 transition-colors"
  onMouseDown={(e) => handleDragStart(e, item,"resize-end")}
  />
+ </>
+ )}
+ {!canEditTimeline(userRole) && (
+ <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 text-slate-400/60">
+ <Lock size={10} weight="bold" />
+ </div>
+ )}
 
  {/* Left accent */}
  <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-md" style={{ backgroundColor: item.color }} />
@@ -1042,7 +1182,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </span>
  )}
  <span className="text-[10px] font-semibold uppercase tracking-widest opacity-60" style={{ color: item.color }}>
- {item.type ==="sprint" ?"Phase" :"Task"}
+ {item.type ==="sprint" ?"Phase" : item.type === "task" ? "Task" :"Plan"}
  </span>
  </div>
  </div>
@@ -1057,10 +1197,10 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  {/* ── legend ── */}
  <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-4 py-3 border-t-2 border-slate-100 bg-slate-50/80">
  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
- <div className="h-3.5 w-0.5 rounded-full bg-sky-500/60 shrink-0" /> Hari Ini
+ <div className="h-3.5 w-0.5 rounded-full bg-sky-500/60 shrink-0" /> Today
  </div>
  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
- <div className="h-3.5 w-3.5 rounded bg-rose-400/15 border border-rose-300/50 shrink-0" /> Weekend / Libur Nasional
+ <div className="h-3.5 w-3.5 rounded bg-rose-400/15 border border-rose-300/50 shrink-0" /> Weekend / Holiday
  </div>
  <div className="h-3 w-px bg-slate-300 mx-1" />
  {Object.entries(STATUS_COLORS).map(([status, color]) => (
@@ -1072,8 +1212,10 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
 
  </div>
- </>
  )}
  </PageShell>
  );
 }
+
+
+

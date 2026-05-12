@@ -26,9 +26,9 @@ export function PageShell({
  crumbs?: { label: string; href?: string }[];
 }) {
  return (
- <section className={cn("space-y-5", className)}>
+ <section suppressHydrationWarning className={cn("space-y-5", className)}>
  {crumbs && (
- <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+ <div suppressHydrationWarning className="animate-in fade-in slide-in-from-top-2 duration-500">
  <Breadcrumb crumbs={crumbs} />
  </div>
  )}
