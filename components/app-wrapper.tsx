@@ -181,7 +181,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  {user?.name || user?.email ||"Account"}
  </span>
  <span className="truncate text-xs text-slate-500">
- {(String(user?.role || "") === "admin" && String(user?.company || "").trim() ? "Workspace Admin" : getRoleLabel(user?.role ||"qa"))} · Workspace
+ {getRoleLabel(user?.role ||"qa", user?.company || "")} · Workspace
  </span>
  </span>
  <CaretDown size={14} weight="bold" className="text-slate-400" />
@@ -198,7 +198,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  <p className="truncate text-xs text-slate-500">{user?.email ||"-"}</p>
  <div className="mt-2 flex flex-wrap gap-2">
  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-slate-600">
- {String(user?.role || "") === "admin" && String(user?.company || "").trim() ? "Workspace Admin" : getRoleLabel(user?.role ||"qa")}
+ {getRoleLabel(user?.role ||"qa", user?.company || "")}
  </span>
  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-sky-700">
  Workspace
@@ -214,7 +214,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  </div>
  <div className="flex items-center justify-between">
  <span className="text-slate-500">Role</span>
- <span className="font-bold text-slate-800">{String(user?.role || "") === "admin" && String(user?.company || "").trim() ? "Workspace Admin" : getRoleLabel(user?.role ||"")}</span>
+ <span className="font-bold text-slate-800">{getRoleLabel(user?.role ||"", user?.company || "")}</span>
  </div>
  <div className="flex items-center justify-between">
  <span className="text-slate-500">Workspace</span>
@@ -227,11 +227,11 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  <UserCircle size={16} weight="bold" />
  Profile
  </Link>
- {String(user?.role || "").trim() === "admin" && (
- <Link href="/settings/users" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
- <Gear size={16} weight="bold" />
- Account settings
- </Link>
+ {(String(user?.role || "").trim() === "admin" || String(user?.role || "").trim() === "superadmin") && (
+<Link href="/settings/users" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+<Gear size={16} weight="bold" />
+Account settings
+</Link>
  )}
  <button
  type="button"

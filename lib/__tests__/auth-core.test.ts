@@ -58,8 +58,8 @@ describe("auth-core", () => {
       "Database Administrator",
       "Software Architect",
     ]);
-    expect(isAdminUser("admin", "")).toBe(true);
-    expect(isAdminUser("admin", "acme")).toBe(false);
+    expect(isAdminUser("superadmin", "")).toBe(true);
+    expect(isAdminUser("superadmin", "acme")).toBe(false);
   });
 
   it("detects auth config availability", () => {

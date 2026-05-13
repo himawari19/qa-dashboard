@@ -1,4 +1,5 @@
 export const WORKSPACE_ROLES = ["admin", "fe", "be", "fullstack", "qa", "pm", "ai"] as const;
+export const SYSTEM_ROLES = ["superadmin", ...WORKSPACE_ROLES] as const;
 export const INVITE_ROLES = ["fe", "be", "fullstack", "ai", "qa", "pm"] as const;
 export const ASSIGNEE_ROLES = ["fe", "be", "fullstack", "ai", "qa", "pm"] as const;
 export const PUBLIC_ROLES = [
@@ -21,14 +22,15 @@ export const PUBLIC_ROLES = [
 
 const ROLE_ALIASES: Record<string, string> = {
   "admin (owner)": "admin",
-  "super admin": "admin",
-  superadmin: "admin",
+  "super admin": "superadmin",
+  superadmin: "superadmin",
   owner: "admin",
   admin: "admin",
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  admin: "Super Admin",
+  superadmin: "Super Admin",
+  admin: "Workspace Admin",
   fe: "Front-end Engineer",
   be: "Back-end Engineer",
   fullstack: "Fullstack Engineer",
@@ -52,11 +54,19 @@ export function normalizeRole(role: string | null | undefined) {
 }
 
 export function isAdminUser(role: string | null | undefined, company: string | null | undefined) {
-  return normalizeRole(role) === "admin" && !String(company ?? "").trim();
+  return normalizeRole(role) === "superadmin" && !String(company ?? "").trim();
 }
 
 export function isWorkspaceAdmin(role: string | null | undefined) {
   return normalizeRole(role) === "admin";
+}
+
+export function isSuperAdmin(role: string | null | undefined, company: string | null | undefined) {
+  return normalizeRole(role) === "superadmin" && !String(company ?? "").trim();
+}
+
+export function isManagementAdmin(role: string | null | undefined, company: string | null | undefined) {
+  return isWorkspaceAdmin(role) || isSuperAdmin(role, company);
 }
 
 export function isInviteRole(role: string | null | undefined) {
@@ -65,6 +75,7 @@ export function isInviteRole(role: string | null | undefined) {
 
 export function getRoleLabel(role: string | null | undefined, company: string | null | undefined = "") {
   const normalized = normalizeRole(role);
+  if (normalized === "superadmin") return "Super Admin";
   if (normalized === "admin" && String(company ?? "").trim()) return "Workspace Admin";
   return ROLE_LABELS[normalized] || (normalized ? normalized.toUpperCase() : "-");
 }
@@ -79,9 +90,9 @@ export function getInviteRoleOptions() {
 
 export function getUserRoleOptions(company?: string | null) {
   const scopedCompany = String(company ?? "").trim();
-  const adminLabel = scopedCompany ? "Workspace Admin" : ROLE_LABELS.admin;
+  const adminLabel = scopedCompany ? "Workspace Admin" : "Super Admin";
   return [
-    { label: adminLabel, value: "admin" },
+    { label: adminLabel, value: scopedCompany ? "admin" : "superadmin" },
     ...getInviteRoleOptions(),
   ];
 }

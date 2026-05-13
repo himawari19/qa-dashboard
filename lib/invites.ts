@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser, isInviteRole, isWorkspaceAdmin, normalizeRole } from "@/lib/roles";
+import { isAdminUser, isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 
 type InviteRow = {
@@ -46,7 +46,7 @@ export async function createInvite(input: InviteInput) {
   const company = String(input.company ?? "").trim();
   const role = normalizeRole(input.role) || "qa";
   const expiresInDays = Number.isFinite(input.expiresInDays ?? NaN) ? Number(input.expiresInDays) : 7;
-  if (!user || !isWorkspaceAdmin(user.role)) {
+  if (!user || !isManagementAdmin(user.role, user.company)) {
     return { error: "Unauthorized" } as const;
   }
   if (!isInviteRole(role)) {

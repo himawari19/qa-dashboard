@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isInviteRole, isWorkspaceAdmin, normalizeRole } from "@/lib/roles";
+import { isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
 import { createInvite, listInvites } from "@/lib/invites";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || !isWorkspaceAdmin(user.role)) {
+  if (!user || !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || !isWorkspaceAdmin(user.role)) {
+  if (!user || !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
