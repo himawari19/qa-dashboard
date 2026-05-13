@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser, isInviteRole, normalizeRole } from "@/lib/roles";
+import { isAdminUser, isInviteRole, isWorkspaceAdmin, normalizeRole } from "@/lib/roles";
 import { deleteAssigneeForUser, syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 
 export async function PATCH(
@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getCurrentUser();
-  if (!user || !isAdminUser(user.role, user.company)) {
+  if (!user || !isWorkspaceAdmin(user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -19,6 +19,14 @@ export async function PATCH(
   const normalizedRole = normalizeRole(role);
   if (!isInviteRole(normalizedRole) && normalizedRole !== "admin") {
     return NextResponse.json({ error: "Role is not allowed." }, { status: 400 });
+  }
+
+  const target = await db.get<{ company: string }>('SELECT "company" FROM "User" WHERE "id" = CAST(? AS INTEGER)', [id]);
+  if (!target) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+  if (!isAdminUser(user.role, user.company) && target.company !== user.company) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {
@@ -53,7 +61,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getCurrentUser();
-  if (!user || !isAdminUser(user.role, user.company)) {
+  if (!user || !isWorkspaceAdmin(user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -61,6 +69,14 @@ export async function DELETE(
   
   if (parseInt(id) === user.id) {
     return NextResponse.json({ error: "Cannot delete your own account." }, { status: 400 });
+  }
+
+  const target = await db.get<{ company: string }>('SELECT "company" FROM "User" WHERE "id" = CAST(? AS INTEGER)', [id]);
+  if (!target) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+  if (!isAdminUser(user.role, user.company) && target.company !== user.company) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {

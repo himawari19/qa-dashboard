@@ -55,6 +55,10 @@ export function isAdminUser(role: string | null | undefined, company: string | n
   return normalizeRole(role) === "admin" && !String(company ?? "").trim();
 }
 
+export function isWorkspaceAdmin(role: string | null | undefined) {
+  return normalizeRole(role) === "admin";
+}
+
 export function isInviteRole(role: string | null | undefined) {
   return INVITE_ROLES.includes(normalizeRole(role) as (typeof INVITE_ROLES)[number]);
 }

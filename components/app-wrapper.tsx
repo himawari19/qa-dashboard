@@ -9,7 +9,7 @@ import { NotificationPanel } from"./sidebar";
 import { Bell, CaretDown, Gear, List, SignOut, UserCircle } from "@phosphor-icons/react";
 import { ConfirmModal } from"./ui/confirm-modal";
 import { cn } from"@/lib/utils";
-import { getRoleLabel, isAdminUser } from"@/lib/roles";
+import { getRoleLabel } from"@/lib/roles";
 
 export function AppWrapper({ children }: { children: React.ReactNode }) {
  const [collapsed, setCollapsed] = useState(false);
@@ -181,7 +181,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  {user?.name || user?.email ||"Account"}
  </span>
  <span className="truncate text-xs text-slate-500">
- {getRoleLabel(user?.role ||"qa")} · Workspace
+ {(String(user?.role || "") === "admin" && String(user?.company || "").trim() ? "Workspace Admin" : getRoleLabel(user?.role ||"qa"))} · Workspace
  </span>
  </span>
  <CaretDown size={14} weight="bold" className="text-slate-400" />
@@ -198,7 +198,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  <p className="truncate text-xs text-slate-500">{user?.email ||"-"}</p>
  <div className="mt-2 flex flex-wrap gap-2">
  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-slate-600">
- {getRoleLabel(user?.role ||"qa")}
+ {String(user?.role || "") === "admin" && String(user?.company || "").trim() ? "Workspace Admin" : getRoleLabel(user?.role ||"qa")}
  </span>
  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-sky-700">
  Workspace
@@ -214,7 +214,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  </div>
  <div className="flex items-center justify-between">
  <span className="text-slate-500">Role</span>
- <span className="font-bold text-slate-800">{getRoleLabel(user?.role ||"")}</span>
+ <span className="font-bold text-slate-800">{String(user?.role || "") === "admin" && String(user?.company || "").trim() ? "Workspace Admin" : getRoleLabel(user?.role ||"")}</span>
  </div>
  <div className="flex items-center justify-between">
  <span className="text-slate-500">Workspace</span>
@@ -227,7 +227,7 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  <UserCircle size={16} weight="bold" />
  Profile
  </Link>
- {isAdminUser(user?.role, user?.company) && (
+ {String(user?.role || "").trim() === "admin" && (
  <Link href="/settings/users" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
  <Gear size={16} weight="bold" />
  Account settings

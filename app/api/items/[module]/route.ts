@@ -11,6 +11,7 @@ import {
 } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
+import { isWorkspaceAdmin } from "@/lib/roles";
 
 function assertModule(value: string): ModuleKey | null {
   return moduleOrder.includes(value as ModuleKey) ? (value as ModuleKey) : null;
@@ -100,7 +101,7 @@ export async function POST(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || !isAdminUser(user.role, user.company))) {
+  if (moduleKey === "users" && (!user || !isWorkspaceAdmin(user.role))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -168,7 +169,7 @@ export async function DELETE(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || !isAdminUser(user.role, user.company))) {
+  if (moduleKey === "users" && (!user || !isWorkspaceAdmin(user.role))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -217,7 +218,7 @@ export async function PATCH(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || !isAdminUser(user.role, user.company))) {
+  if (moduleKey === "users" && (!user || !isWorkspaceAdmin(user.role))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
