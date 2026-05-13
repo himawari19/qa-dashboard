@@ -25,19 +25,43 @@ export async function syncAssigneeFromUser(user: UserRow) {
   }
 
   await db.run(
-    `INSERT INTO "Assignee" ("company", "userId", "name", "role", "email", "skills", "status", "deletedAt", "updatedAt")
-     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
-     ON CONFLICT("userId") DO UPDATE SET
-       "company" = excluded."company",
-       "name" = excluded."name",
-       "role" = excluded."role",
-       "email" = excluded."email",
-       "skills" = excluded."skills",
-       "status" = excluded."status",
-       "deletedAt" = NULL,
-       "updatedAt" = CURRENT_TIMESTAMP`,
-    [company, user.id, name, role, email, "", "active"],
+    `UPDATE "Assignee"
+     SET "company" = ?,
+         "name" = ?,
+         "role" = ?,
+         "email" = ?,
+         "skills" = ?,
+         "status" = ?,
+         "deletedAt" = NULL,
+         "updatedAt" = CURRENT_TIMESTAMP
+     WHERE "userId" = ?`,
+    [company, name, role, email, "", "active", user.id],
   );
+
+  const existing = await db.get<{ id: number }>(`SELECT "id" FROM "Assignee" WHERE "userId" = ?`, [user.id]);
+  if (!existing) {
+    try {
+      await db.run(
+        `INSERT INTO "Assignee" ("company", "userId", "name", "role", "email", "skills", "status", "deletedAt", "updatedAt")
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)`,
+        [company, user.id, name, role, email, "", "active"],
+      );
+    } catch {
+      await db.run(
+        `UPDATE "Assignee"
+         SET "company" = ?,
+             "name" = ?,
+             "role" = ?,
+             "email" = ?,
+             "skills" = ?,
+             "status" = ?,
+             "deletedAt" = NULL,
+             "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "userId" = ?`,
+        [company, name, role, email, "", "active", user.id],
+      );
+    }
+  }
 }
 
 export async function deleteAssigneeForUser(userId: number) {
