@@ -638,9 +638,9 @@ describe("module row queries", () => {
   it("loads dashboard data with shaped metrics and summary", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ role: "pm", company: "acme" });
     mocks.db.query.mockImplementation(async (sql: string) => {
-      if (sql.includes('SELECT * FROM "Task"') && sql.includes('LIMIT 5')) return [{ id: 1, title: "Task 1", priority: "P1", status: "todo" }];
-      if (sql.includes('SELECT * FROM "Bug"') && sql.includes('LIMIT 5')) return [{ id: 2, title: "Bug 1", severity: "high", priority: "P1", status: "open" }];
-      if (sql.includes('SELECT * FROM "TestCase"') && sql.includes('LIMIT 5')) return [{ id: 3, caseName: "Case 1", priority: "High", status: "Passed" }];
+      if (sql.includes('SELECT "id", "title", "priority", "status" FROM "Task"') && sql.includes('LIMIT 5')) return [{ id: 1, title: "Task 1", priority: "P1", status: "todo" }];
+      if (sql.includes('SELECT "id", "title", "severity", "priority", "status" FROM "Bug"') && sql.includes('LIMIT 5')) return [{ id: 2, title: "Bug 1", severity: "high", priority: "P1", status: "open" }];
+      if (sql.includes('SELECT "id", "caseName", "priority", "status" FROM "TestCase"') && sql.includes('LIMIT 5')) return [{ id: 3, caseName: "Case 1", priority: "High", status: "Passed" }];
       if (sql.includes('SELECT * FROM "Bug" WHERE "status" IN (\'fixed\', \'closed\')')) return [{ id: 2, title: "Bug 1", severity: "high" }];
       if (sql.includes('SELECT * FROM "Task" WHERE "status" = \'completed\'')) return [{ id: 1, title: "Task 1" }];
       if (sql.includes('GROUP BY status') && sql.includes('"Task"')) return [{ status: "todo", count: 2 }];

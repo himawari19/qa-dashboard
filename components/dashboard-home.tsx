@@ -16,43 +16,49 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
  const [projects, setProjects] = useState<string[]>(initialProjects);
  const [selectedProject, setSelectedProject] = useState("");
  const [open, setOpen] = useState(false);
- const hasServerData = useRef(Boolean(initialData));
+ const hasHydrated = useRef(false);
 
  // Fetch projects list (lightweight, cached server-side)
  useEffect(() => {
  let active = true;
- fetch("/api/dashboard/projects", { cache:"no-store" })
+ if (initialProjects.length > 0) return () => { active = false; };
+ fetch("/api/dashboard/projects")
  .then((r) => r.json())
  .then((j) => { if (active) setProjects(j.projects || []); })
  .catch(() => {});
  return () => { active = false; };
- }, []);
+ }, [initialProjects.length]);
 
  // Fetch dashboard data — skip initial fetch if server already provided it
  useEffect(() => {
- if (!selectedProject && hasServerData.current && data) return;
+ if (!hasHydrated.current) {
+ hasHydrated.current = true;
+ if (initialData && !selectedProject) return;
+ }
 
  let active = true;
  if (!selectedProject) setData(null);
  setError(null);
+ const controller = new AbortController();
 
  const load = async () => {
  try {
  const dataRes = await fetch(
- selectedProject ?`/api/dashboard?project=${encodeURIComponent(selectedProject)}` :"/api/dashboard",
- { cache:"no-store" }
+  selectedProject ?`/api/dashboard?project=${encodeURIComponent(selectedProject)}` :"/api/dashboard",
+  { signal: controller.signal }
  );
  if (!dataRes.ok) throw new Error(`Failed to load dashboard (${dataRes.status})`);
  const dataJson = await dataRes.json();
  if (!active) return;
  setData(dataJson);
  } catch (err) {
+ if (err instanceof Error && err.name === "AbortError") return;
  if (active) setError(err instanceof Error ? err.message :"Failed to load dashboard");
  }
  };
 
  load();
- return () => { active = false; };
+ return () => { active = false; controller.abort(); };
  }, [selectedProject]);
 
  if (error) {

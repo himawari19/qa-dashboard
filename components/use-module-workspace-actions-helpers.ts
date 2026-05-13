@@ -16,10 +16,23 @@ export function showApiSuccess(toast: (message: string, type?: "success" | "erro
   toast(data.message ?? fallback, "success");
 }
 
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+let refreshInFlight = false;
+
 export function refreshWorkspace(router: { refresh: () => void }, setRefreshing: (value: boolean) => void) {
+  if (refreshInFlight) return;
+  if (refreshTimer) clearTimeout(refreshTimer);
+
   setRefreshing(true);
-  router.refresh();
-  setTimeout(() => setRefreshing(false), 800);
+  refreshInFlight = true;
+  refreshTimer = setTimeout(() => {
+    router.refresh();
+    refreshTimer = null;
+    setTimeout(() => {
+      refreshInFlight = false;
+      setRefreshing(false);
+    }, 400);
+  }, 120);
 }
 
 export function scrollToFormSection() {

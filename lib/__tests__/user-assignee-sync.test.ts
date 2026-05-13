@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   db: {
     run: vi.fn(),
     query: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -17,6 +18,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.db.run.mockResolvedValue(undefined);
   mocks.db.query.mockResolvedValue([]);
+  mocks.db.get.mockResolvedValue(null);
 });
 
 describe("user assignee sync", () => {

@@ -4,11 +4,13 @@ import type { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   isAdminUser: vi.fn(),
+  isWorkspaceAdmin: vi.fn(),
   normalizeRole: vi.fn((role: string) => String(role).trim().toLowerCase()),
   isInviteRole: vi.fn((role: string) => ["qa", "pm", "fe", "be", "fullstack", "ai"].includes(role)),
   isAssignableRole: vi.fn((role: string) => ["qa", "pm", "fe", "be", "fullstack", "ai"].includes(role)),
   hashPassword: vi.fn(async (password: string) => `hashed:${password}`),
   db: {
+    get: vi.fn(),
     run: vi.fn(),
   },
   syncAssigneeFromUser: vi.fn(async () => undefined),
@@ -21,6 +23,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/roles", () => ({
   isAdminUser: mocks.isAdminUser,
+  isWorkspaceAdmin: mocks.isWorkspaceAdmin,
   isInviteRole: mocks.isInviteRole,
   normalizeRole: mocks.normalizeRole,
   isAssignableRole: mocks.isAssignableRole,
@@ -43,6 +46,8 @@ import { DELETE, PATCH } from "@/app/api/users/[id]/route";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.isWorkspaceAdmin.mockImplementation((role: string) => ["admin", "lead"].includes(String(role).trim().toLowerCase()));
+  mocks.db.get.mockResolvedValue({ company: "acme" });
 });
 
 describe("user id route", () => {

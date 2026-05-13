@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   hashPassword: vi.fn(async (password: string) => `hashed:${password}`),
   db: {
     run: vi.fn(),
+    get: vi.fn(),
   },
 }));
 

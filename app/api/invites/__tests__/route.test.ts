@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   isAdminUser: vi.fn(),
+  isManagementAdmin: vi.fn(),
   listInvites: vi.fn(),
   createInvite: vi.fn(),
   isInviteRole: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/roles", () => ({
   isAdminUser: mocks.isAdminUser,
+  isManagementAdmin: mocks.isManagementAdmin,
   isInviteRole: mocks.isInviteRole,
   normalizeRole: mocks.normalizeRole,
 }));
@@ -29,6 +31,7 @@ import { GET, POST } from "@/app/api/invites/route";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.isManagementAdmin.mockImplementation((role: string) => String(role).trim().toLowerCase() === "admin");
 });
 
 describe("invites route", () => {

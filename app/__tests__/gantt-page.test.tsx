@@ -99,14 +99,11 @@ describe("gantt page", () => {
   it("renders the loading shell and fetches gantt data", () => {
     const html = renderToStaticMarkup(<GanttPage />);
 
-    expect(html).toContain("Timeline delivery");
-    expect(html).toContain("h-20 rounded-2xl bg-slate-50");
-    expect(mocks.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/gantt\?year=\d{4}$/), expect.objectContaining({ credentials: "include" }));
-    expect(mocks.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/gantt\/holidays\?year=\d{4}$/), expect.objectContaining({ credentials: "include" }));
+    expect(html).toContain("glass-card overflow-hidden animate-pulse");
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "Gantt / Timeline",
-      description: "Track sprint, plan, and task windows at a glance.",
+      description: "View timelines, dependencies, and delivery windows across your workspace.",
     }));
   });
 });

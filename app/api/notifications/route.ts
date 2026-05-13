@@ -3,26 +3,33 @@ import { db, isPostgres } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
 
+const notificationsCache = new Map<string, { expiresAt: number; payload: { notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] } }>();
+
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const company = user.company || "";
   const isAdmin = isAdminUser(user.role, company);
+  const cacheKey = `${company}|${isAdmin ? "admin" : "user"}`;
+  const cached = notificationsCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return NextResponse.json(cached.payload, {
+      headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" },
+    });
+  }
   const andCompany = isAdmin ? "" : ` AND "company" = ?`;
   const cp = isAdmin ? [] : [company];
-  const endDateExpr = isPostgres ? `("endDate")::date` : `DATE("endDate")`;
-  const createdAtExpr = isPostgres ? `("createdAt")::date` : `DATE("createdAt")`;
-  const nowExpr = isPostgres ? "CURRENT_DATE" : "DATE('now')";
-  const plus3Expr = isPostgres ? "CURRENT_DATE + INTERVAL '3 days'" : "DATE('now', '+3 days')";
-  const plus2Expr = isPostgres ? "CURRENT_DATE + INTERVAL '2 days'" : "DATE('now', '+2 days')";
-  const minus7Expr = isPostgres ? "CURRENT_DATE - INTERVAL '7 days'" : "DATE('now', '-7 days')";
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const plus3Iso = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+  const plus2Iso = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+  const overdueExpr = isPostgres ? `"createdAt" <= NOW() - INTERVAL '7 days'` : `"createdAt" <= datetime('now', '-7 days')`;
 
   const notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] = [];
 
   const [overdueBugs, deadlineSprints, deadlinePlans] = await Promise.all([
     db.query(
-      `SELECT id, title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${createdAtExpr} <= ${minus7Expr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
+      `SELECT id, title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${overdueExpr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
       [...cp]
     ) as Promise<any[]>,
     db.query(
@@ -30,11 +37,11 @@ export async function GET() {
        WHERE status != 'completed'
          AND status != 'closed'
          AND COALESCE("endDate", '') != ''
-         AND ${endDateExpr} >= ${nowExpr}
-         AND ${endDateExpr} <= ${plus3Expr}
+         AND "endDate" >= ?
+         AND "endDate" <= ?
          ${andCompany}
        ORDER BY "endDate" ASC LIMIT 5`,
-      [...cp]
+      [todayIso, plus3Iso, ...cp]
     ) as Promise<any[]>,
     db.query(
       `SELECT id, title, "endDate" FROM "TestPlan"
@@ -42,11 +49,11 @@ export async function GET() {
          AND status != 'completed'
          AND "deletedAt" IS NULL
          AND COALESCE("endDate", '') != ''
-         AND ${endDateExpr} >= ${nowExpr}
-         AND ${endDateExpr} <= ${plus2Expr}
+         AND "endDate" >= ?
+         AND "endDate" <= ?
          ${andCompany}
        ORDER BY "endDate" ASC LIMIT 5`,
-      [...cp]
+      [todayIso, plus2Iso, ...cp]
     ) as Promise<any[]>,
   ]);
 
@@ -83,8 +90,10 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json(
-    { notifications: notifications.slice(0, 15) },
-    { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" } }
-  );
+  const payload = { notifications: notifications.slice(0, 15) };
+  notificationsCache.set(cacheKey, { payload, expiresAt: Date.now() + 60000 });
+
+  return NextResponse.json(payload, {
+    headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" },
+  });
 }

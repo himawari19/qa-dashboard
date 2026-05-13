@@ -439,7 +439,6 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     }
     showApiSuccess(toast, data, "Status updated successfully.");
     patchRow(id, { status, ...(typeof sortOrder === "number" ? { sortOrder } : {}) });
-    refreshPage();
   }
 
   return {

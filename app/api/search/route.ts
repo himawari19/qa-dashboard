@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   ].join("|");
   const cached = searchCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    return NextResponse.json(cached.payload);
+    return NextResponse.json(cached.payload, { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=20" } });
   }
 
   const isAll = scope === "all";
@@ -93,5 +93,5 @@ export async function GET(request: NextRequest) {
     results,
   };
   searchCache.set(cacheKey, { payload, expiresAt: Date.now() + 10000 });
-  return NextResponse.json(payload);
+  return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=20" } });
 }

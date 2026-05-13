@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 import { DashboardHome } from "@/components/dashboard-home";
 import { DashboardSkeleton } from "@/components/skeleton";
-import { getDashboardData } from "@/lib/data";
+import { getDashboardData, getDashboardProjects } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export async function DashboardData() {
   try {
-    const data = await getDashboardData();
-    return <DashboardHome initialData={data} initialProjects={[]} />;
+    const [data, projects] = await Promise.all([getDashboardData(), getDashboardProjects()]);
+    return <DashboardHome initialData={data} initialProjects={projects} />;
   } catch {
     return <DashboardHome initialData={null} initialProjects={[]} />;
   }
