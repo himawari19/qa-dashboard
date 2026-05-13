@@ -103,7 +103,7 @@ export function ModuleWorkspaceCell({ module, row, column, value }: ModuleWorksp
           <HighlightText text={String(value)} query="" linkify={false} />
         </a>
       ) : (module === "users" || module === "assignees") && column.key === "role" ? (
-        <Badge value={String(value)} displayValue={getRoleLabel(String(value))} />
+        <Badge value={String(value)} displayValue={getRoleLabel(String(value), String(row.company ?? ""))} />
       ) : column.tone === "status" ? (
         <Badge value={String(value)} displayValue={getStatusDisplay(module, String(value))} />
       ) : column.tone ? (

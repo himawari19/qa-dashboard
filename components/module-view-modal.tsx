@@ -168,7 +168,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
  {displayValue}
  </a>
  ) : field.name ==="role" ? (
- <HighlightText text={getRoleLabel(String(row[field.name] ??""))} query="" />
+                <HighlightText text={getRoleLabel(String(row[field.name] ??""), String(row.company ?? ""))} query="" />
  ) : field.name ==="notes" ? (
  renderNotes(displayValue ||"-")
  ) : (

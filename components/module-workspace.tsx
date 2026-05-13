@@ -11,6 +11,7 @@ import { useModuleWorkspaceActions } from "@/components/use-module-workspace-act
 import { ModuleWorkspaceShell } from "@/components/module-workspace-shell";
 import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
 import { PAGE_SIZE } from "@/lib/pagination";
+import { getUserRoleOptions } from "@/lib/roles";
 
 
 type Row = Record<string, string | number> & { id: string | number };
@@ -77,6 +78,19 @@ export function ModuleWorkspace({
   viewId?: string | null;
 }) {
   const config = moduleConfigs[module];
+  const resolvedConfig = useMemo(() => {
+    if (module !== "users") return config;
+    const userRoleField = config.fields.find((field) => field.name === "role");
+    if (!userRoleField || !("options" in userRoleField)) return config;
+    return {
+      ...config,
+      fields: config.fields.map((field) =>
+        field.name === "role" && "options" in field
+          ? { ...field, options: getUserRoleOptions(String(user?.company ?? "")) }
+          : field,
+      ),
+    };
+  }, [config, module, user?.company]);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -155,13 +169,13 @@ export function ModuleWorkspace({
   });
 
   // Reset page when search/filter changes
-  const statusField = config.fields.find((f) => f.name === "status");
+  const statusField = resolvedConfig.fields.find((f) => f.name === "status");
   const statusOptions = statusField && "options" in statusField ? statusField.options : [];
   const hasKanban = statusOptions.length > 0 && (module === "tasks" || module === "bugs" || module === "test-cases" || module === "sprints");
 
-  const priorityField = config.fields.find((f) => f.name === "priority");
+  const priorityField = resolvedConfig.fields.find((f) => f.name === "priority");
   const priorityOptions = priorityField && "options" in priorityField ? priorityField.options : [];
-  const severityField = config.fields.find((f) => f.name === "severity");
+  const severityField = resolvedConfig.fields.find((f) => f.name === "severity");
   const severityOptions = severityField && "options" in severityField ? severityField.options : [];
 
   const fieldIcons = useMemo(() => getFieldIcons(), []);
@@ -197,7 +211,7 @@ export function ModuleWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [module]
   );
-  const versionSequenceField = config.fields.find((field) => field.helperKind === "version-sequence");
+  const versionSequenceField = resolvedConfig.fields.find((field) => field.helperKind === "version-sequence");
   const versionSequenceDefault = useMemo(() => getNextVersion(getLatestVersion(localRows)), [localRows]);
   const versionSequenceLabel =
     versionSequenceField && versionSequenceField.name
@@ -213,7 +227,7 @@ export function ModuleWorkspace({
 
   const actionArgs = {
     module,
-    configFields: config.fields,
+    configFields: resolvedConfig.fields,
     rows: localRows,
     initialFormValues,
     router,
@@ -263,7 +277,7 @@ export function ModuleWorkspace({
       </div>
       <ModuleWorkspaceShell
         module={module}
-        config={config as any}
+        config={resolvedConfig as any}
         topContent={topContent}
         showForm={showForm}
         viewMode={viewMode}

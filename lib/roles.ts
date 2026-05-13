@@ -63,22 +63,25 @@ export function isInviteRole(role: string | null | undefined) {
   return INVITE_ROLES.includes(normalizeRole(role) as (typeof INVITE_ROLES)[number]);
 }
 
-export function getRoleLabel(role: string | null | undefined) {
+export function getRoleLabel(role: string | null | undefined, company: string | null | undefined = "") {
   const normalized = normalizeRole(role);
+  if (normalized === "admin" && String(company ?? "").trim()) return "Workspace Admin";
   return ROLE_LABELS[normalized] || (normalized ? normalized.toUpperCase() : "-");
 }
 
-export function getRoleExportLabel(role: string | null | undefined) {
-  return getRoleLabel(role);
+export function getRoleExportLabel(role: string | null | undefined, company: string | null | undefined = "") {
+  return getRoleLabel(role, company);
 }
 
 export function getInviteRoleOptions() {
   return INVITE_ROLES.map((value) => ({ label: ROLE_LABELS[value], value }));
 }
 
-export function getUserRoleOptions() {
+export function getUserRoleOptions(company?: string | null) {
+  const scopedCompany = String(company ?? "").trim();
+  const adminLabel = scopedCompany ? "Workspace Admin" : ROLE_LABELS.admin;
   return [
-    { label: ROLE_LABELS.admin, value: "admin" },
+    { label: adminLabel, value: "admin" },
     ...getInviteRoleOptions(),
   ];
 }

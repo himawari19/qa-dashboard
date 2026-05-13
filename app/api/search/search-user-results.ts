@@ -5,7 +5,7 @@ export async function getUserResults(query: string, companyClause: string, compa
   const exactId = extractExactId(query, "USR");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, name, email, role, updatedAt
+      `SELECT id, name, email, role, company, updatedAt
        FROM "User"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
@@ -21,7 +21,7 @@ export async function getUserResults(query: string, companyClause: string, compa
         href: "/users",
         code: codeFromId("USR", Number(exactRow.id)),
         label: normalize(exactRow.name) || normalize(exactRow.email),
-        sublabel: [normalize(exactRow.email), getRoleLabel(String(exactRow.role ?? ""))].filter(Boolean).join(" · "),
+        sublabel: [normalize(exactRow.email), getRoleLabel(String(exactRow.role ?? ""), String((exactRow as any).company ?? ""))].filter(Boolean).join(" · "),
         snippetSource: exactRow.email || exactRow.role,
         fieldScores: [
           ["name", 100],
@@ -34,7 +34,7 @@ export async function getUserResults(query: string, companyClause: string, compa
   }
   const like = `%${escapeLike(query).toLowerCase()}%`;
   const rows = await queryRows<Row>(
-    `SELECT id, name, email, role, updatedAt
+    `SELECT id, name, email, role, company, updatedAt
      FROM "User"
      WHERE (
        LOWER(COALESCE(name, '')) LIKE ?
@@ -58,7 +58,7 @@ export async function getUserResults(query: string, companyClause: string, compa
         href: "/users",
         code: codeFromId("USR", Number(row.id)),
         label: normalize(row.name) || normalize(row.email),
-        sublabel: [normalize(row.email), getRoleLabel(String(row.role ?? ""))].filter(Boolean).join(" · "),
+        sublabel: [normalize(row.email), getRoleLabel(String(row.role ?? ""), String((row as any).company ?? ""))].filter(Boolean).join(" · "),
         snippetSource: row.email || row.role,
         fieldScores: [
           ["name", 100],
