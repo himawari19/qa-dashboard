@@ -23,6 +23,10 @@ import { getRoleLabel, normalizeRole } from "@/lib/roles";
 import { deleteSearchTokens, shouldIndexModule, syncSearchTokens } from "@/lib/search-index";
 import {
   invalidateDashboardCache,
+  getBugSeverityCounts,
+  getTestPassRate,
+  computeQualityHealthScore,
+  clamp,
   getDashboardProjects,
   getProjectOptions,
   getBacklogOptions,
@@ -34,6 +38,15 @@ import {
   getReportsData,
   getResourceDetails,
   getExecutiveData,
+  getComments,
+  createComment,
+  upsertHeartbeat,
+  getOnlineMembers,
+  removeStalePresence,
+  getFilters,
+  createFilter,
+  deleteFilter,
+  checkFilterNameUnique,
 } from "@/lib/data-dashboard";
 import { getModuleRows, getModuleRowsPage } from "@/lib/data-module-read";
 
@@ -69,6 +82,10 @@ async function clearSearchIndex(module: ModuleKey, company: string, entityId: st
 
 export {
   invalidateDashboardCache,
+  getBugSeverityCounts,
+  getTestPassRate,
+  computeQualityHealthScore,
+  clamp,
   getDashboardProjects,
   getProjectOptions,
   getBacklogOptions,
@@ -82,11 +99,21 @@ export {
   getExecutiveData,
   getModuleRows,
   getModuleRowsPage,
+  getComments,
+  createComment,
+  upsertHeartbeat,
+  getOnlineMembers,
+  removeStalePresence,
+  getFilters,
+  createFilter,
+  deleteFilter,
+  checkFilterNameUnique,
 };
 
 export async function createModuleRecord(module: ModuleKey, data: any) {
   const user = await getCurrentUser();
   const company = getWriteCompany(user, data.company);
+  const actor = user?.name || user?.email || "";
 
 
   switch (module) {
@@ -97,7 +124,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, publicToken, data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
       );
-      await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`);
+      await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`, actor);
       invalidateDashboardCache(company);
       await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestPlan" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
@@ -113,7 +140,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
-      await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
+      await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestCase" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
@@ -129,7 +156,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
       );
-      await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`);
+      await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Bug" WHERE "company" = ? AND "project" = ? AND "module" = ? AND "bugType" = ? AND "title" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.project, data.module, data.bugType, data.title]);
       if (created?.id !== undefined) {
@@ -143,7 +170,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.acceptanceCriteria, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
       );
-      await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`);
+      await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Task" WHERE "company" = ? AND "title" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.title]);
       if (created?.id !== undefined) {
@@ -157,7 +184,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
-      await logActivity(company, "Session", data.date, "Executed", `Test execution session by ${data.tester} (${data.result})`);
+      await logActivity(company, "Session", data.date, "Executed", `Test execution session by ${data.tester} (${data.result})`, actor);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSession" WHERE "company" = ? AND "date" = ? AND "project" = ? AND "sprint" = ? AND "tester" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.date, data.project, data.sprint, data.tester]);
       if (created?.id !== undefined) {
         await syncSearchIndex("test-sessions", company, Number(created.id), data);
@@ -170,7 +197,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [company, data.publicToken || makePublicToken(), data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
       );
-      await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`);
+      await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSuite" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.publicToken || ""]);
       if (created?.id !== undefined) {
@@ -184,7 +211,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [company, data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status]
       );
-      await logActivity(company, "Assignee", String(data.name), "Added", `New team member: ${data.name}`);
+      await logActivity(company, "Assignee", String(data.name), "Added", `New team member: ${data.name}`, actor);
       invalidateDashboardCache(company);
       return res;
     }
@@ -209,7 +236,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         await syncSearchIndex("users", company, user.id, user);
         await syncSearchIndex("assignees", company, user.id, { ...user, status: "active" });
       }
-      await logActivity(company, "User", String(data.email), "Created", `Access granted for ${data.email}`);
+      await logActivity(company, "User", String(data.email), "Created", `Access granted for ${data.email}`, actor);
       invalidateDashboardCache(company);
       return res;
     }
@@ -226,7 +253,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [company, data.name, data.startDate, data.endDate, data.status, data.goal ?? ""]
       );
-      await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`);
+      await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Sprint" WHERE "company" = ? AND "name" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.name]);
       if (created?.id !== undefined) {
@@ -240,7 +267,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, data.publicToken || makePublicToken(), data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? ""]
       );
-      await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`);
+      await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "MeetingNote" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.publicToken || ""]);
       if (created?.id !== undefined) {
@@ -255,7 +282,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, notes]
       );
-      await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${data.environment}: ${data.status}`);
+      await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${data.environment}: ${data.status}`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Deployment" WHERE "company" = ? AND "version" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.version]);
       if (created?.id !== undefined) {
@@ -269,8 +296,10 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
 }
 
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
-  const scope = getAccessScope(await getCurrentUser());
+  const currentUser = await getCurrentUser();
+  const scope = getAccessScope(currentUser);
   const { company, where: _where, andWhere: companyFilter, params: companyParam } = scope;
+  const actor = currentUser?.name || currentUser?.email || "";
 
 
   switch (module) {
@@ -281,7 +310,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.acceptanceCriteria, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id, ...companyParam]
       );
-      await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`);
+      await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`, actor);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Task" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -292,11 +321,11 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "bugs": {
       const res = await db.run(
         `UPDATE "Bug"
-         SET "project" = ?, "module" = ?, "bugType" = ?, "title" = ?, "preconditions" = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, "severity" = ?, "priority" = ?, "status" = ?, "evidence" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "project" = ?, "module" = ?, "bugType" = ?, "title" = ?, "preconditions" = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, "severity" = ?, "priority" = ?, "status" = ?, "suggestedDev" = ?, "relatedItems" = ?, "evidence" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, id, ...companyParam]
+        [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.suggestedDev ?? "", data.relatedItems ?? "", data.evidence, id, ...companyParam]
       );
-      await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`);
+      await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`, actor);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Bug" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -311,7 +340,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id, ...companyParam]
       );
-      await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`);
+      await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`, actor);
       invalidateDashboardCache(company);
       await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
@@ -327,7 +356,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id, ...companyParam]
       );
-      await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`);
+      await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`, actor);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestSession" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
         await syncSearchIndex("test-sessions", company, String(id), updatedRow);
@@ -341,7 +370,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
       );
-      await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
+      await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`, actor);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestCase" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -357,7 +386,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id, ...companyParam]
       );
-      await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`);
+      await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`, actor);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestSuite" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -372,7 +401,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status, id, ...companyParam]
       );
-      await logActivity(company, "Assignee", String(data.name), "Updated", `Profile for ${data.name} updated`);
+      await logActivity(company, "Assignee", String(data.name), "Updated", `Profile for ${data.name} updated`, actor);
       invalidateDashboardCache(company);
       return res;
     }
@@ -392,7 +421,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         await syncAssigneeFromUser(updatedUser);
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
-        await logActivity(company, "User", String(data.email), "Updated", `Security settings for ${data.email} updated`);
+        await logActivity(company, "User", String(data.email), "Updated", `Security settings for ${data.email} updated`, actor);
         invalidateDashboardCache(company);
         return res;
       } else {
@@ -404,7 +433,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         await syncAssigneeFromUser(updatedUser);
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
-        await logActivity(company, "User", String(data.email), "Updated", `User info for ${data.email} updated`);
+        await logActivity(company, "User", String(data.email), "Updated", `User info for ${data.email} updated`, actor);
         invalidateDashboardCache(company);
         return res;
       }
@@ -416,7 +445,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.name, data.startDate, data.endDate, data.status, data.goal ?? "", id, ...companyParam]
       );
-      await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`);
+      await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`, actor);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Sprint" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -431,7 +460,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? "", id, ...companyParam]
       );
-      await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`);
+      await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`, actor);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "MeetingNote" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -447,7 +476,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, notes, id, ...companyParam]
       );
-      await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`);
+      await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`, actor);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Deployment" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -461,8 +490,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
 }
 
 export async function deleteModuleRecord(module: ModuleKey, id: string | number) {
-  const scope = getAccessScope(await getCurrentUser());
+  const currentUser = await getCurrentUser();
+  const scope = getAccessScope(currentUser);
   const { company, andWhere: companyFilter, params: companyParam } = scope;
+  const actor = currentUser?.name || currentUser?.email || "";
 
   const table = getTableName(module);
   if (!table) return null;
@@ -474,7 +505,7 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
   }
 
   const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
-  await logActivity(company, table, entityId, "Deleted", `${table} removed`);
+  await logActivity(company, table, entityId, "Deleted", `${table} removed`, actor);
   await clearSearchIndex(module, company, entityId);
   if (table === "User") {
     await clearSearchIndex("assignees", company, entityId);
@@ -485,8 +516,10 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
 
 export async function deleteModuleRecords(module: ModuleKey, ids: (string | number)[]) {
   if (ids.length === 0) return;
-  const scope = getAccessScope(await getCurrentUser());
+  const currentUser = await getCurrentUser();
+  const scope = getAccessScope(currentUser);
   const { company, andWhere: companyFilter, params: companyParam } = scope;
+  const actor = currentUser?.name || currentUser?.email || "";
 
   const table = getTableName(module);
   if (!table) return;
@@ -498,7 +531,7 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
     [...ids, ...companyParam]
   );
 
-  await logActivity(company, table, ids.join(","), "Deleted", `${ids.length} ${table} records deleted`);
+  await logActivity(company, table, ids.join(","), "Deleted", `${ids.length} ${table} records deleted`, actor);
   for (const entityId of ids) {
     await clearSearchIndex(module, company, String(entityId));
     if (table === "User") {
@@ -525,7 +558,9 @@ export {
 } from "@/lib/test-management-data";
 
 export async function updateModuleStatus(module: ModuleKey, id: string | number, status: string, sortOrder?: number) {
-  const { company, andWhere, params: qParams } = getAccessScope(await getCurrentUser());
+  const currentUser = await getCurrentUser();
+  const { company, andWhere, params: qParams } = getAccessScope(currentUser);
+  const actor = currentUser?.name || currentUser?.email || "";
 
   const table = getTableName(module);
   if (!table) return null;
@@ -534,7 +569,7 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
     `UPDATE "${table}" SET "status" = ?, ${hasSortOrder ? '"sortOrder" = ?, ' : ''}"updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
     hasSortOrder ? [status, sortOrder, id, ...qParams] : [status, id, ...qParams]
   );
-  await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`);
+  await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`, actor);
   const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "${table}" WHERE id = CAST(? AS INTEGER)${andWhere}`, [id, ...qParams]);
   if (updatedRow) {
     await syncSearchIndex(module, company, String(id), updatedRow);
@@ -544,13 +579,15 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
 }
 
 export async function clearModuleRecords(module: ModuleKey) {
-  const { company, where, params } = getAccessScope(await getCurrentUser());
+  const currentUser = await getCurrentUser();
+  const { company, where, params } = getAccessScope(currentUser);
+  const actor = currentUser?.name || currentUser?.email || "";
 
   const table = getTableName(module);
   if (!table) return null;
   const rows = shouldIndexModule(module) ? await selectAll(`SELECT "id" FROM "${table}"${where}`, params) : [];
   const res = await db.run(`DELETE FROM "${table}"${where}`, params);
-  await logActivity(company, table, "ALL", "Cleared", `${table} records cleared`);
+  await logActivity(company, table, "ALL", "Cleared", `${table} records cleared`, actor);
   for (const row of rows) {
     await clearSearchIndex(module, company, String(row.id));
     if (table === "User") {

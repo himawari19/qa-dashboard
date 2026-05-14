@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getDashboardData } from "@/lib/data";
+import { getDashboardData, getBugSeverityCounts, getTestPassRate, computeQualityHealthScore } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
+import { getAccessScope } from "@/lib/data-helpers";
 
 function emptyDashboardData() {
   return {
@@ -27,6 +28,11 @@ function emptyDashboardData() {
     sprintPassRates: [],
     sprints: [],
     activity: [],
+    resolutionRate: {
+      current: null,
+      previousWeek: null,
+      delta: null,
+    },
     spotlight: {
        projectName: "No active project",
        projectDescription: "Track and monitor QA progress across modules.",
@@ -63,6 +69,56 @@ export async function GET(request: Request) {
         headers: { "X-Dashboard-Timeout": "true" },
       });
     }
+
+    // Graceful fallback: if severity counts query fails, omit from response
+    let bugSeverityCounts: { critical: number; high: number; medium: number; low: number } | null = null;
+    try {
+      const { company, isAdmin } = getAccessScope(user);
+      bugSeverityCounts = await getBugSeverityCounts(company, isAdmin);
+      (data as any).bugSeverityCounts = bugSeverityCounts;
+    } catch {
+      // Omit bugSeverityCounts from response without error
+    }
+
+    // Quality Health Score computation
+    try {
+      const { company, isAdmin } = getAccessScope(user);
+
+      // Get resolution rate from the data already computed
+      const resolutionRateValue: number | null = (data as any).resolutionRate?.current ?? null;
+
+      // Compute inverse critical ratio from bug severity counts
+      let inverseCriticalRatio: number | null = null;
+      if (bugSeverityCounts) {
+        const totalOpen = bugSeverityCounts.critical + bugSeverityCounts.high + bugSeverityCounts.medium + bugSeverityCounts.low;
+        if (totalOpen === 0) {
+          inverseCriticalRatio = 100;
+        } else {
+          inverseCriticalRatio = (1 - bugSeverityCounts.critical / totalOpen) * 100;
+        }
+      }
+
+      // Get test pass rate
+      const testPassRate = await getTestPassRate(company, isAdmin);
+
+      // Compute composite score
+      const score = computeQualityHealthScore(resolutionRateValue, inverseCriticalRatio, testPassRate);
+
+      (data as any).qualityHealthScore = {
+        score,
+        components: {
+          resolutionRate: resolutionRateValue,
+          inverseCriticalRatio: inverseCriticalRatio,
+          testPassRate: testPassRate,
+        },
+      };
+    } catch {
+      // Omit qualityHealthScore from response without error
+    }
+
+    // Include user role for client-side role-based UI decisions
+    (data as any).userRole = user.role;
+
     return NextResponse.json(data, {
       headers: {
         "Cache-Control": "private, max-age=10, stale-while-revalidate=20",

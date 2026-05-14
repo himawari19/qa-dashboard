@@ -184,6 +184,8 @@ export const bugSchema = z.object({
   severity: z.enum(["low", "medium", "high", "critical"]),
   priority: z.enum(["P0", "P1", "P2", "P3"]),
   status: z.enum(["open", "in_progress", "ready_to_retest", "closed", "rejected"]),
+  suggestedDev: optionalText,
+  relatedItems: optionalText,
   evidence: urlField,
 });
 

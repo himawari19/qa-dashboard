@@ -64,7 +64,7 @@ export async function GET() {
       type: "overdue",
       title: b.title,
       detail: `Bug open for ${days} days · ${b.severity}`,
-      href: "/bugs",
+      href: `/bugs?view=${b.id}`,
     });
   }
 
@@ -75,7 +75,7 @@ export async function GET() {
       type: "deadline",
       title: s.name,
       detail: daysLeft === 0 ? "Sprint ends today!" : `Ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
-      href: "/sprints",
+      href: `/sprints?view=${s.id}`,
     });
   }
 
@@ -86,7 +86,7 @@ export async function GET() {
       type: "deadline",
       title: p.title,
       detail: daysLeft === 0 ? "Test plan ends today!" : `Ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
-      href: "/test-plans",
+      href: `/test-plans?view=${p.id}`,
     });
   }
 

@@ -1,44 +1,75 @@
-import { getTestSuiteByToken, getTestCasesByIdStrings, getTestPlanById } from"@/lib/data";
-import { notFound } from"next/navigation";
-import { ExecutionView } from"./execution-view";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth-core";
+import { getTestSuiteByToken } from "@/lib/data";
+import { notFound } from "next/navigation";
+import { PageShell } from "@/components/page-shell";
+import { Play } from "@phosphor-icons/react/dist/ssr";
+import { SuiteRunHistory } from "./suite-run-history";
 
-export const dynamic ="force-dynamic";
+export const dynamic = "force-dynamic";
 
-type ExecutionGroupRow = {
- id: string | number;
- title: string;
- testPlanId: string;
- publicToken: string;
-};
+export default async function SuiteExecutionPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: token } = await params;
+  const suite = await getTestSuiteByToken(token) as Record<string, unknown> | null;
+  if (!suite) notFound();
 
-export default async function SuiteExecutePage({ params }: { params: Promise<{ id: string }> }) {
- const { id: token } = await params;
- const executionGroupRaw = (await getTestSuiteByToken(token)) as ExecutionGroupRow | null;
- if (!executionGroupRaw) notFound();
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+  const companyParams = isAdmin ? [] : [company];
 
- const executionGroupId = String(executionGroupRaw.id);
- const executionToken = String((executionGroupRaw as Record<string, unknown>).publicToken ?? token);
- const casesRaw = await getTestCasesByIdStrings(executionGroupId);
+  const suiteId = Number(suite.id);
 
- let project ="";
- let sprint ="";
- if (executionGroupRaw.testPlanId) {
- const plan = await getTestPlanById(executionGroupRaw.testPlanId) as Record<string, unknown> | null;
- project = String(plan?.project ??"");
- sprint = String(plan?.sprint ??"");
-}
+  // Get all runs for this suite
+  const runs = await db.query<Record<string, unknown>>(
+    `SELECT * FROM "ExecutionRun"
+     WHERE "testSuiteId" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}
+     ORDER BY "runNumber" DESC`,
+    [suiteId, ...companyParams]
+  );
 
- const executionGroup = { ...JSON.parse(JSON.stringify(executionGroupRaw)), project, sprint };
- const cases = JSON.parse(JSON.stringify(casesRaw));
+  // Get case count
+  const caseCount = await db.get<{ cnt: number }>(
+    `SELECT COUNT(*) as "cnt" FROM "TestCase"
+     WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL${companyFilter}`,
+    [String(suiteId), ...companyParams]
+  );
 
- return (
- <div className="min-h-screen bg-slate-50/50">
- <ExecutionView
- executionGroup={executionGroup}
- cases={cases}
- scenarioId={executionGroupId}
- executionToken={executionToken}
- />
- </div>
- );
+  const suiteData = {
+    id: suiteId,
+    title: String(suite.title),
+    publicToken: String(suite.publicToken),
+    testPlanId: String(suite.testPlanId || ""),
+    caseCount: Number(caseCount?.cnt) || 0,
+  };
+
+  const runsData = runs.map(r => ({
+    id: Number(r.id),
+    runNumber: Number(r.runNumber),
+    status: String(r.status),
+    tester: String(r.tester || ""),
+    totalCases: Number(r.totalCases) || 0,
+    passed: Number(r.passed) || 0,
+    failed: Number(r.failed) || 0,
+    blocked: Number(r.blocked) || 0,
+    notes: String(r.notes || ""),
+    startedAt: String(r.startedAt || ""),
+    completedAt: r.completedAt ? String(r.completedAt) : null,
+  }));
+
+  return (
+    <PageShell
+      icon={<Play size={22} weight="bold" />}
+      title={suiteData.title}
+      description={`${suiteData.caseCount} test cases · ${runsData.length} execution runs`}
+      crumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Test Execution", href: "/test-execution" },
+        { label: suiteData.title },
+      ]}
+    >
+      <SuiteRunHistory suite={suiteData} runs={runsData} />
+    </PageShell>
+  );
 }

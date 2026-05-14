@@ -1,10 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect } from"react";
+import { useState, useRef, useEffect, useCallback } from"react";
+import { createPortal } from"react-dom";
 import { CaretLeft, CaretRight, CalendarBlank } from"@phosphor-icons/react";
 import { cn } from"@/lib/utils";
 
 // If date-fns is not installed, we can fall back to vanilla JS. Let's make it pure vanilla just to be safe as npm install failed.
+
+function getAllScrollParents(el: HTMLElement | null): HTMLElement[] {
+ const parents: HTMLElement[] = [];
+ let current = el?.parentElement;
+ while (current) {
+ const style = getComputedStyle(current);
+ if (/(auto|scroll)/.test(style.overflow + style.overflowY + style.overflowX)) {
+ parents.push(current);
+ }
+ current = current.parentElement;
+ }
+ return parents;
+}
 
 export function ModernDatePicker({
  name,
@@ -24,8 +38,24 @@ export function ModernDatePicker({
  // Start with a dummy date, but it won't be rendered due to the !mounted check below
  const [currentDate, setCurrentDate] = useState(new Date()); 
  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+ const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
  
  const popoverRef = useRef<HTMLDivElement>(null);
+ const triggerRef = useRef<HTMLDivElement>(null);
+ const dropdownRef = useRef<HTMLDivElement>(null);
+
+ const updatePosition = useCallback(() => {
+ if (!triggerRef.current) return;
+ const rect = triggerRef.current.getBoundingClientRect();
+ const spaceBelow = window.innerHeight - rect.bottom;
+ const dropdownHeight = 320; // approximate calendar height
+ // If not enough space below, open above
+ if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+ setDropdownPos({ top: rect.top - dropdownHeight - 4, left: rect.left });
+ } else {
+ setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+ }
+ }, []);
 
  useEffect(() => {
  setMounted(true);
@@ -41,13 +71,30 @@ export function ModernDatePicker({
  }
 
  function handleClickOutside(event: MouseEvent) {
- if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+ if (
+ popoverRef.current && !popoverRef.current.contains(event.target as Node) &&
+ dropdownRef.current && !dropdownRef.current.contains(event.target as Node)
+ ) {
  setIsOpen(false);
  }
  }
  document.addEventListener("mousedown", handleClickOutside);
  return () => document.removeEventListener("mousedown", handleClickOutside);
  }, [disabled, value]);
+
+ // Recalculate position when open or on scroll/resize
+ useEffect(() => {
+ if (!isOpen) return;
+ updatePosition();
+ const scrollables = getAllScrollParents(triggerRef.current);
+ const handler = () => updatePosition();
+ window.addEventListener("resize", handler);
+ scrollables.forEach(el => el.addEventListener("scroll", handler));
+ return () => {
+ window.removeEventListener("resize", handler);
+ scrollables.forEach(el => el.removeEventListener("scroll", handler));
+ };
+ }, [isOpen, updatePosition]);
 
  const getDaysInMonth = (date: Date) => {
  const year = date.getFullYear();
@@ -91,7 +138,7 @@ export function ModernDatePicker({
  {/* Hidden native input so forms continue to work without changing module-workspace logic significantly */}
  <input type="hidden" name={name} value={selectedDate ? selectedDate.toISOString().split('T')[0] :""} />
  
- <div className="group relative flex h-12 w-full items-center rounded-md border border-slate-200 bg-slate-50 transition focus-within:border-blue-300 focus-within:bg-white hover:bg-white">
+ <div ref={triggerRef} className="group relative flex h-12 w-full items-center rounded-md border border-slate-200 bg-slate-50 transition focus-within:border-blue-300 focus-within:bg-white hover:bg-white">
  <button
  type="button"
  onClick={() => setIsOpen(!isOpen)}
@@ -133,8 +180,12 @@ export function ModernDatePicker({
  </div>
  </div>
 
- {isOpen && !disabled && (
- <div className="absolute left-0 top-14 z-50 w-72 rounded-md border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+ {isOpen && !disabled && dropdownPos && createPortal(
+ <div
+ ref={dropdownRef}
+ style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 99999 }}
+ className="w-72 rounded-md border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200"
+ >
  <div className="flex items-center justify-between mb-4">
  <button
  type="button"
@@ -188,7 +239,8 @@ export function ModernDatePicker({
  );
  })}
  </div>
- </div>
+ </div>,
+ document.body
  )}
  </div>
  );

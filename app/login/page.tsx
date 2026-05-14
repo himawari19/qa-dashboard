@@ -120,7 +120,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-100 font-sans text-slate-900">
+    <div className="flex min-h-screen w-full bg-slate-50 font-sans text-slate-900">
       <div className="hidden lg:flex w-1/2 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.16),transparent_32%),linear-gradient(135deg,#020617_0%,#0f172a_55%,#111827_100%)] p-12">
         <div className="relative z-10 max-w-md">
           <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-sky-200">QA Daily Hub</p>
@@ -142,12 +142,12 @@ function LoginContent() {
             <h2 className="text-3xl font-black tracking-tight text-slate-900">
               {mode === "signup" ? "Get started now" : mode === "forgot" ? "Reset password" : "Welcome back"}
             </h2>
-            <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+            <p className="mt-3 text-xs font-medium leading-relaxed text-slate-500">
               {mode === "signup"
-                ? "Create your account and join our platform."
+                ? "Set up your workspace account to get started."
                 : mode === "forgot"
-                ? "Enter your email and we'll send you a reset link."
-                : "Enter your credentials to access your dashboard."}
+                ? "Enter your email and we'll send a password reset link."
+                : "Sign in to access your QA workspace."}
             </p>
           </div>
 
@@ -293,8 +293,8 @@ function LoginContent() {
           </form>
 
           {mode !== "forgot" && (
-            <p className="mt-8 text-sm font-medium text-slate-600">
-              Invite-only access. Ask the super admin for an invite link.
+            <p className="mt-8 text-xs font-semibold text-slate-500">
+              Access is managed by your workspace administrator.
             </p>
           )}
         </div>
@@ -318,7 +318,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-100 font-black text-3xl tracking-tighter text-blue-600">
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 font-black text-3xl tracking-tighter text-blue-600">
           QA Daily Hub
         </div>
       }

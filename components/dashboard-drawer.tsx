@@ -4,6 +4,7 @@ import Link from"next/link";
 import { useEffect, useRef } from"react";
 import { ArrowRight, CaretRight, X } from"@phosphor-icons/react";
 import { Badge } from"@/components/badge";
+import { CommentThread } from"@/components/comment-thread";
 
 export type DashboardDrawerItem = {
  label: string;
@@ -20,9 +21,13 @@ type DashboardDrawerProps = {
  loading?: boolean;
  onClose: () => void;
  viewAllHref?: string;
+ /** Entity type for comment thread (e.g., "Bug", "Task") */
+ entityType?: string;
+ /** Entity ID for comment thread */
+ entityId?: number;
 };
 
-export function DashboardDrawer({ title, subtitle, items, loading, onClose, viewAllHref }: DashboardDrawerProps) {
+export function DashboardDrawer({ title, subtitle, items, loading, onClose, viewAllHref, entityType, entityId }: DashboardDrawerProps) {
  const ref = useRef<HTMLDivElement>(null);
 
  useEffect(() => {
@@ -88,6 +93,11 @@ export function DashboardDrawer({ title, subtitle, items, loading, onClose, view
  ))
  )}
  </div>
+
+ {/* Comment Thread - shown when entity info is provided */}
+ {entityType && entityId && !loading && (
+ <CommentThread entityType={entityType} entityId={entityId} />
+ )}
 
  {viewAllHref && (
  <div className="border-t border-slate-100 p-4">

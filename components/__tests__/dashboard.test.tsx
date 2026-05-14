@@ -41,6 +41,99 @@ vi.mock("recharts", () => ({
 
 import { Dashboard } from "@/components/dashboard";
 
+describe("ResolutionRateMetric in Dashboard", () => {
+  const baseProps = {
+    metrics: [
+      { label: "Open Tasks", value: 3, caption: "" },
+      { label: "Bug Entries", value: 2, caption: "" },
+      { label: "Test Cases", value: 4, caption: "" },
+    ],
+    distribution: { tasks: [], bugs: [], bugByModule: [] },
+    personalSuccessRate: 75,
+    recent: { tasks: [], bugs: [], testCases: [] },
+    bugTrendData: [],
+    todayActivity: [],
+    heatmap: [],
+    activity: [],
+  };
+
+  it("displays resolution rate as integer percentage with % suffix", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 85, previousWeek: 70, delta: 15 }} />,
+    );
+    expect(html).toContain("85%");
+    expect(html).toContain("Resolution Rate");
+  });
+
+  it("shows N/A when rate is null (created count is zero)", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: null, previousWeek: null, delta: null }} />,
+    );
+    expect(html).toContain("N/A");
+  });
+
+  it("applies amber color (text-amber-500) when rate < 70%", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 50, previousWeek: null, delta: null }} />,
+    );
+    expect(html).toContain("text-amber-500");
+    expect(html).toContain("bg-amber-50");
+  });
+
+  it("applies emerald color (text-emerald-500) when rate >= 70%", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 70, previousWeek: 60, delta: 10 }} />,
+    );
+    expect(html).toContain("text-emerald-500");
+    expect(html).toContain("bg-emerald-50");
+  });
+
+  it("applies emerald color at exactly 70%", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 70, previousWeek: null, delta: null }} />,
+    );
+    expect(html).toContain("text-emerald-500");
+  });
+
+  it("displays positive delta as +X", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 80, previousWeek: 70, delta: 10 }} />,
+    );
+    expect(html).toContain("+10");
+    expect(html).toContain("pp vs last week");
+  });
+
+  it("displays negative delta with minus sign (−X)", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 60, previousWeek: 75, delta: -15 }} />,
+    );
+    // Unicode minus sign \u2212
+    expect(html).toContain("\u221215");
+    expect(html).toContain("pp vs last week");
+  });
+
+  it("displays zero delta as +0", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 70, previousWeek: 70, delta: 0 }} />,
+    );
+    expect(html).toContain("+0");
+  });
+
+  it("omits delta display when delta is null", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} resolutionRate={{ current: 80, previousWeek: null, delta: null }} />,
+    );
+    expect(html).not.toContain("pp vs last week");
+  });
+
+  it("does not render when resolutionRate prop is undefined", () => {
+    const html = renderToStaticMarkup(
+      <Dashboard {...baseProps} />,
+    );
+    expect(html).not.toContain("Resolution Rate");
+  });
+});
+
 describe("Dashboard", () => {
   it("renders dashboard headers and metric cards", () => {
     const html = renderToStaticMarkup(
@@ -78,8 +171,8 @@ describe("Dashboard", () => {
     );
 
     expect(html).toContain("Dashboard");
-    expect(html).toContain("Open Tasks");
-    expect(html).toContain("Bug Entries");
+    expect(html).toContain("Active Tasks");
+    expect(html).toContain("Open Bugs");
     expect(html).toContain("Test Cases");
     expect(html).toContain("Standup");
     expect(mocks.breadcrumb).toHaveBeenCalled();

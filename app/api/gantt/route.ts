@@ -14,12 +14,47 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
+
+  // Date range params (ISO strings: YYYY-MM-DD)
+  const rangeStart = searchParams.get("start") || "";
+  const rangeEnd = searchParams.get("end") || "";
+  // Fallback: year-based (backward compat)
   const requestedYear = Number(searchParams.get("year") || new Date().getFullYear());
   const yearText = String(Number.isFinite(requestedYear) ? requestedYear : new Date().getFullYear());
+
+  // "My items" filter
+  const assigneeFilter = searchParams.get("assignee") || "";
 
   const company = user.company || "";
   const isAdmin = isAdminUser(user.role, company);
   const { clause: andCompany, params: cp } = getCompanyFilter(company, isAdmin);
+
+  // Use date range overlap if both start/end provided, otherwise fall back to year
+  const useDateRange = rangeStart.length === 10 && rangeEnd.length === 10;
+
+  // Sprint date filter
+  const sprintDateClause = useDateRange
+    ? `AND "startDate" <= ? AND "endDate" >= ?`
+    : `AND SUBSTR("startDate", 1, 4) = ?`;
+  const sprintDateParams = useDateRange ? [rangeEnd, rangeStart] : [yearText];
+
+  // Plan date filter
+  const planDateClause = useDateRange
+    ? `AND "startDate" <= ? AND "endDate" >= ?`
+    : `AND SUBSTR("startDate", 1, 4) = ?`;
+  const planDateParams = useDateRange ? [rangeEnd, rangeStart] : [yearText];
+
+  // Task date filter (uses dueDate)
+  const taskDateClause = useDateRange
+    ? `AND "dueDate" >= ? AND "dueDate" <= ?`
+    : `AND SUBSTR("dueDate", 1, 4) = ?`;
+  const taskDateParams = useDateRange ? [rangeStart, rangeEnd] : [yearText];
+
+  // Assignee filter clauses
+  const planAssigneeClause = assigneeFilter ? ` AND "assignee" = ?` : "";
+  const planAssigneeParams = assigneeFilter ? [assigneeFilter] : [];
+  const taskAssigneeClause = assigneeFilter ? ` AND "assignee" = ?` : "";
+  const taskAssigneeParams = assigneeFilter ? [assigneeFilter] : [];
 
   const [sprints, plans, tasks] = await Promise.all([
     db.query(
@@ -27,11 +62,10 @@ export async function GET(request: Request) {
        FROM "Sprint"
        WHERE COALESCE("startDate", '') != ''
          AND COALESCE("endDate", '') != ''
-         AND SUBSTR("startDate", 1, 4) = ?
+         ${sprintDateClause}
          ${andCompany}
-       ORDER BY "startDate" ASC
-       LIMIT 50`,
-      [yearText, ...cp]
+       ORDER BY "startDate" ASC`,
+      [...sprintDateParams, ...cp]
     ) as Promise<Array<Record<string, unknown>>>,
     db.query(
       `SELECT id, title, project, sprint, "startDate", "endDate", status, assignee
@@ -39,22 +73,22 @@ export async function GET(request: Request) {
        WHERE COALESCE("startDate", '') != ''
          AND COALESCE("endDate", '') != ''
          AND "deletedAt" IS NULL
-         AND SUBSTR("startDate", 1, 4) = ?
+         ${planDateClause}
+         ${planAssigneeClause}
          ${andCompany}
-       ORDER BY "startDate" ASC
-       LIMIT 50`,
-      [yearText, ...cp]
+       ORDER BY "startDate" ASC`,
+      [...planDateParams, ...planAssigneeParams, ...cp]
     ) as Promise<Array<Record<string, unknown>>>,
     db.query(
       `SELECT id, title, project, "dueDate" AS "startDate", "dueDate" AS "endDate", status, priority, assignee
        FROM "Task"
        WHERE COALESCE("dueDate", '') != ''
          AND "deletedAt" IS NULL
-         AND SUBSTR("dueDate", 1, 4) = ?
+         ${taskDateClause}
+         ${taskAssigneeClause}
          ${andCompany}
-       ORDER BY "startDate" ASC
-       LIMIT 100`,
-      [yearText, ...cp]
+       ORDER BY "startDate" ASC`,
+      [...taskDateParams, ...taskAssigneeParams, ...cp]
     ) as Promise<Array<Record<string, unknown>>>,
   ]);
 

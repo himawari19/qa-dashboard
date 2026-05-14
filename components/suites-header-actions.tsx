@@ -20,8 +20,12 @@ export function SuitesHeaderActions({
  const pathname = usePathname();
  const uploadRef = useRef<HTMLInputElement | null>(null);
  const [value, setValue] = useState(initialSearch);
- const [locationSearch, setLocationSearch] = useState(() => (typeof window !== "undefined" ? window.location.search : ""));
+ const [locationSearch, setLocationSearch] = useState("");
  const [, startTransition] = useTransition();
+
+ useEffect(() => {
+ setLocationSearch(window.location.search);
+ }, []);
 
  useEffect(() => {
  const syncSearch = () => {

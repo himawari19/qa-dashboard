@@ -7,6 +7,7 @@ import {
   formDataToEntry,
   moduleConfigs,
   moduleOrder,
+  normalizeModuleEntry,
   type ModuleKey,
 } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
@@ -52,35 +53,11 @@ function getValidationMessage(module: ModuleKey, error: z.ZodError) {
 }
 
 function enforceSelfAssignment(
-  moduleKey: ModuleKey,
-  data: Record<string, string>,
-  user: Awaited<ReturnType<typeof getCurrentUser>>,
+  _moduleKey: ModuleKey,
+  _data: Record<string, string>,
+  _user: Awaited<ReturnType<typeof getCurrentUser>>,
 ) {
-  if (!user || isAdminUser(user.role, user.company)) return null;
-
-  const currentName = String(user.name ?? "").trim();
-  if (!currentName) return "Unable to resolve your profile name.";
-
-  const moduleRestrictedFields: Partial<Record<ModuleKey, string[]>> = {
-    tasks: ["assignee"],
-    bugs: ["suggestedDev"],
-    "test-cases": ["assignee"],
-    "test-plans": ["assignee"],
-    "test-sessions": ["tester"],
-    "test-suites": ["assignee"],
-    deployments: ["developer"],
-  };
-
-  const restrictedFields = moduleRestrictedFields[moduleKey] ?? [];
-  for (const field of restrictedFields) {
-    const targetValue = String(data[field] ?? "").trim();
-    if (!targetValue) continue;
-    if (targetValue !== currentName) {
-      const targetLabel = field === "suggestedDev" || field === "developer" ? "developer" : "assignee";
-      return `You can only assign ${targetLabel} to yourself.`;
-    }
-  }
-
+  // All roles can assign to anyone
   return null;
 }
 
@@ -248,8 +225,9 @@ export async function PATCH(
       const sanitizedEntry = Object.fromEntries(
         Object.entries(entry as Record<string, unknown>).map(([key, value]) => [key, String(value ?? "")]),
       );
+      const normalized = normalizeModuleEntry(moduleKey, sanitizedEntry);
       const schema = moduleConfigs[moduleKey].schema;
-      const parsed = schema.safeParse(sanitizedEntry);
+      const parsed = schema.safeParse(normalized);
 
       if (!parsed.success) {
         return NextResponse.json(

@@ -1,10 +1,54 @@
 import { db, isPostgres } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
-import { countRows, getAccessScope, normalizeTestPlanRow, normalizeTestSuiteRow } from "@/lib/data-helpers";
+import { countRows, getAccessScope, logActivity, normalizeTestPlanRow, normalizeTestSuiteRow } from "@/lib/data-helpers";
 import { getQualityTrend, getReleaseNotes } from "@/lib/test-management-data";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { getRoleLabel, normalizeRole } from "@/lib/roles";
+
+/**
+ * Clamp a value to [min, max].
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Compute the Quality Health Score as a weighted composite.
+ * Formula: Math.floor(0.4 * clamp(resolutionRate, 0, 100) + 0.3 * clamp(inverseCriticalRatio, 0, 100) + 0.3 * clamp(testPassRate, 0, 100))
+ * Null inputs are treated as 0. Result is always an integer in [0, 100].
+ */
+export function computeQualityHealthScore(
+  resolutionRate: number | null,
+  inverseCriticalRatio: number | null,
+  testPassRate: number | null
+): number {
+  const r = clamp(resolutionRate ?? 0, 0, 100);
+  const i = clamp(inverseCriticalRatio ?? 0, 0, 100);
+  const t = clamp(testPassRate ?? 0, 0, 100);
+  return Math.floor(0.4 * r + 0.3 * i + 0.3 * t);
+}
+
+/**
+ * Compute resolution rate as a percentage.
+ * Returns null when created is 0 (N/A case).
+ */
+export function computeResolutionRate(resolved: number, created: number): number | null {
+  if (created === 0) return null;
+  return Math.round((resolved / created) * 100);
+}
+
+/**
+ * Compute resolution rate delta (current - previous).
+ * Returns null if either rate is null.
+ */
+export function computeResolutionRateDelta(
+  current: number | null,
+  previousWeek: number | null
+): number | null {
+  if (current === null || previousWeek === null) return null;
+  return current - previousWeek;
+}
 
 async function selectAll(sqlStr: string, params: any[] = []): Promise<Array<Record<string, string | number | null>>> {
   return db.query<Record<string, string | number | null>>(sqlStr, params);
@@ -39,6 +83,53 @@ export function invalidateDashboardCache(company?: string) {
   for (const key of dashboardProjectsCache.keys()) {
     if (key.startsWith(prefix)) dashboardProjectsCache.delete(key);
   }
+}
+
+export async function getBugSeverityCounts(company: string, isAdmin: boolean): Promise<{ critical: number; high: number; medium: number; low: number }> {
+  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
+  const params = isAdmin ? [] : [company];
+
+  const rows = await selectAll(
+    `SELECT LOWER(COALESCE("severity", '')) as sev, COUNT(*) as count
+     FROM "Bug"
+     WHERE "status" NOT IN ('closed', 'resolved', 'fixed', 'rejected')${andCompany}
+     GROUP BY LOWER(COALESCE("severity", ''))`,
+    params,
+  );
+
+  const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+  for (const row of rows) {
+    const sev = String(row.sev ?? "").trim().toLowerCase();
+    if (sev === "critical" || sev === "p0") counts.critical += Number(row.count ?? 0);
+    else if (sev === "high" || sev === "p1") counts.high += Number(row.count ?? 0);
+    else if (sev === "medium" || sev === "p2") counts.medium += Number(row.count ?? 0);
+    else if (sev === "low" || sev === "p3") counts.low += Number(row.count ?? 0);
+  }
+  return counts;
+}
+
+/**
+ * Get test pass rate: (passed / total executed tests) * 100.
+ * Returns null when total executed tests is 0.
+ */
+export async function getTestPassRate(company: string, isAdmin: boolean): Promise<number | null> {
+  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
+  const params = isAdmin ? [] : [company];
+
+  const row = await db.get<{ totalPassed: number | string | null; totalExecuted: number | string | null }>(
+    `SELECT
+       COALESCE(SUM(CAST("passed" AS INTEGER)), 0) AS "totalPassed",
+       COALESCE(SUM(CAST("totalCases" AS INTEGER)), 0) AS "totalExecuted"
+     FROM "TestSession"
+     WHERE "deletedAt" IS NULL${andCompany}`,
+    params,
+  );
+
+  const totalPassed = Number(row?.totalPassed ?? 0);
+  const totalExecuted = Number(row?.totalExecuted ?? 0);
+
+  if (totalExecuted === 0) return null;
+  return Math.round((totalPassed / totalExecuted) * 100);
 }
 
 export async function getDashboardProjects() {
@@ -243,7 +334,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     db.get(
       `SELECT
          (SELECT COUNT(*) FROM "Task" ${projectWhere}) AS taskCount,
-         (SELECT COUNT(*) FROM "Bug" ${projectWhere}) AS bugCount,
+         (SELECT COUNT(*) FROM "Bug" WHERE "status" NOT IN ('closed', 'resolved', 'fixed', 'rejected')${projectAndWhere}) AS bugCount,
          (SELECT COUNT(*) FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS caseCount
        `,
       [...projectParams, ...projectParams, ...companyParams],
@@ -265,8 +356,8 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE DATE("updatedAt") = DATE('now') ${projectAndWhere}`, projectParams),
     selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE DATE("updatedAt") = DATE('now') ${projectAndWhere}`, projectParams),
     selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now') ${projectAndWhere}`, projectParams),
-    selectAll(`SELECT "id", "title", "severity" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
-    selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
+    selectAll(`SELECT "id", "title", "severity", "updatedAt", ${isPostgres ? `(CURRENT_DATE - "updatedAt"::date)` : `CAST(julianday('now') - julianday("updatedAt") AS INTEGER)`} AS "ageDays" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
+    selectAll(`SELECT "id", "title", "priority", "updatedAt", ${isPostgres ? `(CURRENT_DATE - "updatedAt"::date)` : `CAST(julianday('now') - julianday("updatedAt") AS INTEGER)`} AS "ageDays" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
     db.get(
       `SELECT
          (SELECT COUNT(*) FROM "TestSuite" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS suiteCount,
@@ -338,9 +429,13 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   let bugFixed = { count: Number(completionCounts?.bugFixedCount ?? 0) };
   let taskCompleted = { count: Number(completionCounts?.taskCompletedCount ?? 0) };
   if (!summaryCounts) {
+    const openBugRow = await db.get(
+      `SELECT COUNT(*) as total FROM "Bug" WHERE "status" NOT IN ('closed', 'resolved', 'fixed', 'rejected')${company ? ' AND "company" = ?' : ""}`,
+      company ? [company] : [],
+    ) as { total?: number } | undefined;
     [taskCount, bugCount, caseCount] = await Promise.all([
       countRows("Task", company),
-      countRows("Bug", company),
+      Promise.resolve(Number(openBugRow?.total ?? 0)),
       countRows("TestCase", company),
     ]);
   }
@@ -515,13 +610,19 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
          id: b.id,
          title: String(b.title), 
          severity: String(b.severity),
-         code: codeFromId("BUG", Number(b.id))
+         code: codeFromId("BUG", Number(b.id)),
+         statusChangedAt: b.updatedAt ? String(b.updatedAt) : null,
+         ageDays: b.ageDays != null ? Number(b.ageDays) : null,
+         moduleType: 'Bug' as const,
        })),
        priorityTasks: (prioTasks || []).map((t: any) => ({ 
          id: t.id,
          title: String(t.title), 
          priority: String(t.priority),
-         code: codeFromId("TASK", Number(t.id))
+         code: codeFromId("TASK", Number(t.id)),
+         statusChangedAt: t.updatedAt ? String(t.updatedAt) : null,
+         ageDays: t.ageDays != null ? Number(t.ageDays) : null,
+         moduleType: 'Task' as const,
        }))
     },
     sprintInfo: sprintInfo ? {
@@ -554,6 +655,16 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       prevCreated: Number(weekPulseData?.bugCreatedLastWeek ?? 0) + Number(weekPulseData?.taskCreatedLastWeek ?? 0),
       prevResolved: Number(weekPulseData?.bugResolvedLastWeek ?? 0) + Number(weekPulseData?.taskResolvedLastWeek ?? 0),
     },
+    resolutionRate: (() => {
+      const created = Number(weekPulseData?.bugCreatedThisWeek ?? 0) + Number(weekPulseData?.taskCreatedThisWeek ?? 0);
+      const resolved = Number(weekPulseData?.bugResolvedThisWeek ?? 0) + Number(weekPulseData?.taskResolvedThisWeek ?? 0);
+      const prevCreated = Number(weekPulseData?.bugCreatedLastWeek ?? 0) + Number(weekPulseData?.taskCreatedLastWeek ?? 0);
+      const prevResolved = Number(weekPulseData?.bugResolvedLastWeek ?? 0) + Number(weekPulseData?.taskResolvedLastWeek ?? 0);
+      const current = computeResolutionRate(resolved, created);
+      const previousWeek = computeResolutionRate(prevResolved, prevCreated);
+      const delta = computeResolutionRateDelta(current, previousWeek);
+      return { current, previousWeek, delta };
+    })(),
     sprints: allSprints.map((s) => ({
       id: Number(s.id),
       name: String(s.name),
@@ -681,3 +792,345 @@ export async function getExecutiveData() {
   };
 }
 
+
+// --- Dashboard Comments (Phase 4) ---
+
+export interface DashboardCommentRow {
+  id: number;
+  company: string;
+  entityType: string;
+  entityId: number;
+  authorId: number;
+  authorName: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Get comments for a specific entity, scoped by company.
+ * Returns comments ordered by createdAt ASC (oldest first), excluding soft-deleted.
+ */
+export async function getComments(
+  company: string,
+  entityType: string,
+  entityId: number
+): Promise<DashboardCommentRow[]> {
+  const rows = await db.query<Record<string, unknown>>(
+    `SELECT "id", "company", "entityType", "entityId", "authorId", "authorName", "content", "createdAt", "updatedAt"
+     FROM "DashboardComment"
+     WHERE "company" = ? AND "entityType" = ? AND "entityId" = ? AND "deletedAt" IS NULL
+     ORDER BY "createdAt" ASC`,
+    [company, entityType, entityId],
+  );
+
+  return rows.map((row) => ({
+    id: Number(row.id),
+    company: String(row.company ?? ""),
+    entityType: String(row.entityType ?? ""),
+    entityId: Number(row.entityId ?? 0),
+    authorId: Number(row.authorId ?? 0),
+    authorName: String(row.authorName ?? ""),
+    content: String(row.content ?? ""),
+    createdAt: String(row.createdAt ?? ""),
+    updatedAt: String(row.updatedAt ?? ""),
+  }));
+}
+
+/**
+ * Create a comment for a dashboard entity and log the activity.
+ * Returns the created comment row.
+ */
+export async function createComment(
+  company: string,
+  entityType: string,
+  entityId: number,
+  authorId: number,
+  authorName: string,
+  content: string
+): Promise<DashboardCommentRow | undefined> {
+  await db.run(
+    `INSERT INTO "DashboardComment" ("company", "entityType", "entityId", "authorId", "authorName", "content")
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [company, entityType, entityId, authorId, authorName, content],
+  );
+
+  // Retrieve the newly created comment
+  const created = await db.get<Record<string, unknown>>(
+    `SELECT "id", "company", "entityType", "entityId", "authorId", "authorName", "content", "createdAt", "updatedAt"
+     FROM "DashboardComment"
+     WHERE "company" = ? AND "entityType" = ? AND "entityId" = ? AND "authorId" = ?
+     ORDER BY "id" DESC LIMIT 1`,
+    [company, entityType, entityId, authorId],
+  );
+
+  // Log activity
+  const summary = `${authorName} commented on ${entityType} #${entityId}`;
+  await logActivity(company, entityType, String(entityId), "Commented", summary, authorName);
+
+  if (!created) return undefined;
+
+  return {
+    id: Number(created.id),
+    company: String(created.company ?? ""),
+    entityType: String(created.entityType ?? ""),
+    entityId: Number(created.entityId ?? 0),
+    authorId: Number(created.authorId ?? 0),
+    authorName: String(created.authorName ?? ""),
+    content: String(created.content ?? ""),
+    createdAt: String(created.createdAt ?? ""),
+    updatedAt: String(created.updatedAt ?? ""),
+  };
+}
+
+
+// ─── Presence Heartbeat Functions (Phase 4) ─────────────────────────────────
+
+/**
+ * Upsert a presence heartbeat for a user.
+ * Uses INSERT OR REPLACE (SQLite) / INSERT ON CONFLICT (Postgres) to update lastSeen.
+ */
+export async function upsertHeartbeat(company: string, userId: number, userName: string): Promise<void> {
+  if (isPostgres) {
+    await db.run(
+      `INSERT INTO "PresenceHeartbeat" ("company", "userId", "userName", "lastSeen")
+       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT ("userId") DO UPDATE SET
+         "company" = EXCLUDED."company",
+         "userName" = EXCLUDED."userName",
+         "lastSeen" = CURRENT_TIMESTAMP`,
+      [company, userId, userName],
+    );
+  } else {
+    await db.run(
+      `INSERT OR REPLACE INTO "PresenceHeartbeat" ("company", "userId", "userName", "lastSeen")
+       VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+      [company, userId, userName],
+    );
+  }
+}
+
+/**
+ * Get online members for a company (entries within 5 minutes).
+ */
+export async function getOnlineMembers(company: string): Promise<Array<{ userId: number; userName: string; lastSeen: string }>> {
+  const fiveMinAgo = isPostgres
+    ? `"lastSeen" >= (NOW() - INTERVAL '5 minutes')`
+    : `"lastSeen" >= datetime('now', '-5 minutes')`;
+
+  const rows = await db.query<{ userId: number | string; userName: string; lastSeen: string }>(
+    `SELECT "userId", "userName", "lastSeen"
+     FROM "PresenceHeartbeat"
+     WHERE "company" = ? AND ${fiveMinAgo}
+     ORDER BY "lastSeen" DESC`,
+    [company],
+  );
+
+  return rows.map((row) => ({
+    userId: Number(row.userId),
+    userName: String(row.userName ?? ""),
+    lastSeen: String(row.lastSeen ?? ""),
+  }));
+}
+
+/**
+ * Remove stale presence entries (older than 5 minutes).
+ */
+export async function removeStalePresence(): Promise<void> {
+  const staleCondition = isPostgres
+    ? `"lastSeen" < (NOW() - INTERVAL '5 minutes')`
+    : `"lastSeen" < datetime('now', '-5 minutes')`;
+
+  await db.run(
+    `DELETE FROM "PresenceHeartbeat" WHERE ${staleCondition}`,
+  );
+}
+
+
+// ─── Dashboard Saved Filters (Phase 5) ──────────────────────────────────────
+
+export interface DashboardFilterRow {
+  id: number;
+  company: string;
+  userId: number;
+  userName: string;
+  name: string;
+  project: string;
+  activityScope: string;
+  density: string;
+  shared: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Get filters for a user: own filters first, then shared filters from same company.
+ * Excludes soft-deleted filters.
+ */
+export async function getFilters(
+  company: string,
+  userId: number
+): Promise<{ own: DashboardFilterRow[]; shared: DashboardFilterRow[] }> {
+  const ownRows = await db.query<Record<string, unknown>>(
+    `SELECT "id", "company", "userId", "userName", "name", "project", "activityScope", "density", "shared", "createdAt", "updatedAt"
+     FROM "DashboardFilter"
+     WHERE "company" = ? AND "userId" = ? AND "deletedAt" IS NULL
+     ORDER BY "createdAt" DESC`,
+    [company, userId],
+  );
+
+  const sharedRows = await db.query<Record<string, unknown>>(
+    `SELECT "id", "company", "userId", "userName", "name", "project", "activityScope", "density", "shared", "createdAt", "updatedAt"
+     FROM "DashboardFilter"
+     WHERE "company" = ? AND "userId" != ? AND "shared" = 1 AND "deletedAt" IS NULL
+     ORDER BY "createdAt" DESC`,
+    [company, userId],
+  );
+
+  const mapRow = (row: Record<string, unknown>): DashboardFilterRow => ({
+    id: Number(row.id),
+    company: String(row.company ?? ""),
+    userId: Number(row.userId ?? 0),
+    userName: String(row.userName ?? ""),
+    name: String(row.name ?? ""),
+    project: String(row.project ?? ""),
+    activityScope: String(row.activityScope ?? "team"),
+    density: String(row.density ?? "comfortable"),
+    shared: Number(row.shared ?? 0),
+    createdAt: String(row.createdAt ?? ""),
+    updatedAt: String(row.updatedAt ?? ""),
+  });
+
+  return {
+    own: ownRows.map(mapRow),
+    shared: sharedRows.map(mapRow),
+  };
+}
+
+/**
+ * Check if a filter name is unique for a given user+company (among non-deleted filters).
+ * Returns true if the name is available (unique), false if already taken.
+ */
+export async function checkFilterNameUnique(
+  company: string,
+  userId: number,
+  name: string
+): Promise<boolean> {
+  const row = await db.get<{ count: number | string }>(
+    `SELECT COUNT(*) as count FROM "DashboardFilter"
+     WHERE "company" = ? AND "userId" = ? AND "name" = ? AND "deletedAt" IS NULL`,
+    [company, userId, name],
+  );
+  return Number(row?.count ?? 0) === 0;
+}
+
+/**
+ * Create a saved filter for a user.
+ * Enforces max 20 filters per user and unique name per user+company.
+ * Calls logActivity on creation.
+ * Returns the created filter or an error string.
+ */
+export async function createFilter(
+  company: string,
+  userId: number,
+  userName: string,
+  name: string,
+  project: string,
+  activityScope: string,
+  density: string,
+  shared: boolean
+): Promise<{ filter?: DashboardFilterRow; error?: string }> {
+  // Check max 20 filters per user
+  const countRow = await db.get<{ count: number | string }>(
+    `SELECT COUNT(*) as count FROM "DashboardFilter"
+     WHERE "company" = ? AND "userId" = ? AND "deletedAt" IS NULL`,
+    [company, userId],
+  );
+  if (Number(countRow?.count ?? 0) >= 20) {
+    return { error: "Maximum of 20 saved filters reached" };
+  }
+
+  // Check unique name
+  const isUnique = await checkFilterNameUnique(company, userId, name);
+  if (!isUnique) {
+    return { error: "A filter with this name already exists" };
+  }
+
+  const sharedInt = shared ? 1 : 0;
+
+  await db.run(
+    `INSERT INTO "DashboardFilter" ("company", "userId", "userName", "name", "project", "activityScope", "density", "shared")
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [company, userId, userName, name, project, activityScope, density, sharedInt],
+  );
+
+  // Retrieve the newly created filter
+  const created = await db.get<Record<string, unknown>>(
+    `SELECT "id", "company", "userId", "userName", "name", "project", "activityScope", "density", "shared", "createdAt", "updatedAt"
+     FROM "DashboardFilter"
+     WHERE "company" = ? AND "userId" = ? AND "name" = ? AND "deletedAt" IS NULL
+     ORDER BY "id" DESC LIMIT 1`,
+    [company, userId, name],
+  );
+
+  // Log activity
+  await logActivity(company, "DashboardFilter", String(created?.id ?? ""), "Created", `${userName} created filter "${name}"`, userName);
+
+  if (!created) return {};
+
+  return {
+    filter: {
+      id: Number(created.id),
+      company: String(created.company ?? ""),
+      userId: Number(created.userId ?? 0),
+      userName: String(created.userName ?? ""),
+      name: String(created.name ?? ""),
+      project: String(created.project ?? ""),
+      activityScope: String(created.activityScope ?? "team"),
+      density: String(created.density ?? "comfortable"),
+      shared: Number(created.shared ?? 0),
+      createdAt: String(created.createdAt ?? ""),
+      updatedAt: String(created.updatedAt ?? ""),
+    },
+  };
+}
+
+/**
+ * Soft-delete a filter. Only the owner can delete.
+ * Calls logActivity on deletion.
+ * Returns success or an error string.
+ */
+export async function deleteFilter(
+  company: string,
+  userId: number,
+  filterId: number
+): Promise<{ success?: boolean; error?: string }> {
+  // Verify ownership
+  const filter = await db.get<Record<string, unknown>>(
+    `SELECT "id", "userId", "name", "userName" FROM "DashboardFilter"
+     WHERE "id" = ? AND "company" = ? AND "deletedAt" IS NULL`,
+    [filterId, company],
+  );
+
+  if (!filter) {
+    return { error: "Filter not found" };
+  }
+
+  if (Number(filter.userId) !== userId) {
+    return { error: "Only the filter owner can delete this filter" };
+  }
+
+  // Soft-delete
+  await db.run(
+    `UPDATE "DashboardFilter" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
+     WHERE "id" = ? AND "company" = ?`,
+    [filterId, company],
+  );
+
+  // Log activity
+  const filterName = String(filter.name ?? "");
+  const userName = String(filter.userName ?? "");
+  await logActivity(company, "DashboardFilter", String(filterId), "Deleted", `${userName} deleted filter "${filterName}"`, userName);
+
+  return { success: true };
+}

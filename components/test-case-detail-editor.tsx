@@ -359,7 +359,15 @@ export function TestCaseDetailEditor({
  const savedId = editingIdRef.current;
  const savedEntry = editDraftRef.current ? { ...editDraftRef.current } : null;
 
- if (!savedEntry || !savedId || pending || !requiredEditReady(savedEntry) || !editDirtyRef.current || editSaveLockRef.current) return;
+ if (!savedEntry || !savedId || pending || !requiredEditReady(savedEntry) || editSaveLockRef.current) return;
+
+ // No changes — just close edit mode
+ if (!editDirtyRef.current) {
+ editDraftRef.current = null;
+ setEditForm(null);
+ setEditingId(null);
+ return;
+ }
 
  editSaveLockRef.current = true;
  startTransition(async () => {
@@ -597,7 +605,7 @@ export function TestCaseDetailEditor({
  ))}
  </colgroup>
 
- <thead className="sticky top-0 z-20">
+ <thead className="sticky top-0 z-20 bg-slate-200">
  <tr>
  {COLS.map((column) => (
  <Th

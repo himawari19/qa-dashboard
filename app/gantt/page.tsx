@@ -5,7 +5,7 @@ import { createPortal } from"react-dom";
 import { PageShell } from"@/components/page-shell";
 import { Badge } from"@/components/badge";
 import { cn, formatDate, formatDisplayText } from"@/lib/utils";
-import { Lightning, ClipboardText, CaretRight, Lock, CheckCircle, ListChecks } from"@phosphor-icons/react";
+import { Lightning, ClipboardText, CaretRight, CaretDown, Lock, CheckCircle, ListChecks } from"@phosphor-icons/react";
 import { toast } from"@/components/ui/toast";
 import {
  DAY_NAMES,
@@ -93,12 +93,17 @@ export default function GanttPage() {
  const [periodPickerOpen, setPeriodPickerOpen] = useState(false);
  const [periodPickerYear, setPeriodPickerYear] = useState(() => focusDate.getFullYear());
  const [periodPickerAnchor, setPeriodPickerAnchor] = useState<{ x: number; y: number } | null>(null);
+ const [sectionCollapse, setSectionCollapse] = useState<SectionCollapseState>({ sprints: true, plans: true, tasks: false });
+ const [hideCompleted, setHideCompleted] = useState(false);
+ const [myItemsOnly, setMyItemsOnly] = useState(false);
+ const [userEmail, setUserEmail] = useState("");
 
  const bodyRef = useRef<HTMLDivElement>(null);
  const rowAreaRef = useRef<HTMLDivElement>(null);
  const headerRef = useRef<HTMLDivElement>(null);
  const periodPickerRef = useRef<HTMLDivElement>(null);
  const isSyncingScrollRef = useRef(false);
+ const wasDraggingRef = useRef(false);
  const scrollFrameRef = useRef<number | null>(null);
  const viewportRangeTimerRef = useRef<number | null>(null);
  const visibleRowWindowKeyRef = useRef<string>("");
@@ -133,10 +138,23 @@ export default function GanttPage() {
   };
  }, [periodPickerOpen]);
 
+ // Stable fetch key — only re-fetch when the actual period window changes
+ const fetchRangeKey = useMemo(() => {
+ if (viewMode === "year") return `${currentYear}-01-01:${currentYear}-12-31`;
+ const ms = startOfMonth(focusDate);
+ const me = endOfMonth(focusDate);
+ return `${toKey(ms)}:${toKey(me)}`;
+ }, [viewMode, currentYear, focusDate]);
+
  const refresh = useCallback(() => {
  setLoading(true);
- fetch(`/api/gantt?year=${currentYear}`).then(r => r.json()).then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
- }, [currentYear]);
+ const [start, end] = fetchRangeKey.split(":");
+ const params = new URLSearchParams({ year: String(currentYear), start, end });
+ if (myItemsOnly && userEmail) {
+ params.set("assignee", userEmail);
+ }
+ fetch(`/api/gantt?${params.toString()}`).then(r => r.json()).then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
+ }, [fetchRangeKey, currentYear, myItemsOnly, userEmail]);
 
  useEffect(() => {
  refresh();
@@ -167,6 +185,8 @@ export default function GanttPage() {
 const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  setStorageScopeKey(scopeParts.join(":") ||"global");
  if (profile.role) setUserRole(profile.role);
+ if (profile.name) setUserEmail(profile.name);
+ else if (profile.email) setUserEmail(profile.email);
  })
  .catch(() => {
  if (!cancelled) setStorageScopeKey("global");
@@ -186,6 +206,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  viewMode: ViewMode;
  zoomLevel: ZoomLevel;
  focusDate: string;
+ sectionCollapse: SectionCollapseState;
+ hideCompleted: boolean;
+ myItemsOnly: boolean;
  }>;
  if (prefs.filter) setFilter(prefs.filter);
  if (prefs.viewMode) setViewMode(prefs.viewMode);
@@ -194,6 +217,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const parsed = deserializeDate(prefs.focusDate);
  if (!Number.isNaN(parsed.getTime())) setFocusDate(parsed);
  }
+ if (prefs.sectionCollapse) setSectionCollapse(prefs.sectionCollapse);
+ if (prefs.hideCompleted !== undefined) setHideCompleted(prefs.hideCompleted);
+ if (prefs.myItemsOnly !== undefined) setMyItemsOnly(prefs.myItemsOnly);
  }
 
  } catch {
@@ -212,12 +238,15 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  viewMode,
  zoomLevel,
  focusDate: serializeDate(focusDate),
+ sectionCollapse,
+ hideCompleted,
+ myItemsOnly,
  }),
  );
  } catch {
  // Ignore storage quota or privacy-blocked environments.
  }
- }, [filter, focusDate, storageScopeKey, viewMode, zoomLevel]);
+ }, [filter, focusDate, storageScopeKey, viewMode, zoomLevel, sectionCollapse, hideCompleted, myItemsOnly]);
 
  useLayoutEffect(() => {
  const el = bodyRef.current;
@@ -283,18 +312,73 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  return result.sort((a, b) => a.startDate.localeCompare(b.startDate));
  }, [data, filter]);
 
+ const COMPLETED_STATUSES = useMemo(() => new Set(["completed", "closed", "done"]), []);
+
+ // Filter out completed items if hideCompleted is on
+ const activeItems = useMemo(() => {
+ if (!hideCompleted) return items;
+ return items.filter(item => !COMPLETED_STATUSES.has(item.status));
+ }, [items, hideCompleted, COMPLETED_STATUSES]);
+
  const periodWindow = useMemo(() => getPeriodWindow(viewMode, focusDate), [focusDate, viewMode]);
  const periodStart = periodWindow.start;
  const periodEnd = periodWindow.end;
 
  const displayItems = useMemo(() => {
- const filtered = items.filter((item) => overlapsWindow(item, periodStart, periodEnd));
- // Group by type in fixed order: sprints → plans → tasks
+ const filtered = activeItems.filter((item) => overlapsWindow(item, periodStart, periodEnd));
  const sprints = filtered.filter(i => i.type === "sprint");
  const plans = filtered.filter(i => i.type === "plan");
  const tasks = filtered.filter(i => i.type === "task");
  return [...sprints, ...plans, ...tasks];
- }, [items, periodEnd, periodStart]);
+ }, [activeItems, periodEnd, periodStart]);
+
+ // Section counts (before collapse filtering)
+ const sectionCounts = useMemo(() => {
+ const filtered = activeItems.filter((item) => overlapsWindow(item, periodStart, periodEnd));
+ return {
+ sprints: filtered.filter(i => i.type === "sprint").length,
+ plans: filtered.filter(i => i.type === "plan").length,
+ tasks: filtered.filter(i => i.type === "task").length,
+ };
+ }, [activeItems, periodStart, periodEnd]);
+
+ // Build a flat list of "rows" that includes section headers + data items
+ type SectionedRow = { kind: "header"; type: "sprint" | "plan" | "task"; label: string; count: number; expanded: boolean } | { kind: "item"; item: GanttItem; dataIndex: number };
+ const sectionedRows = useMemo<SectionedRow[]>(() => {
+ const rows: SectionedRow[] = [];
+ const filtered = activeItems.filter((item) => overlapsWindow(item, periodStart, periodEnd));
+ const sprints = filtered.filter(i => i.type === "sprint");
+ const plans = filtered.filter(i => i.type === "plan");
+ const tasks = filtered.filter(i => i.type === "task");
+
+ let dataIdx = 0;
+ if (filter === "all" || filter === "sprint") {
+ rows.push({ kind: "header", type: "sprint", label: "Sprints", count: sprints.length, expanded: sectionCollapse.sprints });
+ if (sectionCollapse.sprints) {
+ for (const s of sprints) { rows.push({ kind: "item", item: s, dataIndex: dataIdx++ }); }
+ } else { dataIdx += sprints.length; }
+ }
+ if (filter === "all" || filter === "plan") {
+ rows.push({ kind: "header", type: "plan", label: "Test Plans", count: plans.length, expanded: sectionCollapse.plans });
+ if (sectionCollapse.plans) {
+ for (const p of plans) { rows.push({ kind: "item", item: p, dataIndex: dataIdx++ }); }
+ } else { dataIdx += plans.length; }
+ }
+ if (filter === "all" || filter === "task") {
+ rows.push({ kind: "header", type: "task", label: "Tasks", count: tasks.length, expanded: sectionCollapse.tasks });
+ if (sectionCollapse.tasks) {
+ for (const t of tasks) { rows.push({ kind: "item", item: t, dataIndex: dataIdx++ }); }
+ } else { dataIdx += tasks.length; }
+ }
+ return rows;
+ }, [activeItems, periodStart, periodEnd, filter, sectionCollapse]);
+
+ const toggleSection = useCallback((type: "sprint" | "plan" | "task") => {
+ setSectionCollapse(prev => ({
+ ...prev,
+ [type === "sprint" ? "sprints" : type === "plan" ? "plans" : "tasks"]: !prev[type === "sprint" ? "sprints" : type === "plan" ? "plans" : "tasks"],
+ }));
+ }, []);
 
  const sprintKeyByName = useMemo(() => {
  const map = new Map<string, string>();
@@ -311,7 +395,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const yearScrollTarget = useMemo(() => getScrollTargetDate(viewMode, focusDate), [focusDate, viewMode]);
 
  const timelineRows = useMemo<TimelineRow[]>(() => {
- return displayItems.map((item) => {
+ const visibleItems = sectionedRows.filter((r): r is Extract<typeof r, { kind: "item" }> => r.kind === "item");
+ return visibleItems.map(({ item }) => {
  const progress = data ? computeProgress(item, data) : 0;
  const parentKey = item.relatedSprint ? sprintKeyByName.get(item.relatedSprint) ?? null : null;
  return {
@@ -321,14 +406,15 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  parentKey,
  };
  });
- }, [displayItems, sprintKeyByName, data]);
- const totalRowHeight = timelineRows.length * ROW_H;
+ }, [sectionedRows, sprintKeyByName, data]);
+ const sectionHeaderCount = sectionedRows.filter(r => r.kind === "header").length;
+ const totalRowHeight = (timelineRows.length + sectionHeaderCount) * ROW_H;
  const emptyRowHeight = ROW_H * 6;
  const renderedRowHeight = Math.max(totalRowHeight, emptyRowHeight);
  const visibleTimelineRows = useMemo(() => {
  const start = Math.max(0, Math.min(visibleRowWindow.start, timelineRows.length));
  const end = Math.max(start, Math.min(visibleRowWindow.end, timelineRows.length));
- return timelineRows.slice(start, end).map((item, idx) => ({ item, idx: start + idx }));
+ return timelineRows.slice(start, end).map((item, i) => ({ item, idx: start + i }));
  }, [timelineRows, visibleRowWindow.end, visibleRowWindow.start]);
 
  const viewStart = periodStart;
@@ -343,6 +429,21 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  return Math.max(baseDayPx, Math.ceil(timelineViewportWidth / totalCols));
  }, [baseDayPx, timelineViewportWidth, totalCols]);
  const totalWidth = totalCols * dayPx;
+
+ // Map from item index in timelineRows → actual Y row position accounting for section headers
+ const itemRowOffsets = useMemo(() => {
+ const offsets: number[] = [];
+ let rowPos = 0;
+ for (const row of sectionedRows) {
+ if (row.kind === "header") {
+ rowPos++;
+ } else {
+ offsets.push(rowPos);
+ rowPos++;
+ }
+ }
+ return offsets;
+ }, [sectionedRows]);
 
  const rowGeometry = useMemo(() => {
  return timelineRows.map((item, idx) => {
@@ -361,17 +462,18 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const right = Math.min(totalCols * 2, e + 1) * dayPx;
 
  const width = Math.max(dayPx, right - left);
+ const actualRow = itemRowOffsets[idx] ?? idx;
  return {
  item,
  idx,
  left,
  right,
  width,
- top: idx * ROW_H + 10,
- centerY: idx * ROW_H + ROW_H / 2,
+ top: actualRow * ROW_H + 10,
+ centerY: actualRow * ROW_H + ROW_H / 2,
  };
  });
- }, [dayPx, timelineRows, totalCols, viewStart]);
+ }, [dayPx, timelineRows, totalCols, viewStart, itemRowOffsets, dragPreview]);
  const rowGeometryByKey = useMemo(() => {
  return new Map(rowGeometry.map((row) => [getItemKey(row.item), row]));
  }, [rowGeometry]);
@@ -475,6 +577,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  if (!dragState) return;
  const diffX = e.clientX - dragState.startX;
  const diffDaysVal = Math.round(diffX / dayPx);
+
+ // Mark that an actual drag movement occurred
+ if (Math.abs(diffX) > 3) wasDraggingRef.current = true;
  
  let newStart = dragState.origStart;
  let newEnd = dragState.origEnd;
@@ -516,6 +621,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  }
  setDragState(null);
  setDragPreview(null);
+ // Reset wasDragging after a tick so onClick can check it
+ setTimeout(() => { wasDraggingRef.current = false; }, 0);
  };
 
  if (dragState) {
@@ -567,7 +674,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const viewTop = window.scrollY;
  const viewBottom = viewTop + window.innerHeight;
  const areaTop = rect.top + viewTop;
- const areaHeight = totalRowHeight;
+ const areaHeight = renderedRowHeight;
  const intersectionTop = Math.max(viewTop, areaTop);
  const intersectionBottom = Math.min(viewBottom, areaTop + areaHeight);
 
@@ -578,7 +685,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  if (visibleRowWindowKeyRef.current === key) return;
  visibleRowWindowKeyRef.current = key;
  setVisibleRowWindow({ start, end });
- }, [timelineRows.length, totalRowHeight]);
+ }, [timelineRows.length, renderedRowHeight]);
 
  useEffect(() => {
  const handle = () => {
@@ -627,14 +734,6 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  body.scrollTo({ left: Math.max(0, offset), behavior });
  }, [dayPx, timelineViewportWidth, viewStart]);
 
- const focusTimelineItem = useCallback((item: TimelineRow, behavior: ScrollBehavior ="smooth") => {
- const start = parseDate(item.startDate);
- const end = parseDate(item.endDate);
- const center = addDays(start, Math.max(0, Math.floor(diffDays(start, end) / 2)));
- setFocusDate(center);
- scrollToDate(center, behavior, viewMode ==="year" ?"center" :"start");
- }, [scrollToDate, viewMode]);
-
  useLayoutEffect(() => {
  if (loading || displayItems.length === 0 || !timelineViewportWidth) return;
  window.requestAnimationFrame(() => {
@@ -649,7 +748,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  description="View timelines, dependencies, and delivery windows across your workspace."
  crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Gantt / Timeline" }]}
  actions={
- <div className="grid w-full gap-3 lg:grid-cols-[minmax(170px,220px)_minmax(180px,240px)_auto] lg:items-end lg:justify-items-end">
+ <div className="grid w-full gap-3 lg:grid-cols-[minmax(170px,220px)_auto_minmax(180px,240px)_auto] lg:items-end lg:justify-items-end">
  <div className="flex w-full flex-col gap-1 lg:max-w-[220px]">
  <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Filter by</label>
  <div className="relative">
@@ -666,6 +765,35 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
  <CaretRight size={12} weight="bold" className="rotate-90" />
  </div>
+ </div>
+ </div>
+ <div className="flex w-full flex-col gap-1">
+ <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status</label>
+ <div className="flex gap-1.5">
+ <button
+ type="button"
+ onClick={() => setHideCompleted(h => !h)}
+ className={cn(
+ "h-9 rounded-lg border px-3 text-xs font-bold shadow-sm transition",
+ hideCompleted
+ ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+ : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+ )}
+ >
+ {hideCompleted ? "Active" : "All"}
+ </button>
+ <button
+ type="button"
+ onClick={() => setMyItemsOnly(m => !m)}
+ className={cn(
+ "h-9 rounded-lg border px-3 text-xs font-bold shadow-sm transition",
+ myItemsOnly
+ ? "border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100"
+ : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+ )}
+ >
+ {myItemsOnly ? "Mine" : "Team"}
+ </button>
  </div>
  </div>
  <div className="flex w-full flex-col gap-1 lg:max-w-[240px]">
@@ -933,28 +1061,22 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  {/* Top row: month / quarter / year */}
  <div className="relative h-7 border-b border-slate-200">
  {topHeader.map((h, i) => (
- <button
+ <div
  key={i}
- type="button"
- onClick={() => {
- setFocusDate(addDays(viewStart, h.colStart));
- setViewMode("month");
- }}
- className="absolute top-0 bottom-0 flex items-center border-l border-slate-300/60 pl-2 overflow-hidden text-left hover:bg-slate-100/70"
+ className="absolute top-0 bottom-0 flex items-center border-l border-slate-300/60 pl-2 overflow-hidden text-left"
  style={{ left: h.colStart * dayPx, width: h.colSpan * dayPx }}>
  <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">{h.label}</span>
- </button>
+ </div>
  ))}
  </div>
 
  {/* Sub row: day / week / month */}
  <div className="relative h-8">
  {subHeader.map((h, i) => (
- <button
+ <div
  key={i}
- type="button"
  className={cn(
-"absolute top-0 bottom-0 flex flex-col items-center justify-center border-l overflow-hidden text-center transition hover:bg-slate-100/70",
+"absolute top-0 bottom-0 flex flex-col items-center justify-center border-l overflow-hidden text-center",
  h.isToday
  ?"bg-sky-500/10 border-sky-400/60"
  : h.nonWorkLabel
@@ -962,10 +1084,6 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  :"border-slate-200/70"
  )}
  style={{ left: h.colStart * dayPx, width: h.colSpan * dayPx }}
- onClick={() => {
- setFocusDate(addDays(viewStart, h.colStart));
- setViewMode("month");
- }}
  onMouseMove={h.nonWorkLabel ? (e) => setTooltip({ x: e.clientX, y: e.clientY, text: h.nonWorkLabel! }) : undefined}
  onMouseLeave={h.nonWorkLabel ? () => setTooltip(null) : undefined}
  >
@@ -979,7 +1097,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  h.isToday ?"text-sky-500/70" : h.nonWorkLabel ?"text-rose-400/70" :"text-slate-400"
  )}>{h.sublabel}</span>
  )}
- </button>
+ </div>
  ))}
  </div>
  </div>
@@ -991,14 +1109,50 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
 
  {/* Fixed label column */}
  <div className="relative shrink-0 border-r-2 border-slate-200 bg-white z-10" style={{ width: LABEL_W, height: renderedRowHeight }}>
- {visibleTimelineRows.map(({ item, idx }) => (
+ {/* Section headers */}
+ {(() => {
+ let yPos = 0;
+ return sectionedRows.map((row, flatIdx) => {
+ if (row.kind === "header") {
+ const top = yPos * ROW_H;
+ yPos++;
+ return (
+ <button
+ key={`section-${row.type}`}
+ type="button"
+ onClick={() => toggleSection(row.type)}
+ className="absolute left-0 right-0 flex items-center gap-2 px-3 border-b border-slate-200 bg-slate-100/80 hover:bg-slate-100 transition-colors cursor-pointer select-none"
+ style={{ top, height: ROW_H, borderLeft: `3px solid ${SECTION_ACCENT_COLORS[row.type]}` }}
+ >
+ <CaretDown
+ size={12}
+ weight="bold"
+ className={cn("text-slate-500 transition-transform duration-200", !row.expanded && "-rotate-90")}
+ />
+ <span className="text-[11px] font-black uppercase tracking-[0.15em]" style={{ color: SECTION_ACCENT_COLORS[row.type] }}>
+ {row.label}
+ </span>
+ <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold" style={{ backgroundColor: SECTION_ACCENT_COLORS[row.type] + "15", color: SECTION_ACCENT_COLORS[row.type] }}>
+ {row.count}
+ </span>
+ </button>
+ );
+ }
+ yPos++;
+ return null;
+ });
+ })()}
+ {/* Data item labels */}
+ {visibleTimelineRows.map(({ item, idx }) => {
+ const actualRow = itemRowOffsets[idx] ?? idx;
+ return (
  <div key={`lbl-${item.type}-${item.id}`}
  className={cn(
 "absolute left-0 right-0 flex items-center gap-2.5 px-3 border-b border-slate-100 transition-colors",
  item.depth === 1 &&"pl-8",
- idx % 2 === 1 ?"bg-slate-50/60" :"bg-white"
+ actualRow % 2 === 1 ?"bg-slate-50/60" :"bg-white"
  )}
- style={{ top: idx * ROW_H, height: ROW_H, borderLeft: `3px solid ${SECTION_ACCENT_COLORS[item.type]}30` }}>
+ style={{ top: actualRow * ROW_H, height: ROW_H, borderLeft: `3px solid ${SECTION_ACCENT_COLORS[item.type]}30` }}>
  <div className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: item.color }}>
  {item.type ==="sprint" ? <Lightning size={11} weight="bold" /> : item.type === "task" ? <ListChecks size={11} weight="bold" /> : <ClipboardText size={11} weight="bold" />}
  </div>
@@ -1013,7 +1167,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
  <Badge value={item.status} />
  </div>
- ))}
+ );
+ })}
  </div>
 
  {/* Scrollable bar area */}
@@ -1037,15 +1192,37 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
  )}
 
+ {/* Section header backgrounds in bar area */}
+ {(() => {
+ let yPos = 0;
+ return sectionedRows.map((row) => {
+ if (row.kind === "header") {
+ const top = yPos * ROW_H;
+ yPos++;
+ return (
+ <div key={`hdr-bg-${row.type}`}
+ className="absolute left-0 right-0 border-b border-slate-200 bg-slate-100/80"
+ style={{ top, height: ROW_H }}
+ />
+ );
+ }
+ yPos++;
+ return null;
+ });
+ })()}
+
  {/* Alternating row backgrounds + grid lines */}
- {visibleTimelineRows.map(({ idx }) => (
+ {visibleTimelineRows.map(({ idx }) => {
+ const actualRow = itemRowOffsets[idx] ?? idx;
+ return (
  <div key={`bg-${idx}`}
  className={cn("absolute left-0 right-0 border-b border-slate-100",
- idx % 2 === 1 ?"bg-slate-50/60" :"bg-transparent"
+ actualRow % 2 === 1 ?"bg-slate-50/60" :"bg-transparent"
  )}
- style={{ top: idx * ROW_H, height: ROW_H }}
+ style={{ top: actualRow * ROW_H, height: ROW_H }}
  />
- ))}
+ );
+ })}
 
  {/* Period dividers */}
  {subHeader.map((h, i) => (
@@ -1092,29 +1269,34 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  {visibleRowGeometry.map((row) => {
  const item = row.item;
  const durationDays = Math.max(1, diffDays(parseDate(item.startDate), parseDate(item.endDate)) + 1);
- const dateRange =`${formatDate(item.startDate)} – ${formatDate(item.endDate)} · ${durationDays} days`;
+ const isMilestone = durationDays === 1;
+ const dateRange = isMilestone
+ ? `${formatDate(item.startDate)} · 1 day`
+ : `${formatDate(item.startDate)} – ${formatDate(item.endDate)} · ${durationDays} days`;
  const itemKey = getItemKey(item);
  const isHovered = hoveredItemKey === itemKey;
  const isRelated = hoveredDescendantKeys.has(itemKey);
  const isConflicted = (conflictMap.get(itemKey) ?? 0) > 0;
+ const progress = row.item.progress;
 
+ // Milestone diamond for single-day items
+ if (isMilestone) {
+ const size = 18;
  return (
  <div key={`bar-${item.type}-${item.id}`}
- className="absolute z-[5] flex items-center"
- style={{ top: row.top, height: ROW_H - 20, left: row.left, width: row.width }}>
+ className="absolute z-[5] flex items-center justify-center"
+ style={{ top: row.top - 2, height: ROW_H - 16, left: row.left + (row.width / 2) - (size / 2), width: size }}
+ >
  <div
  className={cn(
-"w-full h-full rounded-md flex items-center px-2.5 overflow-hidden select-none group/bar relative transition-all",
- canEditTimeline(userRole) ? "cursor-grab" : "cursor-not-allowed",
- item.depth === 1 ?"rounded-l-none border-l-0" :"",
- hoveredItemKey && !isRelated ?"opacity-20 saturate-50" :"opacity-100",
- isRelated && !isHovered ?"shadow-[0_6px_18px_rgba(15,23,42,0.10)]" :"",
- isHovered ?"ring-2 ring-sky-400/50 brightness-95" :"hover:brightness-95",
+ "w-full h-full rotate-45 rounded-[3px] border-2 transition-all cursor-pointer",
+ hoveredItemKey && !isRelated ? "opacity-20 saturate-50" : "opacity-100",
+ isHovered ? "ring-2 ring-sky-400/50 scale-110" : "hover:scale-110",
  )}
- style={{ backgroundColor: item.color +"20", border:`1.5px solid ${item.color}50` }}
- onMouseDown={(e) => handleDragStart(e, item,"move")}
+ style={{ backgroundColor: item.color + "30", borderColor: item.color }}
  onClick={() => {
- const progress = data ? computeProgress(item, data) : 0;
+ if (wasDraggingRef.current) return;
+ const prog = data ? computeProgress(item, data) : 0;
  const statusBreakdown = data ? computeStatusBreakdown(item, data) : [];
  setEditModal({
  key: itemKey,
@@ -1123,10 +1305,52 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  endDate: item.endDate,
  canEdit: canEditTimeline(userRole),
  navigationLink: getItemNavigationLink(item),
- progress,
+ progress: prog,
  statusBreakdown,
  });
- focusTimelineItem(item);
+ }}
+ onMouseMove={(e) => {
+ setHoveredItemKey(itemKey);
+ setTooltip({ x: e.clientX, y: e.clientY, text: `${item.label} · ${dateRange}` });
+ }}
+ onMouseLeave={() => {
+ setHoveredItemKey(null);
+ setTooltip(null);
+ }}
+ />
+ </div>
+ );
+ }
+
+ return (
+ <div key={`bar-${item.type}-${item.id}`}
+ className="absolute z-[5] flex items-center"
+ style={{ top: row.top, height: ROW_H - 20, left: row.left, width: row.width }}>
+ <div
+ className={cn(
+"w-full h-full rounded-md flex items-center px-2.5 overflow-hidden select-none group/bar relative transition-all",
+ canEditTimeline(userRole) ? "cursor-grab" : "cursor-pointer",
+ item.depth === 1 ?"rounded-l-none border-l-0" :"",
+ hoveredItemKey && !isRelated ?"opacity-20 saturate-50" :"opacity-100",
+ isRelated && !isHovered ?"shadow-[0_6px_18px_rgba(15,23,42,0.10)]" :"",
+ isHovered ?"ring-2 ring-sky-400/50 brightness-95" :"hover:brightness-95",
+ )}
+ style={{ backgroundColor: item.color +"20", border:`1.5px solid ${item.color}50` }}
+ onMouseDown={(e) => handleDragStart(e, item,"move")}
+ onClick={() => {
+ if (wasDraggingRef.current) return;
+ const prog = data ? computeProgress(item, data) : 0;
+ const statusBreakdown = data ? computeStatusBreakdown(item, data) : [];
+ setEditModal({
+ key: itemKey,
+ item,
+ startDate: item.startDate,
+ endDate: item.endDate,
+ canEdit: canEditTimeline(userRole),
+ navigationLink: getItemNavigationLink(item),
+ progress: prog,
+ statusBreakdown,
+ });
  }}
  onMouseMove={(e) => {
  setHoveredItemKey(itemKey);
@@ -1137,6 +1361,14 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  setTooltip(null);
  }}
  >
+ {/* Progress fill overlay */}
+ {progress > 0 && (
+ <div
+ className="absolute left-0 top-0 bottom-0 rounded-l-md pointer-events-none"
+ style={{ width: `${progress}%`, backgroundColor: item.color + "18" }}
+ />
+ )}
+
  {/* Resize handles */}
  {canEditTimeline(userRole) && (
  <>
@@ -1164,18 +1396,18 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <div className="absolute mt-3 h-px w-4 bg-slate-300/80" />
  </div>
  )}
- <span className={cn("text-xs font-bold truncate whitespace-nowrap", item.depth === 1 ?"pl-0" :"pl-1.5")} style={{ color: item.color }}>
+ <span className={cn("text-xs font-bold truncate whitespace-nowrap relative z-[1]", item.depth === 1 ?"pl-0" :"pl-1.5")} style={{ color: item.color }}>
  {row.width > 80 ? item.label : row.width > 20 ?"·" :""}
  </span>
  {row.width > 160 && (
- <span className="ml-1.5 text-[10px] opacity-60 truncate whitespace-nowrap" style={{ color: item.color }}>
+ <span className="ml-1.5 text-[10px] opacity-60 truncate whitespace-nowrap relative z-[1]" style={{ color: item.color }}>
  {formatDate(item.startDate)} – {formatDate(item.endDate)}
  </span>
  )}
- <div className="ml-auto flex items-center gap-2 pl-2">
- <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/60">
- <div className="h-full rounded-full" style={{ width:`${row.item.progress}%`, backgroundColor: item.color }} />
- </div>
+ <div className="ml-auto flex items-center gap-2 pl-2 relative z-[1]">
+ {progress > 0 && row.width > 120 && (
+ <span className="text-[10px] font-bold" style={{ color: item.color }}>{progress}%</span>
+ )}
  {isConflicted && (
  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500/15 px-1 text-[10px] font-black text-amber-600" title="Potential overlap">
  !
@@ -1201,6 +1433,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
  <div className="h-3.5 w-3.5 rounded bg-rose-400/15 border border-rose-300/50 shrink-0" /> Weekend / Holiday
+ </div>
+ <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+ <div className="h-3 w-3 rotate-45 rounded-[2px] border-2 border-slate-400 bg-slate-200/50 shrink-0" /> Milestone (1 day)
  </div>
  <div className="h-3 w-px bg-slate-300 mx-1" />
  {Object.entries(STATUS_COLORS).map(([status, color]) => (

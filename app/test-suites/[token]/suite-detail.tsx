@@ -336,21 +336,21 @@ export function SuiteDetail({
  </div>
  ) : (
  <div className="max-h-[480px] overflow-y-auto">
- <table className="w-full text-sm">
- <thead className="sticky top-0 bg-white z-10">
- <tr className="border-b border-slate-100">
- <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[80px]">ID</th>
- <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
- <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[160px]">Assignee</th>
- <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[110px]">Type</th>
- <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden lg:table-cell w-[90px]">Priority</th>
- <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[120px]">Status</th>
+ <table className="w-full text-sm border-collapse">
+ <thead className="sticky top-0 bg-slate-100 z-10">
+ <tr className="border-b border-slate-200">
+ <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 w-[80px]">ID</th>
+ <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Case Name</th>
+ <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden md:table-cell w-[160px]">Assignee</th>
+ <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden md:table-cell w-[110px]">Type</th>
+ <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell w-[90px]">Priority</th>
+ <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 w-[120px]">Status</th>
  </tr>
  </thead>
- <tbody className="divide-y divide-slate-50">
+ <tbody className="divide-y divide-slate-100">
  {filteredCases.map((tc) => (
  <tr key={tc.id} className="hover:bg-slate-50/60 transition-colors">
- <td className="px-5 py-3.5">
+ <td className="px-5 py-3.5 whitespace-nowrap">
  <span className="font-mono text-xs font-bold text-slate-400">{tc.tcId}</span>
  </td>
  <td className="px-3 py-3.5 max-w-xs">
@@ -401,7 +401,7 @@ export function SuiteDetail({
  ) : (
  <div className="max-h-[480px] overflow-y-auto">
  <table className="w-full text-sm">
- <thead className="sticky top-0 bg-white z-10">
+ <thead className="sticky top-0 bg-slate-200 z-10">
  <tr className="border-b border-slate-100 bg-slate-50/60">
  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</th>
  <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Tester</th>

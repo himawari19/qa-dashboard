@@ -78,7 +78,7 @@ export async function getModuleRows(module: ModuleKey) {
           id: String(item.id),
         }));
     case "meeting-notes":
-      return (await selectAll(`SELECT "id", "company", "title", "date", "project", "relatedItems", "summary", "actionItems", "status", "publicToken", "createdAt", "updatedAt", "deletedAt" FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "updatedAt" DESC`, qParams)).map((item) => ({
+      return (await selectAll(`SELECT "id", "company", "title", "date", "project", "relatedItems", "summary", "actionItems", "publicToken", "createdAt", "updatedAt", "deletedAt" FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "updatedAt" DESC`, qParams)).map((item) => ({
         ...item,
         code: codeFromId("MEET", Number(item.id)),
       }));
@@ -128,7 +128,7 @@ const SORTABLE_COLUMNS: Record<string, string[]> = {
   "tasks": ["title", "project", "category", "status", "priority", "assignee", "updatedAt", "createdAt"],
   "test-suites": ["title", "status", "updatedAt", "createdAt"],
   "assignees": ["name", "role", "email", "updatedAt", "createdAt"],
-  "meeting-notes": ["title", "date", "project", "status", "updatedAt", "createdAt"],
+  "meeting-notes": ["title", "date", "project", "updatedAt", "createdAt"],
   "users": ["name", "email", "role", "createdAt"],
   "sprints": ["name", "status", "startDate", "endDate"],
   "deployments": ["project", "date", "version", "status", "updatedAt", "createdAt"],
@@ -243,7 +243,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "meeting-notes": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "MeetingNote" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = (await selectAll(`SELECT "id", "company", "title", "date", "project", "relatedItems", "summary", "actionItems", "status", "publicToken", "createdAt", "updatedAt", "deletedAt" FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map((item) => ({
+      const rows = (await selectAll(`SELECT "id", "company", "title", "date", "project", "relatedItems", "summary", "actionItems", "publicToken", "createdAt", "updatedAt", "deletedAt" FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map((item) => ({
         ...item,
         code: codeFromId("MEET", Number(item.id)),
       }));

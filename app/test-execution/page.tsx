@@ -1,97 +1,117 @@
-import { getModuleRows } from"@/lib/data";
-import { PageShell } from"@/components/page-shell";
-import { ClipboardText } from"@phosphor-icons/react/dist/ssr";
-import { Play } from"@phosphor-icons/react/dist/ssr";
-import Link from"next/link";
-import { ExecutionGroupList } from"./execution-suite-group";
-import { SuitesHeaderActions } from"@/components/suites-header-actions";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth-core";
+import { PageShell } from "@/components/page-shell";
+import { Play } from "@phosphor-icons/react/dist/ssr/Play";
+import { ExecutionSuiteCards } from "./execution-suite-cards";
+import { SuitesHeaderActions } from "@/components/suites-header-actions";
 
-export const dynamic ="force-dynamic";
+export const dynamic = "force-dynamic";
 
 export default async function TestExecutionPage({
- searchParams,
+  searchParams,
 }: {
- searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 } = {}) {
- const query = searchParams ? await searchParams : {};
- const initialSearch = typeof query.q ==="string" ? query.q : Array.isArray(query.q) ? query.q[0] :"";
- const suitesRaw = await getModuleRows("test-suites");
- const plansRaw = await getModuleRows("test-plans");
+  const query = searchParams ? await searchParams : {};
+  const initialSearch = typeof query.q === "string" ? query.q : Array.isArray(query.q) ? query.q[0] : "";
 
- const suites = JSON.parse(JSON.stringify(suitesRaw));
- const plans = JSON.parse(JSON.stringify(plansRaw));
+  const user = await getCurrentUser();
+  const company = user?.company || "";
+  const isAdmin = user?.role === "admin" && !company;
+  const companyFilter = isAdmin ? "" : ' AND s."company" = ?';
+  const companyParams = isAdmin ? [] : [company];
 
- const planMap = new Map();
- plans.forEach((p: any) => planMap.set(String(p.id), p));
+  // Get suites with their latest run info
+  const suites = await db.query<Record<string, unknown>>(
+    `SELECT s."id", s."title", s."status", s."assignee", s."notes", s."publicToken", s."testPlanId",
+            (SELECT COUNT(*) FROM "TestCase" tc WHERE tc."testSuiteId" = CAST(s."id" AS TEXT) AND tc."deletedAt" IS NULL) as "caseCount"
+     FROM "TestSuite" s
+     WHERE s."status" != 'archived' AND s."deletedAt" IS NULL${companyFilter}
+     ORDER BY s."updatedAt" DESC`,
+    [...companyParams]
+  );
 
- const activeSuites = suites.filter((s: any) => s.status !=="archived");
+  // Get latest run for each suite
+  const suiteIds = suites.map(s => Number(s.id));
+  const latestRuns: Record<number, Record<string, unknown>> = {};
 
- const grouped = new Map();
- activeSuites.forEach((suite: any) => {
- const planId = String(suite.testPlanId ||"unplanned");
- const plan = planMap.get(planId);
- const planName = plan?.title ||"Standalone Execution";
- const project = plan?.project ||"General";
+  if (suiteIds.length > 0) {
+    // Get all runs and pick latest per suite in JS (avoids complex SQL)
+    const allRuns = await db.query<Record<string, unknown>>(
+      `SELECT * FROM "ExecutionRun"
+       WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}
+       ORDER BY "runNumber" DESC`,
+      isAdmin ? [] : [company]
+    );
 
- if (!grouped.has(planId)) {
- grouped.set(planId, { planName, project, suites: [] });
- }
- grouped.get(planId).suites.push(suite);
- });
+    for (const run of allRuns) {
+      const sid = Number(run.testSuiteId);
+      if (!latestRuns[sid]) {
+        latestRuns[sid] = run;
+      }
+    }
+  }
 
- const planGroups = Array.from(grouped.values()).filter((group: any) => {
- if (!initialSearch) return true;
- const term = initialSearch.toLowerCase();
- return [group.project, group.planName, ...group.suites.map((suite: any) => suite.title)].some((value) =>
- String(value ||"").toLowerCase().includes(term),
- );
- });
+  // Get plans for grouping
+  const plans = await db.query<Record<string, unknown>>(
+    `SELECT "id", "title", "project" FROM "TestPlan" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}`,
+    isAdmin ? [] : [company]
+  );
+  const planMap = new Map<string, Record<string, unknown>>();
+  plans.forEach(p => planMap.set(String(p.id), p));
 
- return (
- <PageShell
- icon={<Play size={22} weight="bold" />}
- title="Execution Center"
- description="Select an execution group to begin tracking results automatically."
- crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Test Execution" }]}
- actions={<SuitesHeaderActions initialSearch={initialSearch} placeholder="Search executions..." exportModule="test-suites" importModule="test-suites" />}
- >
- {planGroups.length === 0 ? (
- <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/50 p-20 text-center">
- <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-slate-100 text-slate-400">
- <Play size={32} />
- </div>
- <h3 className="text-xl font-bold text-slate-900">No active execution items found</h3>
- <p className="mt-2 text-slate-500 max-w-sm mx-auto">Create a test suite and set its status to Active or Draft to start execution.</p>
- <Link href="/test-suites" className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 shadow-lg shadow-indigo-500/20">
- Manage Test Suites
- </Link>
- </div>
- ) : (
- <>
- <div className="border-b border-slate-200/60 px-6 py-4" />
- <div className="space-y-6 pb-6 pt-6">
- {planGroups.map((group, gIdx) => (
- <div key={gIdx} className="space-y-3">
- <div className="flex items-end justify-between">
- <div>
- <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-500 mb-1">
- <ClipboardText size={14} weight="bold" />
- {group.project}
- </div>
- <h3 className="text-lg font-bold tracking-tight text-slate-900">
- {group.planName}
- </h3>
- </div>
- <div className="text-xs font-semibold text-slate-400">
- {group.suites.length} Execution Item{group.suites.length !== 1 ?"s" :""}
- </div>
- </div>
- <ExecutionGroupList items={group.suites} />
- </div>
- ))}
- </div>
- </>
- )}
- </PageShell>
- );
+  // Build enriched suite data
+  const enrichedSuites = suites.map(s => {
+    const suiteId = Number(s.id);
+    const plan = planMap.get(String(s.testPlanId));
+    const lastRun = latestRuns[suiteId] || null;
+
+    return {
+      id: suiteId,
+      title: String(s.title),
+      status: String(s.status),
+      assignee: String(s.assignee || ""),
+      notes: String(s.notes || ""),
+      publicToken: String(s.publicToken),
+      testPlanId: String(s.testPlanId || ""),
+      caseCount: Number(s.caseCount) || 0,
+      project: String(plan?.project || "General"),
+      planName: String(plan?.title || "Standalone"),
+      lastRun: lastRun ? {
+        id: Number(lastRun.id),
+        runNumber: Number(lastRun.runNumber),
+        status: String(lastRun.status),
+        tester: String(lastRun.tester || ""),
+        passed: Number(lastRun.passed) || 0,
+        failed: Number(lastRun.failed) || 0,
+        blocked: Number(lastRun.blocked) || 0,
+        totalCases: Number(lastRun.totalCases) || 0,
+        startedAt: String(lastRun.startedAt || ""),
+        completedAt: lastRun.completedAt ? String(lastRun.completedAt) : null,
+      } : null,
+    };
+  });
+
+  // Filter by search
+  const filtered = enrichedSuites.filter(s => {
+    if (!initialSearch) return true;
+    const term = initialSearch.toLowerCase();
+    return [s.title, s.project, s.planName, s.assignee].some(v => v.toLowerCase().includes(term));
+  });
+
+  // Group by status: in-progress runs first, then ready, then completed
+  const inProgress = filtered.filter(s => s.lastRun?.status === "in-progress");
+  const ready = filtered.filter(s => !s.lastRun || s.lastRun.status !== "in-progress");
+
+  return (
+    <PageShell
+      icon={<Play size={22} weight="bold" />}
+      title="Execution Center"
+      description="Start new runs, continue in-progress executions, or review past results."
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Execution" }]}
+      actions={<SuitesHeaderActions initialSearch={initialSearch} placeholder="Search suites..." exportModule="test-suites" importModule="test-suites" />}
+    >
+      <ExecutionSuiteCards inProgress={inProgress} ready={ready} />
+    </PageShell>
+  );
 }

@@ -5,7 +5,7 @@ import { Plus, FileXls, FilePdf, UploadSimple, MagnifyingGlass, Table, Kanban } 
 import type { ReactNode } from"react";
 import { ModuleFilterBar, type FilterValue } from"@/components/module-filter-bar";
 import { ColumnVisibilityToggle } from"@/components/column-visibility-toggle";
-import { SavedFilters } from"@/components/saved-filters";
+
 
 type FilterOption = {
   key: string;
@@ -39,7 +39,7 @@ type WorkspaceHeaderProps = {
  filterOptions?: FilterOption[];
  activeFilters?: FilterValue[];
  onFilterChange?: (filters: FilterValue[]) => void;
- onApplySavedFilter?: (filters: FilterValue[], search: string) => void;
+
  allColumns?: ColumnDef[];
  visibleColumnKeys?: string[];
  onToggleColumn?: (key: string) => void;
@@ -67,7 +67,6 @@ export function ModuleWorkspaceHeader({
  filterOptions,
  activeFilters,
  onFilterChange,
- onApplySavedFilter,
  allColumns,
  visibleColumnKeys,
  onToggleColumn,
@@ -75,7 +74,7 @@ export function ModuleWorkspaceHeader({
 }: WorkspaceHeaderProps) {
  return (
  <>
- <div className="border-b border-slate-200/60 bg-transparent px-6 py-5">
+ <div className="border-b border-slate-200 bg-transparent px-6 py-5">
  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
  <div className="max-w-3xl">
  <div className="flex items-center gap-3">
@@ -88,7 +87,7 @@ export function ModuleWorkspaceHeader({
  <h2 className="text-2xl font-bold tracking-tight md:text-3xl text-slate-900">{title}</h2>
  </div>
  </div>
- <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{description}</p>
+ <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{description}</p>
  </div>
 
  {!showForm ? (
@@ -169,7 +168,7 @@ export function ModuleWorkspaceHeader({
  </div>
  </div>
  {!showForm && (
- <div className="sticky top-0 z-[var(--z-sticky)] space-y-4 border-b border-slate-200/60 bg-white px-6 py-5 text-sm text-slate-600 backdrop-blur-xl lg:px-6">
+ <div className="sticky top-0 z-[var(--z-sticky)] space-y-4 border-b border-slate-200 bg-white px-6 py-4 text-sm text-slate-600 backdrop-blur-xl lg:px-6">
  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
  <div className="flex flex-wrap items-center gap-3">
  {hasKanban ? (
@@ -205,25 +204,6 @@ export function ModuleWorkspaceHeader({
  </div>
  ) : null}
 
- {filterOptions && filterOptions.length > 0 && activeFilters && onFilterChange && (
- <ModuleFilterBar
- filters={filterOptions}
- activeFilters={activeFilters}
- onFilterChange={onFilterChange}
- />
- )}
-
- {onApplySavedFilter && activeFilters && (
- <SavedFilters
- module={module}
- activeFilters={activeFilters}
- search={search}
- onApply={onApplySavedFilter}
- />
- )}
- </div>
-
- <div className="flex w-full min-w-0 shrink-0 items-center gap-3 xl:ml-auto xl:w-auto xl:justify-end">
  {(pending || refreshing) && (
  <span role="status" className="flex items-center gap-1.5 text-xs font-semibold text-blue-600">
  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -233,6 +213,17 @@ export function ModuleWorkspaceHeader({
  Refreshing...
  </span>
  )}
+ </div>
+
+ <div className="flex flex-wrap items-center gap-3 xl:ml-auto">
+ {filterOptions && filterOptions.length > 0 && activeFilters && onFilterChange && (
+ <ModuleFilterBar
+ filters={filterOptions}
+ activeFilters={activeFilters}
+ onFilterChange={onFilterChange}
+ />
+ )}
+
  </div>
  </div>
  </div>

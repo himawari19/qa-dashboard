@@ -5,6 +5,9 @@ import { Funnel, X } from "@phosphor-icons/react";
 import { Dashboard } from "@/components/dashboard";
 import { DashboardSkeleton } from "@/components/skeleton";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { DashboardRealtime } from "@/components/dashboard-realtime";
+import { usePresenceHeartbeat } from "@/components/use-presence-heartbeat";
+import { DashboardSavedFilters } from "@/components/dashboard-saved-filters";
 
 type Props = {
   initialData: any | null;
@@ -18,6 +21,9 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
   const [selectedProject, setSelectedProject] = useState("");
   const [open, setOpen] = useState(false);
   const hasHydrated = useRef(false);
+
+  // Send presence heartbeats while dashboard is open
+  usePresenceHeartbeat();
 
   // Fetch projects list (lightweight, cached server-side)
   useEffect(() => {
@@ -70,6 +76,9 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
 
   return (
     <div className="relative">
+      {/* Real-time SSE client for notifications and live updates */}
+      <DashboardRealtime />
+
       {/* Project filter */}
       {projects.length > 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -112,6 +121,13 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
           )}
         </div>
       )}
+
+      {/* Saved filters chips */}
+      <DashboardSavedFilters
+        activeProject={selectedProject}
+        availableProjects={projects}
+        onApplyFilter={(project) => setSelectedProject(project)}
+      />
 
       {!data ? <DashboardSkeleton /> : <Dashboard {...data} />}
     </div>

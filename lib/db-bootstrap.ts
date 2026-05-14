@@ -212,9 +212,9 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
   }
 }
 
-const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean };
+const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean; __schemaVersion?: number };
 
-const CURRENT_MIGRATION_VERSION = 2;
+const CURRENT_MIGRATION_VERSION = 3;
 
 async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
   try {
@@ -251,11 +251,19 @@ async function setMigrationVersion(deps: DbBootstrapDeps, version: number): Prom
 
 export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
   if (typeof window !== "undefined") return;
+  // Reset if migration version changed (new tables added)
+  if (globalBootstrap.__schemaVersion !== CURRENT_MIGRATION_VERSION) {
+    globalBootstrap.__schemaBootstrapDone = false;
+    deps.setSchemaInitPromise(undefined);
+    globalBootstrap.__schemaVersion = CURRENT_MIGRATION_VERSION;
+  }
   if (!deps.getSchemaInitPromise()) {
     deps.setSchemaInitPromise((async () => {
       try {
         if (useSqlite) {
-          await deps.getSqlite();
+          const sqlite = await deps.getSqlite();
+          // Always re-run CREATE TABLE IF NOT EXISTS for new tables
+          sqlite.exec(schemaTableSql);
         } else {
           await execSchemaSql(schemaTableSql, deps);
         }

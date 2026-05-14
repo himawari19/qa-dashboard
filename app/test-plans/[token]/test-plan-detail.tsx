@@ -303,8 +303,12 @@ export function TestPlanDetail({
  className="h-8 rounded-md border border-slate-200 bg-white pl-7 pr-3 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
  />
  </div>
- <button onClick={expandAll} className="h-8 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition">Expand All</button>
- <button onClick={collapseAll} className="h-8 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition">Collapse</button>
+ <button
+ onClick={Object.values(openSuites).some(Boolean) ? collapseAll : expandAll}
+ className="h-8 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition"
+ >
+ {Object.values(openSuites).some(Boolean) ? "Collapse All" : "Expand All"}
+ </button>
  </div>
  </div>
 
@@ -428,7 +432,7 @@ export function TestPlanDetail({
  ) : (
  <div className="max-h-[360px] overflow-y-auto">
  <table className="w-full text-sm">
- <thead className="sticky top-0 bg-white z-10">
+ <thead className="sticky top-0 bg-slate-200 z-10">
  <tr className="border-b border-slate-100">
  <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[80px]">ID</th>
  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
@@ -440,7 +444,7 @@ export function TestPlanDetail({
  <tbody className="divide-y divide-slate-50">
  {visibleCases.map((tc) => (
  <tr key={tc.id} className="hover:bg-slate-50/60 transition-colors">
- <td className="px-5 py-3">
+ <td className="px-5 py-3 whitespace-nowrap">
  <span className="font-mono text-xs font-bold text-slate-400">{tc.tcId}</span>
  </td>
  <td className="px-3 py-3 max-w-xs">

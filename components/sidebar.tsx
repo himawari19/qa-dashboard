@@ -22,6 +22,7 @@ import {
  ChartLineUp,
  RocketLaunch,
  Users,
+ ClockCounterClockwise,
 } from"@phosphor-icons/react";
 import { cn } from"@/lib/utils";
 import { createPortal } from"react-dom";
@@ -45,24 +46,25 @@ const groups: SidebarGroup[] = [
  ],
  },
  {
-    title:"Defects & Tasks",
-    items: [
-      { href:"/bugs", label:"Bugs", icon: Bug },
-      { href:"/tasks", label:"Tasks", icon: Kanban },
-    ],
+ title:"Work Tracking",
+ items: [
+ { href:"/tasks", label:"Tasks", icon: Kanban },
+ { href:"/bugs", label:"Bugs", icon: Bug },
+ { href:"/sprints", label:"Sprints", icon: Kanban },
+ ],
  },
  {
  title:"Documentation",
  items: [
- { href:"/sprints", label:"Sprints", icon: Kanban },
  { href:"/meeting-notes", label:"Meeting Notes", icon: Note },
- { href:"/deployments", label:"Deployment Log", icon: RocketLaunch },
+ { href:"/activity-log", label:"Activity Log", icon: ClockCounterClockwise },
  ],
  },
  {
  title:"Reports",
  items: [
  { href:"/weekly-report", label:"Report", icon: ChartLineUp },
+ { href:"/deployments", label:"Deployment Log", icon: RocketLaunch },
  { href:"/reports/workload", label:"Workload Heatmap", icon: Users },
  { href:"/gantt", label:"Gantt / Timeline", icon: Rows },
  ],
@@ -82,13 +84,13 @@ type SidebarItem = { href: string; label: string; icon: SidebarIcon };
 type SidebarGroup = { title: string; items: SidebarItem[] };
 
 const ROLE_MENU: Record<string, string[]> = {
- admin: ["/","/dashboard","/test-plans","/test-suites","/test-cases","/test-execution","/bugs","/tasks","/sprints","/meeting-notes","/deployments","/weekly-report","/reports/workload","/gantt","/settings"],
- fullstack: ["/","/dashboard","/tasks","/bugs","/test-plans","/test-suites","/test-cases","/test-execution","/sprints","/meeting-notes","/deployments","/weekly-report","/reports/workload","/gantt"],
- ai: ["/","/dashboard","/tasks","/bugs","/test-plans","/test-suites","/test-cases","/test-execution","/sprints","/meeting-notes","/deployments","/weekly-report","/reports/workload","/gantt"],
- qa: ["/","/dashboard","/test-plans","/test-suites","/test-cases","/test-execution","/bugs","/sprints","/meeting-notes","/weekly-report","/reports/workload","/gantt"],
- fe: ["/","/dashboard","/tasks","/bugs","/sprints","/deployments","/weekly-report","/reports/workload","/gantt"],
- be: ["/","/dashboard","/tasks","/bugs","/sprints","/deployments","/weekly-report","/reports/workload","/gantt"],
- pm: ["/","/dashboard","/tasks","/bugs","/test-plans","/sprints","/meeting-notes","/deployments","/weekly-report","/reports/workload","/gantt"],
+ admin: ["/","/dashboard","/test-plans","/test-suites","/test-cases","/test-execution","/bugs","/tasks","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt","/settings"],
+ fullstack: ["/","/dashboard","/tasks","/bugs","/test-plans","/test-suites","/test-cases","/test-execution","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
+ ai: ["/","/dashboard","/tasks","/bugs","/test-plans","/test-suites","/test-cases","/test-execution","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
+ qa: ["/","/dashboard","/test-plans","/test-suites","/test-cases","/test-execution","/bugs","/sprints","/meeting-notes","/activity-log","/weekly-report","/reports/workload","/gantt"],
+ fe: ["/","/dashboard","/tasks","/bugs","/sprints","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
+ be: ["/","/dashboard","/tasks","/bugs","/sprints","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
+ pm: ["/","/dashboard","/tasks","/bugs","/test-plans","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
 };
 
 function canSeeHref(role: string, href: string) {
@@ -132,13 +134,7 @@ export function NotificationPanel({
 }) {
  const [notifs, setNotifs] = useState<Notification[]>([]);
  const [loading, setLoading] = useState(true);
- const [dismissed, setDismissed] = useState<Set<string>>(() => {
-   if (typeof window === "undefined") return new Set();
-   try {
-     const saved = window.localStorage.getItem("qa-notif-dismissed");
-     return saved ? new Set(JSON.parse(saved)) : new Set();
-   } catch { return new Set(); }
- });
+ const [dismissed, setDismissed] = useState<Set<string>>(new Set());
  const ref = useRef<HTMLDivElement>(null);
 
  useEffect(() => {
@@ -167,19 +163,12 @@ export function NotificationPanel({
    setDismissed((prev) => {
      const next = new Set(prev);
      next.add(id);
-     if (typeof window !== "undefined") {
-       window.localStorage.setItem("qa-notif-dismissed", JSON.stringify([...next]));
-     }
      return next;
    });
  };
 
  const handleDismissAll = () => {
-   const allIds = new Set(notifs.map((n) => n.id));
-   setDismissed(allIds);
-   if (typeof window !== "undefined") {
-     window.localStorage.setItem("qa-notif-dismissed", JSON.stringify([...allIds]));
-   }
+   setDismissed(new Set(notifs.map((n) => n.id)));
  };
 
  return (
@@ -191,7 +180,7 @@ export function NotificationPanel({
  <p className="text-xs font-black uppercase tracking-widest text-slate-700">Notifications</p>
  <div className="flex items-center gap-2">
  {visibleNotifs.length > 0 && (
- <button onClick={handleDismissAll} className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition">
+ <button onClick={handleDismissAll} className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition">
  Dismiss all
  </button>
  )}
@@ -213,7 +202,7 @@ export function NotificationPanel({
  {overdueNotifs.length > 0 && (
  <div>
  <div className="sticky top-0 bg-white/95 backdrop-blur-sm px-4 py-1.5 border-b border-slate-100">
- <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">Overdue ({overdueNotifs.length})</span>
+ <span className="text-[11px] font-bold uppercase tracking-widest text-red-500">Overdue ({overdueNotifs.length})</span>
  </div>
  {overdueNotifs.map(n => (
  <div key={n.id} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition group">
@@ -236,7 +225,7 @@ export function NotificationPanel({
  {deadlineNotifs.length > 0 && (
  <div>
  <div className="sticky top-0 bg-white/95 backdrop-blur-sm px-4 py-1.5 border-b border-slate-100">
- <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Upcoming ({deadlineNotifs.length})</span>
+ <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500">Upcoming ({deadlineNotifs.length})</span>
  </div>
  {deadlineNotifs.map(n => (
  <div key={n.id} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition group">

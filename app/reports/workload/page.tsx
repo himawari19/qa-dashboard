@@ -45,9 +45,9 @@ export default function WorkloadPage() {
  setDetail({ member: item, items: [] });
  const res = await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(item.name)}`).then(r => r.json()).catch(() => ({}));
  const items: DetailItem[] = [
- ...(res.tasks || []).map((t: any) => ({ label: t.title, sub:"Task", badge: t.status, badge2: t.priority, href:"/tasks" })),
- ...(res.bugs || []).map((b: any) => ({ label: b.title, sub:"Bug", badge: b.status, badge2: b.severity, href:"/bugs" })),
- ...(res.suites || []).map((s: any) => ({ label: s.title, sub:"Test Suites", badge: s.status, href:"/test-suites" })),
+ ...(res.tasks || []).map((t: any) => ({ label: t.title, sub:"Task", badge: t.status, badge2: t.priority, href:`/tasks?view=${t.id}` })),
+ ...(res.bugs || []).map((b: any) => ({ label: b.title, sub:"Bug", badge: b.status, badge2: b.severity, href:`/bugs?view=${b.id}` })),
+ ...(res.suites || []).map((s: any) => ({ label: s.title, sub:"Test Suites", badge: s.status, href:`/test-suites?view=${s.id}` })),
  ];
  setDetail({ member: item, items });
  setDetailLoading(false);
@@ -253,7 +253,7 @@ export default function WorkloadPage() {
  </div>
  <div className="overflow-x-auto">
  <table className="w-full text-left text-xs">
- <thead>
+ <thead className="bg-slate-200">
  <tr className="border-b border-slate-100">
  <th className="px-6 py-4 font-black uppercase tracking-widest text-slate-400">Resource</th>
  <th className="px-6 py-4 font-black uppercase tracking-widest text-slate-400">Role</th>
@@ -328,15 +328,15 @@ export default function WorkloadPage() {
 
  <div className="grid grid-cols-3 gap-3 border-b border-slate-200/60 px-4 py-3">
  <div className="rounded-xl bg-blue-50 px-3 py-2">
- <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tasks</p>
+ <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Tasks</p>
  <p className="text-lg font-black text-slate-900">{detail.member.tasks}</p>
  </div>
  <div className="rounded-xl bg-blue-50 px-3 py-2">
- <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Plans</p>
+ <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Plans</p>
  <p className="text-lg font-black text-slate-900">{detail.member.plans}</p>
  </div>
  <div className="rounded-xl bg-blue-50 px-3 py-2">
- <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score</p>
+ <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Score</p>
  <p className="text-lg font-black text-slate-900">{detail.member.score}</p>
  </div>
  </div>

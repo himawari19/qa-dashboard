@@ -1,80 +1,56 @@
 # QA Hub — Agent Rules
 
 ## Stack
-Next.js 16.2 (App Router, Turbopack) · Tailwind CSS v4 (`app/globals.css`) · `@phosphor-icons/react` (weight `"bold"`) · SQLite (dev) / Neon Postgres (prod) via `lib/db.ts` · Roles: `superadmin` `admin` `fe` `be` `fullstack` `qa` `pm` `ai`
+Next.js 16.2 (App Router, Turbopack) · Tailwind v4 · `@phosphor-icons/react` (bold) · SQLite (dev) / Neon Postgres (prod) via `lib/db.ts` · Roles: superadmin admin fe be fullstack qa pm ai
 
 ## Key Files
-| File | Purpose |
-|------|---------|
-| `lib/db.ts` | DB connection, schema, `isPostgres` flag |
-| `lib/auth.ts` | Session helpers and role exports |
-| `lib/auth-core.ts` | Login/session core, user lookup |
-| `lib/roles.ts` | Role normalization, labels, options |
-| `lib/data.ts` | CRUD + **Activity Logging** |
-| `lib/data-helpers.ts` | `getAccessScope`, `logActivity`, helpers |
-| `lib/modules.ts` | Module configs & Zod schemas |
-| `components/module-workspace.tsx` | Main CRUD UI |
-| `components/module-workspace-*.tsx` | Split workspace UI parts |
-| `components/responsive-container.tsx` | Safe chart wrapper |
-| `app/[module]/page.tsx` | Dynamic module entry |
-| `**/*.test.ts[x]` | Vitest suites (mock-based, no token needed) |
+- `lib/db.ts` — DB connection, schema, `isPostgres` flag
+- `lib/auth.ts` / `lib/auth-core.ts` — Session, login, role checks
+- `lib/roles.ts` — Role helpers, labels, options
+- `lib/data.ts` — CRUD + activity logging
+- `lib/data-helpers.ts` — `getAccessScope`, `logActivity`
+- `lib/modules.ts` — Module configs & Zod schemas (check first when adding fields)
+- `components/module-workspace.tsx` — Main CRUD UI
+- `components/responsive-container.tsx` — Safe Recharts wrapper
+- `app/[module]/page.tsx` — Dynamic module entry
 
-## SQL Rules (CRITICAL — prod uses Postgres)
-**Always double-quote camelCase columns.** Postgres lowercases unquoted identifiers → "column not found" in prod.
+## SQL (CRITICAL)
+- **Always double-quote camelCase columns** — Postgres lowercases unquoted identifiers.
+- Must-quote: `createdAt` `updatedAt` `deletedAt` `startDate` `endDate` `sprintId` `testPlanId` `testSuiteId` `publicToken` `suggestedDev` `totalCases` `bugType` `relatedItems` `relatedFeature` `lastRunAt` `automationResult` `typeCase` `preCondition` `caseName` `testStep` `expectedResult` `actualResult` `actionItems` `entityType` `entityId`
+- Branch date logic with `isPostgres` (no `julianday` on Postgres).
+- Guard empty text dates with `COALESCE(col, '') != ''`.
+- `IN (...)` — return early on empty arrays.
+- `toPostgresQuery()` converts `?`→`$n` but does NOT quote columns.
+- UNION params: count `?` per branch, duplicate params accordingly.
+- Schema changes: create tables → add columns → create indexes.
 
-```sql
--- WRONG               RIGHT
-createdAt              "createdAt"
-suggestedDev = ?       "suggestedDev" = ?
-DATE(updatedAt)        DATE("updatedAt")
-testPlanId IN (...)    "testPlanId" IN (...)
-ORDER BY startDate     ORDER BY "startDate"
-```
-
-**Must-quote columns:** `createdAt` `updatedAt` `deletedAt` `startDate` `endDate` `sprintId` `testPlanId` `testSuiteId` `publicToken` `suggestedDev` `totalCases` `bugType` `relatedItems` `relatedFeature` `lastRunAt` `automationResult` `typeCase` `preCondition` `caseName` `testStep` `expectedResult` `actualResult` `actionItems` `entityType` `entityId`
-
-**SQLite-only:** `julianday()` breaks on Postgres. Branch using `isPostgres` from `lib/db.ts`:
-```ts
-const dayExpr = isPostgres
-  ? `(CURRENT_DATE - "updatedAt"::date)`
-  : `CAST(julianday('now') - julianday("updatedAt") AS INTEGER)`;
-```
-
-**Text dates in prod:** For legacy text date cols (`startDate`, `endDate`, `date`), avoid raw `DATE(col)` on possibly empty values. Guard with `COALESCE(col, '') != ''` and compare ISO strings when possible.
-
-**Bulk writes:** Any `IN (...)` write path must return early on empty arrays before building SQL.
-
-**Schema init:** When changing `lib/db.ts`, create tables first, then apply missing columns, then create indexes. Existing PG tables may lag behind current schema.
-
-**`toPostgresQuery()`** auto-converts `DATE('now',...)` and `?`→`$n` but does NOT quote columns.
-
-**UNION params:** count `?` per branch — e.g. two branches with `andCompany` needs `[...cp, ...cp]`.
-
-## Conventions
-- **Language**: New code, comments, test names, and user-facing copy must be in English unless the product term is intentionally localized.
-- **Activity Log**: MUST call `logActivity(company, type, id, action, summary)` in `lib/data.ts` for all CRUD.
-- **Isolation**: All DB queries MUST include `company` filter unless `isAdmin` is true and company is empty.
-- **Permissions**: use helpers in `lib/roles.ts`; `superadmin` is global-only, `admin` is workspace admin, `fe/be/fullstack/qa/pm/ai` are assignable/invite roles.
-- **Serialization**: DB results → Client Components MUST use `JSON.parse(JSON.stringify(data))`.
-- **Breadcrumbs**: Use `PageShell` with standardized parents: `Documentation` (Sprints, Meetings), `System Settings` (Users, Team), `Test Management` (Plans, Suites).
-- **Navigation**: `router.refresh()`, NOT `window.location.reload()`.
-- **Charts**: Recharts `ResponsiveContainer` must only render after the wrapper has measurable width/height. Use `components/responsive-container.tsx` to avoid `width(-1)`/`height(-1)` console warnings.
-- **Imports**: Always check if `moduleConfigs` is imported in `app/[module]/page.tsx` before use.
-- **Visuals**: Modern, premium UI. Tailwind classes only. NO hardcoded hex (except CSS vars).
-- **Versioning**: `package.json` version is source of truth.
-- **Deploy rule**: before every deploy or push intended for release, bump `package.json` version first.
+## Rules
+1. All queries MUST filter by `company` (unless superadmin with empty company).
+2. All CRUD MUST call `logActivity(company, type, id, action, summary)`.
+3. DB results → client: `JSON.parse(JSON.stringify(data))`.
+4. Navigation: `router.refresh()`, never `window.location.reload()`.
+5. Charts: use `responsive-container.tsx` wrapper.
+6. UI: Tailwind only, no hardcoded hex. Modern/premium look.
+7. Icons: `@phosphor-icons/react` weight `"bold"`.
+8. Breadcrumbs: `PageShell` with parents — Documentation (Sprints, Meetings), System Settings (Users, Team), Test Management (Plans, Suites).
+9. All mutating API routes MUST validate session before processing.
+10. Input validation: use Zod schemas from `lib/modules.ts`.
+11. SQL: parameterized queries only — no string interpolation.
+12. Dates: store ISO 8601, display with `date-fns`, server = UTC.
+13. API success: `{ data }` — API error: `{ error: string }` + proper status code.
+14. Code & comments in English.
+15. Bump `package.json` version before deploy/push.
 
 ## Do NOT
-- Add npm packages without checking `package.json`.
-- Change DB schema without ensuring SQLite/Postgres compatibility.
-- Reintroduce `/test-case-management` URLs; use `/test-cases`.
-- Commit or push unless explicitly asked.
-- Generate `.md` spec/design/task files — implement changes directly in code.
+- Add packages without checking `package.json`.
+- Change schema without SQLite/Postgres compat.
+- Use `/test-case-management` — it's `/test-cases`.
+- Commit/push unless asked.
+- Generate `.md` spec files — implement directly.
+- Run tests or modify test files unless asked.
 
 ## Checks
 ```
-pnpm test          # mock-based, no live creds
-npx tsc --noEmit   # type check
-pnpm precheck      # type check + build
+npx tsc --noEmit
+pnpm precheck
 ```
-Inspect `lib/modules.ts` first when adding/modifying fields.

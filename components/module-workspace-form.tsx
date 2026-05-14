@@ -73,22 +73,11 @@ export function ModuleWorkspaceForm({
  versionSequenceDefaultValue,
 }: ModuleWorkspaceFormProps) {
  return (
- <div id="module-form-section" className="rounded-2xl border-t border-slate-200/60 bg-transparent px-6 py-6 mb-6">
- <div className="mb-6 grid gap-3 sm:flex sm:items-center sm:justify-between">
- <div>
- <h3 className="text-2xl font-semibold text-slate-900">
- {editingRow ?`Edit ${shortTitle}` :`Create New ${shortTitle}`}
- </h3>
- <p className="mt-2 max-w-2xl text-sm text-slate-600">
- {editingRow ?"Update existing data." :"Fill in new data with a consistent format for import/export and tracking."}
- </p>
- </div>
- </div>
-
+ <div id="module-form-section">
  <form
   id={`${module}-form`}
   noValidate
-  className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl"
+  className="px-10 py-6"
   onChange={onFormChange}
   onSubmit={(event) => {
   event.preventDefault();

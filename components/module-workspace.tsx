@@ -14,7 +14,6 @@ import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { getUserRoleOptions } from "@/lib/roles";
-import type { SortConfig } from "@/components/module-workspace-table";
 
 
 type Row = Record<string, string | number> & { id: string | number };
@@ -128,13 +127,6 @@ export function ModuleWorkspace({
   // Undo delete
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
-  // Sort state
-  const [sortConfig, setSortConfig] = useState<SortConfig>(() => {
-    const sortKey = searchParams.get("sortBy");
-    const sortDir = searchParams.get("sortDir");
-    if (sortKey) return { key: sortKey, direction: (sortDir === "asc" ? "asc" : "desc") };
-    return null;
-  });
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const { canAdd, canEdit, canDelete, isViewer } = useMemo(
@@ -244,28 +236,6 @@ export function ModuleWorkspace({
     return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
   }, []);
 
-  // Sort handler
-  const handleSort = useCallback((key: string) => {
-    setSortConfig((prev) => {
-      const next: SortConfig = prev?.key === key
-        ? prev.direction === "asc" ? { key, direction: "desc" } : null
-        : { key, direction: "asc" };
-      // Sync to URL
-      const params = withUpdatedWorkspaceParams(currentSearch, (nextParams) => {
-        if (next) {
-          nextParams.set("sortBy", next.key);
-          nextParams.set("sortDir", next.direction);
-        } else {
-          nextParams.delete("sortBy");
-          nextParams.delete("sortDir");
-        }
-        nextParams.set("page", "1");
-      });
-      replaceWorkspaceUrl(params);
-      return next;
-    });
-  }, [currentSearch, replaceWorkspaceUrl]);
-
   // Bulk selection handlers
   const handleToggleSelect = useCallback((id: string | number) => {
     setSelectedIds((prev) => {
@@ -358,8 +328,8 @@ export function ModuleWorkspace({
     }
   }, [module]);
 
-  // Modules that support manual reordering
-  const reorderable = module === "tasks" || module === "bugs" || module === "test-cases";
+  // All modules support manual reordering
+  const reorderable = true;
 
   // Clear selection when rows change
   useEffect(() => {
@@ -552,10 +522,6 @@ export function ModuleWorkspace({
         filterOptions={filterOptions}
         activeFilters={activeFilters}
         onFilterChange={setActiveFilters}
-        onApplySavedFilter={(filters, savedSearch) => {
-          setActiveFilters(filters);
-          handleSearchChange(savedSearch);
-        }}
         allColumns={config.columns}
         visibleColumnKeys={visibleColumnKeys}
         onToggleColumn={handleToggleColumn}
@@ -593,8 +559,6 @@ export function ModuleWorkspace({
         onPrevPage={() => goToPage(Math.max(1, safePage - 1))}
         onNextPage={() => goToPage(Math.min(totalPages, safePage + 1))}
         onGoToPage={handleGoToPage}
-        sortConfig={sortConfig}
-        onSort={handleSort}
         selectedIds={selectedIds}
         onToggleSelect={handleToggleSelect}
         onToggleSelectAll={handleToggleSelectAll}

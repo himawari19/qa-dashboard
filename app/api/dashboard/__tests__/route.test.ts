@@ -4,6 +4,10 @@ import { GET } from "@/app/api/dashboard/route";
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getDashboardData: vi.fn(),
+  getBugSeverityCounts: vi.fn(),
+  getTestPassRate: vi.fn(),
+  computeQualityHealthScore: vi.fn(),
+  getAccessScope: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -12,10 +16,18 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/data", () => ({
   getDashboardData: mocks.getDashboardData,
+  getBugSeverityCounts: mocks.getBugSeverityCounts,
+  getTestPassRate: mocks.getTestPassRate,
+  computeQualityHealthScore: mocks.computeQualityHealthScore,
+}));
+
+vi.mock("@/lib/data-helpers", () => ({
+  getAccessScope: mocks.getAccessScope,
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.getAccessScope.mockReturnValue({ company: "acme", isAdmin: false });
 });
 
 describe("dashboard api", () => {
@@ -34,12 +46,18 @@ describe("dashboard api", () => {
   it("returns dashboard data", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "admin", company: "" });
     mocks.getDashboardData.mockResolvedValueOnce({ ok: true });
+    mocks.getBugSeverityCounts.mockResolvedValueOnce({ critical: 0, high: 0, medium: 0, low: 0 });
+    mocks.getTestPassRate.mockResolvedValueOnce(null);
+    mocks.computeQualityHealthScore.mockReturnValueOnce(30);
 
     const response = await GET(new Request("http://localhost/api/dashboard?project=QA"));
 
     expect(mocks.getDashboardData).toHaveBeenCalledWith("QA");
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true });
+    const json = await response.json();
+    expect(json.ok).toBe(true);
+    expect(json.bugSeverityCounts).toBeDefined();
+    expect(json.qualityHealthScore).toBeDefined();
   });
 
   it("falls back to empty dashboard when data fetch fails", async () => {
@@ -54,5 +72,85 @@ describe("dashboard api", () => {
       metrics: expect.any(Array),
       spotlight: { projectName: "No active project" },
     });
+  });
+
+  it("includes bugSeverityCounts in response when query succeeds", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "qa", company: "acme" });
+    mocks.getDashboardData.mockResolvedValueOnce({ metrics: [] });
+    mocks.getBugSeverityCounts.mockResolvedValueOnce({ critical: 2, high: 5, medium: 3, low: 1 });
+
+    const response = await GET(new Request("http://localhost/api/dashboard"));
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.bugSeverityCounts).toEqual({ critical: 2, high: 5, medium: 3, low: 1 });
+  });
+
+  it("omits bugSeverityCounts from response when query fails", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "qa", company: "acme" });
+    mocks.getDashboardData.mockResolvedValueOnce({ metrics: [] });
+    mocks.getBugSeverityCounts.mockRejectedValueOnce(new Error("db error"));
+
+    const response = await GET(new Request("http://localhost/api/dashboard"));
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.bugSeverityCounts).toBeUndefined();
+    expect(json.metrics).toEqual([]);
+  });
+
+  it("includes qualityHealthScore in response with all components", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "qa", company: "acme" });
+    mocks.getDashboardData.mockResolvedValueOnce({
+      metrics: [],
+      resolutionRate: { current: 80, previousWeek: 60, delta: 20 },
+    });
+    mocks.getBugSeverityCounts.mockResolvedValueOnce({ critical: 1, high: 3, medium: 5, low: 1 });
+    mocks.getTestPassRate.mockResolvedValueOnce(90);
+    mocks.computeQualityHealthScore.mockReturnValueOnce(78);
+
+    const response = await GET(new Request("http://localhost/api/dashboard"));
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.qualityHealthScore).toBeDefined();
+    expect(json.qualityHealthScore.score).toBe(78);
+    expect(json.qualityHealthScore.components).toEqual({
+      resolutionRate: 80,
+      inverseCriticalRatio: expect.any(Number),
+      testPassRate: 90,
+    });
+  });
+
+  it("computes inverseCriticalRatio as 100 when total open bugs is 0", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "qa", company: "acme" });
+    mocks.getDashboardData.mockResolvedValueOnce({
+      metrics: [],
+      resolutionRate: { current: null, previousWeek: null, delta: null },
+    });
+    mocks.getBugSeverityCounts.mockResolvedValueOnce({ critical: 0, high: 0, medium: 0, low: 0 });
+    mocks.getTestPassRate.mockResolvedValueOnce(null);
+    mocks.computeQualityHealthScore.mockReturnValueOnce(30);
+
+    const response = await GET(new Request("http://localhost/api/dashboard"));
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.qualityHealthScore.components.inverseCriticalRatio).toBe(100);
+    expect(json.qualityHealthScore.components.resolutionRate).toBeNull();
+    expect(json.qualityHealthScore.components.testPassRate).toBeNull();
+  });
+
+  it("omits qualityHealthScore when getTestPassRate throws", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "qa", company: "acme" });
+    mocks.getDashboardData.mockResolvedValueOnce({ metrics: [] });
+    mocks.getBugSeverityCounts.mockResolvedValueOnce({ critical: 1, high: 2, medium: 3, low: 4 });
+    mocks.getTestPassRate.mockRejectedValueOnce(new Error("db error"));
+
+    const response = await GET(new Request("http://localhost/api/dashboard"));
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.qualityHealthScore).toBeUndefined();
   });
 });

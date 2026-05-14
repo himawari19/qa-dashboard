@@ -203,6 +203,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS "ActivityLog" (
   "entityId" TEXT NOT NULL,
   "action" TEXT NOT NULL,
   "summary" TEXT NOT NULL,
+  "actor" TEXT NOT NULL DEFAULT '',
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`);
 

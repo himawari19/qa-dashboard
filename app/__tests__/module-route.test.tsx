@@ -93,7 +93,7 @@ describe("module route", () => {
 
     renderToStaticMarkup(element);
 
-    expect(mocks.getModuleRowsPage).toHaveBeenCalledWith("users", 1, 10, "");
+    expect(mocks.getModuleRowsPage).toHaveBeenCalledWith("users", 1, 10, "", undefined, "");
     expect(mocks.getAssigneeOptions).toHaveBeenCalled();
     expect(mocks.moduleWorkspace).toHaveBeenCalled();
 
@@ -239,8 +239,8 @@ describe("module route", () => {
     renderToStaticMarkup(element);
 
     const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls[0]![0];
-    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(1, "test-plans", 5, 10, "");
-    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(2, "test-plans", 1, 10, "");
+    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(1, "test-plans", 5, 10, "", undefined, "");
+    expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(2, "test-plans", 1, 10, "", undefined, "");
     expect(mocks.getTestSuitesByPlanIds).toHaveBeenCalledWith([7]);
     expect(props.currentPage).toBe(1);
     expect(props.rows).toEqual([

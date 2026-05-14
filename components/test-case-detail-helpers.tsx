@@ -98,7 +98,7 @@ export function Th({ children, w, className }: { children?: ReactNode; w: number
  <th
  style={{ width: w, minWidth: w, maxWidth: w }}
  className={cn(
-"border-b border-r border-slate-100 bg-transparent px-2 py-[5px] text-left text-xs font-bold uppercase tracking-wide text-slate-500 select-none backdrop-blur-md",
+"border-b border-r border-slate-100 bg-slate-200 px-2 py-[5px] text-left text-xs font-bold uppercase tracking-wide text-slate-700 select-none",
  className,
  )}
  >

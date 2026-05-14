@@ -263,3 +263,43 @@ input.border-none:focus-visible {
 .animate-show {
   animation: show 0.7s;
 }
+
+/* ── Micro-Animations for Dashboard Data Updates ─────────────── */
+/* Requirement 15: Subtle animations on data value changes */
+
+@keyframes stat-value-pop {
+  0% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes attention-slide-in {
+  0% { transform: translateY(-100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes activity-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-stat-pop {
+  animation: stat-value-pop 300ms ease-out;
+}
+
+.animate-attention-slide-in {
+  animation: attention-slide-in 200ms ease-out;
+}
+
+.animate-activity-fade-in {
+  animation: activity-fade-in 200ms ease-out;
+}
+
+/* Requirement 15.4: Respect prefers-reduced-motion — instant changes, no transitions */
+@media (prefers-reduced-motion: reduce) {
+  .animate-stat-pop,
+  .animate-attention-slide-in,
+  .animate-activity-fade-in {
+    animation: none;
+  }
+}

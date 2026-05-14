@@ -167,6 +167,7 @@ export const tables = [
       "entityId" TEXT NOT NULL,
       "action" TEXT NOT NULL,
       "summary" TEXT NOT NULL,
+      "actor" TEXT NOT NULL DEFAULT '',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
@@ -264,6 +265,86 @@ export const tables = [
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
+  },
+  {
+    name: "ExecutionRun",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "testSuiteId" INTEGER NOT NULL,
+      "testPlanId" TEXT NOT NULL DEFAULT '',
+      "runNumber" INTEGER NOT NULL DEFAULT 1,
+      "status" TEXT NOT NULL DEFAULT 'in-progress',
+      "tester" TEXT NOT NULL DEFAULT '',
+      "totalCases" INTEGER NOT NULL DEFAULT 0,
+      "passed" INTEGER NOT NULL DEFAULT 0,
+      "failed" INTEGER NOT NULL DEFAULT 0,
+      "blocked" INTEGER NOT NULL DEFAULT 0,
+      "notes" TEXT DEFAULT '',
+      "startedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "completedAt" DATE_TYPE,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "CaseVerdict",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "executionRunId" INTEGER NOT NULL,
+      "testCaseId" INTEGER NOT NULL,
+      "verdict" TEXT NOT NULL DEFAULT 'Pending',
+      "actualResult" TEXT DEFAULT '',
+      "evidence" TEXT DEFAULT '',
+      "duration" INTEGER NOT NULL DEFAULT 0,
+      "executedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "DashboardComment",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "entityType" TEXT NOT NULL,
+      "entityId" INTEGER NOT NULL,
+      "authorId" INTEGER NOT NULL,
+      "authorName" TEXT NOT NULL DEFAULT '',
+      "content" TEXT NOT NULL,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "PresenceHeartbeat",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "userId" INTEGER NOT NULL,
+      "userName" TEXT NOT NULL DEFAULT '',
+      "lastSeen" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "DashboardFilter",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "userId" INTEGER NOT NULL,
+      "userName" TEXT NOT NULL DEFAULT '',
+      "name" TEXT NOT NULL,
+      "project" TEXT NOT NULL DEFAULT '',
+      "activityScope" TEXT NOT NULL DEFAULT 'team',
+      "density" TEXT NOT NULL DEFAULT 'comfortable',
+      "shared" INTEGER NOT NULL DEFAULT 0,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
   }
 ];
 
@@ -355,6 +436,21 @@ CREATE INDEX IF NOT EXISTS "idx_deployment_project_active_date" ON "Deployment"(
 CREATE INDEX IF NOT EXISTS "idx_deployment_company_status" ON "Deployment"("company", "status");
 CREATE INDEX IF NOT EXISTS "idx_deployment_company_date" ON "Deployment"("company", "date");
 CREATE INDEX IF NOT EXISTS "idx_deployment_company_active_date" ON "Deployment"("company", "date" DESC, "createdAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_execrun_company_suite" ON "ExecutionRun"("company", "testSuiteId");
+CREATE INDEX IF NOT EXISTS "idx_execrun_company_status" ON "ExecutionRun"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_execrun_suite_number" ON "ExecutionRun"("testSuiteId", "runNumber" DESC);
+CREATE INDEX IF NOT EXISTS "idx_execrun_company_active" ON "ExecutionRun"("company", "startedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_caseverdict_run" ON "CaseVerdict"("executionRunId");
+CREATE INDEX IF NOT EXISTS "idx_caseverdict_company_run" ON "CaseVerdict"("company", "executionRunId");
+CREATE INDEX IF NOT EXISTS "idx_caseverdict_testcase" ON "CaseVerdict"("testCaseId");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_caseverdict_run_case" ON "CaseVerdict"("executionRunId", "testCaseId");
+CREATE INDEX IF NOT EXISTS "idx_dashcomment_company_entity" ON "DashboardComment"("company", "entityType", "entityId");
+CREATE INDEX IF NOT EXISTS "idx_dashcomment_company_created" ON "DashboardComment"("company", "createdAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_presence_user" ON "PresenceHeartbeat"("userId");
+CREATE INDEX IF NOT EXISTS "idx_presence_company_lastseen" ON "PresenceHeartbeat"("company", "lastSeen");
+CREATE INDEX IF NOT EXISTS "idx_dashfilter_company_user" ON "DashboardFilter"("company", "userId");
+CREATE INDEX IF NOT EXISTS "idx_dashfilter_company_shared" ON "DashboardFilter"("company", "shared");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_dashfilter_unique_name" ON "DashboardFilter"("company", "userId", "name") WHERE "deletedAt" IS NULL;
 `;
 
 export function expandSchemaType(typeName: string, postgres: boolean) {

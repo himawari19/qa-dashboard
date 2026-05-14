@@ -4,7 +4,7 @@ import { KanbanBoard } from"@/components/kanban-board";
 import { type Attachment } from"@/components/attachment-uploader";
 import { ViewModal } from"@/components/module-view-modal";
 import { ModuleWorkspaceHeader } from"@/components/module-workspace-header";
-import { ModuleWorkspaceTable, type SortConfig } from"@/components/module-workspace-table";
+import { ModuleWorkspaceTable } from"@/components/module-workspace-table";
 import { ModuleWorkspaceForm } from"@/components/module-workspace-form";
 import { ModuleWorkspaceModals } from"@/components/module-workspace-modals";
 import { FormDrawer } from"@/components/form-drawer";
@@ -83,8 +83,6 @@ type Props = {
  onPrevPage: () => void;
  onNextPage: () => void;
  onGoToPage?: (page: number) => void;
- sortConfig?: SortConfig;
- onSort?: (key: string) => void;
  selectedIds?: Set<string | number>;
  onToggleSelect?: (id: string | number) => void;
  onToggleSelectAll?: () => void;
@@ -105,7 +103,6 @@ type Props = {
  filterOptions?: Array<{ key: string; label: string; options: Array<{ value: string; label: string }> }>;
  activeFilters?: Array<{ key: string; value: string; label: string }>;
  onFilterChange?: (filters: Array<{ key: string; value: string; label: string }>) => void;
- onApplySavedFilter?: (filters: Array<{ key: string; value: string; label: string }>, search: string) => void;
  allColumns?: Array<{ key: string; label: string }>;
  visibleColumnKeys?: string[];
  onToggleColumn?: (key: string) => void;
@@ -175,8 +172,6 @@ export function ModuleWorkspaceShell({
  onPrevPage,
  onNextPage,
  onGoToPage,
- sortConfig,
- onSort,
  selectedIds,
  onToggleSelect,
  onToggleSelectAll,
@@ -197,7 +192,6 @@ export function ModuleWorkspaceShell({
  filterOptions,
  activeFilters,
  onFilterChange,
- onApplySavedFilter,
  allColumns,
  visibleColumnKeys,
  onToggleColumn,
@@ -229,14 +223,12 @@ export function ModuleWorkspaceShell({
  filterOptions={filterOptions}
  activeFilters={activeFilters}
  onFilterChange={onFilterChange}
- onApplySavedFilter={onApplySavedFilter}
  allColumns={allColumns}
  visibleColumnKeys={visibleColumnKeys}
  onToggleColumn={onToggleColumn}
  onResetColumns={onResetColumns}
  />
 
- {!showForm && module ==="test-suites" ? <div className="border-b border-slate-200/60 px-6 py-4" /> : null}
 
  {viewMode ==="table" ? (
  <>
@@ -262,8 +254,6 @@ export function ModuleWorkspaceShell({
  onPrevPage={onPrevPage}
  onNextPage={onNextPage}
  onGoToPage={onGoToPage}
- sortConfig={sortConfig}
- onSort={onSort}
  selectedIds={selectedIds}
  onToggleSelect={onToggleSelect}
  onToggleSelectAll={onToggleSelectAll}

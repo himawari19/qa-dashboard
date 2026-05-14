@@ -102,12 +102,12 @@ export function deriveSprintStatus(startDate?: string, endDate?: string): string
   return "active";
 }
 
-export async function logActivity(company: string, type: string, id: string, action: string, summary: string) {
+export async function logActivity(company: string, type: string, id: string, action: string, summary: string, actor?: string) {
   try {
     await db.run(
-      `INSERT INTO "ActivityLog" ("company", "entityType", "entityId", "action", "summary")
-       VALUES (?, ?, ?, ?, ?)`,
-      [company, type, id, action, summary],
+      `INSERT INTO "ActivityLog" ("company", "entityType", "entityId", "action", "summary", "actor")
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [company, type, id, action, summary, actor || ""],
     );
     const created = await db.query<{ id?: number | string }>(
       `SELECT "id" FROM "ActivityLog" WHERE "company" = ? AND "entityType" = ? AND "entityId" = ? AND "action" = ? AND "summary" = ? ORDER BY "id" DESC LIMIT 1`,

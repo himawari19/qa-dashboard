@@ -32,7 +32,7 @@ export function PageShell({
  <Breadcrumb crumbs={crumbs} />
  </div>
  )}
- <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+ <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
  <div className="border-b border-slate-200 px-6 py-5">
  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
  <div className="min-w-0 max-w-3xl">
@@ -47,7 +47,7 @@ export function PageShell({
  <h1 className={eyebrow ?"mt-2 text-2xl font-bold tracking-tight md:text-3xl text-slate-900" :"text-2xl font-bold tracking-tight md:text-3xl text-slate-900"}>{title}</h1>
  </div>
  </div>
- {description ? <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{description}</p> : null}
+ {description ? <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{description}</p> : null}
  </div>
  {actions ? (
  <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 overflow-x-auto xl:w-auto xl:justify-end">
@@ -56,7 +56,7 @@ export function PageShell({
  ) : null}
  </div>
  </div>
- {controls ? <div className="border-b border-slate-200/60 bg-white px-6 py-4 text-sm text-slate-600">{controls}</div> : null}
+ {controls ? <div className="border-b border-slate-200 bg-white px-6 py-4 text-sm text-slate-600">{controls}</div> : null}
  <div className="min-w-0 px-6 py-5">{children}</div>
  </div>
  </section>

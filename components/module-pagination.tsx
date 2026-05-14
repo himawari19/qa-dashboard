@@ -49,11 +49,7 @@ export function ModulePagination({
   };
 
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/60 pt-4">
-      <p className="text-xs font-medium text-slate-500">
-        Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)} of {totalItems} items
-      </p>
-
+    <div className="mt-4 flex flex-col items-center gap-3 border-t border-slate-200/60 pt-4">
       <div className="flex items-center gap-1.5">
         <button
           type="button"
@@ -120,6 +116,10 @@ export function ModulePagination({
           </div>
         )}
       </div>
+
+      <p className="text-xs font-medium text-slate-500">
+        Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)} of {totalItems} items
+      </p>
     </div>
   );
 }

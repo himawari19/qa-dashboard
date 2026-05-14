@@ -126,17 +126,17 @@ export function ModuleWorkspaceCell({ module, row, column, value, onInlineUpdate
       ) : column.tone ? (
         <Badge value={String(value)} />
       ) : column.key.toLowerCase().includes("date") || column.key === "createdAt" || column.key === "updatedAt" ? (
-        <span title={formatDate(value == null ? null : String(value))}>
+        <span className="inline-block min-w-[70px]" title={formatDate(value == null ? null : String(value))}>
           {column.key === "createdAt" || column.key === "updatedAt"
             ? formatRelativeTime(value == null ? null : String(value))
             : formatDate(value == null ? null : String(value))
           }
         </span>
       ) : module === "test-plans" && column.key === "scope" && Array.isArray(row.relatedSuites) ? (
-        <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto pr-1 scrollbar-thin">
+        <div className="flex h-24 flex-col gap-1.5 overflow-y-auto pr-1 scrollbar-thin">
           {row.relatedSuites.length > 0 ? (
             row.relatedSuites.map((suite) => (
-              <Link key={suite.id} href={`/test-suites/${suite.token || suite.publicToken || ""}`} className="rounded-sm bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100">
+              <Link key={suite.id} href={`/test-suites/${suite.token || suite.publicToken || ""}`} className="shrink-0 rounded-sm bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100">
                 {suite.title || suite.id}
               </Link>
             ))

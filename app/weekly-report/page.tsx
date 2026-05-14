@@ -450,7 +450,7 @@ export default function WeeklyReportPage() {
  {calOpen && (
  <div className="absolute left-0 top-10 z-50 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
  <div className="mb-2 text-center text-[11px] font-bold text-slate-400">
- {!rangeFrom ?"Pilih tanggal awal" : !rangeTo ?"Pilih tanggal akhir" :`${formatDate(toDateStr(rangeFrom))} — ${formatDate(toDateStr(rangeTo))}`}
+ {!rangeFrom ?"Select start date" : !rangeTo ?"Select end date" :`${formatDate(toDateStr(rangeFrom))} — ${formatDate(toDateStr(rangeTo))}`}
  </div>
  <div className="mb-3 flex items-center justify-between">
  <button
@@ -513,7 +513,7 @@ export default function WeeklyReportPage() {
  onClick={applyRange}
  className="mt-3 flex h-9 w-full items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-500"
  >
- Terapkan Filter
+ Apply Filter
  </button>
  )}
  </div>
@@ -749,7 +749,7 @@ export default function WeeklyReportPage() {
  <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:slide-in-from-bottom-0">
  <div className="flex items-center justify-between border-b border-slate-200/60 px-4 py-3">
  <div>
- <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">{detailModal.type}</p>
+ <p className="text-[11px] font-black uppercase tracking-widest text-blue-500">{detailModal.type}</p>
  <h2 className="text-sm font-black text-slate-900">
  {detailModal.fields.find(f => f.label ==="Title")?.value || detailModal.fields.find(f => f.label ==="Name")?.value ||"Detail"}
  </h2>

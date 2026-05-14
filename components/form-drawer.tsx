@@ -37,18 +37,18 @@ export function FormDrawer({ open, title, subtitle, onClose, children }: FormDra
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={onClose}
       />
-      {/* Drawer panel */}
+      {/* Modal panel */}
       <div
         ref={ref}
         className={cn(
-          "relative flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl",
-          "animate-in slide-in-from-right duration-300",
+          "relative flex max-h-[90vh] w-full max-w-6xl flex-col rounded-2xl bg-white shadow-2xl",
+          "animate-in fade-in zoom-in-95 duration-200",
         )}
       >
         {/* Header */}

@@ -2,23 +2,27 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/badge";
 import { toast } from "@/components/ui/toast";
-import { cn, formatDate, formatDisplayText } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { DashboardDrawer } from "@/components/dashboard-drawer";
 import { DashboardStandupModal } from "@/components/dashboard-standup-modal";
 import {
   Bug, ClipboardText, PlayCircle, Checks, Note,
-  ArrowRight, CheckCircle, XCircle, Clock, User,
-  ChartBar, CalendarBlank, Kanban, CaretRight, Timer,
-  TrendUp, TrendDown, Minus, Warning,
+  ArrowRight, User,
+  ChartBar, CalendarBlank, Kanban, CaretRight,
+  TrendUp, TrendDown, Minus,
 } from "@phosphor-icons/react";
+import { DensityToggle } from "@/components/density-toggle";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
 import { ResponsiveContainer } from "@/components/responsive-container";
 import { ChartSkeleton } from "@/components/ui/skeleton";
+import { QualityHealthScore } from "@/components/quality-health-score";
+import { AttentionPanel, useCurrentUserRole, type AttentionItem } from "@/components/attention-panel";
+import { DailyDigestCard } from "@/components/daily-digest-card";
+import { useValueChangeAnimation } from "@/hooks/use-value-change-animation";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -37,8 +41,8 @@ type DashboardProps = {
     totalScenarios: number;
     totalBugs: number;
     completionRate: number;
-    criticalBugs: { id?: number | string; code: string; title: string; severity: string }[];
-    priorityTasks: { id?: number | string; code: string; title: string; priority: string }[];
+    criticalBugs: { id?: number | string; code: string; title: string; severity: string; statusChangedAt?: string | null; ageDays?: number | null; moduleType?: 'Bug' | 'Task' }[];
+    priorityTasks: { id?: number | string; code: string; title: string; priority: string; statusChangedAt?: string | null; ageDays?: number | null; moduleType?: 'Bug' | 'Task' }[];
   };
   recent: {
     tasks: { id: number; code: string; title: string; priority: string; status: string }[];
@@ -49,7 +53,7 @@ type DashboardProps = {
     name: string; startDate: string; endDate: string;
     progress: number; taskTotal: number; taskDone: number; goal?: string;
   } | null;
-  activity?: { id: number; entityType: string; entityId: string; action: string; summary: string; createdAt: string }[];
+  activity?: { id: number; entityType: string; entityId: string; action: string; summary: string; actor?: string; createdAt: string }[];
   bugTrendData?: { date: string; count: number }[];
   sprintBurndown?: { date: string; done: number; ideal: number }[];
   sprintPassRates?: { name: string; passRate: number; sessions: number }[];
@@ -57,6 +61,16 @@ type DashboardProps = {
   heatmap?: { name: string; taskCount: number; bugCount: number; suiteCount?: number; planCount?: number; total: number }[];
   recentSessions?: { id: number; date: string; tester: string; scope: string; totalCases: number; passed: number; failed: number; blocked: number; result: string }[];
   weekPulse?: { created: number; resolved: number; prevCreated: number; prevResolved: number };
+  resolutionRate?: { current: number | null; previousWeek: number | null; delta: number | null };
+  bugSeverityCounts?: { critical: number; high: number; medium: number; low: number };
+  qualityHealthScore?: {
+    score: number;
+    components: {
+      resolutionRate: number | null;
+      inverseCriticalRatio: number | null;
+      testPassRate: number | null;
+    };
+  };
 };
 
 // ── Main Dashboard ─────────────────────────────────────────────────────────
@@ -72,9 +86,12 @@ export function Dashboard({
   activity = [],
   spotlight,
   weekPulse,
+  resolutionRate,
+  bugSeverityCounts,
+  qualityHealthScore,
 }: DashboardProps) {
   const [mounted, setMounted] = useState(false);
-  const [drawer, setDrawer] = useState<{ title: string; subtitle?: string; items: DrawerItem[]; href?: string } | null>(null);
+  const [drawer, setDrawer] = useState<{ title: string; subtitle?: string; items: DrawerItem[]; href?: string; entityType?: string; entityId?: number } | null>(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [bottlenecks, setBottlenecks] = useState<{ id: string; code: string; title: string; module: string; status: string; days: number; href: string }[]>([]);
   const [showStandup, setShowStandup] = useState(false);
@@ -110,17 +127,24 @@ export function Dashboard({
 
   const criticalBugs = spotlight?.criticalBugs ?? [];
   const priorityTasks = spotlight?.priorityTasks ?? [];
-  const attentionItems = [
-    ...criticalBugs.map(b => ({ type: "bug" as const, id: b.id, title: b.title, badge: b.severity, href: b.id ? `/bugs?viewId=${b.id}` : "/bugs" })),
-    ...priorityTasks.map(t => ({ type: "task" as const, id: t.id, title: t.title, badge: t.priority, href: t.id ? `/tasks?viewId=${t.id}` : "/tasks" })),
-    ...bottlenecks.slice(0, 5).map(b => ({ type: "stuck" as const, id: b.id, title: b.title, badge: `${b.days}d stuck`, href: b.href })),
+  const attentionItems: AttentionItem[] = [
+    ...criticalBugs.map(b => ({ type: "bug" as const, id: b.id, title: b.title, badge: b.severity, href: b.id ? `/bugs?viewId=${b.id}` : "/bugs", statusChangedAt: b.statusChangedAt ?? null, ageDays: b.ageDays ?? null, moduleType: "Bug" as const })),
+    ...priorityTasks.map(t => ({ type: "task" as const, id: t.id, title: t.title, badge: t.priority, href: t.id ? `/tasks?viewId=${t.id}` : "/tasks", statusChangedAt: t.statusChangedAt ?? null, ageDays: t.ageDays ?? null, moduleType: "Task" as const })),
+    ...bottlenecks.slice(0, 5).map(b => ({ type: "stuck" as const, id: b.id, title: b.title, badge: `${b.days}d stuck`, href: b.href, statusChangedAt: null as string | null, ageDays: b.days ?? null, moduleType: undefined })),
   ];
+
+  const userRole = useCurrentUserRole();
 
   const chartGrid = "#f1f5f9";
   const chartTick = "#94a3b8";
 
   return (
-    <div className="space-y-6 pb-12">
+    <div
+      id="dashboard-density-container"
+      data-dashboard-root=""
+      className="space-y-6 pb-12"
+      style={{ "--dash-padding": "16px", "--dash-font": "14px", "--dash-gap": "16px" } as React.CSSProperties}
+    >
       {drawer && (
         <DashboardDrawer
           title={drawer.title}
@@ -129,8 +153,13 @@ export function Dashboard({
           loading={drawerLoading}
           onClose={closeDrawer}
           viewAllHref={drawer.href}
+          entityType={drawer.entityType}
+          entityId={drawer.entityId}
         />
       )}
+
+      {/* Daily morning digest — only renders before noon, when not dismissed today, and when there is data */}
+      <DailyDigestCard />
 
       <Breadcrumb crumbs={[{ label: "Dashboard" }]} />
 
@@ -147,7 +176,8 @@ export function Dashboard({
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <DensityToggle />
           <button onClick={() => setShowStandup(true)}
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-700 transition shadow-sm shadow-blue-500/20">
             <Note size={15} weight="bold" /> Standup
@@ -160,7 +190,7 @@ export function Dashboard({
 
       {/* Sprint bar (inline, only if active) */}
       {sprintInfo && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <CalendarBlank size={14} weight="bold" className="text-slate-400" />
@@ -178,14 +208,14 @@ export function Dashboard({
         </div>
       )}
 
+      {/* ── Daily Digest (morning summary) ── */}
+      <DailyDigestCard />
+
       {/* ── Quick Stats (3 cards) ── */}
       <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Open Bugs"
+        <BugStatCard
           value={openBugs}
-          icon={<Bug size={20} weight="bold" className="text-rose-500" />}
-          color="bg-rose-50"
-          href="/bugs"
+          bugSeverityCounts={bugSeverityCounts}
         />
         <StatCard
           label="Active Tasks"
@@ -205,14 +235,16 @@ export function Dashboard({
 
       {/* ── This Week Pulse ── */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">This Week</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Created vs resolved items</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Created vs resolved items</p>
           </div>
-          <ChartBar size={15} className="text-slate-300" weight="bold" />
+          <ChartBar size={14} className="text-slate-300" weight="bold" />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+
+        {/* Pulse metrics row — compact inline */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <PulseMetric
             label="Created"
             value={pulse.created}
@@ -227,15 +259,24 @@ export function Dashboard({
             color="text-emerald-600"
             bgColor="bg-emerald-50"
           />
+          {/* Resolution Rate inline */}
+          <ResolutionRateMetric resolutionRate={resolutionRate} />
+          {/* Quality Health Score inline */}
+          {qualityHealthScore && (
+            <div className="flex items-center justify-center rounded-xl bg-slate-50 px-3 py-2">
+              <QualityHealthScore qualityHealthScore={qualityHealthScore} />
+            </div>
+          )}
         </div>
+
         {/* Mini bar chart — bugs by module (top 5) */}
         {distribution.bugByModule.length > 0 && (
-          <div className="mt-5 pt-5 border-t border-slate-100">
-            <p className="text-xs font-bold text-slate-500 mb-3">Bug distribution by module</p>
-            <div className="h-32">
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <p className="text-[11px] font-bold text-slate-500 mb-2">Bug distribution by module</p>
+            <div className="h-28">
               {mounted ? (
                 <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                  <BarChart data={distribution.bugByModule.slice(0, 6)} barSize={24}>
+                  <BarChart data={distribution.bugByModule.slice(0, 6)} barSize={20}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} vertical={false} />
                     <XAxis dataKey="module" tick={{ fontSize: 9, fill: chartTick }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 9, fill: chartTick }} axisLine={false} tickLine={false} allowDecimals={false} />
@@ -260,34 +301,7 @@ export function Dashboard({
       <section className="grid gap-4 lg:grid-cols-5">
 
         {/* Attention Needed (3 cols) */}
-        <div className="lg:col-span-3 flex flex-col rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Attention Needed</h3>
-            <Warning size={15} className="text-amber-400" weight="bold" />
-          </div>
-          {attentionItems.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
-              <CheckCircle size={28} weight="bold" className="text-emerald-400" />
-              <p className="text-xs font-semibold">All clear — no critical items right now.</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {attentionItems.slice(0, 10).map((item, i) => (
-                <Link key={i} href={item.href} prefetch={false}
-                  className="flex items-center gap-2.5 rounded-lg border border-slate-100 p-3 hover:border-slate-200 hover:bg-slate-50 transition group">
-                  <div className="shrink-0">
-                    {item.type === "bug" && <XCircle size={14} weight="fill" className="text-rose-500" />}
-                    {item.type === "task" && <Kanban size={14} weight="bold" className="text-blue-500" />}
-                    {item.type === "stuck" && <Timer size={14} weight="bold" className="text-amber-500" />}
-                  </div>
-                  <span className="flex-1 text-xs font-semibold text-slate-700 truncate group-hover:text-slate-900">{item.title}</span>
-                  <Badge value={item.badge} />
-                  <CaretRight size={10} className="text-slate-300 group-hover:text-slate-500" />
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+        <AttentionPanel items={attentionItems} userRole={userRole} />
 
         {/* Team Pulse (2 cols) */}
         <div className="lg:col-span-2 flex flex-col rounded-2xl border border-slate-200 bg-white p-5">
@@ -325,12 +339,12 @@ export function Dashboard({
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-500">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[11px] font-black text-slate-500">
                           {member.name[0]?.toUpperCase() ?? "?"}
                         </div>
                         <span className="text-xs font-semibold text-slate-700 group-hover:text-blue-600 transition">{member.name}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400">
                         <span>{(member as any).taskCount ?? 0}T</span>
                         <span>{(member as any).bugCount ?? 0}B</span>
                         <span className={cn("h-2 w-2 rounded-full", heat)} />
@@ -346,38 +360,6 @@ export function Dashboard({
           )}
         </div>
       </section>
-
-      {/* ── Recent Activity (compact) ── */}
-      {activity.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Recent Activity</h3>
-            <Clock size={15} className="text-slate-400" weight="bold" />
-          </div>
-          <div className="space-y-2">
-            {activity.slice(0, 8).map((item, i) => (
-              <div key={i} className="flex items-start gap-3 py-2 border-b border-slate-50 last:border-0">
-                <div className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
-                  item.action === "create" ? "border-emerald-200 bg-emerald-50" :
-                  item.action === "delete" ? "border-rose-200 bg-rose-50" :
-                  "border-slate-200 bg-slate-50"
-                )}>
-                  {ENTITY_ICON[item.entityType] ?? <Clock size={12} className="text-slate-400" weight="bold" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-700 truncate">{item.summary}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] font-bold text-slate-400">{formatDisplayText(item.entityType)}</span>
-                    <span className="text-[10px] text-slate-300">·</span>
-                    <span className="text-[10px] text-slate-400">{item.createdAt?.slice(0, 16).replace("T", " ")}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Standup modal */}
       <DashboardStandupModal
@@ -398,14 +380,6 @@ export function Dashboard({
 
 const MODULE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#6366f1", "#8b5cf6", "#ec4899"];
 
-const ENTITY_ICON: Record<string, React.ReactNode> = {
-  Task: <Kanban size={12} weight="bold" className="text-blue-500" />,
-  Bug: <Bug size={12} weight="bold" className="text-rose-500" />,
-  TestCase: <Checks size={12} weight="bold" className="text-emerald-500" />,
-  TestSuite: <ClipboardText size={12} weight="bold" className="text-indigo-500" />,
-  Session: <PlayCircle size={12} weight="bold" className="text-amber-500" />,
-};
-
 function computeWeekPulse(
   metrics: { label: string; value: number }[],
   distribution: { tasks: { name: string; value: number }[]; bugs: { name: string; value: number }[] },
@@ -424,6 +398,7 @@ function computeWeekPulse(
 function StatCard({ label, value, icon, color, href }: {
   label: string; value: number; icon: React.ReactNode; color: string; href: string;
 }) {
+  const animClass = useValueChangeAnimation(value);
   return (
     <Link href={href} prefetch={false}
       className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 group">
@@ -431,11 +406,49 @@ function StatCard({ label, value, icon, color, href }: {
         {icon}
       </div>
       <div>
-        <p className="text-2xl font-black tracking-tight text-slate-900">{value}</p>
+        <p className={cn("text-2xl font-black tracking-tight text-slate-900", animClass)}>{value}</p>
         <p className="text-xs font-semibold text-slate-400">{label}</p>
       </div>
       <ArrowRight size={14} className="ml-auto text-slate-300 group-hover:text-slate-500 transition" weight="bold" />
     </Link>
+  );
+}
+
+function BugStatCard({ value, bugSeverityCounts }: {
+  value: number;
+  bugSeverityCounts?: { critical: number; high: number; medium: number; low: number };
+}) {
+  const animClass = useValueChangeAnimation(value);
+  return (
+    <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 group">
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50">
+          <Bug size={20} weight="bold" className="text-rose-500" />
+        </div>
+        <div>
+          <p className={cn("text-2xl font-black tracking-tight text-slate-900", animClass)}>{value}</p>
+          <p className="text-xs font-semibold text-slate-400">Open Bugs</p>
+        </div>
+        <Link href="/bugs" prefetch={false} className="ml-auto">
+          <ArrowRight size={14} className="text-slate-300 group-hover:text-slate-500 transition" weight="bold" />
+        </Link>
+      </div>
+      {bugSeverityCounts && (
+        <div className="mt-3 grid grid-cols-4 gap-2 border-t border-slate-100 pt-3">
+          {(["critical", "high", "medium", "low"] as const).map((severity) => (
+            <Link
+              key={severity}
+              href={`/bugs?severity=${severity}`}
+              prefetch={false}
+              className="text-center hover:bg-slate-50 rounded-md p-1.5 transition"
+            >
+              <p className="text-sm font-bold text-slate-700">{bugSeverityCounts[severity]}</p>
+              <p className="text-[11px] font-semibold text-slate-400 capitalize">{severity}</p>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -446,17 +459,44 @@ function PulseMetric({ label, value, prev, color, bgColor }: {
   const TrendIcon = delta > 0 ? TrendUp : delta < 0 ? TrendDown : Minus;
 
   return (
-    <div className={cn("rounded-xl p-4", bgColor)}>
+    <div className={cn("rounded-xl px-4 py-3", bgColor)}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-slate-600">{label}</span>
+        <span className="text-[11px] font-bold text-slate-600">{label}</span>
         {prev > 0 && (
-          <div className={cn("flex items-center gap-1 text-[10px] font-bold", delta > 0 ? "text-rose-500" : delta < 0 ? "text-emerald-500" : "text-slate-400")}>
+          <div className={cn("flex items-center gap-0.5 text-[11px] font-bold", delta > 0 ? "text-rose-500" : delta < 0 ? "text-emerald-500" : "text-slate-400")}>
             <TrendIcon size={10} weight="bold" />
-            <span>{delta > 0 ? "+" : ""}{delta}% vs last week</span>
+            <span>{delta > 0 ? "+" : ""}{delta}%</span>
           </div>
         )}
       </div>
-      <p className={cn("text-3xl font-black mt-1", color)}>{value}</p>
+      <p className={cn("text-xl font-black mt-1", color)}>{value}</p>
+    </div>
+  );
+}
+
+function ResolutionRateMetric({ resolutionRate }: {
+  resolutionRate?: { current: number | null; previousWeek: number | null; delta: number | null };
+}) {
+  if (!resolutionRate) return null;
+
+  const { current, delta } = resolutionRate;
+  const isNA = current === null;
+  const rateColor = isNA ? "text-slate-400" : current < 70 ? "text-amber-500" : "text-emerald-500";
+  const rateBgColor = isNA ? "bg-slate-50" : current < 70 ? "bg-amber-50" : "bg-emerald-50";
+
+  return (
+    <div className={cn("rounded-xl px-4 py-3", rateBgColor)} data-testid="resolution-rate-metric">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold text-slate-600">Resolution Rate</span>
+        {delta !== null && (
+          <span className={cn("text-[11px] font-bold", delta >= 0 ? "text-emerald-600" : "text-amber-600")} data-testid="resolution-rate-delta">
+            {delta >= 0 ? `+${delta}` : `\u2212${Math.abs(delta)}`}pp
+          </span>
+        )}
+      </div>
+      <p className={cn("text-xl font-black mt-1", rateColor)} data-testid="resolution-rate-value">
+        {isNA ? "N/A" : `${current}%`}
+      </p>
     </div>
   );
 }
@@ -468,3 +508,5 @@ function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; 
     </Link>
   );
 }
+
+

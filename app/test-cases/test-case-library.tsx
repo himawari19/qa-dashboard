@@ -13,7 +13,25 @@ import {
  DotsThreeVertical,
  PencilSimple,
  Table,
+ DotsSixVertical,
 } from"@phosphor-icons/react";
+import {
+ DndContext,
+ DragOverlay,
+ closestCenter,
+ PointerSensor,
+ TouchSensor,
+ useSensor,
+ useSensors,
+ type DragStartEvent,
+ type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+ SortableContext,
+ verticalListSortingStrategy,
+ useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type TestCase = {
  id: number;
@@ -72,6 +90,83 @@ const PRIORITY_DOT: Record<string, string> = {
  Low:"bg-slate-300",
 };
 
+/* ─── Sortable Test Case Row ─── */
+function SortableTestCaseRow({
+ testCase,
+ index,
+ suiteAssignee,
+ isDragOverlay = false,
+}: {
+ testCase: TestCase;
+ index: number;
+ suiteAssignee: string | null;
+ isDragOverlay?: boolean;
+}) {
+ const {
+  attributes,
+  listeners,
+  setNodeRef,
+  transform,
+  transition,
+  isDragging,
+ } = useSortable({ id: `tc-${testCase.id}` });
+
+ const style = {
+  transform: CSS.Transform.toString(transform),
+  transition,
+ };
+
+ return (
+  <tr
+   ref={setNodeRef}
+   style={style}
+   {...attributes}
+   className={cn(
+    "group/row transition-shadow duration-200 hover:bg-slate-50/70",
+    isDragging && "opacity-30 bg-slate-100",
+    isDragOverlay && "shadow-2xl bg-white opacity-100 ring-2 ring-sky-400/50",
+   )}
+  >
+   <td className="px-2 py-3.5 align-top w-[36px]">
+    <span {...listeners} className="inline-flex cursor-grab active:cursor-grabbing touch-none text-slate-300 hover:text-slate-500 transition">
+     <DotsSixVertical size={14} weight="bold" />
+    </span>
+   </td>
+   <td className="px-3 py-3.5 align-top">
+    <span className="font-mono text-xs font-bold text-slate-400">{index + 1}</span>
+   </td>
+   <td className="max-w-[360px] px-3 py-3.5 align-top">
+    <div className="space-y-1">
+     <p className="truncate font-semibold text-slate-800">{testCase.caseName}</p>
+     {testCase.actualResult && (
+      <p className="mt-0 truncate text-xs text-slate-400">{testCase.actualResult}</p>
+     )}
+    </div>
+   </td>
+   <td className="hidden px-3 py-3.5 align-top md:table-cell">
+    <span className="text-xs font-semibold text-slate-600">
+     {testCase.assignee || suiteAssignee ||"Unassigned"}
+    </span>
+   </td>
+   <td className="hidden px-3 py-3.5 align-top md:table-cell">
+    <span className="text-xs text-slate-500">{formatDisplayText(testCase.typeCase)}</span>
+   </td>
+   <td className="hidden px-3 py-3.5 align-top lg:table-cell">
+    <div className="flex items-center gap-1.5">
+     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[testCase.priority] ??"bg-slate-300")} />
+     <span className="text-xs font-semibold text-slate-600">{formatDisplayText(testCase.priority)}</span>
+    </div>
+   </td>
+   <td className="px-3 py-3.5 align-top">
+    <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
+     {STATUS_ICON[testCase.status] ?? STATUS_ICON.Pending}
+     {formatDisplayText(testCase.status ||"Pending")}
+    </span>
+   </td>
+  </tr>
+ );
+}
+
 function getCaseSortValue(value: string) {
  const match = String(value ??"").match(/(\d+)/);
  return match ? Number.parseInt(match[1] ??"0", 10) : Number.MAX_SAFE_INTEGER;
@@ -95,6 +190,92 @@ function compareSuiteGroups(a: SuiteGroup, b: SuiteGroup) {
 
 const ALL ="All";
 const STATUS_FILTERS = [ALL,"Passed","Failed","Blocked","Pending"] as const;
+
+/* ─── Sortable Test Case Table ─── */
+function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase[]; suiteAssignee: string | null }) {
+ const [localCases, setLocalCases] = useState(displayCases);
+ const [activeCase, setActiveCase] = useState<TestCase | null>(null);
+ const [activeIndex, setActiveIndex] = useState(-1);
+
+ useEffect(() => { setLocalCases(displayCases); }, [displayCases]);
+
+ const sensors = useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+ );
+
+ const sortableIds = useMemo(() => localCases.map((c) => `tc-${c.id}`), [localCases]);
+
+ function handleDragStart(event: DragStartEvent) {
+  const id = Number(String(event.active.id).replace("tc-", ""));
+  const idx = localCases.findIndex((c) => c.id === id);
+  if (idx >= 0) {
+   setActiveCase(localCases[idx]);
+   setActiveIndex(idx);
+  }
+ }
+
+ function handleDragEnd(event: DragEndEvent) {
+  const { active, over } = event;
+  setActiveCase(null);
+  setActiveIndex(-1);
+  if (!over || active.id === over.id) return;
+
+  const oldId = Number(String(active.id).replace("tc-", ""));
+  const newId = Number(String(over.id).replace("tc-", ""));
+  const oldIndex = localCases.findIndex((c) => c.id === oldId);
+  const newIndex = localCases.findIndex((c) => c.id === newId);
+  if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+
+  setLocalCases((prev) => {
+   const next = [...prev];
+   const [moved] = next.splice(oldIndex, 1);
+   next.splice(newIndex, 0, moved);
+   return next;
+  });
+
+  // Persist reorder
+  fetch("/api/items/test-cases", {
+   method: "PATCH",
+   headers: { "Content-Type": "application/json" },
+   body: JSON.stringify({ id: oldId, sortOrder: newIndex + 1 }),
+  }).catch(() => {});
+ }
+
+ return (
+  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+   <table className="w-full text-sm">
+    <thead className="sticky top-0 z-10">
+     <tr className="border-b border-slate-100 bg-slate-200">
+      <th className="w-[36px] px-2 py-3" />
+      <th className="w-[52px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">#</th>
+      <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
+      <th className="hidden w-[160px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Assignee</th>
+      <th className="hidden w-[120px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Type</th>
+      <th className="hidden w-[90px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 lg:table-cell">Priority</th>
+      <th className="w-[110px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Status</th>
+     </tr>
+    </thead>
+    <tbody className="divide-y divide-slate-100">
+     <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+      {localCases.map((testCase, index) => (
+       <SortableTestCaseRow key={testCase.id} testCase={testCase} index={index} suiteAssignee={suiteAssignee} />
+      ))}
+     </SortableContext>
+    </tbody>
+   </table>
+   <DragOverlay dropAnimation={{ duration: 250, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+    {activeCase ? (
+     <table className="w-full text-sm">
+      <tbody>
+       <SortableTestCaseRow testCase={activeCase} index={activeIndex} suiteAssignee={suiteAssignee} isDragOverlay />
+      </tbody>
+     </table>
+    ) : null}
+   </DragOverlay>
+  </DndContext>
+ );
+}
 
 export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[]; initialSearch?: string }) {
  const [search, setSearch] = useState(initialSearch);
@@ -367,55 +548,7 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  </div>
 
  <div className="hidden flex-1 overflow-y-auto md:block">
- <table className="w-full text-sm">
- <thead className="sticky top-0 z-10">
- <tr className="border-b border-slate-100 bg-slate-50">
- <th className="w-[72px] px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">#</th>
- <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
- <th className="hidden w-[160px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Assignee</th>
- <th className="hidden w-[120px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Type</th>
- <th className="hidden w-[90px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 lg:table-cell">Priority</th>
- <th className="w-[110px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Status</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-100">
- {displayCases.map((testCase, index) => (
- <tr key={testCase.id} className="group/row transition-colors hover:bg-slate-50/70">
- <td className="px-5 py-3.5 align-top">
- <span className="font-mono text-xs font-bold text-slate-400">{index + 1}</span>
- </td>
- <td className="max-w-[360px] px-3 py-3.5 align-top">
- <div className="space-y-1">
- <p className="truncate font-semibold text-slate-800">{testCase.caseName}</p>
- {testCase.actualResult && (
- <p className="mt-0 truncate text-xs text-slate-400">{testCase.actualResult}</p>
- )}
- </div>
- </td>
- <td className="hidden px-3 py-3.5 align-top md:table-cell">
- <span className="text-xs font-semibold text-slate-600">
- {testCase.assignee || selected.suiteAssignee ||"Unassigned"}
- </span>
- </td>
- <td className="hidden px-3 py-3.5 align-top md:table-cell">
- <span className="text-xs text-slate-500">{formatDisplayText(testCase.typeCase)}</span>
- </td>
- <td className="hidden px-3 py-3.5 align-top lg:table-cell">
- <div className="flex items-center gap-1.5">
- <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[testCase.priority] ??"bg-slate-300")} />
- <span className="text-xs font-semibold text-slate-600">{formatDisplayText(testCase.priority)}</span>
- </div>
- </td>
- <td className="px-3 py-3.5 align-top">
- <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
- {STATUS_ICON[testCase.status] ?? STATUS_ICON.Pending}
- {formatDisplayText(testCase.status ||"Pending")}
- </span>
- </td>
- </tr>
- ))}
- </tbody>
- </table>
+ <TestCaseTable displayCases={displayCases} suiteAssignee={selected.suiteAssignee} />
  </div>
  </div>
  )}

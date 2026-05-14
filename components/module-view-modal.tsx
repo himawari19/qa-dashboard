@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn, formatDisplayText, formatRelativeTime } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
 import { HighlightText } from "@/components/highlight-text";
-import { ClockCounterClockwise, Note, PencilSimple, X, CircleNotch } from "@phosphor-icons/react";
+import { Badge } from "@/components/badge";
+import { ClockCounterClockwise, Note, PencilSimple, X, CircleNotch, ArrowSquareOut, Image as ImageIcon } from "@phosphor-icons/react";
 import { CopyLinkButton } from "@/components/copy-link-button";
 
 type FieldConfig = {
@@ -17,6 +18,24 @@ type FieldConfig = {
 /** Available tabs in the detail view modal */
 const VIEW_MODAL_TABS = ["details", "activity"] as const;
 const DEFAULT_TAB = "details";
+
+/** Fields that should render as badges */
+const BADGE_FIELDS = ["status", "priority", "severity", "bugType", "typeCase", "environment", "result"];
+
+/** Fields considered "metadata" (short, shown in compact grid) */
+const METADATA_FIELDS = ["project", "projectName", "sprint", "date", "startDate", "endDate", "dueDate", "assignee", "tester", "developer", "version", "tcId", "code", "caseName", "email", "role", "skills", "category", "module", "moduleName", "feature", "relatedFeature", "suggestedDev", "createdBy", "relatedItems", "traceability", "testPlanId", "testPlanTitle", "testSuiteId", "attendees", "whatTested"];
+
+/** Image file extensions for evidence preview */
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"];
+
+function isImageUrl(url: string): boolean {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    return IMAGE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
+  } catch {
+    return IMAGE_EXTENSIONS.some((ext) => url.toLowerCase().endsWith(ext));
+  }
+}
 
 type ActivityEntry = {
   id: number;
@@ -43,6 +62,26 @@ type ViewModalProps = {
 function isValidTab(tab: string | null | undefined): tab is string {
   if (!tab) return false;
   return (VIEW_MODAL_TABS as readonly string[]).includes(tab);
+}
+
+/** Lightbox for image preview */
+function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow-lg transition hover:bg-slate-100"
+        >
+          <X size={14} weight="bold" />
+        </button>
+        <img src={src} alt="Evidence preview" className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl" />
+      </div>
+    </div>
+  );
 }
 
 function ActivityTab({ module, itemId }: { module: string; itemId: string | number }) {
@@ -103,17 +142,23 @@ function ActivityTab({ module, itemId }: { module: string; itemId: string | numb
 
 export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, module, initialTab, onTabChange }: ViewModalProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<string>(() => {
     return isValidTab(initialTab) ? initialTab : DEFAULT_TAB;
   });
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (lightboxSrc) { setLightboxSrc(null); return; }
+        onClose();
+      }
     };
     document.addEventListener("keydown", keyHandler);
     return () => document.removeEventListener("keydown", keyHandler);
-  }, [onClose]);
+  }, [onClose, lightboxSrc]);
 
   // Sync initialTab when it changes externally
   useEffect(() => {
@@ -122,6 +167,15 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTab]);
+
+  // Track scroll for sticky header shadow
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handler = () => setScrolled(el.scrollTop > 4);
+    el.addEventListener("scroll", handler, { passive: true });
+    return () => el.removeEventListener("scroll", handler);
+  }, []);
 
   const handleTabChange = (tab: string) => {
     if (tab === activeTab) return;
@@ -132,6 +186,20 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
   const displayFields = config.fields.filter(
     (field) => row[field.name] !== undefined && row[field.name] !== null && String(row[field.name]).trim() !== "",
   );
+
+  // Separate fields into metadata (short) and content (long)
+  const metadataFields = displayFields.filter(
+    (f) => METADATA_FIELDS.includes(f.name) || BADGE_FIELDS.includes(f.name),
+  );
+  const contentFields = displayFields.filter(
+    (f) => !METADATA_FIELDS.includes(f.name) && !BADGE_FIELDS.includes(f.name),
+  );
+
+  // Determine if modal should be wider (many fields or long content)
+  const hasLongContent = contentFields.some(
+    (f) => f.kind === "textarea" || String(row[f.name] ?? "").length > 200,
+  );
+  const modalMaxWidth = hasLongContent || displayFields.length > 8 ? "max-w-2xl" : "max-w-xl";
 
   function renderNotes(value: string) {
     const lines = value.split(/\r?\n/).filter(Boolean);
@@ -158,6 +226,85 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
     );
   }
 
+  function renderEvidence(value: string) {
+    if (!value.startsWith("http")) {
+      return <p className="text-xs text-slate-800 font-semibold break-all">{value}</p>;
+    }
+
+    if (isImageUrl(value)) {
+      return (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setLightboxSrc(value)}
+            className="group relative block w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 transition hover:border-blue-300 hover:shadow-md"
+          >
+            <img
+              src={value}
+              alt="Evidence"
+              className="h-32 w-full object-cover transition group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/20">
+              <div className="rounded-full bg-white/90 p-2 opacity-0 shadow-lg transition group-hover:opacity-100">
+                <ArrowSquareOut size={16} weight="bold" className="text-slate-700" />
+              </div>
+            </div>
+          </button>
+          <a href={value} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline">
+            <ArrowSquareOut size={11} weight="bold" /> Open in new tab
+          </a>
+        </div>
+      );
+    }
+
+    return (
+      <a href={value} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 break-all text-xs text-blue-600 hover:underline">
+        <ArrowSquareOut size={12} weight="bold" className="shrink-0" />
+        {value}
+      </a>
+    );
+  }
+
+  function renderFieldValue(field: FieldConfig) {
+    const value = String(row[field.name] ?? "");
+    const displayValue =
+      field.kind === "select"
+        ? field.options?.find(
+            (opt) => opt.value === value || opt.label.toLowerCase() === value.toLowerCase(),
+          )?.label ?? formatDisplayText(value)
+        : value;
+
+    // Badge fields (status, priority, etc.)
+    if (BADGE_FIELDS.includes(field.name)) {
+      return <Badge value={value} displayValue={displayValue} />;
+    }
+
+    // Evidence with image preview
+    if (field.name === "evidence") {
+      return renderEvidence(displayValue);
+    }
+
+    // Role field
+    if (field.name === "role") {
+      return <HighlightText text={getRoleLabel(String(row[field.name] ?? ""), String(row.company ?? ""))} query="" />;
+    }
+
+    // Notes with structured rendering
+    if (field.name === "notes") {
+      return renderNotes(displayValue || "-");
+    }
+
+    // Long text fields
+    const isLong = field.kind === "textarea" || value.length > 120 || ["description", "notes", "content", "scope", "goal", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "actionItems", "testStep", "preCondition"].includes(field.name);
+
+    return (
+      <p className={cn("whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-800", !isLong && "font-semibold")}>
+        <HighlightText text={displayValue || "-"} query="" />
+      </p>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center"
@@ -165,20 +312,29 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
         if (e.target === e.currentTarget) onClose();
       }}
     >
+      {/* Lightbox */}
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+
       <div
         ref={ref}
-        className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:slide-in-from-bottom-0"
+        className={cn(
+          "relative flex max-h-[85vh] w-full flex-col rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:slide-in-from-bottom-0",
+          modalMaxWidth,
+        )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200/60 px-4 py-3">
+        <div className={cn(
+          "flex items-center justify-between border-b border-slate-200/60 px-5 py-3.5 transition-shadow duration-200",
+          scrolled && "shadow-sm",
+        )}>
           <div className="min-w-0 flex-1 pr-3">
-            <div className="flex items-start gap-2">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-                <Note size={16} weight="bold" />
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm">
+                <Note size={18} weight="bold" />
               </div>
               <div className="min-w-0">
-                <p className="mb-0.5 text-[10px] font-black uppercase tracking-widest text-blue-500">{config.shortTitle}</p>
-                <h2 className="truncate text-sm font-black leading-snug text-slate-900">
+                <p className="mb-0.5 text-[11px] font-black uppercase tracking-widest text-blue-500">{config.shortTitle}</p>
+                <h2 className="truncate text-base font-black leading-snug text-slate-900">
                   {String(row.title || row.caseName || row.name || "Detail")}
                 </h2>
                 {row.code && (
@@ -191,16 +347,16 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
             <CopyLinkButton module={module} itemId={row.id} activeTab={activeTab} />
             <button
               onClick={onClose}
-              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close"
             >
-              <X size={14} weight="bold" />
+              <X size={16} weight="bold" />
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-200/60 px-4">
+        <div className="flex border-b border-slate-200/60 px-5">
           {VIEW_MODAL_TABS.map((tab) => (
             <button
               key={tab}
@@ -222,48 +378,65 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
           {activeTab === "details" && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {displayFields.map((field) => {
-                const value = String(row[field.name] ?? "");
-                const isLong = field.kind === "textarea" || value.length > 120 || ["description", "notes", "content", "scope", "goal", "preconditions", "stepsToReproduce", "expectedResult", "actualResult"].includes(field.name);
-                const Icon = fieldIcons[field.name] ?? <Note size={16} className="text-slate-400" />;
-                const displayValue =
-                  field.kind === "select"
-                    ? field.options?.find(
-                        (opt) => opt.value === value || opt.label.toLowerCase() === value.toLowerCase(),
-                      )?.label ?? formatDisplayText(value)
-                    : value;
+            <div className="space-y-4">
+              {/* Metadata section: compact grid for short fields */}
+              {metadataFields.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {metadataFields.map((field) => {
+                    const Icon = fieldIcons[field.name] ?? <Note size={14} className="text-slate-400" />;
+                    return (
+                      <div
+                        key={field.name}
+                        className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-100"
+                      >
+                        <div className="mb-1 flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-slate-400">
+                          {Icon}
+                          {field.label}
+                        </div>
+                        {renderFieldValue(field)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
-                return (
-                  <div
-                    key={field.name}
-                    className={cn(
-                      "rounded-xl bg-blue-50 px-3 py-2",
-                      isLong ? "sm:col-span-2" : "",
-                    )}
-                  >
-                    <div className="mb-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      {Icon}
-                      {field.label}
-                    </div>
-                    {field.name === "evidence" && displayValue.startsWith("http") ? (
-                      <a href={displayValue} target="_blank" rel="noreferrer" className="break-all text-xs text-blue-600 hover:underline">
-                        {displayValue}
-                      </a>
-                    ) : field.name === "role" ? (
-                      <HighlightText text={getRoleLabel(String(row[field.name] ?? ""), String(row.company ?? ""))} query="" />
-                    ) : field.name === "notes" ? (
-                      renderNotes(displayValue || "-")
-                    ) : (
-                      <p className={cn("whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-800", !isLong && "font-semibold")}>
-                        <HighlightText text={displayValue || "-"} query="" />
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+              {/* Divider between metadata and content */}
+              {metadataFields.length > 0 && contentFields.length > 0 && (
+                <div className="border-t border-slate-100" />
+              )}
+
+              {/* Content section: full-width for long text fields */}
+              {contentFields.length > 0 && (
+                <div className="space-y-3">
+                  {contentFields.map((field) => {
+                    const Icon = fieldIcons[field.name] ?? <Note size={16} className="text-slate-400" />;
+                    const value = String(row[field.name] ?? "");
+                    const isLong = field.kind === "textarea" || value.length > 120 || ["description", "notes", "content", "scope", "goal", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "actionItems", "testStep", "preCondition"].includes(field.name);
+
+                    return (
+                      <div
+                        key={field.name}
+                        className={cn(
+                          "rounded-xl px-4 py-3",
+                          field.name === "expectedResult" ? "bg-emerald-50 ring-1 ring-emerald-100"
+                          : field.name === "actualResult" ? "bg-rose-50 ring-1 ring-rose-100"
+                          : field.name === "testStep" || field.name === "stepsToReproduce" ? "bg-blue-50 ring-1 ring-blue-100"
+                          : field.name === "preCondition" || field.name === "preconditions" ? "bg-amber-50 ring-1 ring-amber-100"
+                          : "bg-slate-50 ring-1 ring-slate-100",
+                        )}
+                      >
+                        <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                          {Icon}
+                          {field.label}
+                        </div>
+                        {renderFieldValue(field)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -273,7 +446,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-slate-200/60 px-4 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200/60 px-5 py-3">
           {canEdit && (
             <button
               onClick={onEdit}

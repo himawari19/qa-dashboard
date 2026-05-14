@@ -106,19 +106,19 @@ export function ReportView({ data }: { data: ReportData }) {
  <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
  <div className="flex items-center gap-2 text-xs text-slate-500">
  <Folder size={14} weight="bold" className="text-slate-400" />
- <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Test Plans</span>{plan.project ||"–"}</div>
+ <div><span className="block font-bold uppercase tracking-widest text-[11px] text-slate-400">Test Plans</span>{plan.project ||"–"}</div>
  </div>
  <div className="flex items-center gap-2 text-xs text-slate-500">
  <Lightning size={14} weight="bold" className="text-slate-400" />
- <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Sprint</span>{plan.sprint ||"–"}</div>
+ <div><span className="block font-bold uppercase tracking-widest text-[11px] text-slate-400">Sprint</span>{plan.sprint ||"–"}</div>
  </div>
  <div className="flex items-center gap-2 text-xs text-slate-500">
  <CalendarBlank size={14} weight="bold" className="text-slate-400" />
- <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Period</span>{formatDate(plan.startDate)} – {formatDate(plan.endDate)}</div>
+ <div><span className="block font-bold uppercase tracking-widest text-[11px] text-slate-400">Period</span>{formatDate(plan.startDate)} – {formatDate(plan.endDate)}</div>
  </div>
  <div className="flex items-center gap-2 text-xs text-slate-500">
  <User size={14} weight="bold" className="text-slate-400" />
- <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Assignee</span>{plan.assignee ||"–"}</div>
+ <div><span className="block font-bold uppercase tracking-widest text-[11px] text-slate-400">Assignee</span>{plan.assignee ||"–"}</div>
  </div>
  </div>
  </div>
@@ -232,10 +232,10 @@ export function ReportView({ data }: { data: ReportData }) {
  <h2 className="text-xs font-black uppercase tracking-widest text-slate-700 mb-4">Recent Sessions ({sessions.length})</h2>
  <div className="overflow-x-auto">
  <table className="w-full text-xs">
- <thead>
+ <thead className="bg-slate-200">
  <tr className="border-b border-slate-100">
  {["Date","Scope","Tester","Cases","Passed","Failed","Result"].map((h) => (
- <th key={h} className="pb-2 text-left font-bold uppercase tracking-widest text-[9px] text-slate-400">{h}</th>
+ <th key={h} className="pb-2 text-left font-bold uppercase tracking-widest text-[11px] text-slate-400">{h}</th>
  ))}
  </tr>
  </thead>
