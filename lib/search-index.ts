@@ -92,8 +92,14 @@ export async function syncSearchTokens(module: string, company: string, entityId
 export async function syncSearchTokensBulk(
   rows: Array<{ module: string; company: string; entityId: string | number; data: Record<string, unknown> }>,
 ) {
-  for (const row of rows) {
-    await syncSearchTokens(row.module, row.company, row.entityId, row.data);
+  if (rows.length === 0) return;
+  // Process in batches of 10 to avoid overly large SQL statements
+  const batchSize = 10;
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize);
+    await Promise.all(batch.map((row) =>
+      syncSearchTokens(row.module, row.company, row.entityId, row.data),
+    ));
   }
 }
 
