@@ -28,7 +28,7 @@ vi.mock("@/lib/utils", () => ({
 import { TestCaseDetailEditor, TestCaseGridRow } from "@/components/test-case-detail-editor";
 
 describe("TestCaseDetailEditor", () => {
-  it("renders existing rows and editor controls", () => {
+  it("renders existing rows and detail controls", () => {
     const html = renderToStaticMarkup(
       <TestCaseDetailEditor
         suiteId="9"

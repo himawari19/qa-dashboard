@@ -143,7 +143,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
  <CheckCircle size={16} className="text-blue-500" weight="bold" /> Security Update
  </h3>
- <p className="text-xs text-slate-500 mt-1">Leave password fields empty if you don't want to change it.</p>
+<p className="text-xs text-slate-500 mt-1">Leave password fields empty if you don&apos;t want to change it.</p>
  </div>
 
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

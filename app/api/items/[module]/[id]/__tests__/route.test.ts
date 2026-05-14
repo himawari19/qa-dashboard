@@ -51,7 +51,7 @@ describe("GET /api/items/[module]/[id]", () => {
     it("returns item for valid module and ID within same company", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
       });
       mocks.getAccessScope.mockReturnValueOnce({
@@ -131,7 +131,7 @@ describe("GET /api/items/[module]/[id]", () => {
     it("returns 404 when item does not exist at all", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
       });
       mocks.getAccessScope.mockReturnValueOnce({
@@ -160,7 +160,7 @@ describe("GET /api/items/[module]/[id]", () => {
     it("returns 404 when item is soft-deleted", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
       });
       mocks.getAccessScope.mockReturnValueOnce({
@@ -193,7 +193,7 @@ describe("GET /api/items/[module]/[id]", () => {
     it("returns 403 when item exists but belongs to another company", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
       });
       mocks.getAccessScope.mockReturnValueOnce({
@@ -235,7 +235,7 @@ describe("GET /api/items/[module]/[id]", () => {
     it("returns 400 when getTableName returns empty string", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
       });
       mocks.getAccessScope.mockReturnValueOnce({

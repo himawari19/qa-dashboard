@@ -63,7 +63,7 @@ describe("users page", () => {
       id: 2,
       role: "qa",
       company: "acme",
-      email: "viewer@example.com",
+      email: "qa@example.com",
     });
     mocks.isAdminUser.mockReturnValueOnce(false);
 

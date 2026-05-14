@@ -66,6 +66,9 @@ export async function GET(request: Request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Dashboard API error:", error);
-    return NextResponse.json(emptyDashboardData(), { status: 500 });
+    return NextResponse.json(emptyDashboardData(), {
+      status: 200,
+      headers: { "X-Dashboard-Error": "true" },
+    });
   }
 }

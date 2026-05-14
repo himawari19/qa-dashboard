@@ -46,7 +46,7 @@ import { DELETE, PATCH } from "@/app/api/users/[id]/route";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.isWorkspaceAdmin.mockImplementation((role: string) => ["admin", "lead"].includes(String(role).trim().toLowerCase()));
+  mocks.isWorkspaceAdmin.mockImplementation((role: string) => ["admin"].includes(String(role).trim().toLowerCase()));
   mocks.db.get.mockResolvedValue({ company: "acme" });
 });
 

@@ -81,7 +81,7 @@ export default function GanttPage() {
  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
  const [visibleRowWindow, setVisibleRowWindow] = useState({ start: 0, end: 24 });
  const [storageScopeKey, setStorageScopeKey] = useState("global");
- const [userRole, setUserRole] = useState<string>("viewer");
+ const [userRole, setUserRole] = useState<string>("qa");
  const [dragState, setDragState] = useState<{
  key: string;
  type:"move" |"resize-start" |"resize-end";

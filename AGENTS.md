@@ -1,16 +1,21 @@
 # QA Hub — Agent Rules
 
 ## Stack
-Next.js 16.2 (App Router, Turbopack) · Tailwind CSS v4 (`app/globals.css`) · `@phosphor-icons/react` (weight `"bold"`) · SQLite (dev) / Neon Postgres (prod) via `lib/db.ts` · Roles: `admin` `lead` `editor` `viewer`
+Next.js 16.2 (App Router, Turbopack) · Tailwind CSS v4 (`app/globals.css`) · `@phosphor-icons/react` (weight `"bold"`) · SQLite (dev) / Neon Postgres (prod) via `lib/db.ts` · Roles: `superadmin` `admin` `fe` `be` `fullstack` `qa` `pm` `ai`
 
 ## Key Files
 | File | Purpose |
 |------|---------|
 | `lib/db.ts` | DB connection, schema, `isPostgres` flag |
+| `lib/auth.ts` | Session helpers and role exports |
+| `lib/auth-core.ts` | Login/session core, user lookup |
+| `lib/roles.ts` | Role normalization, labels, options |
 | `lib/data.ts` | CRUD + **Activity Logging** |
 | `lib/data-helpers.ts` | `getAccessScope`, `logActivity`, helpers |
 | `lib/modules.ts` | Module configs & Zod schemas |
-| `components/module-workspace.tsx` | Main CRUD UI & role handling |
+| `components/module-workspace.tsx` | Main CRUD UI |
+| `components/module-workspace-*.tsx` | Split workspace UI parts |
+| `components/responsive-container.tsx` | Safe chart wrapper |
 | `app/[module]/page.tsx` | Dynamic module entry |
 | `**/*.test.ts[x]` | Vitest suites (mock-based, no token needed) |
 
@@ -46,9 +51,10 @@ const dayExpr = isPostgres
 **UNION params:** count `?` per branch — e.g. two branches with `andCompany` needs `[...cp, ...cp]`.
 
 ## Conventions
+- **Language**: New code, comments, test names, and user-facing copy must be in English unless the product term is intentionally localized.
 - **Activity Log**: MUST call `logActivity(company, type, id, action, summary)` in `lib/data.ts` for all CRUD.
 - **Isolation**: All DB queries MUST include `company` filter unless `isAdmin` is true and company is empty.
-- **Permissions**: `viewer` = read-only (lock status badges, hide buttons); `editor` = no delete.
+- **Permissions**: use helpers in `lib/roles.ts`; `superadmin` is global-only, `admin` is workspace admin, `fe/be/fullstack/qa/pm/ai` are assignable/invite roles.
 - **Serialization**: DB results → Client Components MUST use `JSON.parse(JSON.stringify(data))`.
 - **Breadcrumbs**: Use `PageShell` with standardized parents: `Documentation` (Sprints, Meetings), `System Settings` (Users, Team), `Test Management` (Plans, Suites).
 - **Navigation**: `router.refresh()`, NOT `window.location.reload()`.
@@ -69,6 +75,6 @@ const dayExpr = isPostgres
 ```
 pnpm test          # mock-based, no live creds
 npx tsc --noEmit   # type check
-next build         # catch Turbopack issues
+pnpm precheck      # type check + build
 ```
 Inspect `lib/modules.ts` first when adding/modifying fields.

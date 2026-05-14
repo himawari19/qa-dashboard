@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition, useRef, useMemo, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ModuleKey, moduleConfigs } from "@/lib/modules";
 import { toast } from "@/components/ui/toast";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -8,6 +9,7 @@ import { type Attachment } from "@/components/attachment-uploader";
 import { getFieldIcons, getModuleWorkspaceCrumbs, getModuleWorkspacePermissions, getPreferredColumnOrder } from "@/components/module-workspace-utils";
 import { useModuleWorkspaceActions } from "@/components/use-module-workspace-actions";
 import { ModuleWorkspaceShell } from "@/components/module-workspace-shell";
+import { buildWorkspaceUrl, withUpdatedWorkspaceParams } from "@/components/module-workspace-url";
 import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { getUserRoleOptions } from "@/lib/roles";
@@ -90,14 +92,13 @@ export function ModuleWorkspace({
       ),
     };
   }, [config, module, user?.company]);
+  const nextRouter = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentSearch = useMemo(() => searchParams.toString(), [searchParams]);
   const router = useMemo(() => ({
-    refresh: () => {
-      if (typeof window !== "undefined") {
-        window.location.assign(`${window.location.pathname}${window.location.search}`);
-      }
-    },
-  }), []);
-  const [locationSearch, setLocationSearch] = useState(() => (typeof window !== "undefined" ? window.location.search : ""));
+    refresh: () => nextRouter.refresh(),
+  }), [nextRouter]);
   const [pending, startTransition] = useTransition();
   const [localRows, setLocalRows] = useState(rows);
   const [showForm, setShowForm] = useState(false);
@@ -119,7 +120,7 @@ export function ModuleWorkspace({
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [search, setSearch] = useState(
-    () => new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("q") ?? "",
+    () => searchParams.get("q") ?? "",
   );
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Undo delete
@@ -187,27 +188,26 @@ export function ModuleWorkspace({
   const safePage = Math.min(currentPage, totalPages);
 
   useEffect(() => {
-    const syncSearch = () => {
-      setLocationSearch(window.location.search);
-    };
+    setSearch(searchParams.get("q") ?? "");
+  }, [searchParams]);
 
-    window.addEventListener("popstate", syncSearch);
-    return () => window.removeEventListener("popstate", syncSearch);
-  }, []);
+  const replaceWorkspaceUrl = useCallback((params: URLSearchParams) => {
+    nextRouter.replace(buildWorkspaceUrl(pathname, params));
+  }, [nextRouter, pathname]);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
-      const params = new URLSearchParams(locationSearch);
-      if (value.trim()) {
-        params.set("q", value.trim());
-        params.set("page", "1");
-      } else {
-        params.delete("q");
-      }
-      setLocationSearch(`?${params.toString()}`);
-      window.location.assign(`${window.location.pathname}?${params.toString()}`);
+      const params = withUpdatedWorkspaceParams(currentSearch, (nextParams) => {
+        if (value.trim()) {
+          nextParams.set("q", value.trim());
+          nextParams.set("page", "1");
+        } else {
+          nextParams.delete("q");
+        }
+      });
+      replaceWorkspaceUrl(params);
     }, 400);
   };
 
@@ -234,10 +234,10 @@ export function ModuleWorkspace({
   const crumbs = useMemo(() => getModuleWorkspaceCrumbs(module, config.title), [config.title, module]);
 
   function goToPage(nextPage: number) {
-    const params = new URLSearchParams(locationSearch);
-    params.set("page", String(nextPage));
-    setLocationSearch(`?${params.toString()}`);
-    window.location.assign(`${window.location.pathname}?${params.toString()}`);
+    const params = withUpdatedWorkspaceParams(currentSearch, (nextParams) => {
+      nextParams.set("page", String(nextPage));
+    });
+    replaceWorkspaceUrl(params);
   }
 
   const actionArgs = {

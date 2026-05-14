@@ -8,14 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ module: string }> }
 ) {
   const { module: moduleParam } = await params;
-  const module = moduleParam as ModuleKey;
+  const moduleKey = moduleParam as ModuleKey;
   const title = request.nextUrl.searchParams.get("title");
   
   if (!title || title.length < 5) {
     return NextResponse.json({ duplicates: [] });
   }
 
-  const config = moduleConfigs[module];
+  const config = moduleConfigs[moduleKey];
   if (!config) return NextResponse.json({ duplicates: [] });
 
   // Map module to table name
@@ -28,7 +28,7 @@ export async function GET(
     "meeting-notes": "MeetingNote"
   };
 
-  const tableName = tableMap[module];
+  const tableName = tableMap[moduleKey];
   if (!tableName) return NextResponse.json({ duplicates: [] });
 
   // Find the 'title' equivalent field (some use 'caseName' or 'title')
@@ -63,7 +63,7 @@ export async function GET(
     return NextResponse.json({ 
       duplicates: matches.map(m => ({
         id: m.id,
-        code: codeFromId(prefixMap[module] || "ITEM", Number(m.id)),
+        code: codeFromId(prefixMap[moduleKey] || "ITEM", Number(m.id)),
         title: m.title,
         status: m.status,
       })) 

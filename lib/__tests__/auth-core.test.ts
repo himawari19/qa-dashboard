@@ -23,8 +23,10 @@ import {
   registerUser,
   sessionCookieName,
   validateCredentials,
+  verifyPassword,
   verifySessionToken,
 } from "@/lib/auth-core";
+import { getCompanyLabel } from "@/lib/roles";
 
 beforeEach(() => {
   vi.unstubAllEnvs();
@@ -37,7 +39,7 @@ beforeEach(() => {
 describe("auth-core", () => {
   it("normalizes roles and admin detection", () => {
     expect(normalizeRole("Admin (Owner)")).toBe("admin");
-    expect(normalizeRole(" Lead ")).toBe("lead");
+    expect(normalizeRole(" PM ")).toBe("pm");
     expect(normalizeRole("AI Engineer")).toBe("ai engineer");
     expect(getRoleLabel("ai")).toBe("AI Engineer");
     expect(getInviteRoleOptions().map((option) => option.value)).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm"]);
@@ -58,31 +60,36 @@ describe("auth-core", () => {
       "Database Administrator",
       "Software Architect",
     ]);
+    expect(getCompanyLabel("Magnus", "admin")).toBe("Magnus");
     expect(isAdminUser("superadmin", "")).toBe(true);
     expect(isAdminUser("superadmin", "acme")).toBe(false);
   });
 
   it("detects auth config availability", () => {
     expect(authEnabled()).toBe(false);
-    vi.stubEnv("AUTH_SECRET", "topsecret");
+    vi.stubEnv("AUTH_SECRET", " topsecret ");
     expect(authEnabled()).toBe(true);
   });
 
-  it("hashes passwords deterministically", async () => {
-    const hash = await hashPassword("secret");
-    expect(hash).toMatch(/^[a-f0-9]{64}$/);
+  it("hashes passwords with scrypt and verifies them", async () => {
+    const firstHash = await hashPassword("secret");
+    const secondHash = await hashPassword("secret");
+
+    expect(firstHash).toMatch(/^scrypt\$[a-f0-9]+\$[a-f0-9]+$/);
+    expect(secondHash).toMatch(/^scrypt\$[a-f0-9]+\$[a-f0-9]+$/);
+    expect(firstHash).not.toBe(secondHash);
+    await expect(verifyPassword("secret", firstHash)).resolves.toBe(true);
+    await expect(verifyPassword("wrong", firstHash)).resolves.toBe(false);
+  });
+
+  it("accepts legacy password hashes for compatibility", async () => {
+    const legacyHash = "2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b";
+
+    await expect(verifyPassword("secret", legacyHash)).resolves.toBe(true);
+    await expect(verifyPassword("wrong", legacyHash)).resolves.toBe(false);
   });
 
   it("creates and verifies session tokens", async () => {
-    vi.stubEnv("AUTH_SECRET", "topsecret");
-
-    const token = await createSessionToken("admin");
-
-    expect(token).toContain(".");
-    expect(await verifySessionToken(token)).toBe(true);
-  });
-
-  it("verifies sessions via HMAC and rejects expired ones", async () => {
     vi.stubEnv("AUTH_SECRET", "topsecret");
 
     const token = await createSessionToken("user@example.com");
@@ -95,16 +102,31 @@ describe("auth-core", () => {
     vi.restoreAllMocks();
   });
 
-  it("validates credentials and returns user object", async () => {
-    vi.stubEnv("AUTH_SECRET", "topsecret");
-    const mockUser = { id: 1, name: "User", email: "user@example.com", role: "fullstack", company: "acme" };
+  it("validates credentials and upgrades legacy password hashes", async () => {
+    const legacyHash = "2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b";
+    const mockUser = {
+      id: 1,
+      name: "User",
+      email: "user@example.com",
+      role: "fullstack",
+      company: "acme",
+      password: legacyHash,
+    };
+
     mocks.db.get.mockResolvedValueOnce(mockUser);
+
     const result = await validateCredentials("user@example.com", "secret");
+
     expect(result).toMatchObject({ id: 1, email: "user@example.com" });
     expect(mocks.db.get).toHaveBeenCalledWith(
-      'SELECT id, name, email, role, company FROM "User" WHERE "email" = ? AND "password" = ?',
-      ["user@example.com", expect.any(String)]
+      'SELECT "id", "name", "email", "role", "company", "password" FROM "User" WHERE "email" = ?',
+      ["user@example.com"],
     );
+    expect(mocks.db.run).toHaveBeenCalledWith(
+      'UPDATE "User" SET "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+      [expect.stringMatching(/^scrypt\$/), 1],
+    );
+
     mocks.db.get.mockResolvedValueOnce(undefined);
     expect(await validateCredentials("bad@example.com", "wrong")).toBeNull();
   });
@@ -113,7 +135,7 @@ describe("auth-core", () => {
     await expect(registerUser("user@example.com", "secret", "User", "fullstack", "acme")).resolves.toEqual({ success: true });
     expect(mocks.db.run).toHaveBeenCalledWith(
       'INSERT INTO "User" ("email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)',
-      ["user@example.com", expect.any(String), "User", "fullstack", "acme"],
+      ["user@example.com", expect.stringMatching(/^scrypt\$/), "User", "fullstack", "acme"],
     );
 
     mocks.db.run.mockRejectedValueOnce({ message: "UNIQUE constraint failed", code: "SQLITE_CONSTRAINT" });
@@ -124,4 +146,3 @@ describe("auth-core", () => {
     expect(sessionCookieName()).toBe("qa_daily_session");
   });
 });
-

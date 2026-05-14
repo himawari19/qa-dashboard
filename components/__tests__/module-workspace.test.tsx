@@ -117,7 +117,7 @@ function renderWorkspace(module: ModuleKey, userRole: string) {
 }
 
 describe("ModuleWorkspace smoke", () => {
-  it("keeps viewer read-only for user management", () => {
+  it("keeps QA role read-only for user management", () => {
     const html = renderWorkspace("users", "qa");
 
     expect(html).toContain("User Management");
@@ -126,7 +126,7 @@ describe("ModuleWorkspace smoke", () => {
     expect(html).not.toContain(">Delete<");
   });
 
-  it("shows edit actions but not delete for editors", () => {
+  it("shows edit actions but not delete for assignable roles", () => {
     const html = renderWorkspace("users", "fullstack");
 
     expect(html).toContain("Add Users");

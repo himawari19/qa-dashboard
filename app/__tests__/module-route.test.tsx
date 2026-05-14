@@ -48,7 +48,7 @@ const mocks = vi.hoisted(() => ({
     }
     return [];
   }),
-  getCurrentUser: vi.fn(async () => ({ id: 1, name: "Lead", role: "pm", company: "acme", email: "lead@example.com" })),
+  getCurrentUser: vi.fn(async () => ({ id: 1, name: "PM", role: "pm", company: "acme", email: "pm@example.com" })),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -119,10 +119,10 @@ describe("module route", () => {
     });
     expect(props.user).toEqual({
       id: 1,
-      name: "Lead",
+      name: "PM",
       role: "pm",
       company: "acme",
-      email: "lead@example.com",
+      email: "pm@example.com",
     });
   });
 

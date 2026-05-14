@@ -38,7 +38,7 @@ function classify(title: string): CategoryKey {
   const lower = title.toLowerCase();
   if (/(icon|garis|spasi|layout|ui|visual|warna|tampilan|size|ukuran|resize|library)/i.test(lower)) return "visual";
   if (/(?:\bakses\b|\baccess\b|\blogin\b|\bunlogged\b|\bforbid\b|\brestrict\b|\bpermission\b|\bauth\b|\bsecurity\b|\/vania)/i.test(lower)) return "access";
-  if (/(auto[- ]?lock|auto[- ]?collapse|close modal|viewer modal|generator|selection|click outside|modal)/i.test(lower)) return "interaction";
+  if (/(auto[- ]?lock|auto[- ]?collapse|close modal|detail modal|generator|selection|click outside|modal)/i.test(lower)) return "interaction";
   if (/(redirect|prompt|edit\s*&\s*delete|delete prompt|feature|project|navigation|section|backlog row|add|new)/i.test(lower)) return "navigation";
   return "general";
 }
@@ -52,7 +52,7 @@ function humanizePhrase(title: string) {
   if (/resize icon/i.test(lower)) return "Menyesuaikan ukuran ikon";
   if (/auto lock project group selection/i.test(lower)) return "Menerapkan auto-lock pada pilihan grup proyek";
   if (/auto collapse option in image and video generator/i.test(lower)) return "Menerapkan auto-collapse pada generator gambar/video";
-  if (/close modal when clicked from outside the viewer modal/i.test(lower)) return "Menutup modal otomatis saat klik di luar area";
+  if (/close modal when clicked from outside the detail modal/i.test(lower)) return "Menutup modal otomatis saat klik di luar area";
   if (/redirect to prompt section when delete prompt/i.test(lower)) return "Mengarahkan ke bagian Prompt setelah penghapusan";
   if (/edit\s*&\s*delete feature for project/i.test(lower)) return "Menambahkan fitur Edit & Delete proyek";
   if (/prompt title/i.test(lower)) return "Memperbarui prompt title";

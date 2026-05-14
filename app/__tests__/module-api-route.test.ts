@@ -78,4 +78,25 @@ describe("module api route", () => {
     expect(payload.error).toContain("only assign developer to yourself");
     expect(mocks.updateModuleRecord).not.toHaveBeenCalled();
   });
+
+  it("allows cross-assignment on POST for admin users", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 1,
+      name: "Admin",
+      role: "admin",
+      company: "",
+      email: "admin@example.com",
+    });
+    mocks.isAdminUser.mockReturnValueOnce(true);
+    mocks.formDataToEntry.mockReturnValue({ suggestedDev: "Budi", title: "Bug 1" });
+    mocks.createModuleRecord.mockResolvedValueOnce(undefined);
+
+    const response = await POST(
+      makeRequest({ suggestedDev: "Budi", title: "Bug 1" }),
+      { params: Promise.resolve({ module: "bugs" }) } as any,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.createModuleRecord).toHaveBeenCalled();
+  });
 });

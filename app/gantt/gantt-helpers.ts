@@ -322,7 +322,7 @@ export function groupItemsByType(
 
 /** Determine if a role can drag/edit timeline */
 export function canEditTimeline(role: string): boolean {
-  return role === "editor" || role === "lead" || role === "admin";
+  return role === "admin" || role === "fullstack" || role === "pm";
 }
 
 /** Validate date range (startDate <= endDate) */

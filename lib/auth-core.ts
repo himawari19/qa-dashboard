@@ -1,3 +1,4 @@
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 import {
   WORKSPACE_ROLES,
@@ -15,7 +16,7 @@ const COOKIE_NAME = "qa_daily_session";
 export { WORKSPACE_ROLES, INVITE_ROLES, normalizeRole, isAdminUser, isInviteRole, getRoleLabel, getInviteRoleOptions, getPublicRoleOptions };
 
 function getAuthConfig() {
-  const secret = process.env.AUTH_SECRET || "";
+  const secret = (process.env.AUTH_SECRET || "").trim();
   return { secret };
 }
 
@@ -34,12 +35,42 @@ function fromBase64UrlBytes(input: string) {
   return atob(normalized);
 }
 
+const PASSWORD_SCHEME = "scrypt";
+const SCRYPT_KEY_LENGTH = 64;
+const SCRYPT_SALT_BYTES = 16;
+
+function hashLegacyPassword(password: string) {
+  return createHash("sha256").update(password).digest("hex");
+}
+
+function isLegacyPasswordHash(value: string) {
+  return /^[a-f0-9]{64}$/i.test(String(value ?? ""));
+}
+
 export async function hashPassword(password: string) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  const salt = randomBytes(SCRYPT_SALT_BYTES).toString("hex");
+  const derived = scryptSync(password, salt, SCRYPT_KEY_LENGTH).toString("hex");
+  return `${PASSWORD_SCHEME}$${salt}$${derived}`;
+}
+
+export async function verifyPassword(password: string, storedHash: string | null | undefined) {
+  const normalizedHash = String(storedHash ?? "").trim();
+  if (!normalizedHash) return false;
+
+  if (isLegacyPasswordHash(normalizedHash)) {
+    return timingSafeEqual(
+      Buffer.from(hashLegacyPassword(password), "utf8"),
+      Buffer.from(normalizedHash, "utf8"),
+    );
+  }
+
+  const [scheme, salt, derivedHash] = normalizedHash.split("$");
+  if (scheme !== PASSWORD_SCHEME || !salt || !derivedHash) return false;
+
+  const expected = Buffer.from(derivedHash, "hex");
+  const actual = scryptSync(password, salt, expected.length);
+  if (expected.length !== actual.length) return false;
+  return timingSafeEqual(actual, expected);
 }
 
 async function sign(value: string, secret: string) {
@@ -70,12 +101,30 @@ export function authEnabled() {
 export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
-    const hashedPassword = await hashPassword(password);
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string }>(
-      'SELECT id, name, email, role, company FROM "User" WHERE "email" = ? AND "password" = ?',
-      [email, hashedPassword]
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string }>(
+      'SELECT "id", "name", "email", "role", "company", "password" FROM "User" WHERE "email" = ?',
+      [email]
     );
-    return user ?? null;
+    if (!user) return null;
+
+    const isValid = await verifyPassword(password, user.password);
+    if (!isValid) return null;
+
+    if (isLegacyPasswordHash(user.password)) {
+      const upgradedHash = await hashPassword(password);
+      await db.run(
+        'UPDATE "User" SET "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+        [upgradedHash, user.id],
+      );
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      company: user.company,
+    };
   } catch (err) {
     console.error("Auth DB error:", err);
     return null;

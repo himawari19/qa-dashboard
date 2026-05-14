@@ -5,6 +5,7 @@ import {
   moduleConfigs,
   moduleLabels,
   moduleOrder,
+  normalizeEntry,
   normalizeModuleEntry,
   parseModuleEntry,
   safeParseModuleEntry,
@@ -153,5 +154,11 @@ describe("field formatting", () => {
     };
 
     expect(normalizeModuleEntry("test-plans", source).status).toBe("active");
+  });
+
+  it("normalizes multiline entry values through the facade export", () => {
+    expect(normalizeEntry({ notes: "Line 1\r\nLine 2" })).toEqual({
+      notes: "Line 1\nLine 2",
+    });
   });
 });

@@ -6,12 +6,17 @@ import { getDashboardData, getDashboardProjects } from "@/lib/data";
 export const dynamic = "force-dynamic";
 
 export async function DashboardData() {
+  let data = null;
+  let projects: string[] = [];
+
   try {
-    const [data, projects] = await Promise.all([getDashboardData(), getDashboardProjects()]);
-    return <DashboardHome initialData={data} initialProjects={projects} />;
+    [data, projects] = await Promise.all([getDashboardData(), getDashboardProjects()]);
   } catch {
-    return <DashboardHome initialData={null} initialProjects={[]} />;
+    data = null;
+    projects = [];
   }
+
+  return <DashboardHome initialData={data} initialProjects={projects} />;
 }
 
 export default function Home() {

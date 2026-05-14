@@ -84,6 +84,12 @@ export function getRoleExportLabel(role: string | null | undefined, company: str
   return getRoleLabel(role, company);
 }
 
+export function getCompanyLabel(company: string | null | undefined, role: string | null | undefined = "") {
+  const scopedCompany = String(company ?? "").trim();
+  if (scopedCompany) return scopedCompany;
+  return getRoleLabel(role, company);
+}
+
 export function getInviteRoleOptions() {
   return INVITE_ROLES.map((value) => ({ label: ROLE_LABELS[value], value }));
 }

@@ -9,7 +9,7 @@ describe("generateDeploymentNotes", () => {
       "3. resize icon (slide 9)\n" +
       "4. auto lock project group selection when accessed from group button (slide 10)\n" +
       "5. auto collapse option in image and video generator (slide 11)\n" +
-      "6. close modal when clicked from outside the viewer modal (slide 12)\n" +
+      "6. close modal when clicked from outside the detail modal (slide 12)\n" +
       "7. redirect to prompt section when delete prompt (slide 14)\n" +
       "8. edit & delete feature for project (Backlog Row 998)",
     );

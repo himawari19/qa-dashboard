@@ -239,7 +239,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS "User" (
   "name" TEXT,
   "email" TEXT UNIQUE,
   "password" TEXT NOT NULL,
-  "role" TEXT NOT NULL DEFAULT 'user',
+  "role" TEXT NOT NULL DEFAULT 'qa',
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`);
@@ -248,7 +248,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS "Invite" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "token" TEXT NOT NULL UNIQUE,
   "company" TEXT NOT NULL,
-  "role" TEXT NOT NULL DEFAULT 'viewer',
+  "role" TEXT NOT NULL DEFAULT 'qa',
   "status" TEXT NOT NULL DEFAULT 'pending',
   "createdBy" TEXT NOT NULL DEFAULT '',
   "expiresAt" TEXT NOT NULL,
@@ -284,7 +284,7 @@ console.log("✓ Sprints (4)");
 
 // ── ASSIGNEES ──────────────────────────────────────────────────
 const iAsg = db.prepare(`INSERT INTO "Assignee" ("company","name","role","email","skills","status") VALUES (?,?,?,?,?,?)`);
-iAsg.run(C,"Wahyu Simbolon","QA Lead","wahyu@ecoshop.id","Test Planning, Bug Triage, Automation","active");
+iAsg.run(C,"Wahyu Simbolon","QA Engineer","wahyu@ecoshop.id","Test Planning, Bug Triage, Automation","active");
 iAsg.run(C,"Andi Pratama","QA Engineer","andi@ecoshop.id","Manual Testing, Regression, API Testing","active");
 iAsg.run(C,"Dewi Kusuma","QA Engineer","dewi@ecoshop.id","UI Testing, Accessibility, Mobile","active");
 iAsg.run(C,"Budi Santoso","QA Analyst","budi@ecoshop.id","Test Documentation, Test Cases","active");
@@ -304,7 +304,7 @@ const tasks = [
   [C,3,"Validate order confirmation email","EcoShop Web","Notifications","testing","todo","P2","2026-03-07","Check email template, links, and data accuracy post-order.","","Eko Wijaya"],
   [C,3,"API test — /orders/create endpoint","EcoShop Web","Orders API","testing","doing","P1","2026-03-05","Test request/response structure, validation, and error codes.","Using Postman collection v3.","Andi Pratama"],
   [C,3,"Performance test checkout page","EcoShop Web","Performance","investigation","todo","P3","2026-03-10","Measure LCP and FID on checkout under 100 concurrent users.","","Citra Lestari"],
-  [C,3,"Update test plan Sprint 3","EcoShop Web","Test Planning","documentation","done","P1","2026-03-01","Finalize scope, assign suites, and set milestones.","Approved by lead.","Wahyu Simbolon"],
+  [C,3,"Update test plan Sprint 3","EcoShop Web","Test Planning","documentation","done","P1","2026-03-01","Finalize scope, assign suites, and set milestones.","Approved by PM.","Wahyu Simbolon"],
   [C,2,"Regression test product search","EcoShop Web","Search","testing","done","P1","2026-01-25","Full regression after search algorithm update.","","Andi Pratama"],
   [C,2,"Test product filter combinations","EcoShop Web","Filter","testing","done","P2","2026-01-24","Verify filter by category, price range, and rating combinations.","","Dewi Kusuma"],
   [C,2,"Write TC for product detail page","EcoShop Web","Product Detail","documentation","done","P2","2026-01-20","Create test cases covering images, stock status, and add-to-cart.","","Budi Santoso"],
@@ -456,7 +456,7 @@ iMtg.run(C,tok(),"2026-01-14","EcoShop Web","Sprint 1 Retrospective","QA Team, P
 iMtg.run(C,tok(),"2026-01-15","EcoShop Web","Sprint 2 Kickoff Meeting","Full QA Team, Dev Team, Product","Scope for Sprint 2 covers product catalog. Priority is search accuracy and filter performance.","1. Budi: Write TC for product detail by Jan 17\n2. Citra: Set up performance test baseline");
 iMtg.run(C,tok(),"2026-01-28","EcoShop Web","Sprint 2 Retrospective","QA Team, Scrum Master","3 bugs found, 2 closed. Product detail OOS issue deferred to Sprint 3 backlog.","1. Wahyu: Add OOS bug to Sprint 3 criteria\n2. All: Update TCs for revised filter logic");
 iMtg.run(C,tok(),"2026-02-28","EcoShop Web","Sprint 3 Kickoff & Test Planning","Full QA Team, Dev Team, PO","Payment integration is highest risk. QA to start sandbox testing Day 1. COD scope limited to Jabodetabek.","1. Wahyu: Create test plan by Mar 1\n2. Citra: Configure Midtrans sandbox\n3. Eko: Document COD zip code list");
-iMtg.run(C,tok(),"2026-03-03","EcoShop Web","Bug Triage Meeting — Sprint 3","QA Lead, Dev Lead, Product","Reviewed 5 open bugs. BUG-001 and BUG-019 classified as release blockers. BUG-016 deferred.","1. Dev: Fix BUG-001 by Mar 5\n2. Dev: Fix BUG-019 by Mar 6\n3. Wahyu: Update test plan risk section");
+iMtg.run(C,tok(),"2026-03-03","EcoShop Web","Bug Triage Meeting — Sprint 3","QA Engineer, Developer, Product","Reviewed 5 open bugs. BUG-001 and BUG-019 classified as release blockers. BUG-016 deferred.","1. Dev: Fix BUG-001 by Mar 5\n2. Dev: Fix BUG-019 by Mar 6\n3. Wahyu: Update test plan risk section");
 iMtg.run(C,tok(),"2026-03-05","EcoShop Web","API Contract Alignment","QA Team, Backend Team","Aligned on /orders/create error response codes. QA to update API test collection accordingly.","1. Andi: Update Postman collection\n2. Backend: Share swagger for orders API");
 iMtg.run(C,tok(),"2026-03-06","EcoShop Web","Daily Standup — March 6","QA Team","BUG-003 confirmed fixed. BUG-002 still open. Citra found mobile layout issue BUG-004.","1. Dewi: Retest BUG-004 on multiple devices\n2. Andi: Continue API test suite");
 iMtg.run(C,tok(),"2026-03-08","EcoShop Web","Mid-Sprint Check-in","QA Team, Product Manager","7 of 22 planned TCs executed. On track. 3 critical bugs still open.","1. Wahyu: Daily bug status report to PM\n2. All: Prioritize checkout suite this week");
@@ -526,9 +526,9 @@ console.log(`✓ Users (${users.length + 1} total, password for non-admin: Passw
 // ── INVITES ────────────────────────────────────────────────────
 const iInvite = db.prepare(`INSERT INTO "Invite" ("token","company","role","status","createdBy","expiresAt","acceptedAt") VALUES (?,?,?,?,?,?,?)`);
 const invites = [
-  [tok(), C, "viewer", "pending", ADMIN.email, "2026-06-30T00:00:00.000Z", null],
-  [tok(), C, "editor", "accepted", ADMIN.email, "2026-06-30T00:00:00.000Z", "2026-05-07T00:00:00.000Z"],
-  [tok(), C, "lead", "expired", ADMIN.email, "2026-03-01T00:00:00.000Z", null],
+  [tok(), C, "qa", "pending", ADMIN.email, "2026-06-30T00:00:00.000Z", null],
+  [tok(), C, "fullstack", "accepted", ADMIN.email, "2026-06-30T00:00:00.000Z", "2026-05-07T00:00:00.000Z"],
+  [tok(), C, "pm", "expired", ADMIN.email, "2026-03-01T00:00:00.000Z", null],
 ];
 invites.forEach((invite) => iInvite.run(...invite));
 console.log("✓ Invites (3)");

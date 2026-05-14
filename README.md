@@ -17,6 +17,27 @@ pnpm db:seed:local
 pnpm dev
 ```
 
+## Quality Checks
+
+Run these before opening a PR or preparing a release build:
+
+```bash
+pnpm test
+pnpm precheck
+```
+
+`pnpm precheck` now runs:
+
+- `pnpm lint`
+- `npx tsc --noEmit`
+- `next build`
+
+For the same checks used in GitHub Actions:
+
+```bash
+pnpm ci:check
+```
+
 ## Local Login
 
 Use the local seed output for the default admin login.
@@ -28,4 +49,6 @@ If `node seed.mjs` errors with `EBUSY`, stop the dev server first because `prism
 
 - Prod uses Neon/Postgres.
 - Local uses SQLite unless `DATABASE_URL` is set.
+- Maintenance routes are disabled by default. Explicit env flags are required to enable `sql-run` or `reset-db` outside tests.
+- `AUTH_SECRET` must be non-empty; whitespace-only values are treated as invalid.
 - Do not push changes unless asked.

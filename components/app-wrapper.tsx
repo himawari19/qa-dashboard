@@ -29,6 +29,8 @@ export function AppWrapper({ children }: AppWrapperProps) {
  const accountRef = useRef<HTMLDivElement | null>(null);
  const pathname = usePathname();
  const router = useRouter();
+ const companyName = String(user?.company || "").trim();
+ const accountLabel = companyName || (user ? getRoleLabel(user?.role ||"", user?.company || "") :"Workspace");
  
  const isAuthScreen = pathname ==="/login" || pathname ==="/register";
 
@@ -180,14 +182,14 @@ export function AppWrapper({ children }: AppWrapperProps) {
  {String(user?.name || user?.email ||"U").slice(0, 1).toUpperCase()}
  </span>
  <span className="hidden max-w-28 flex-col leading-tight md:flex">
- <span className="truncate text-xs font-bold text-slate-800">
- {user?.name || user?.email ||"Account"}
- </span>
- <span className="truncate text-xs text-slate-500">
- {getRoleLabel(user?.role ||"qa", user?.company || "")} · Workspace
- </span>
- </span>
- <CaretDown size={14} weight="bold" className="text-slate-400" />
+<span className="truncate text-xs font-bold text-slate-800">
+{user?.name || user?.email ||"Account"}
+</span>
+<span className="truncate text-xs text-slate-500">
+{accountLabel}
+</span>
+</span>
+<CaretDown size={14} weight="bold" className="text-slate-400" />
  </button>
 
  {accountOpen && (
@@ -197,17 +199,17 @@ export function AppWrapper({ children }: AppWrapperProps) {
  {String(user?.name || user?.email ||"U").slice(0, 1).toUpperCase()}
  </div>
  <div className="min-w-0 flex-1">
- <p className="truncate text-sm font-black text-slate-900">{user?.name || user?.email ||"Account"}</p>
- <p className="truncate text-xs text-slate-500">{user?.email ||"-"}</p>
- <div className="mt-2 flex flex-wrap gap-2">
- <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-slate-600">
- {getRoleLabel(user?.role ||"qa", user?.company || "")}
- </span>
- <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-sky-700">
- Workspace
- </span>
- </div>
- </div>
+<p className="truncate text-sm font-black text-slate-900">{user?.name || user?.email ||"Account"}</p>
+<p className="truncate text-xs text-slate-500">{user?.email ||"-"}</p>
+<div className="mt-2 flex flex-wrap gap-2">
+<span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-slate-600">
+{accountLabel}
+</span>
+<span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-sky-700">
+Workspace
+</span>
+</div>
+</div>
  </div>
 
  <div className="mt-4 grid gap-2 rounded-2xl glass-card bg-white p-3 text-xs">
@@ -219,11 +221,11 @@ export function AppWrapper({ children }: AppWrapperProps) {
  <span className="text-slate-500">Role</span>
  <span className="font-bold text-slate-800">{getRoleLabel(user?.role ||"", user?.company || "")}</span>
  </div>
- <div className="flex items-center justify-between">
- <span className="text-slate-500">Workspace</span>
- <span className="max-w-40 truncate font-bold text-slate-800">Private Workspace</span>
- </div>
- </div>
+<div className="flex items-center justify-between">
+<span className="text-slate-500">Workspace</span>
+<span className="max-w-40 truncate font-bold text-slate-800">{companyName ||"Private Workspace"}</span>
+</div>
+</div>
 
  <div className="mt-4 space-y-1">
  <Link href="/settings/profile" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">

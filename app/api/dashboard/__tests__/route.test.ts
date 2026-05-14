@@ -41,4 +41,18 @@ describe("dashboard api", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
   });
+
+  it("falls back to empty dashboard when data fetch fails", async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "admin", company: "magnus" });
+    mocks.getDashboardData.mockRejectedValueOnce(new Error("boom"));
+
+    const response = await GET(new Request("http://localhost/api/dashboard"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-Dashboard-Error")).toBe("true");
+    await expect(response.json()).resolves.toMatchObject({
+      metrics: expect.any(Array),
+      spotlight: { projectName: "No active project" },
+    });
+  });
 });

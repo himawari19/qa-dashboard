@@ -193,7 +193,7 @@ describe("generateMetadata", () => {
     it("returns item-specific OG tags when ?view={id} is present and item exists", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
         name: "Test User",
       });
@@ -232,7 +232,7 @@ describe("generateMetadata", () => {
     it("uses caseName for test-cases module title", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
         name: "Test User",
       });
@@ -263,7 +263,7 @@ describe("generateMetadata", () => {
     it("falls back to module-level metadata when item is not found", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
-        role: "editor",
+        role: "qa",
         company: "acme",
         name: "Test User",
       });
