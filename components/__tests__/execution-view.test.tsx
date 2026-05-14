@@ -39,13 +39,13 @@ vi.mock("@/lib/utils", () => ({
   formatDisplayText: (value: string) => value,
 }));
 
-import { SuiteExecutionView } from "@/app/test-execution/[id]/execution-view";
+import { ExecutionView } from "@/app/test-execution/[id]/execution-view";
 
-describe("SuiteExecutionView", () => {
+describe("ExecutionView", () => {
   it("renders execution controls and test case list", () => {
     const html = renderToStaticMarkup(
-      <SuiteExecutionView
-        suite={{
+      <ExecutionView
+        executionGroup={{
           project: "QA Hub",
           sprint: "Sprint 5",
           title: "Checkout Suite",
@@ -63,7 +63,7 @@ describe("SuiteExecutionView", () => {
           },
         ]}
         scenarioId="9"
-        suiteToken="suite-1"
+        executionToken="suite-1"
       />,
     );
 

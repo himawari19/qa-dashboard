@@ -21,6 +21,7 @@ vi.mock("../search-helpers", () => ({
   buildSearchSql: vi.fn(),
   escapeLike: (value: string) => value,
   extractExactId: vi.fn(),
+  mergeRowsById: vi.fn((primaryRows: any[], secondaryRows: any[]) => [...primaryRows, ...secondaryRows]),
   normalize: (value: unknown) => String(value ?? ""),
   queryFirst: mocks.queryFirst,
   queryRows: mocks.queryRows,

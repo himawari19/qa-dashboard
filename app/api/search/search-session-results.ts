@@ -1,5 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
 
 export async function getSessionResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "SES");
@@ -16,7 +17,7 @@ export async function getSessionResults(query: string, companyClause: string, co
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Test Session",
+        type: "Test Execution",
         group: "Test Management",
         href: "/test-execution",
         code: codeFromId("SES", Number(exactRow.id)),
@@ -36,25 +37,15 @@ export async function getSessionResults(query: string, companyClause: string, co
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { statusColumn: '"result"', assigneeColumn: '"tester"', dateColumn: '"date"' });
+  const tokenClause = buildSearchTokenClause("test-sessions", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, updatedAt
      FROM "TestSession"
-     WHERE (
-       LOWER(COALESCE(date, '')) LIKE ?
-       OR LOWER(COALESCE(project, '')) LIKE ?
-       OR LOWER(COALESCE(sprint, '')) LIKE ?
-       OR LOWER(COALESCE(tester, '')) LIKE ?
-       OR LOWER(COALESCE(scope, '')) LIKE ?
-       OR LOWER(COALESCE(result, '')) LIKE ?
-       OR LOWER(COALESCE(notes, '')) LIKE ?
-       OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
-     )
-     ${companyClause + filter.clause}
+     WHERE 1=1${companyClause}${filter.clause}${tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(8).fill(like).concat(filter.params, companyParams),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows
@@ -62,7 +53,7 @@ export async function getSessionResults(query: string, companyClause: string, co
       buildResult({
         row,
         query,
-        type: "Test Session",
+        type: "Test Execution",
         group: "Test Management",
         href: "/test-execution",
         code: codeFromId("SES", Number(row.id)),

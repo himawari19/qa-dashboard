@@ -759,7 +759,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  href={editModal.navigationLink}
  className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition"
  >
- Go to {editModal.item.type === "sprint" ? "Sprint" : editModal.item.type === "plan" ? "Test Plan" : "Task"} →
+ Go to {editModal.item.type === "sprint" ? "Sprints" : editModal.item.type === "plan" ? "Test Plans" : "Tasks"} →
  </a>
  </div>
  <button
@@ -775,7 +775,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
  <p className="text-xs font-black uppercase tracking-widest text-slate-400">Type</p>
  <p className="mt-2 text-sm font-bold text-slate-900">
- {editModal.item.type ==="sprint" ?"Sprint" : editModal.item.type === "plan" ? "Test Plan" : "Task"}
+ {editModal.item.type ==="sprint" ?"Sprints" : editModal.item.type === "plan" ? "Test Plans" : "Tasks"}
  </p>
  </div>
  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">

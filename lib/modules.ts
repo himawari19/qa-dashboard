@@ -188,7 +188,7 @@ const bugSchema = z.object({
 });
 
 const testCaseSchema = z.object({
-  testSuiteId: requiredText("Test Suite ID"),
+  testSuiteId: requiredText("Suite ID"),
   tcId: requiredText("TC ID"),
   caseName: requiredText("Case Name"),
   assignee: optionalText,
@@ -250,7 +250,7 @@ const testSessionSchema = z.object({
 });
 
 const suiteSchema = z.object({
-  title: requiredText("Test Suite Name"),
+  title: requiredText("Suite Name"),
   testPlanId: optionalText,
   assignee: optionalText,
   notes: optionalText,
@@ -281,9 +281,9 @@ function normalizeEntry(entry: Record<string, string>) {
 
 export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   tasks: {
-    title: "Product Backlog",
+    title: "Tasks",
     shortTitle: "Tasks",
-    description: "Track product development, improvements, and follow-up work in one backlog.",
+    description: "Track product work, follow-ups, and improvements in one place.",
     prefix: "TASK",
     sheetName: "Tasks",
     schema: taskSchema,
@@ -340,7 +340,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   bugs: {
-    title: "Bug Register",
+    title: "Bugs",
     shortTitle: "Bugs",
     description: "Keep a complete register of defects with steps, results, and evidence.",
     prefix: "BUG",
@@ -407,7 +407,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
       ID: String(item.id),
-      "Test Suite ID": String(item.testSuiteId),
+      "Suite ID": String(item.testSuiteId),
       "TC ID": String(item.tcId),
       "Case Name": String(item.caseName),
       Assignee: String(item.assignee ?? ""),
@@ -419,7 +419,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Status: String(item.status),
     }),
     fields: [
-      { name: "testSuiteId", label: "Test Suite ID", kind: "select", options: [], required: true },
+      { name: "testSuiteId", label: "Suite ID", kind: "select", options: [], required: true },
       { name: "tcId", label: "TC ID", kind: "text", placeholder: "e.g. TC-001", required: true },
       { name: "caseName", label: "Case Name", kind: "text", placeholder: "e.g. Valid Login", required: true },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
@@ -433,14 +433,14 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "tcId", label: "TC ID" },
       { key: "caseName", label: "Case Name", multiline: true, internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
-      { key: "testSuiteId", label: "Test Suite ID" },
+      { key: "testSuiteId", label: "Suite ID" },
       { key: "assignee", label: "Assignee" },
       { key: "priority", label: "Priority", tone: "priority" },
       { key: "status", label: "Status", tone: "status" },
     ],
   },
   "test-plans": {
-    title: "Test Plan",
+    title: "Test Plans",
     shortTitle: "Test Plans",
     description: "Top-level testing plan for a release or cycle.",
     prefix: "PLAN",
@@ -458,7 +458,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. CRM System", required: true },
-      { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
+      { name: "title", label: "Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. Sprint 12", required: true },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "status", label: "Status", kind: "select", options: testPlanStatusOptions, required: true },
@@ -468,7 +468,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "notes", label: "Notes / Exclusions", kind: "textarea", span: 1, placeholder: "Things not covered in this plan..." },
     ],
     columns: [
-      { key: "title", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
+      { key: "title", label: "Plan Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
       { key: "project", label: "Project Name", internalLink: (row) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "sprint", label: "Sprint" },
       { key: "startDate", label: "Start" },
@@ -479,8 +479,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   "test-sessions": {
-    title: "Test Execution Sessions",
-    shortTitle: "Exec Sessions",
+    title: "Test Execution",
+    shortTitle: "Test Execution",
     description: "Record daily execution sessions, totals, and final outcome in one place.",
     prefix: "SES",
     sheetName: "Test Sessions",
@@ -529,8 +529,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   "test-suites": {
-    title: "Test Suite",
-    shortTitle: "Suites",
+    title: "Test Suites",
+    shortTitle: "Test Suites",
     description: "Middle layer grouping test cases under a test plan.",
     prefix: "SUITE",
     sheetName: "Suites",
@@ -538,14 +538,14 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
       ID: codeFromId("SUITE", Number(item.id)),
-      "Test Plan Name": String(item.testPlanId ?? ""),
+      "Plan Name": String(item.testPlanId ?? ""),
       Title: String(item.title),
       Assignee: String(item.assignee ?? ""),
       Status: String(item.status),
     }),
     fields: [
-      { name: "testPlanId", label: "Test Plan Name", kind: "select", options: [], required: true },
-      { name: "title", label: "Test Suite Name", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
+      { name: "testPlanId", label: "Plan Name", kind: "select", options: [], required: true },
+      { name: "title", label: "Suite Name", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Draft", value: "draft" },
@@ -555,8 +555,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "notes", label: "Goal / Notes", kind: "textarea", rows: 3, placeholder: "Describe the objective of this suite..." },
     ],
     columns: [
-      { key: "title", label: "Test Suite Name", internalLink: (row) => `/test-suites/${row.publicToken || row.token || ""}` },
-      { key: "testPlanLabel", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.testPlanToken}` },
+      { key: "title", label: "Suite Name", internalLink: (row) => `/test-suites/${row.publicToken || row.token || ""}` },
+      { key: "testPlanLabel", label: "Plan Name", internalLink: (row) => `/test-plans/${row.testPlanToken}` },
       { key: "assignee", label: "Assignee" },
       { key: "notes", label: "Goal / Notes", multiline: true },
       { key: "status", label: "Status", tone: "status" },
@@ -564,7 +564,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   },
   "meeting-notes": {
     title: "Meeting Notes",
-    shortTitle: "Meetings",
+    shortTitle: "Meeting Notes",
     description: "Keep track of daily meetings, decisions made, and follow-up action items.",
     prefix: "MEET",
     sheetName: "Meetings",
@@ -578,10 +578,12 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Attendees: String(item.attendees ?? ""),
       Content: String(item.content ?? ""),
       "Action Items": String(item.actionItems ?? ""),
+      "Related Items": String(item.relatedItems ?? ""),
     }),
     fields: [
       { name: "content", label: "Discussion / Summary", kind: "textarea", placeholder: "Key discussion points and outcomes...", required: false, span: 3 },
       { name: "actionItems", label: "Action Items / Decisions", kind: "textarea", placeholder: "Who does what by when...", required: false, span: 3 },
+      { name: "relatedItems", label: "Related Items", kind: "textarea", placeholder: "Link related bugs, tasks, or notes...", span: 3 },
       { name: "date", label: "Date", kind: "date", required: true },
       { name: "project", label: "Project Name", kind: "select", options: [], required: true },
       { name: "title", label: "Topic", kind: "text", placeholder: "e.g. Daily Standup", required: true },
@@ -594,10 +596,11 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "attendees", label: "Attendees" },
       { key: "content", label: "Summary", multiline: true },
       { key: "actionItems", label: "Action Items", multiline: true },
+      { key: "relatedItems", label: "Related Items", multiline: true },
     ],
   },
   assignees: {
-    title: "Team Members",
+    title: "Assignees",
     shortTitle: "Assignees",
     description: "Synced from user accounts for assignment across tasks, test suites, and deployment logs.",
     prefix: "USER",
@@ -663,7 +666,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
   },
   deployments: {
     title: "Deployment Log",
-    shortTitle: "Deployment",
+    shortTitle: "Deployment Log",
     description: "Track deployments, changelog, and release history.",
     prefix: "DEP",
     sheetName: "Deployments",
@@ -710,7 +713,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   sprints: {
-    title: "Sprint Management",
+    title: "Sprints",
     shortTitle: "Sprints",
     description: "Define sprint timelines, goals, and tracking status.",
     prefix: "SPR",
@@ -727,8 +730,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "name", label: "Sprint Name", kind: "text", placeholder: "e.g. Sprint 24", required: true },
-      { name: "project", label: "Project Name", kind: "text", placeholder: "Auto-filled from Test Plan", readonly: true },
-      { name: "testPlanTitle", label: "Test Plan Name", kind: "text", placeholder: "Linked from Test Plan", readonly: true },
+      { name: "project", label: "Project Name", kind: "text", placeholder: "Auto-filled from plan", readonly: true },
+      { name: "testPlanTitle", label: "Plan Name", kind: "text", placeholder: "Linked from plan", readonly: true },
       { name: "startDate", label: "Start Date", kind: "date", required: true },
       { name: "endDate", label: "End Date", kind: "date", required: true },
       { name: "status", label: "Status", kind: "select", options: sprintStatusOptions, required: true },
@@ -737,7 +740,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "name", label: "Sprint Name" },
       { key: "project", label: "Project Name" },
-      { key: "testPlanTitle", label: "Test Plan Name" },
+      { key: "testPlanTitle", label: "Plan Name" },
       { key: "startDate", label: "Start Date" },
       { key: "endDate", label: "End Date" },
       { key: "status", label: "Status", tone: "status" },

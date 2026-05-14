@@ -116,10 +116,6 @@ function getLatestDeploymentVersion(rows: Record<string, unknown>[]) {
     .reduce((latest, current) => (compareVersions(current, latest) > 0 ? current : latest), "");
 }
 
-export function generateStaticParams() {
-  return moduleOrder.map((module) => ({ module }));
-}
-
 export default async function ModulePage({
   params,
   searchParams,
@@ -342,17 +338,17 @@ export default async function ModulePage({
   const plainRelatedOptions = JSON.parse(JSON.stringify(relatedOptions));
 
   return (
-    <ModuleWorkspace 
-      module={moduleKey as ModuleKey} 
-      rows={plainRows} 
+    <ModuleWorkspace
+      module={moduleKey as ModuleKey}
+      rows={plainRows}
       kanbanRows={JSON.parse(JSON.stringify(kanbanRows))}
       currentPage={safePage}
       totalPages={totalPages}
-      totalItems={totalItems} 
-      relatedOptions={plainRelatedOptions} 
-      initialFormValues={initialFormValues} 
+      totalItems={totalItems}
+      relatedOptions={plainRelatedOptions}
+      initialFormValues={initialFormValues}
       versionSequenceDefaultValue={initialFormValues.version || ""}
-      hiddenFields={hiddenFields} 
+      hiddenFields={hiddenFields}
       user={JSON.parse(JSON.stringify(currentUser))}
       viewId={viewId}
     />

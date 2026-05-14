@@ -1,27 +1,47 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle, Eye, EyeSlash, UserPlus } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { BrandMark } from "@/components/brand-mark";
+import { FormFieldError } from "@/components/form-field-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const inviteToken = searchParams.get("inviteToken") || "";
+  const [inviteToken, setInviteToken] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setInviteToken(new URLSearchParams(window.location.search).get("inviteToken") || "");
+  }, []);
+
   const inviteHint = useMemo(() => (inviteToken ? "Invitation detected. Your access will be activated after registration." : "Invite-only access. Use an invitation link to register."), [inviteToken]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const nextErrors: Record<string, string> = {};
+    if (!name.trim()) nextErrors.name = "Name is required.";
+    if (!email.trim()) nextErrors.email = "Email address is required.";
+    if (!password.trim()) nextErrors.password = "Password is required.";
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setError("");
+      return;
+    }
+
     setPending(true);
     setError("");
+    setFieldErrors({});
 
     try {
       const res = await fetch("/api/auth/register", {
@@ -79,14 +99,55 @@ export default function RegisterPage() {
             <p className="mt-2 text-sm text-slate-500">{inviteHint}</p>
           </div>
 
-          <form onSubmit={submit} className="space-y-3">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-sky-500" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-sky-500" />
-            <div className="relative">
+          <form noValidate onSubmit={submit} className="space-y-3">
+            <div className="space-y-1.5">
+              <input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setFieldErrors((current) => {
+                    const next = { ...current };
+                    delete next.name;
+                    return next;
+                  });
+                  setError("");
+                }}
+                placeholder="Full name"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-sky-500"
+              />
+              <FormFieldError message={fieldErrors.name} className="px-1" />
+            </div>
+            <div className="space-y-1.5">
+              <input
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setFieldErrors((current) => {
+                    const next = { ...current };
+                    delete next.email;
+                    return next;
+                  });
+                  setError("");
+                }}
+                placeholder="Email address"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-sky-500"
+              />
+              <FormFieldError message={fieldErrors.email} className="px-1" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setFieldErrors((current) => {
+                    const next = { ...current };
+                    delete next.password;
+                    return next;
+                  });
+                  setError("");
+                }}
                 placeholder="Password"
                 className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 pr-12 text-sm outline-none focus:border-sky-500"
               />
@@ -98,6 +159,8 @@ export default function RegisterPage() {
               >
                 {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
               </button>
+              </div>
+              <FormFieldError message={fieldErrors.password} className="px-1" />
             </div>
             {inviteToken && (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -107,7 +170,7 @@ export default function RegisterPage() {
                 </div>
               </div>
             )}
-            {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+            {error && <InlineAlert variant="error" message={error} className="rounded-xl px-4 py-3" />}
             <button disabled={pending} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-60">
               <UserPlus size={16} weight="bold" />
               {pending ? "Creating account..." : "Create account"}

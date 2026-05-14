@@ -1,8 +1,8 @@
 "use client";
 
 import Link from"next/link";
-import { usePathname, useRouter, useSearchParams } from"next/navigation";
-import { useRef, useState, useTransition } from"react";
+import { usePathname, useRouter } from"next/navigation";
+import { useEffect, useRef, useState, useTransition } from"react";
 import { FilePdf, FileXls, MagnifyingGlass, UploadSimple } from"@phosphor-icons/react";
 
 export function SuitesHeaderActions({
@@ -18,16 +18,26 @@ export function SuitesHeaderActions({
 }) {
  const router = useRouter();
  const pathname = usePathname();
- const searchParams = useSearchParams();
  const uploadRef = useRef<HTMLInputElement | null>(null);
  const [value, setValue] = useState(initialSearch);
+ const [locationSearch, setLocationSearch] = useState(() => (typeof window !== "undefined" ? window.location.search : ""));
  const [, startTransition] = useTransition();
 
+ useEffect(() => {
+ const syncSearch = () => {
+ setLocationSearch(window.location.search);
+ };
+
+ window.addEventListener("popstate", syncSearch);
+ return () => window.removeEventListener("popstate", syncSearch);
+ }, []);
+
  function updateQuery(nextValue: string) {
- const params = new URLSearchParams(searchParams.toString());
+ const params = new URLSearchParams(locationSearch);
  if (nextValue.trim()) params.set("q", nextValue.trim());
  else params.delete("q");
  const query = params.toString();
+ setLocationSearch(`?${query}`);
  startTransition(() => router.replace(query ?`${pathname}?${query}` : pathname));
  }
 

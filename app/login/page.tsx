@@ -1,16 +1,17 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { FormFieldError } from "@/components/form-field-error";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { getPublicRoleOptions } from "@/lib/roles";
 
 function LoginContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") || "/";
+  const [nextUrl, setNextUrl] = useState("/");
 
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [formData, setFormData] = useState({
@@ -20,24 +21,62 @@ function LoginContent() {
     role: "",
     company: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    setNextUrl(new URLSearchParams(window.location.search).get("next") || "/");
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[e.target.name];
+      return next;
+    });
+    setError("");
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    const nextErrors: Record<string, string> = {};
+    const requireField = (name: keyof typeof formData, message: string) => {
+      if (!String(formData[name]).trim()) nextErrors[name] = message;
+    };
+
+    if (mode === "signup") {
+      requireField("name", "Name is required.");
+      requireField("email", "Email address is required.");
+      requireField("password", "Password is required.");
+      requireField("role", "Role is required.");
+      requireField("company", "Company name is required.");
+    } else if (mode === "forgot") {
+      requireField("email", "Email address is required.");
+    } else {
+      requireField("email", "Email address is required.");
+      requireField("password", "Password is required.");
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setError("");
+      return;
+    }
+
     setPending(true);
     setError("");
+    setFieldErrors({});
 
     if (mode === "forgot") {
       setTimeout(() => {
         toast("If an account exists with that email, a reset link has been sent.", "info");
         setPending(false);
+        setFieldErrors({});
         setMode("signin");
       }, 1000);
       return;
@@ -112,7 +151,7 @@ function LoginContent() {
             </p>
           </div>
 
-          <form onSubmit={submit} className="space-y-6">
+          <form noValidate onSubmit={submit} className="space-y-6">
             {mode === "signup" && (
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Full Name</label>
@@ -122,24 +161,24 @@ function LoginContent() {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="John Doe"
-                  className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                  required
+                  className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                 />
+                <FormFieldError message={fieldErrors.name} className="px-1" />
               </div>
             )}
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Email Address</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="name@company.com"
-                className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                required
-              />
-            </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="name@company.com"
+                  className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                />
+                <FormFieldError message={fieldErrors.email} className="px-1" />
+              </div>
 
             {mode !== "forgot" && (
               <>
@@ -149,7 +188,11 @@ function LoginContent() {
                     {mode === "signin" && (
                       <button
                         type="button"
-                        onClick={() => setMode("forgot")}
+                        onClick={() => {
+                          setFieldErrors({});
+                          setError("");
+                          setMode("forgot");
+                        }}
                         className="text-[11px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700"
                       >
                         Forgot?
@@ -163,8 +206,7 @@ function LoginContent() {
                       value={formData.password}
                       onChange={handleInputChange}
                       placeholder="••••••••"
-                      className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 pr-10 text-sm font-medium text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                      required
+                      className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 pr-10 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                     />
                     <button
                       type="button"
@@ -174,8 +216,9 @@ function LoginContent() {
                     >
                       {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
                     </button>
+                    </div>
+                    <FormFieldError message={fieldErrors.password} className="px-1" />
                   </div>
-                </div>
 
                 {mode === "signup" && (
                   <>
@@ -185,8 +228,7 @@ function LoginContent() {
                         name="role"
                         value={formData.role}
                         onChange={handleInputChange}
-                        required
-                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                       >
                         <option value="">Select your role</option>
                         {getPublicRoleOptions().map((role) => (
@@ -195,6 +237,7 @@ function LoginContent() {
                           </option>
                         ))}
                       </select>
+                      <FormFieldError message={fieldErrors.role} className="px-1" />
                     </div>
 
                     <div className="space-y-1.5">
@@ -205,16 +248,16 @@ function LoginContent() {
                         value={formData.company}
                         onChange={handleInputChange}
                         placeholder="e.g. Acme Corp"
-                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                        required
+                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                       />
+                      <FormFieldError message={fieldErrors.company} className="px-1" />
                     </div>
                   </>
                 )}
               </>
             )}
 
-            {error && <p className="text-sm font-medium text-rose-600">{error}</p>}
+            {error && <InlineAlert variant="error" message={error} compact className="px-1" />}
 
             <button
               type="submit"
@@ -236,7 +279,11 @@ function LoginContent() {
             {mode === "forgot" && (
               <button
                 type="button"
-                onClick={() => setMode("signin")}
+                onClick={() => {
+                  setFieldErrors({});
+                  setError("");
+                  setMode("signin");
+                }}
                 className="flex items-center gap-2 text-sm font-bold text-slate-600 transition-colors hover:text-slate-900"
               >
                 <ArrowLeft size={14} weight="bold" />

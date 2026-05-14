@@ -62,15 +62,15 @@ export const SCOPE_LABELS: Record<SearchScope, string> = {
   all: "All",
   tasks: "Tasks",
   bugs: "Bugs",
-  "test-plans": "Plans",
-  "test-suites": "Suites",
-  "test-cases": "Cases",
-  "test-sessions": "Sessions",
-  "meeting-notes": "Meetings",
+  "test-plans": "Test Plans",
+  "test-suites": "Test Suites",
+  "test-cases": "Test Cases",
+  "test-sessions": "Test Execution",
+  "meeting-notes": "Meeting Notes",
   sprints: "Sprints",
   assignees: "Assignees",
   users: "Users",
-  deployments: "Deployments",
+  deployments: "Deployment Log",
   activity: "Activity",
 };
 
@@ -180,7 +180,7 @@ export function buildResult({
 }
 
 export function buildSearchSql(columns: string[], companyClause: string, extraWhere = "") {
-  const searchClause = columns.map((column) => `LOWER(COALESCE(${column}, '')) LIKE ?`).join(" OR ");
+  const searchClause = columns.map((column) => `INSTR(LOWER(COALESCE(${column}, '')), ?) > 0`).join(" OR ");
   return `WHERE (${searchClause})${extraWhere}${companyClause}`;
 }
 
@@ -196,6 +196,18 @@ export async function queryRows<T extends Row>(sql: string, params: unknown[] = 
 export async function queryFirst<T extends Row>(sql: string, params: unknown[] = []) {
   const rows = await queryRows<T>(sql, params);
   return rows[0] ?? null;
+}
+
+export function mergeRowsById<T extends Row>(primaryRows: T[], secondaryRows: T[]) {
+  const seenIds = new Set<string>();
+  const mergedRows: T[] = [];
+  for (const row of [...primaryRows, ...secondaryRows]) {
+    const id = String(row.id ?? "");
+    if (!id || seenIds.has(id)) continue;
+    seenIds.add(id);
+    mergedRows.push(row);
+  }
+  return mergedRows;
 }
 
 export function extractExactId(query: string, prefix: string) {
@@ -215,14 +227,14 @@ export function buildFilterClause(
 
   const status = normalize(filters.status).toLowerCase();
   if (status && config.statusColumn) {
-    clauses.push(`LOWER(COALESCE(${config.statusColumn}, '')) LIKE ?`);
-    params.push(`%${status}%`);
+    clauses.push(`LOWER(COALESCE(${config.statusColumn}, '')) = ?`);
+    params.push(status);
   }
 
   const assignee = normalize(filters.assignee).toLowerCase();
   if (assignee && config.assigneeColumn) {
-    clauses.push(`LOWER(COALESCE(${config.assigneeColumn}, '')) LIKE ?`);
-    params.push(`%${assignee}%`);
+    clauses.push(`LOWER(COALESCE(${config.assigneeColumn}, '')) = ?`);
+    params.push(assignee);
   }
 
   const from = normalize(filters.from);

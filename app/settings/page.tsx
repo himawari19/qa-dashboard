@@ -20,11 +20,11 @@ export default function SettingsPage() {
  ],
  },
  {
- title:"User Management",
+ title:"System Settings",
  description:"Manage people, roles, and permissions in your workspace.",
  items: [
  {
- title:"Assignees / Team Members",
+ title:"Assignees",
  description:"Manage the list of people available for task assignments and test execution.",
  href:"/assignees",
  icon: Users,
@@ -33,7 +33,7 @@ export default function SettingsPage() {
  disabled: false,
  },
  {
- title:"User Accounts",
+ title:"User Management",
  description:"Manage system access, roles, and credentials for all users.",
  href:"/settings/users",
  icon: Lock,

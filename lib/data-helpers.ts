@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { isAdminUser } from "@/lib/auth-core";
 import { getCurrentUser } from "@/lib/auth";
+import { buildSearchTokenClause, syncSearchTokens } from "@/lib/search-index";
 
 export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 
@@ -108,6 +109,19 @@ export async function logActivity(company: string, type: string, id: string, act
        VALUES (?, ?, ?, ?, ?)`,
       [company, type, id, action, summary],
     );
+    const created = await db.query<{ id?: number | string }>(
+      `SELECT "id" FROM "ActivityLog" WHERE "company" = ? AND "entityType" = ? AND "entityId" = ? AND "action" = ? AND "summary" = ? ORDER BY "id" DESC LIMIT 1`,
+      [company, type, id, action, summary],
+    );
+    const createdId = created[0]?.id === undefined ? undefined : Number(created[0].id);
+    if (createdId !== undefined) {
+      await syncSearchTokens("activity", company, createdId, {
+        entityType: type,
+        entityId: id,
+        action,
+        summary,
+      });
+    }
   } catch (e) {
     console.error("Activity logging failed:", e);
   }
@@ -123,7 +137,7 @@ export function getSearchableColumns(module: string): string[] {
     case "test-plans": return ["title", "project", "sprint", "scope", "status"];
     case "test-sessions": return ["project", "sprint", "tester", "scope", "result"];
     case "test-suites": return ["title", "assignee", "status", "notes"];
-    case "meeting-notes": return ["title", "project", "content", "attendees", "actionItems"];
+    case "meeting-notes": return ["title", "project", "content", "attendees", "actionItems", "relatedItems"];
     case "assignees": return ["name", "role", "email"];
     case "sprints": return ["name", "status", "goal"];
     case "users": return ["name", "email", "role"];
@@ -132,12 +146,16 @@ export function getSearchableColumns(module: string): string[] {
   }
 }
 
-export function buildSearchClause(module: string, search: string): { clause: string; params: string[] } {
+export function buildSearchClause(module: string, search: string, company = ""): { clause: string; params: string[] } {
   const q = search.trim();
   if (!q) return { clause: "", params: [] };
+  const tokenClause = buildSearchTokenClause(module, company, q, "");
+  if (tokenClause.clause) {
+    return tokenClause as { clause: string; params: string[] };
+  }
   const columns = getSearchableColumns(module);
-  const conditions = columns.map((col) => `LOWER(COALESCE("${col}", '')) LIKE ?`);
-  const param = `%${q.toLowerCase()}%`;
+  const conditions = columns.map((col) => `INSTR(LOWER(COALESCE("${col}", '')), ?) > 0`);
+  const param = q.toLowerCase();
   return {
     clause: ` AND (${conditions.join(" OR ")})`,
     params: columns.map(() => param),
@@ -146,6 +164,26 @@ export function buildSearchClause(module: string, search: string): { clause: str
 
 export async function runInsert(sqlStr: string, params: any[]) {
   return db.run(sqlStr, params);
+}
+
+export async function runInsertReturningId(
+  sqlStr: string,
+  params: any[],
+  fallbackLookup?: { query: string; params: any[] },
+) {
+  try {
+    const inserted = await db.get<{ id?: number | string }>(`${sqlStr} RETURNING "id"`, params);
+    if (inserted?.id !== undefined) {
+      return Number(inserted.id);
+    }
+  } catch {
+    // Fall through to the legacy insert + lookup path below.
+  }
+
+  await db.run(sqlStr, params);
+  if (!fallbackLookup) return undefined;
+  const created = await db.get<{ id?: number | string }>(fallbackLookup.query, fallbackLookup.params);
+  return created?.id === undefined ? undefined : Number(created.id);
 }
 
 export async function countRows(table: string, company?: string) {
@@ -186,11 +224,31 @@ export async function syncSprintFromTestPlan({
       `UPDATE "Sprint" SET "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
       [startDate ?? "", endDate ?? "", status, goal ?? "", existing.id],
     );
+    await syncSearchTokens("sprints", company, existing.id, {
+      name: sprintName,
+      startDate: startDate ?? "",
+      endDate: endDate ?? "",
+      status,
+      goal: goal ?? "",
+    });
   } else {
-    await db.run(
+    const createdId = await runInsertReturningId(
       `INSERT INTO "Sprint" ("company", "name", "startDate", "endDate", "status", "goal") VALUES (?, ?, ?, ?, ?, ?)`,
       [company, sprintName, startDate ?? "", endDate ?? "", status, goal ?? ""],
+      {
+        query: `SELECT "id" FROM "Sprint" WHERE "company" = ? AND "name" = ? ORDER BY "id" DESC LIMIT 1`,
+        params: [company, sprintName],
+      },
     );
+    if (createdId !== undefined) {
+      await syncSearchTokens("sprints", company, createdId, {
+        name: sprintName,
+        startDate: startDate ?? "",
+        endDate: endDate ?? "",
+        status,
+        goal: goal ?? "",
+      });
+    }
   }
 }
 

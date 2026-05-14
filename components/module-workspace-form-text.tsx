@@ -4,6 +4,8 @@ import { useEffect, useState } from"react";
 import Link from"next/link";
 import { Badge } from"@/components/badge";
 import { AutoResizeTextarea } from"@/components/ui/auto-resize-textarea";
+import { FormFieldError } from"@/components/form-field-error";
+import { InlineAlert } from"@/components/ui/inline-alert";
 import { cn } from"@/lib/utils";
 import { Info, WarningCircle } from"@phosphor-icons/react";
 import type { ModuleKey } from"@/lib/modules";
@@ -71,7 +73,7 @@ export function ModuleWorkspaceFormText({
  }
 
  return (
- <div className="space-y-3">
+ <div className="space-y-0">
  <div className="relative">
  <AutoResizeTextarea
  name={field.name}
@@ -129,22 +131,22 @@ export function ModuleWorkspaceFormText({
  </span>
  </div>
  )}
- {field.name ==="sprint" && sprintDuplicate && (
- <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 animate-in fade-in duration-200">
- <WarningCircle size={13} weight="bold" className="shrink-0 text-amber-600" />
- <p className="text-xs font-semibold text-amber-700">
- Sprint name already exists - you can still continue, but this may link to an existing sprint.
- </p>
- </div>
- )}
- {(field.name ==="title" || field.name ==="caseName") && duplicates.length > 0 && (
- <div className="animate-in fade-in slide-in-from-top-1 rounded-md border border-amber-200 bg-amber-50/50 p-4 duration-300">
- <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-700">
- <WarningCircle size={14} weight="bold" />
- Potential Duplicates Found ({duplicates.length})
- </div>
- <div className="space-y-2">
- {duplicates.map((dup) => (
+  {field.name ==="sprint" && sprintDuplicate && (
+  <InlineAlert
+  variant="warning"
+  message="Sprint name already exists - you can still continue, but this may link to an existing sprint."
+  className="animate-in fade-in duration-200"
+  />
+  )}
+  {(field.name ==="title" || field.name ==="caseName") && duplicates.length > 0 && (
+  <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+  <InlineAlert
+  variant="warning"
+  title={`Potential Duplicates Found (${duplicates.length})`}
+  message="Please check these items before creating a new one to avoid redundancy."
+  />
+  <div className="space-y-2">
+  {duplicates.map((dup) => (
  <Link
  key={dup.id}
  href={`/${module ==="tasks" ?"tasks" :"bugs"}?id=${dup.id}`}
@@ -156,15 +158,12 @@ export function ModuleWorkspaceFormText({
  <span className="truncate font-medium text-slate-700">{dup.title}</span>
  </div>
  <Badge value={dup.status} className="shrink-0 text-[11px]" />
- </Link>
- ))}
- </div>
- <p className="mt-3 text-[11px] italic text-amber-600">
- Please check these items before creating a new one to avoid redundancy.
- </p>
- </div>
- )}
- {fieldError && <p className="text-xs font-semibold text-rose-600">{fieldError}</p>}
+  </Link>
+  ))}
+  </div>
+  </div>
+  )}
+ <FormFieldError message={fieldError} />
  </div>
  );
 }

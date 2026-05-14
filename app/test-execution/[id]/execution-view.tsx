@@ -21,7 +21,7 @@ type TestCase = {
  status: string;
 };
 
-type Suite = {
+type ExecutionGroup = {
  project: string;
  sprint: string;
  title: string;
@@ -34,15 +34,15 @@ type SessionForm = {
  notes: string;
 };
 
-export function SuiteExecutionView({
- suite,
+export function ExecutionView({
+ executionGroup,
  cases,
- suiteToken,
+ executionToken,
 }: {
- suite: Suite;
+ executionGroup: ExecutionGroup;
  cases: TestCase[];
  scenarioId: string;
- suiteToken: string;
+ executionToken: string;
 }) {
  const router = useRouter();
  const [items, setItems] = useState<TestCase[]>(cases);
@@ -52,9 +52,9 @@ export function SuiteExecutionView({
  );
  const [showModal, setShowModal] = useState(false);
  const [showShortcuts, setShowShortcuts] = useState(false);
- const [sessionForm, setSessionForm] = useState<SessionForm>({
- project: suite.project ||"",
- sprint: suite.sprint ||"",
+const [sessionForm, setSessionForm] = useState<SessionForm>({
+ project: executionGroup.project ||"",
+ sprint: executionGroup.sprint ||"",
  tester:"",
  notes:"",
  });
@@ -145,7 +145,7 @@ export function SuiteExecutionView({
  formData.set("project", sessionForm.project);
  formData.set("sprint", sessionForm.sprint);
  formData.set("tester", sessionForm.tester);
- formData.set("scope", suite.title);
+ formData.set("scope", executionGroup.title);
  formData.set("totalCases", String(total));
  formData.set("passed", String(passed));
  formData.set("failed", String(failed));
@@ -176,7 +176,7 @@ export function SuiteExecutionView({
  <div className="mx-auto max-w-7xl px-4 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
  {isPlayMode && (
  <PlayModeView 
- suite={suite} 
+ executionGroup={executionGroup} 
  cases={items} 
  onClose={(updated) => {
  setItems(updated);
@@ -288,7 +288,7 @@ export function SuiteExecutionView({
  crumbs={[
  { label:"Dashboard", href:"/dashboard" },
  { label:"Test Execution", href:"/test-execution" },
- { label: suite.title },
+ { label: executionGroup.title },
  ]}
  />
  </div>
@@ -305,21 +305,21 @@ export function SuiteExecutionView({
  </Link>
  <div>
  <div className="flex items-center gap-3 mb-1">
- {suite.project && (
+ {executionGroup.project && (
  <Link
- href={`/test-plans/projects/${encodeURIComponent(suite.project)}`}
+ href={`/test-plans/projects/${encodeURIComponent(executionGroup.project)}`}
  className="text-xs font-semibold text-blue-600 hover:underline uppercase tracking-widest transition-colors"
  >
- {suite.project}
+ {executionGroup.project}
  </Link>
  )}
- {suite.sprint && (<>
+ {executionGroup.sprint && (<>
  <div className="h-1 w-1 rounded-full bg-slate-300" />
- <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">{suite.sprint}</span>
+ <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">{executionGroup.sprint}</span>
  </>)}
  </div>
  <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-none">
- {suite.title}
+ {executionGroup.title}
  </h1>
  </div>
  </div>
@@ -333,14 +333,14 @@ export function SuiteExecutionView({
  <Keyboard size={18} weight="bold" />
  </button>
  <Link
- href={`/test-suites/${suiteToken}`}
- title="View Suite Detail"
+ href={`/test-suites/${executionToken}`}
+ title="View Execution Detail"
  className="flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition"
  >
  <ArrowSquareOut size={18} weight="bold" />
  </Link>
  <Link
- href={`/test-cases/detail/${suiteToken}`}
+ href={`/test-cases/detail/${executionToken}`}
  className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200"
  >
  Add Test Case
@@ -350,7 +350,7 @@ export function SuiteExecutionView({
  className="inline-flex h-11 items-center gap-2 rounded-md bg-blue-600 px-5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700 active:scale-95"
  >
  <Play size={18} weight="fill" />
- Play Mode
+ Execution Mode
  </button>
  <button
  onClick={() => setShowModal(true)}
@@ -397,14 +397,14 @@ export function SuiteExecutionView({
  <div className="h-20 w-20 rounded-md bg-slate-50 flex items-center justify-center text-slate-400 mb-6">
  <Database size={40} weight="duotone" />
  </div>
- <h3 className="text-2xl font-bold text-slate-900">Suite is Empty</h3>
+ <h3 className="text-2xl font-bold text-slate-900">Execution Group is Empty</h3>
  <p className="mt-3 text-slate-600 max-w-md mx-auto text-base">
- This test suite doesn&apos;t have any scenarios yet. Add at least one test case to start
+ This execution group doesn&apos;t have any cases yet. Add at least one test case to start
  execution.
  </p>
  <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
  <Link
- href={`/test-cases/detail/${suiteToken}`}
+ href={`/test-cases/detail/${executionToken}`}
  className="inline-flex h-11 items-center gap-2 rounded-md bg-blue-600 px-6 font-semibold text-white shadow-sm transition duration-200 hover:bg-blue-700 active:scale-95"
  >
  Add Test Case <FastForward size={16} weight="bold" />
@@ -423,7 +423,7 @@ export function SuiteExecutionView({
  <div className="lg:col-span-4 space-y-4">
  <div className="flex items-center justify-between px-1">
  <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
- Scenarios ({items.length})
+ Cases ({items.length})
  </h3>
  </div>
 

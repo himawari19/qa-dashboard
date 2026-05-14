@@ -1,5 +1,7 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
+
 export async function getBugResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "BUG");
   if (exactId !== null) {
@@ -15,7 +17,7 @@ export async function getBugResults(query: string, companyClause: string, compan
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Bug",
+        type: "Bugs",
         group: "Work Items",
         href: "/bugs",
         code: codeFromId("BUG", Number(exactRow.id)),
@@ -41,33 +43,16 @@ export async function getBugResults(query: string, companyClause: string, compan
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
-  const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"suggestedDev"', dateColumn: '"createdAt"' });
+
+  const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"suggestedDev"', dateColumn: '"updatedAt"' });
+  const tokenClause = buildSearchTokenClause("bugs", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, title, project, module, severity, priority, status, stepsToReproduce, expectedResult, actualResult, updatedAt
+    `SELECT id, title, project, module, bugType, severity, priority, status, stepsToReproduce, expectedResult, actualResult, updatedAt
      FROM "Bug"
-       ${buildSearchSql(
-         [
-         "title",
-         "project",
-         "module",
-         "bugType",
-         "severity",
-         "priority",
-         "status",
-         "preconditions",
-         "stepsToReproduce",
-         "expectedResult",
-         "actualResult",
-         "relatedItems",
-         "suggestedDev",
-         "CAST(id AS TEXT)",
-       ],
-         companyClause + filter.clause,
-       )}
+     WHERE 1=1${companyClause + filter.clause + tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(14).fill(like).concat(filter.params, companyParams),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows
@@ -75,7 +60,7 @@ export async function getBugResults(query: string, companyClause: string, compan
       buildResult({
         row,
         query,
-        type: "Bug",
+        type: "Bugs",
         group: "Work Items",
         href: "/bugs",
         code: codeFromId("BUG", Number(row.id)),

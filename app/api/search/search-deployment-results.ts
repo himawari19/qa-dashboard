@@ -1,5 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
 
 export async function getDeploymentResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "DEP");
@@ -16,7 +17,7 @@ export async function getDeploymentResults(query: string, companyClause: string,
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Deployment",
+        type: "Deployment Log",
         group: "Documentation",
         href: "/deployments",
         code: codeFromId("DEP", Number(exactRow.id)),
@@ -36,26 +37,15 @@ export async function getDeploymentResults(query: string, companyClause: string,
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"developer"', dateColumn: '"date"' });
+  const tokenClause = buildSearchTokenClause("deployments", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, date, version, project, environment, developer, changelog, status, notes, updatedAt
      FROM "Deployment"
-     WHERE (
-       LOWER(COALESCE(date, '')) LIKE ?
-       OR LOWER(COALESCE(version, '')) LIKE ?
-       OR LOWER(COALESCE(project, '')) LIKE ?
-       OR LOWER(COALESCE(environment, '')) LIKE ?
-       OR LOWER(COALESCE(developer, '')) LIKE ?
-       OR LOWER(COALESCE(changelog, '')) LIKE ?
-       OR LOWER(COALESCE(status, '')) LIKE ?
-       OR LOWER(COALESCE(notes, '')) LIKE ?
-       OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
-     )
-     ${companyClause + filter.clause}
+     WHERE 1=1${companyClause + filter.clause + tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(9).fill(like).concat(filter.params, companyParams),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows
@@ -63,7 +53,7 @@ export async function getDeploymentResults(query: string, companyClause: string,
       buildResult({
         row,
         query,
-        type: "Deployment",
+        type: "Deployment Log",
         group: "Documentation",
         href: "/deployments",
         code: codeFromId("DEP", Number(row.id)),

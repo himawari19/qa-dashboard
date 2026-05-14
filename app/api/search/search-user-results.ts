@@ -1,6 +1,7 @@
 import { codeFromId } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
-import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
+import { buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
 export async function getUserResults(query: string, companyClause: string, companyParams: unknown[]) {
   const exactId = extractExactId(query, "USR");
   if (exactId !== null) {
@@ -16,7 +17,7 @@ export async function getUserResults(query: string, companyClause: string, compa
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "User",
+        type: "Users",
         group: "System Settings",
         href: "/users",
         code: codeFromId("USR", Number(exactRow.id)),
@@ -32,20 +33,14 @@ export async function getUserResults(query: string, companyClause: string, compa
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
+  const tokenClause = buildSearchTokenClause("users", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, name, email, role, company, updatedAt
      FROM "User"
-     WHERE (
-       LOWER(COALESCE(name, '')) LIKE ?
-       OR LOWER(COALESCE(email, '')) LIKE ?
-       OR LOWER(COALESCE(role, '')) LIKE ?
-       OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
-     )
-     ${companyClause}
+     WHERE 1=1${companyClause}${tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(5).fill(like).concat(companyParams),
+    tokenClause.params.concat(companyParams),
   );
 
   return rows
@@ -53,7 +48,7 @@ export async function getUserResults(query: string, companyClause: string, compa
       buildResult({
         row,
         query,
-        type: "User",
+        type: "Users",
         group: "System Settings",
         href: "/users",
         code: codeFromId("USR", Number(row.id)),

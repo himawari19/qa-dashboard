@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 const mocks = vi.hoisted(() => ({
   pageShell: vi.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>),
-  executionSuiteGroup: vi.fn(() => <div data-testid="execution-suite-group" />),
+  executionGroupList: vi.fn(() => <div data-testid="execution-group-list" />),
   getModuleRows: vi.fn(),
 }));
 
@@ -20,7 +20,7 @@ vi.mock("@/lib/data", () => ({
 }));
 
 vi.mock("@/app/test-execution/execution-suite-group", () => ({
-  ExecutionSuiteGroup: mocks.executionSuiteGroup,
+  ExecutionGroupList: mocks.executionGroupList,
 }));
 
 import TestExecutionPage from "@/app/test-execution/page";
@@ -52,12 +52,12 @@ describe("test execution page", () => {
     expect(mocks.getModuleRows).toHaveBeenNthCalledWith(1, "test-suites");
     expect(mocks.getModuleRows).toHaveBeenNthCalledWith(2, "test-plans");
     expect(html).toContain("Plan Alpha");
-    expect(html).toContain("Standalone Suites");
-    expect(mocks.executionSuiteGroup).toHaveBeenCalledTimes(2);
+    expect(html).toContain("Standalone Execution");
+    expect(mocks.executionGroupList).toHaveBeenCalledTimes(2);
     const props = (mocks.pageShell as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]![0];
     expect(props).toEqual(expect.objectContaining({
       title: "Execution Center",
-      description: "Select a test suite to begin your execution session. All results are tracked automatically.",
+      description: "Select an execution group to begin tracking results automatically.",
     }));
   });
 });

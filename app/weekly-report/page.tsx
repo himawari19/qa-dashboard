@@ -545,7 +545,7 @@ export default function WeeklyReportPage() {
  </div>
 
  <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
- <Panel title="Execution Trend" subtitle="Passed / failed / blocked from this period's test sessions.">
+ <Panel title="Execution Trend" subtitle="Passed / failed / blocked from this period's execution items.">
  {sessionTrendData.length > 0 ? (
  <ResponsiveContainer width="100%" height={280} minWidth={1} minHeight={1}>
  <BarChart data={sessionTrendData} margin={{ left: -12, right: 8, top: 8 }}>
@@ -560,7 +560,7 @@ export default function WeeklyReportPage() {
  </ResponsiveContainer>
  ) : (
  <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-sm text-slate-500">
- No test session data this period.
+ No execution data this period.
  </div>
  )}
  </Panel>
@@ -626,7 +626,7 @@ export default function WeeklyReportPage() {
  )}
  </Panel>
 
- <Panel title="Bug by Test Plan" subtitle="Test plans with the most bugs this period.">
+ <Panel title="Bugs by Test Plans" subtitle="Test plans with the most bugs this period.">
  {projectChartData.length > 0 ? (
  <ResponsiveContainer width="100%" height={240} minWidth={1} minHeight={1}>
  <BarChart data={projectChartData} layout="vertical" margin={{ top: 8, right: 16, left: 10 }}>

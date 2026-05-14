@@ -7,6 +7,7 @@ type ToastType ="success" |"error" |"info";
 
 interface Toast {
  id: string;
+ signature: string;
  message: string;
  type: ToastType;
  expiresAt?: number;
@@ -21,10 +22,29 @@ type ToastOptions = {
  onAction?: () => void;
 };
 
-let toastFn: (message: string, type: ToastType, options?: ToastOptions) => void;
+type ToastHandler = (message: string, type: ToastType, options?: ToastOptions) => void;
+
+let toastFn: ToastHandler | undefined;
+const activeToastSignatures = new Set<string>();
+
+function buildToastSignature(message: string, type: ToastType, options?: ToastOptions) {
+ return [
+  type,
+  message,
+  options?.duration ?? 2000,
+  options?.countdown ? 1 : 0,
+  options?.actionLabel ??"",
+  options?.onAction ? 1 : 0,
+ ].join("|");
+}
 
 export function toast(message: string, type: ToastType ="success", options?: ToastOptions) {
- if (toastFn) toastFn(message, type, options);
+ if (!toastFn) return;
+
+ const signature = buildToastSignature(message, type, options);
+ if (activeToastSignatures.has(signature)) return;
+
+ toastFn(message, type, options);
 }
 
 export function Toaster() {
@@ -33,11 +53,14 @@ export function Toaster() {
  const defaultDuration = 2000;
 
  useEffect(() => {
- toastFn = (message, type, options) => {
+ const handler: ToastHandler = (message, type, options) => {
  const id = Math.random().toString(36).substring(2, 9);
+ const signature = buildToastSignature(message, type, options);
  const duration = options?.duration ?? defaultDuration;
+ activeToastSignatures.add(signature);
  setToasts((prev) => [...prev, {
  id,
+ signature,
  message,
  type,
  expiresAt: options?.countdown ? Date.now() + duration : undefined,
@@ -45,8 +68,16 @@ export function Toaster() {
  onAction: options?.onAction,
  }]);
  setTimeout(() => {
+ activeToastSignatures.delete(signature);
  setToasts((prev) => prev.filter((t) => t.id !== id));
  }, duration);
+ };
+ toastFn = handler;
+ return () => {
+  if (toastFn === handler) {
+   toastFn = undefined;
+  }
+  activeToastSignatures.clear();
  };
  }, []);
 
@@ -83,7 +114,10 @@ export function Toaster() {
  )}
  
  <button
- onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
+ onClick={() => {
+  activeToastSignatures.delete(t.signature);
+  setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
+ }}
  className="text-slate-400 hover:text-slate-600"
  >
  <X size={16} />

@@ -31,11 +31,11 @@ type TestCase = {
 };
 
 export function PlayModeView({
-  suite,
+  executionGroup,
   cases,
   onClose
 }: {
-  suite: any;
+  executionGroup: any;
   cases: TestCase[];
   onClose: (updatedCases: TestCase[]) => void;
 }) {
@@ -99,8 +99,8 @@ export function PlayModeView({
             <Play size={20} weight="fill" />
           </div>
           <div>
-            <h2 className="text-lg font-black leading-none">{suite.title}</h2>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">Play Mode · {index + 1} of {items.length}</p>
+            <h2 className="text-lg font-black leading-none">{executionGroup.title}</h2>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">Execution Mode · {index + 1} of {items.length}</p>
           </div>
         </div>
 

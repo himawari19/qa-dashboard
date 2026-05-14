@@ -69,11 +69,11 @@ export async function getTestPlanByToken(token: string) {
   if (cached !== null) return cached;
   const item = shouldFilter
     ? await db.get(
-        'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND "company" = ?',
+        'SELECT id, company, "publicToken", title, project, sprint, scope, status, "startDate", "endDate", assignee, notes, "updatedAt" FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND "company" = ?',
         [token, scope.company],
       ) as Record<string, unknown> | undefined
     : await db.get(
-        'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
+        'SELECT id, company, "publicToken", title, project, sprint, scope, status, "startDate", "endDate", assignee, notes, "updatedAt" FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
         [token],
       ) as Record<string, unknown> | undefined;
   if (!item) return null;
@@ -88,11 +88,11 @@ export async function getTestPlanById(planId: string | number) {
   if (cached !== null) return cached;
   const item = shouldFilter
     ? await db.get(
-        'SELECT * FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL AND "company" = ?',
+        'SELECT id, company, "publicToken", title, project, sprint, scope, status, "startDate", "endDate", assignee, notes, "updatedAt" FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL AND "company" = ?',
         [planId, scope.company],
       ) as Record<string, unknown> | undefined
     : await db.get(
-        'SELECT * FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL',
+        'SELECT id, company, "publicToken", title, project, sprint, scope, status, "startDate", "endDate", assignee, notes, "updatedAt" FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL',
         [planId],
       ) as Record<string, unknown> | undefined;
   if (!item) return null;
@@ -106,8 +106,8 @@ export async function getTestSuitesByPlanId(planId: string) {
   if (cached !== null) return cached;
   const rows = await selectAll(
     shouldFilter
-      ? 'SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL AND "company" = ? ORDER BY "updatedAt" DESC'
-      : 'SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL ORDER BY "updatedAt" DESC',
+      ? 'SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL AND "company" = ? ORDER BY "updatedAt" DESC'
+      : 'SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL ORDER BY "updatedAt" DESC',
     shouldFilter ? [planId, scope.company] : [planId],
   );
   return setCached(cacheKey("suites-plan", scope, planId), rows.map((item) => normalizeTestSuiteRow(item)));
@@ -121,11 +121,11 @@ export async function getReleaseNotes() {
   const params = isAdmin ? [] : [company];
 
   const bugs = await selectAll(
-    `SELECT * FROM "Bug" WHERE "status" IN ('fixed', 'closed') ${where} ORDER BY "updatedAt" DESC LIMIT 20`,
+    `SELECT id, title, severity, status, "updatedAt" FROM "Bug" WHERE "status" IN ('fixed', 'closed') ${where} ORDER BY "updatedAt" DESC LIMIT 20`,
     params,
   );
   const tasks = await selectAll(
-    `SELECT * FROM "Task" WHERE "status" = 'completed' ${where} ORDER BY "updatedAt" DESC LIMIT 20`,
+    `SELECT id, title FROM "Task" WHERE "status" = 'completed' ${where} ORDER BY "updatedAt" DESC LIMIT 20`,
     params,
   );
 
@@ -169,7 +169,7 @@ export async function getTestSuite(id: string | number) {
   const qParams = isAdmin ? [] : [company];
 
   const item = await db.get(
-    `SELECT * FROM "TestSuite" WHERE id = CAST(? AS INTEGER) AND "deletedAt" IS NULL ${andWhere}`,
+    `SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE id = CAST(? AS INTEGER) AND "deletedAt" IS NULL ${andWhere}`,
     [id, ...qParams],
   ) as Record<string, unknown> | undefined;
   if (!item) return null;
@@ -187,7 +187,8 @@ export async function getTestCasesByIdStrings(idStrings: string) {
 
   if (!cacheId) return [];
   const rows = await selectAll(
-    `SELECT * FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "id" ASC`,
+    `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt"
+     FROM "TestCase" WHERE "testSuiteId" = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "id" ASC`,
     [cacheId, ...qParams],
   );
   return setCached(cacheKey("cases-by-suite", scope, cacheId), rows.map((r) => ({ ...normalizeTestCaseRow(r), code: codeFromId("TC", Number(r.id)) })));
@@ -201,11 +202,11 @@ export async function getProjectData(projectName: string) {
   const qParams = isAdmin ? [] : [company];
 
   const [plans, bugs, tasks, sessions, meetings] = await Promise.all([
-    selectAll(`SELECT * FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "Bug" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "Task" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "TestSession" WHERE project = ? ${andWhere}`, [projectName, ...qParams]),
-    selectAll(`SELECT * FROM "MeetingNote" WHERE project = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC`, [projectName, ...qParams]),
+    selectAll(`SELECT id, company, "publicToken", title, project, sprint, status, "updatedAt" FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT id, company, project, module, title, severity, status, "suggestedDev", "createdAt" FROM "Bug" WHERE project = ? AND "deletedAt" IS NULL ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT id, company, title, project, relatedFeature, status, priority, description, assignee, "updatedAt" FROM "Task" WHERE project = ? AND "deletedAt" IS NULL ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT id, company, date, project, sprint, tester, scope, "totalCases", passed, failed, blocked, result, notes, "updatedAt" FROM "TestSession" WHERE project = ? AND "deletedAt" IS NULL ${andWhere}`, [projectName, ...qParams]),
+    selectAll(`SELECT id, company, "publicToken", date, project, title, attendees, content, "actionItems", "updatedAt" FROM "MeetingNote" WHERE project = ? AND "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC`, [projectName, ...qParams]),
   ]);
 
   const planIds = plans.map((p) => String(p.id));
@@ -213,7 +214,7 @@ export async function getProjectData(projectName: string) {
   if (planIds.length > 0) {
     const placeholders = planIds.map(() => "?").join(",");
     suites = await selectAll(
-      `SELECT * FROM "TestSuite" WHERE "testPlanId" IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
+      `SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE "testPlanId" IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
       [...planIds, ...qParams],
     );
   }
@@ -223,7 +224,7 @@ export async function getProjectData(projectName: string) {
   if (suiteIds.length > 0) {
     const placeholders = suiteIds.map(() => "?").join(",");
     cases = await selectAll(
-      `SELECT * FROM "TestCase" WHERE "testSuiteId" IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
+      `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt" FROM "TestCase" WHERE "testSuiteId" IN (${placeholders}) AND "deletedAt" IS NULL ${andWhere}`,
       [...suiteIds, ...qParams],
     );
   }
@@ -295,11 +296,11 @@ export async function getTestSuiteByToken(token: string) {
   if (cached !== null) return cached;
   const item = (shouldFilter
     ? await db.get(
-        'SELECT * FROM "TestSuite" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND "company" = ?',
+        'SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND "company" = ?',
         [token, scope.company],
       )
     : await db.get(
-        'SELECT * FROM "TestSuite" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
+        'SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
         [token],
       )) as Record<string, unknown> | undefined;
   if (!item) return null;
@@ -313,8 +314,8 @@ export async function getTestCasesByScenario(suiteId: string | number) {
   if (cached !== null) return cached;
   const rows = await selectAll(
     shouldFilter
-      ? `SELECT * FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL AND "company" = ? ORDER BY id ASC`
-      : `SELECT * FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL ORDER BY id ASC`,
+      ? `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt" FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL AND "company" = ? ORDER BY id ASC`
+      : `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt" FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL ORDER BY id ASC`,
     shouldFilter ? [suiteId, scope.company] : [suiteId],
   );
   return setCached(cacheKey("cases-suite", scope, String(suiteId)), rows);
@@ -330,9 +331,8 @@ export async function getTestCasesByScenarioIds(suiteIds: Array<string | number>
   const cached = getCached<Record<string, Array<Record<string, unknown>>>>(cacheKey("cases-suite-batch", scope, cacheId));
   if (cached !== null) return cached;
 
-  const placeholders = ids.map(() => "?").join(", ");
   const rows = await selectAll(
-    `SELECT * FROM "TestCase"
+    `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt" FROM "TestCase"
      WHERE "deletedAt" IS NULL
      ${shouldFilter ? ' AND "company" = ?' : ""}
      AND "testSuiteId" IN (${ids.map(() => "CAST(? AS TEXT)").join(", ")})
@@ -350,8 +350,8 @@ export async function getPublicReportData(token: string) {
 
   const planRaw = await db.get(
     shouldFilter
-      ? 'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND "company" = ?'
-      : 'SELECT * FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
+      ? 'SELECT id, company, "publicToken", title, project, sprint, scope, status, "startDate", "endDate", assignee, notes, "updatedAt" FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL AND "company" = ?'
+      : 'SELECT id, company, "publicToken", title, project, sprint, scope, status, "startDate", "endDate", assignee, notes, "updatedAt" FROM "TestPlan" WHERE "publicToken" = ? AND "deletedAt" IS NULL',
     shouldFilter ? [token, scope.company] : [token],
   ) as Record<string, unknown> | undefined;
   if (!planRaw) return null;
@@ -361,8 +361,8 @@ export async function getPublicReportData(token: string) {
 
   const suitesRaw = await selectAll(
     shouldFilter
-      ? 'SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL AND "company" = ? ORDER BY "updatedAt" DESC'
-      : 'SELECT * FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL ORDER BY "updatedAt" DESC',
+      ? 'SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL AND "company" = ? ORDER BY "updatedAt" DESC'
+      : 'SELECT id, company, "publicToken", "testPlanId", title, assignee, status, notes, "updatedAt" FROM "TestSuite" WHERE "testPlanId" = ? AND "deletedAt" IS NULL ORDER BY "updatedAt" DESC',
     shouldFilter ? [planId, scope.company] : [planId],
   );
   const suites = suitesRaw.map(normalizeTestSuiteRow);
@@ -385,7 +385,7 @@ export async function getPublicReportData(token: string) {
   if (suiteIds.length > 0) {
     const placeholders = suiteIds.map(() => "?").join(",");
     sessions = await selectAll(
-      `SELECT * FROM "TestSession" WHERE "scope" IN (${placeholders}) ${shouldFilter ? ' AND "company" = ?' : ""} ORDER BY "date" DESC LIMIT 15`,
+      `SELECT id, company, date, project, sprint, tester, scope, "totalCases", passed, failed, blocked, result, notes, "updatedAt" FROM "TestSession" WHERE "scope" IN (${placeholders}) AND "deletedAt" IS NULL ${shouldFilter ? ' AND "company" = ?' : ""} ORDER BY "date" DESC LIMIT 15`,
       shouldFilter ? [...suites.map((s) => s.title), scope.company] : suites.map((s) => s.title),
     ) as any[];
   }
@@ -393,7 +393,7 @@ export async function getPublicReportData(token: string) {
   // Bugs for this plan's project
   const bugs = plan.project
     ? await selectAll(
-        `SELECT id, title, severity, status, project FROM "Bug" WHERE "project" = ? AND "status" NOT IN ('closed','fixed') ${shouldFilter ? ' AND "company" = ?' : ""} ORDER BY "createdAt" DESC LIMIT 10`,
+        `SELECT id, title, severity, status, project FROM "Bug" WHERE "project" = ? AND "deletedAt" IS NULL AND "status" NOT IN ('closed','fixed') ${shouldFilter ? ' AND "company" = ?' : ""} ORDER BY "createdAt" DESC LIMIT 10`,
         shouldFilter ? [plan.project, scope.company] : [plan.project],
       )
     : [];

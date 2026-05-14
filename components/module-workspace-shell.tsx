@@ -29,10 +29,11 @@ type Props = {
  hasKanban: boolean;
  pending: boolean;
  refreshing: boolean;
- hiddenFields: string[];
- fieldIcons: Record<string, ReactNode>;
- fieldErrors: Record<string, string>;
- canAdd: boolean;
+  hiddenFields: string[];
+  fieldIcons: Record<string, ReactNode>;
+  fieldErrors: Record<string, string>;
+  setFieldErrors: Dispatch<SetStateAction<Record<string, string>>>;
+  canAdd: boolean;
  canEdit: boolean;
  canDelete: boolean;
  isViewer: boolean;
@@ -102,10 +103,11 @@ export function ModuleWorkspaceShell({
  hasKanban,
  pending,
  refreshing,
- hiddenFields,
- fieldIcons,
- fieldErrors,
- canAdd,
+  hiddenFields,
+  fieldIcons,
+  fieldErrors,
+  setFieldErrors,
+  canAdd,
  canEdit,
  canDelete,
  isViewer,
@@ -197,10 +199,11 @@ export function ModuleWorkspaceShell({
  shortTitle={config.shortTitle}
  fields={config.fields}
  editingRow={editingRow}
- hiddenFields={hiddenFields}
- fieldIcons={fieldIcons}
- fieldErrors={fieldErrors}
- canAdd={canAdd}
+  hiddenFields={hiddenFields}
+  fieldIcons={fieldIcons}
+  fieldErrors={fieldErrors}
+  setFieldErrors={setFieldErrors}
+  canAdd={canAdd}
  canEdit={canEdit}
  pending={pending}
  isViewer={isViewer}

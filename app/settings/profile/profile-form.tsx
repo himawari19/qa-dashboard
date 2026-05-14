@@ -4,6 +4,7 @@ import React, { useEffect, useState } from"react";
 import { EnvelopeSimple, Briefcase, User, CheckCircle, Warning } from"@phosphor-icons/react";
 import { useRouter } from"next/navigation";
 import { toast } from"@/components/ui/toast";
+import { FormFieldError } from"@/components/form-field-error";
 import { getRoleLabel } from"@/lib/roles";
 
 interface UserProfile {
@@ -16,6 +17,7 @@ interface UserProfile {
 export function ProfileForm({ user }: { user: UserProfile }) {
  const [loading, setLoading] = useState(false);
  const router = useRouter();
+ const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
  const [formData, setFormData] = useState({
  name: user.name ||"",
  role: user.role ||"",
@@ -35,15 +37,24 @@ export function ProfileForm({ user }: { user: UserProfile }) {
  const handleSubmit = async (e: React.FormEvent) => {
  e.preventDefault();
 
+ const nextErrors: Record<string, string> = {};
+ if (!formData.name.trim()) nextErrors.name = "Name is required.";
+
+ if (formData.password && formData.password.length < 6) {
+ nextErrors.password = "Password must be at least 6 characters.";
+ }
+
  if (formData.password && formData.password !== formData.confirmPassword) {
- toast("Passwords do not match","error");
+ nextErrors.confirmPassword = "Passwords do not match.";
+ }
+
+ if (Object.keys(nextErrors).length > 0) {
+ setFieldErrors(nextErrors);
+ toast("Please fix the highlighted fields.","error");
  return;
  }
 
- if (formData.password && formData.password.length < 6) {
- toast("Password must be at least 6 characters","error");
- return;
- }
+ setFieldErrors({});
 
  setLoading(true);
 
@@ -74,22 +85,29 @@ export function ProfileForm({ user }: { user: UserProfile }) {
  }
  };
 
- return (
- <form onSubmit={handleSubmit} className="space-y-8">
+  return (
+  <form noValidate onSubmit={handleSubmit} className="space-y-8">
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
  {/* Name Field */}
  <div className="space-y-2">
  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
  <User size={12} weight="bold" /> Full Name
  </label>
- <input
- type="text"
- value={formData.name}
- onChange={(e) => setFormData({ ...formData, name: e.target.value })}
- className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
- placeholder="e.g. John Doe"
- required
- />
+  <input
+  type="text"
+  value={formData.name}
+  onChange={(e) => {
+  setFormData({ ...formData, name: e.target.value });
+  setFieldErrors((current) => {
+  const next = { ...current };
+  delete next.name;
+  return next;
+  });
+  }}
+  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
+  placeholder="e.g. John Doe"
+  />
+  <FormFieldError message={fieldErrors.name} />
  </div>
 
  {/* Role Field */}
@@ -131,23 +149,40 @@ export function ProfileForm({ user }: { user: UserProfile }) {
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
  <div className="space-y-2">
  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">New Password</label>
- <input
- type="password"
- value={formData.password}
- onChange={(e) => setFormData({ ...formData, password: e.target.value })}
- className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
- placeholder="••••••••"
- />
+  <input
+  type="password"
+  value={formData.password}
+  onChange={(e) => {
+  setFormData({ ...formData, password: e.target.value });
+  setFieldErrors((current) => {
+  const next = { ...current };
+  delete next.password;
+  delete next.confirmPassword;
+  return next;
+  });
+  }}
+  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
+  placeholder="••••••••"
+  />
+  <FormFieldError message={fieldErrors.password} />
  </div>
  <div className="space-y-2">
  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</label>
- <input
- type="password"
- value={formData.confirmPassword}
- onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
- className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
- placeholder="••••••••"
- />
+  <input
+  type="password"
+  value={formData.confirmPassword}
+  onChange={(e) => {
+  setFormData({ ...formData, confirmPassword: e.target.value });
+  setFieldErrors((current) => {
+  const next = { ...current };
+  delete next.confirmPassword;
+  return next;
+  });
+  }}
+  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
+  placeholder="••••••••"
+  />
+  <FormFieldError message={fieldErrors.confirmPassword} />
  </div>
  </div>
  </div>

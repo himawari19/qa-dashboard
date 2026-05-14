@@ -1,6 +1,7 @@
 import { codeFromId } from "@/lib/utils";
 import { getRoleLabel, normalizeRole } from "@/lib/roles";
-import { buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
+import { buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchResult } from "./search-helpers";
 export async function getAssigneeResults(query: string, companyClause: string, companyParams: unknown[]) {
   const exactId = extractExactId(query, "ASS");
   if (exactId !== null) {
@@ -17,7 +18,7 @@ export async function getAssigneeResults(query: string, companyClause: string, c
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Assignee",
+        type: "Assignees",
         group: "System Settings",
         href: "/assignees",
         code: codeFromId("ASS", Number(exactRow.id)),
@@ -35,21 +36,14 @@ export async function getAssigneeResults(query: string, companyClause: string, c
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
+  const tokenClause = buildSearchTokenClause("assignees", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, name, role, email, '' as skills, 'active' as status, "updatedAt"
      FROM "User"
-     WHERE (
-       LOWER(COALESCE(name, '')) LIKE ?
-       OR LOWER(COALESCE(role, '')) LIKE ?
-       OR LOWER(COALESCE(email, '')) LIKE ?
-       OR LOWER(COALESCE(status, '')) LIKE ?
-       OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
-     )
-     ${companyClause}
+     WHERE 1=1${companyClause}${tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(5).fill(like).concat(companyParams),
+    tokenClause.params.concat(companyParams),
   );
 
   return rows
@@ -58,7 +52,7 @@ export async function getAssigneeResults(query: string, companyClause: string, c
       buildResult({
         row,
         query,
-        type: "Assignee",
+        type: "Assignees",
         group: "System Settings",
         href: "/assignees",
         code: codeFromId("ASS", Number(row.id)),

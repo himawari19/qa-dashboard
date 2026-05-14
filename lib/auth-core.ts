@@ -138,8 +138,13 @@ export async function verifySessionToken(token: string | undefined | null) {
 }
 
 export async function getCurrentUser() {
-  const { cookies } = await import("next/headers");
-  const token = (await cookies()).get(COOKIE_NAME)?.value;
+  let token = "";
+  try {
+    const { cookies } = await import("next/headers");
+    token = (await cookies()).get(COOKIE_NAME)?.value ?? "";
+  } catch {
+    return null;
+  }
   if (!token) return null;
 
   const { secret } = getAuthConfig();

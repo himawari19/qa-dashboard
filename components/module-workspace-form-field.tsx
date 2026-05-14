@@ -143,7 +143,7 @@ export function ModuleWorkspaceFormField({
  setSelectValues={setSelectValues}
  />
  ) : field.kind ==="date" ? (
- <ModuleWorkspaceFormDate field={field} editingRow={editingRow} dateWarnings={dateWarnings} setDateWarnings={setDateWarnings} />
+ <ModuleWorkspaceFormDate field={field} editingRow={editingRow} fieldError={fieldError} dateWarnings={dateWarnings} setDateWarnings={setDateWarnings} />
  ) : (
  <ModuleWorkspaceFormText
  module={module}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition, useRef, useMemo, type ReactNode } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ModuleKey, moduleConfigs } from "@/lib/modules";
 import { toast } from "@/components/ui/toast";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -91,9 +90,14 @@ export function ModuleWorkspace({
       ),
     };
   }, [config, module, user?.company]);
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const router = useMemo(() => ({
+    refresh: () => {
+      if (typeof window !== "undefined") {
+        window.location.assign(`${window.location.pathname}${window.location.search}`);
+      }
+    },
+  }), []);
+  const [locationSearch, setLocationSearch] = useState(() => (typeof window !== "undefined" ? window.location.search : ""));
   const [pending, startTransition] = useTransition();
   const [localRows, setLocalRows] = useState(rows);
   const [showForm, setShowForm] = useState(false);
@@ -182,18 +186,28 @@ export function ModuleWorkspace({
 
   const safePage = Math.min(currentPage, totalPages);
 
+  useEffect(() => {
+    const syncSearch = () => {
+      setLocationSearch(window.location.search);
+    };
+
+    window.addEventListener("popstate", syncSearch);
+    return () => window.removeEventListener("popstate", syncSearch);
+  }, []);
+
   const handleSearchChange = (value: string) => {
     setSearch(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(locationSearch);
       if (value.trim()) {
         params.set("q", value.trim());
         params.set("page", "1");
       } else {
         params.delete("q");
       }
-      router.push(`${pathname}?${params.toString()}`);
+      setLocationSearch(`?${params.toString()}`);
+      window.location.assign(`${window.location.pathname}?${params.toString()}`);
     }, 400);
   };
 
@@ -220,9 +234,10 @@ export function ModuleWorkspace({
   const crumbs = useMemo(() => getModuleWorkspaceCrumbs(module, config.title), [config.title, module]);
 
   function goToPage(nextPage: number) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(locationSearch);
     params.set("page", String(nextPage));
-    router.push(`${pathname}?${params.toString()}`);
+    setLocationSearch(`?${params.toString()}`);
+    window.location.assign(`${window.location.pathname}?${params.toString()}`);
   }
 
   const actionArgs = {
@@ -287,6 +302,7 @@ export function ModuleWorkspace({
         hiddenFields={hiddenFields}
         fieldIcons={fieldIcons}
         fieldErrors={fieldErrors}
+        setFieldErrors={setFieldErrors}
         canAdd={effectiveCanAdd}
         canEdit={effectiveCanEdit}
         canDelete={effectiveCanDelete}

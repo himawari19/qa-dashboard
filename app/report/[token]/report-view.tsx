@@ -97,7 +97,7 @@ export function ReportView({ data }: { data: ReportData }) {
  <div className="rounded-2xl border border-slate-200 bg-white p-7">
  <div className="flex items-start justify-between gap-4 flex-wrap">
  <div>
- <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500 mb-1">Test Plan Report</p>
+ <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500 mb-1">Test Plans Report</p>
  <h1 className="text-2xl font-black text-slate-900 leading-tight">{plan.title}</h1>
  {plan.notes && <p className="text-sm text-slate-500 mt-2 max-w-xl">{plan.notes}</p>}
  </div>
@@ -106,7 +106,7 @@ export function ReportView({ data }: { data: ReportData }) {
  <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
  <div className="flex items-center gap-2 text-xs text-slate-500">
  <Folder size={14} weight="bold" className="text-slate-400" />
- <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Test Plan</span>{plan.project ||"–"}</div>
+ <div><span className="block font-bold uppercase tracking-widest text-[9px] text-slate-400">Test Plans</span>{plan.project ||"–"}</div>
  </div>
  <div className="flex items-center gap-2 text-xs text-slate-500">
  <Lightning size={14} weight="bold" className="text-slate-400" />

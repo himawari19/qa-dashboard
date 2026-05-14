@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { AppWrapper } from "@/components/app-wrapper";
-import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toast";
 
 const dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
@@ -27,9 +28,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={dmSans.className} suppressHydrationWarning>
         <AppWrapper>
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
+          {children}
         </AppWrapper>
         <Toaster />
       </body>

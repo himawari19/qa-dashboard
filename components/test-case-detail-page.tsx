@@ -48,7 +48,7 @@ export function TestCaseDetailPage({
     startTransition(async () => {
       const fd = new FormData();
       fd.append("date", new Date().toISOString().split("T")[0]);
-      fd.append("project", suiteLabel.split(" ")[0] || "Test Plan");
+      fd.append("project", suiteLabel.split(" ")[0] || "Test Plans");
       fd.append("sprint", "Active");
       fd.append("tester", "QA Specialist");
       fd.append("scope", suiteLabel);
@@ -57,7 +57,7 @@ export function TestCaseDetailPage({
       fd.append("failed", String(f));
       fd.append("blocked", String(b));
       fd.append("result", resVal);
-      fd.append("notes", `Automated submission from suite ${suiteLabel}`);
+      fd.append("notes", `Automated submission from execution group ${suiteLabel}`);
       
       try {
         const res = await fetch("/api/items/test-sessions", { method: "POST", body: fd });
@@ -88,8 +88,8 @@ export function TestCaseDetailPage({
       <PageShell
         title={suiteLabel || "Test Case Detail"}
         description={plan?.title
-          ? `Spreadsheet-style input for all test cases in this suite. Test Plan: ${plan.title}.`
-          : "Spreadsheet-style input for all test cases in this suite."}
+          ? `Spreadsheet-style input for all test cases in this execution group. Test Plans: ${plan.title}.`
+          : "Spreadsheet-style input for all test cases in this execution group."}
         crumbs={crumbs}
         actions={actions}
       >

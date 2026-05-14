@@ -1,5 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
 export async function getTestCaseResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "TC");
   if (exactId !== null) {
@@ -47,35 +48,21 @@ export async function getTestCaseResults(query: string, companyClause: string, c
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { statusColumn: 'tc."status"', assigneeColumn: 'ts."assignee"', dateColumn: 'tc."updatedAt"' });
+  const tokenClause = buildSearchTokenClause("test-cases", String(companyParams[0] ?? ""), query, "tc");
   const rows = await queryRows<Row>(
     `SELECT tc.id, tc."tcId", tc."caseName", tc."typeCase", tc.status, tc.priority,
-            tc."preCondition", tc."testStep", tc."expectedResult", tc."actualResult", tc.evidence,
-            tc."testSuiteId", ts.title AS suiteTitle, ts."publicToken" AS suiteToken,
-            tp.title AS planTitle, tp.project AS planProject, tc."updatedAt"
+              tc."preCondition", tc."testStep", tc."expectedResult", tc."actualResult", tc.evidence,
+              tc."testSuiteId", ts.title AS suiteTitle, ts."publicToken" AS suiteToken,
+              tp.title AS planTitle, tp.project AS planProject, tc."updatedAt"
      FROM "TestCase" tc
   LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
   LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
      WHERE tc."deletedAt" IS NULL
-       AND (
-         LOWER(COALESCE(tc."tcId", '')) LIKE ?
-         OR LOWER(COALESCE(tc."caseName", '')) LIKE ?
-         OR LOWER(COALESCE(tc."typeCase", '')) LIKE ?
-         OR LOWER(COALESCE(tc.status, '')) LIKE ?
-         OR LOWER(COALESCE(tc.priority, '')) LIKE ?
-         OR LOWER(COALESCE(tc."preCondition", '')) LIKE ?
-         OR LOWER(COALESCE(tc."testStep", '')) LIKE ?
-         OR LOWER(COALESCE(tc."expectedResult", '')) LIKE ?
-         OR LOWER(COALESCE(tc."actualResult", '')) LIKE ?
-         OR LOWER(COALESCE(ts.title, '')) LIKE ?
-         OR LOWER(COALESCE(tp.title, '')) LIKE ?
-         OR LOWER(COALESCE(CAST(tc.id AS TEXT), '')) LIKE ?
-       )
-       ${companyClause.replace(/"company"/g, 'tc."company"') + filter.clause.replace(/"status"/g, 'tc."status"').replace(/"assignee"/g, 'ts."assignee"').replace(/"updatedAt"/g, 'tc."updatedAt"')}
+       ${companyClause.replace(/"company"/g, 'tc."company"') + filter.clause.replace(/"status"/g, 'tc."status"').replace(/"assignee"/g, 'ts."assignee"').replace(/"updatedAt"/g, 'tc."updatedAt"') + tokenClause.clause}
      ORDER BY tc."updatedAt" DESC
      LIMIT 8`,
-    Array(12).fill(like).concat(filter.params, companyParams),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows

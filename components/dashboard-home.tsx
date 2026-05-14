@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from"react";
 import { Funnel, X } from"@phosphor-icons/react";
 import { Dashboard } from"@/components/dashboard";
 import { DashboardSkeleton } from"@/components/skeleton";
+import { InlineAlert } from"@/components/ui/inline-alert";
 
 type Props = {
  initialData: any | null;
@@ -61,13 +62,11 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
  return () => { active = false; controller.abort(); };
  }, [selectedProject]);
 
- if (error) {
- return (
- <div className="rounded-md border border-rose-200 bg-rose-50 px-6 py-5 text-sm text-rose-700">
- {error}
- </div>
- );
- }
+  if (error) {
+  return (
+  <InlineAlert variant="error" message={error} className="rounded-md px-6 py-5" />
+  );
+  }
 
  return (
  <div className="relative">

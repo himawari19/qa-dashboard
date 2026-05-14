@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { moduleOrder } from "@/lib/modules";
 
 const mocks = vi.hoisted(() => ({
   notFound: vi.fn(() => {
@@ -72,18 +73,16 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUser: mocks.getCurrentUser,
 }));
 
-import ModulePage, { generateStaticParams } from "@/app/[module]/page";
+import ModulePage from "@/app/[module]/page";
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("module route", () => {
-  it("generates static params for all modules", () => {
-    const params = generateStaticParams();
-
-    expect(params.length).toBeGreaterThan(0);
-    expect(params[0]).toHaveProperty("module");
+  it("has configured module paths", () => {
+    expect(moduleOrder.length).toBeGreaterThan(0);
+    expect(moduleOrder[0]).toBeTruthy();
   });
 
   it("passes loaded data and query params to ModuleWorkspace", async () => {

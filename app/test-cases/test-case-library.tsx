@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from"react";
+import { useEffect, useMemo, useRef, useState } from"react";
 import Link from"next/link";
 import { cn, formatDisplayText } from"@/lib/utils";
 import { Badge } from"@/components/badge";
@@ -101,6 +101,8 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  const [filterStatus, setFilterStatus] = useState(ALL);
  const [filterAssignee, setFilterAssignee] = useState(ALL);
  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+ const [isMenuOpen, setIsMenuOpen] = useState(false);
+ const menuRef = useRef<HTMLDivElement | null>(null);
 
  const groups = useMemo<SuiteGroup[]>(() => {
  const map = new Map<string, SuiteGroup>();
@@ -180,6 +182,29 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  ? selected.filteredCases
  : selected.cases)
  : [];
+
+ useEffect(() => {
+ setIsMenuOpen(false);
+ }, [selected?.key]);
+
+ useEffect(() => {
+ if (!isMenuOpen) return;
+ const handlePointerDown = (event: PointerEvent) => {
+ const target = event.target as Node | null;
+ if (target && menuRef.current?.contains(target)) return;
+ setIsMenuOpen(false);
+ };
+ const handleEscape = (event: KeyboardEvent) => {
+ if (event.key ==="Escape") setIsMenuOpen(false);
+ };
+ document.addEventListener("pointerdown", handlePointerDown);
+ document.addEventListener("keydown", handleEscape);
+ return () => {
+ document.removeEventListener("pointerdown", handlePointerDown);
+ document.removeEventListener("keydown", handleEscape);
+ };
+ }, [isMenuOpen]);
+
  return (
  <div className="space-y-3 pb-6">
  <div>
@@ -286,17 +311,26 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  <span className="flex items-center gap-1"><Clock size={13} className="text-slate-400" />{selected.pending}</span>
  </div>
  {(selected.suiteToken || selected.key) && (
- <details className="relative">
- <summary className="flex h-9 w-9 list-none items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50">
+ <div ref={menuRef} className="relative">
+ <button
+ type="button"
+ aria-label="Open test case menu"
+ aria-expanded={isMenuOpen}
+ aria-haspopup="menu"
+ onClick={() => setIsMenuOpen((open) => !open)}
+ className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+ >
  <DotsThreeVertical size={18} weight="bold" />
- </summary>
+ </button>
+ {isMenuOpen && (
  <div className="absolute right-0 top-11 z-20 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
- <Link href={`/test-cases/${selected.suiteToken || selected.key}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+ <Link href={`/test-cases/${selected.suiteToken || selected.key}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50" onClick={() => setIsMenuOpen(false)}>
  <PencilSimple size={16} weight="bold" />
  Edit Test Case
  </Link>
  </div>
- </details>
+ )}
+ </div>
  )}
  </div>
  </div>

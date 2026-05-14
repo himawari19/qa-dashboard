@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { WarningCircle, CopySimple } from "@phosphor-icons/react";
+import { InlineAlert } from "@/components/ui/inline-alert";
 
 interface Props {
   children?: ReactNode;
@@ -59,14 +60,17 @@ export class ErrorBoundary extends Component<Props, State> {
       const { error, errorInfo, detailsOpen, copied } = this.state;
 
       return (
-        <div className="flex min-h-[200px] w-full flex-col items-center justify-center rounded-md border border-rose-100 bg-rose-50/50 p-8 text-center backdrop-blur-sm">
+        <div className="flex min-h-[200px] w-full flex-col items-center justify-center rounded-md border border-slate-200 bg-white p-8 text-center shadow-sm">
           <div className="flex h-12 w-12 items-center justify-center rounded-md bg-rose-100 text-rose-600 mb-4">
             <WarningCircle size={28} weight="fill" />
           </div>
           <h3 className="text-lg font-bold text-slate-900">Something went wrong</h3>
-          <p className="mt-2 text-sm text-slate-600 max-w-xs">
-            Component failed to load. Please try refreshing the page or check your data format.
-          </p>
+          <InlineAlert
+            variant="error"
+            message="Component failed to load. Please try refreshing the page or check your data format."
+            compact
+            className="mt-3 max-w-xs justify-center px-0"
+          />
           <div className="mt-6 flex gap-2">
             <button
               onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}

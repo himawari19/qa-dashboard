@@ -47,7 +47,7 @@ export default function WorkloadPage() {
  const items: DetailItem[] = [
  ...(res.tasks || []).map((t: any) => ({ label: t.title, sub:"Task", badge: t.status, badge2: t.priority, href:"/tasks" })),
  ...(res.bugs || []).map((b: any) => ({ label: b.title, sub:"Bug", badge: b.status, badge2: b.severity, href:"/bugs" })),
- ...(res.suites || []).map((s: any) => ({ label: s.title, sub:"Test Suite", badge: s.status, href:"/test-suites" })),
+ ...(res.suites || []).map((s: any) => ({ label: s.title, sub:"Test Suites", badge: s.status, href:"/test-suites" })),
  ];
  setDetail({ member: item, items });
  setDetailLoading(false);

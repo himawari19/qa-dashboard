@@ -1,5 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
 export async function getTaskResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "TASK");
   if (exactId !== null) {
@@ -15,7 +16,7 @@ export async function getTaskResults(query: string, companyClause: string, compa
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Task",
+        type: "Tasks",
         group: "Work Items",
         href: "/tasks",
         code: codeFromId("TASK", Number(exactRow.id)),
@@ -37,29 +38,15 @@ export async function getTaskResults(query: string, companyClause: string, compa
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"assignee"', dateColumn: '"dueDate"' });
+  const tokenClause = buildSearchTokenClause("tasks", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, title, project, relatedFeature, category, status, priority, description, updatedAt
      FROM "Task"
-     ${buildSearchSql(
-       [
-         "title",
-         "project",
-         "relatedFeature",
-         "category",
-         "status",
-         "priority",
-         "description",
-         "notes",
-         "assignee",
-         "CAST(id AS TEXT)",
-       ],
-       companyClause + filter.clause,
-     )}
+     WHERE 1=1${companyClause}${filter.clause}${tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(10).fill(like).concat(companyParams, filter.params),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows
@@ -67,7 +54,7 @@ export async function getTaskResults(query: string, companyClause: string, compa
       buildResult({
         row,
         query,
-        type: "Task",
+        type: "Tasks",
         group: "Work Items",
         href: "/tasks",
         code: codeFromId("TASK", Number(row.id)),

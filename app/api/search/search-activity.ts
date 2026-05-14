@@ -1,5 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
 
 export async function getActivityResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "ACT");
@@ -33,22 +34,15 @@ export async function getActivityResults(query: string, companyClause: string, c
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { dateColumn: '"createdAt"' });
+  const tokenClause = buildSearchTokenClause("activity", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, entityType, entityId, action, summary, createdAt
      FROM "ActivityLog"
-     WHERE (
-       LOWER(COALESCE(entityType, '')) LIKE ?
-       OR LOWER(COALESCE(entityId, '')) LIKE ?
-       OR LOWER(COALESCE(action, '')) LIKE ?
-       OR LOWER(COALESCE(summary, '')) LIKE ?
-       OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
-     )
-     ${companyClause + filter.clause}
+     WHERE 1=1${companyClause}${filter.clause}${tokenClause.clause}
      ORDER BY "createdAt" DESC
      LIMIT 8`,
-    Array(5).fill(like).concat(filter.params, companyParams),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows

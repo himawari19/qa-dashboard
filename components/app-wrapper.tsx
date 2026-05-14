@@ -11,7 +11,11 @@ import { ConfirmModal } from"./ui/confirm-modal";
 import { cn } from"@/lib/utils";
 import { getRoleLabel } from"@/lib/roles";
 
-export function AppWrapper({ children }: { children: React.ReactNode }) {
+type AppWrapperProps = {
+ children: React.ReactNode;
+};
+
+export function AppWrapper({ children }: AppWrapperProps) {
  const [collapsed, setCollapsed] = useState(false);
  const [mounted, setMounted] = useState(false);
  const [mobileOpen, setMobileOpen] = useState(false);
@@ -23,9 +27,9 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  const [accountOpen, setAccountOpen] = useState(false);
  const notifRef = useRef<HTMLDivElement | null>(null);
  const accountRef = useRef<HTMLDivElement | null>(null);
- 
  const pathname = usePathname();
  const router = useRouter();
+ 
  const isAuthScreen = pathname ==="/login" || pathname ==="/register";
 
  const refreshUser = async () => {
@@ -45,10 +49,9 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  }, []);
 
  useEffect(() => {
- if (!mounted) return;
- window.localStorage.setItem("qa-sidebar-collapsed", collapsed ?"1" :"0");
+  if (!mounted) return;
+  window.localStorage.setItem("qa-sidebar-collapsed", collapsed ?"1" :"0");
  }, [collapsed, mounted]);
-
 
  useEffect(() => {
  if (isAuthScreen) return;
@@ -96,15 +99,15 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
  }, []);
 
  const handleLogout = async () => {
- if (loggingOut) return;
- setLoggingOut(true);
- try {
- await fetch("/api/auth/logout", { method:"POST" });
- router.replace("/login");
- router.refresh();
- } catch (err) {
- console.error("Logout failed:", err);
- } finally {
+  if (loggingOut) return;
+  setLoggingOut(true);
+  try {
+   await fetch("/api/auth/logout", { method:"POST" });
+   router.replace("/login");
+   router.refresh();
+  } catch (err) {
+   console.error("Logout failed:", err);
+  } finally {
  setLoggingOut(false);
  setShowLogoutConfirm(false);
  }
@@ -112,14 +115,14 @@ export function AppWrapper({ children }: { children: React.ReactNode }) {
 
  const sidebarWidth = !mounted ?"240px" : (collapsed ?"72px" :"240px");
 
+ if (isAuthScreen) {
+  return <>{children}</>;
+ }
+
  return (
  <div className={cn(
 "flex min-h-screen bg-slate-50 mesh-gradient overflow-x-hidden"
  )}>
- {isAuthScreen ? (
- children
- ) : (
- <>
  {mobileOpen && (
  <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)} />
  )}
@@ -254,8 +257,6 @@ Account settings
  </main>
  </div>
  </div>
- </>
- )}
 
  <ConfirmModal
  isOpen={showLogoutConfirm}

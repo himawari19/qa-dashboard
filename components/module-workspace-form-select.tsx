@@ -2,6 +2,7 @@
 
 import { CaretDown } from"@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from"react";
+import { FormFieldError } from"@/components/form-field-error";
 import { cn } from"@/lib/utils";
 import type { FieldOption, FormField } from"@/components/module-workspace-form-field";
 
@@ -45,9 +46,10 @@ export function ModuleWorkspaceFormSelect({
  );
  }
 
- return (
- <div className="relative" data-custom-select>
- <input type="hidden" name={field.name} value={selectedValue} readOnly />
+   return (
+   <div className="space-y-0" data-custom-select>
+    <div className="relative">
+    <input type="hidden" name={field.name} value={selectedValue} readOnly />
  <button
  type="button"
  onClick={() => setOpenSelectField(openSelectField === field.name ? null : field.name)}
@@ -83,8 +85,10 @@ export function ModuleWorkspaceFormSelect({
  {option.label}
  </button>
  ))}
- </div>
- )}
- </div>
- );
+    </div>
+   )}
+    </div>
+    <FormFieldError message={fieldError} />
+   </div>
+   );
 }

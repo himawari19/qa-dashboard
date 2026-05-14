@@ -1,5 +1,6 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
 export async function getMeetingResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "MTG");
   if (exactId !== null) {
@@ -15,7 +16,7 @@ export async function getMeetingResults(query: string, companyClause: string, co
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Meeting Note",
+        type: "Meeting Notes",
         group: "Documentation",
         href: "/meeting-notes",
         code: codeFromId("MTG", Number(exactRow.id)),
@@ -34,25 +35,16 @@ export async function getMeetingResults(query: string, companyClause: string, co
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { assigneeColumn: '"attendees"', dateColumn: '"date"' });
+  const tokenClause = buildSearchTokenClause("meeting-notes", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, date, project, title, attendees, content, actionItems, updatedAt
      FROM "MeetingNote"
      WHERE "deletedAt" IS NULL
-       AND (
-         LOWER(COALESCE(date, '')) LIKE ?
-         OR LOWER(COALESCE(project, '')) LIKE ?
-         OR LOWER(COALESCE(title, '')) LIKE ?
-         OR LOWER(COALESCE(attendees, '')) LIKE ?
-         OR LOWER(COALESCE(content, '')) LIKE ?
-         OR LOWER(COALESCE(actionItems, '')) LIKE ?
-         OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
-       )
-       ${companyClause + filter.clause}
+       ${companyClause + filter.clause + tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(7).fill(like).concat(filter.params, companyParams),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows
@@ -60,7 +52,7 @@ export async function getMeetingResults(query: string, companyClause: string, co
       buildResult({
         row,
         query,
-        type: "Meeting Note",
+        type: "Meeting Notes",
         group: "Documentation",
         href: "/meeting-notes",
         code: codeFromId("MTG", Number(row.id)),

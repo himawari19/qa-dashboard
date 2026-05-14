@@ -4,6 +4,7 @@ import { type Dispatch, type ReactNode, type SetStateAction } from"react";
 import { cn } from"@/lib/utils";
 import { ModuleWorkspaceFormField, type FieldOption, type FormField } from"@/components/module-workspace-form-field";
 import type { ModuleKey } from"@/lib/modules";
+import { getRequiredFieldErrors } from"@/lib/form-validation";
 
 type Row = Record<string, unknown> & { id?: string | number };
 type DuplicateRow = { id: string | number; code: string; title: string; status: string };
@@ -16,6 +17,7 @@ type ModuleWorkspaceFormProps = {
  hiddenFields: string[];
  fieldIcons: Record<string, ReactNode>;
  fieldErrors: Record<string, string>;
+ setFieldErrors: Dispatch<SetStateAction<Record<string, string>>>;
  canAdd: boolean;
  canEdit: boolean;
  pending: boolean;
@@ -47,6 +49,7 @@ export function ModuleWorkspaceForm({
  hiddenFields,
  fieldIcons,
  fieldErrors,
+ setFieldErrors,
  canAdd,
  canEdit,
  pending,
@@ -83,17 +86,28 @@ export function ModuleWorkspaceForm({
  </div>
 
  <form
- id={`${module}-form`}
- className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl"
- onChange={onFormChange}
- onSubmit={(event) => {
- event.preventDefault();
- if (!canAdd && !editingRow) return;
- if (!canEdit && editingRow) return;
- onSubmit(new FormData(event.currentTarget));
- }}
- >
- <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+  id={`${module}-form`}
+  noValidate
+  className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl"
+  onChange={onFormChange}
+  onSubmit={(event) => {
+  event.preventDefault();
+  if (!canAdd && !editingRow) return;
+  if (!canEdit && editingRow) return;
+  const formData = new FormData(event.currentTarget);
+  const visibleFields = fields
+   .filter((field) => !(module ==="test-plans" && field.name ==="assignee"))
+   .filter((field) => !hiddenFields.includes(field.name));
+  const requiredErrors = getRequiredFieldErrors(visibleFields, formData);
+  if (Object.keys(requiredErrors).length > 0) {
+   setFieldErrors(requiredErrors);
+   return;
+  }
+  setFieldErrors({});
+  onSubmit(formData);
+  }}
+  >
+ <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
  {fields
  .filter((field) => !(module ==="test-plans" && field.name ==="assignee"))
  .filter((field) => !hiddenFields.includes(field.name))
@@ -104,7 +118,7 @@ export function ModuleWorkspaceForm({
 "md:col-span-1";
 
  return (
- <label key={field.name} className={cn("flex flex-col gap-2.5", spanClass)}>
+  <label key={field.name} className={cn("flex self-start flex-col gap-0", spanClass)}>
  <ModuleWorkspaceFormField
  module={module}
  field={field}

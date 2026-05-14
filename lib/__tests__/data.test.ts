@@ -606,8 +606,8 @@ describe("module row queries", () => {
       if (sql.includes('SELECT "status" as name, COUNT(*) as value FROM "Bug"') && sql.includes('GROUP BY "status"')) return [{ name: "open", value: 3 }];
       if (sql.includes('SELECT "status" as name, COUNT(*) as value FROM "TestCase"')) return [{ name: "Passed", value: 4 }];
       if (sql.includes('SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug"')) return [{ date: "2026-04-30", count: 5 }];
-      if (sql.includes('SELECT * FROM "Bug" WHERE "status" IN (\'fixed\', \'closed\')')) return [{ id: 1, title: "Bug 1", severity: "high" }];
-      if (sql.includes('SELECT * FROM "Task" WHERE "status" = \'completed\'')) return [{ id: 2, title: "Task 1" }];
+      if (sql.includes('SELECT id, title, severity, status, "updatedAt" FROM "Bug" WHERE "status" IN (\'fixed\', \'closed\')')) return [{ id: 1, title: "Bug 1", severity: "high" }];
+      if (sql.includes('SELECT id, title FROM "Task" WHERE "status" = \'completed\'')) return [{ id: 2, title: "Task 1" }];
       return [];
     });
     mocks.db.get.mockImplementation(async (sql: string) => {
@@ -641,12 +641,12 @@ describe("module row queries", () => {
       if (sql.includes('SELECT "id", "title", "priority", "status" FROM "Task"') && sql.includes('LIMIT 5')) return [{ id: 1, title: "Task 1", priority: "P1", status: "todo" }];
       if (sql.includes('SELECT "id", "title", "severity", "priority", "status" FROM "Bug"') && sql.includes('LIMIT 5')) return [{ id: 2, title: "Bug 1", severity: "high", priority: "P1", status: "open" }];
       if (sql.includes('SELECT "id", "caseName", "priority", "status" FROM "TestCase"') && sql.includes('LIMIT 5')) return [{ id: 3, caseName: "Case 1", priority: "High", status: "Passed" }];
-      if (sql.includes('SELECT * FROM "Bug" WHERE "status" IN (\'fixed\', \'closed\')')) return [{ id: 2, title: "Bug 1", severity: "high" }];
-      if (sql.includes('SELECT * FROM "Task" WHERE "status" = \'completed\'')) return [{ id: 1, title: "Task 1" }];
+      if (sql.includes('SELECT id, title, severity, status, "updatedAt" FROM "Bug" WHERE "status" IN (\'fixed\', \'closed\')')) return [{ id: 2, title: "Bug 1", severity: "high" }];
+      if (sql.includes('SELECT id, title FROM "Task" WHERE "status" = \'completed\'')) return [{ id: 1, title: "Task 1" }];
       if (sql.includes('GROUP BY status') && sql.includes('"Task"')) return [{ status: "todo", count: 2 }];
       if (sql.includes('GROUP BY severity') && sql.includes('"Bug"')) return [{ severity: "high", count: 1 }];
       if (sql.includes('DATE("createdAt") as date') && sql.includes('"Bug"')) return [{ date: "2026-04-30", count: 1 }];
-      if (sql.includes('ORDER BY startDate DESC LIMIT 20')) return [{ id: 1, name: "Sprint 1", startDate: "2026-04-01", endDate: "2026-04-30", status: "active" }];
+      if (sql.includes('ORDER BY "startDate" DESC LIMIT 20')) return [{ id: 1, name: "Sprint 1", startDate: "2026-04-01", endDate: "2026-04-30", status: "active" }];
       if (sql.includes('FROM "ActivityLog"')) return [{ id: 9, entityType: "Task", entityId: "1", action: "Created", summary: "Task 1", createdAt: "2026-04-30" }];
       if (sql.includes('GROUP BY module LIMIT 10')) return [{ module: "Login", count: 1 }];
       if (sql.includes('WHERE DATE("updatedAt") = DATE(\'now\')') && sql.includes('"Task"')) return [{ type: "Task", label: "Task 1", status: "todo" }];

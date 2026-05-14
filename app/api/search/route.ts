@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
   const coreArrays = await Promise.all(selected);
   let arrays: any[][] = coreArrays as any;
 
-  if (isAll) {
+  if (isAll && q.length >= 4) {
     const coreResults = coreArrays.flat();
     if (coreResults.length < 12) {
       const secondaryArrays = await Promise.all([

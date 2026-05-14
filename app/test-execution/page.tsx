@@ -3,7 +3,7 @@ import { PageShell } from"@/components/page-shell";
 import { ClipboardText } from"@phosphor-icons/react/dist/ssr";
 import { Play } from"@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
-import { ExecutionSuiteGroup } from"./execution-suite-group";
+import { ExecutionGroupList } from"./execution-suite-group";
 import { SuitesHeaderActions } from"@/components/suites-header-actions";
 
 export const dynamic ="force-dynamic";
@@ -30,7 +30,7 @@ export default async function TestExecutionPage({
  activeSuites.forEach((suite: any) => {
  const planId = String(suite.testPlanId ||"unplanned");
  const plan = planMap.get(planId);
- const planName = plan?.title ||"Standalone Suites";
+ const planName = plan?.title ||"Standalone Execution";
  const project = plan?.project ||"General";
 
  if (!grouped.has(planId)) {
@@ -51,17 +51,17 @@ export default async function TestExecutionPage({
  <PageShell
  icon={<Play size={22} weight="bold" />}
  title="Execution Center"
- description="Select a test suite to begin your execution session. All results are tracked automatically."
+ description="Select an execution group to begin tracking results automatically."
  crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Test Execution" }]}
- actions={<SuitesHeaderActions initialSearch={initialSearch} placeholder="Search suites..." exportModule="test-suites" importModule="test-suites" />}
+ actions={<SuitesHeaderActions initialSearch={initialSearch} placeholder="Search executions..." exportModule="test-suites" importModule="test-suites" />}
  >
  {planGroups.length === 0 ? (
  <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/50 p-20 text-center">
  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-slate-100 text-slate-400">
  <Play size={32} />
  </div>
- <h3 className="text-xl font-bold text-slate-900">No active suites found</h3>
- <p className="mt-2 text-slate-500 max-w-sm mx-auto">Create a test suite and set its status to Active or Draft to start executing cases.</p>
+ <h3 className="text-xl font-bold text-slate-900">No active execution items found</h3>
+ <p className="mt-2 text-slate-500 max-w-sm mx-auto">Create a test suite and set its status to Active or Draft to start execution.</p>
  <Link href="/test-suites" className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 shadow-lg shadow-indigo-500/20">
  Manage Test Suites
  </Link>
@@ -83,10 +83,10 @@ export default async function TestExecutionPage({
  </h3>
  </div>
  <div className="text-xs font-semibold text-slate-400">
- {group.suites.length} Suite{group.suites.length !== 1 ?"s" :""}
+ {group.suites.length} Execution Item{group.suites.length !== 1 ?"s" :""}
  </div>
  </div>
- <ExecutionSuiteGroup suites={group.suites} />
+ <ExecutionGroupList items={group.suites} />
  </div>
  ))}
  </div>

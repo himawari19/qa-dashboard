@@ -1,10 +1,11 @@
 import { codeFromId } from "@/lib/utils";
-import { buildFilterClause, buildResult, buildSearchSql, escapeLike, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildFilterClause, buildResult, extractExactId, normalize, queryFirst, queryRows, type Row, type SearchFilters, type SearchResult } from "./search-helpers";
+import { buildSearchTokenClause } from "@/lib/search-index";
 export async function getSprintResults(query: string, companyClause: string, companyParams: unknown[], filters: SearchFilters = {}) {
   const exactId = extractExactId(query, "SPR");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, name, startDate, endDate, status, goal, updatedAt
+      `SELECT id, name, "startDate", "endDate", status, goal, "updatedAt"
        FROM "Sprint"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
@@ -15,7 +16,7 @@ export async function getSprintResults(query: string, companyClause: string, com
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Sprint",
+        type: "Sprints",
         group: "Documentation",
         href: "/sprints",
         code: codeFromId("SPR", Number(exactRow.id)),
@@ -33,23 +34,15 @@ export async function getSprintResults(query: string, companyClause: string, com
       if (exactItem) return [exactItem];
     }
   }
-  const like = `%${escapeLike(query).toLowerCase()}%`;
   const filter = buildFilterClause(filters, { statusColumn: '"status"', dateColumn: '"startDate"' });
+  const tokenClause = buildSearchTokenClause("sprints", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, name, startDate, endDate, status, goal, updatedAt
+    `SELECT id, name, "startDate", "endDate", status, goal, "updatedAt"
      FROM "Sprint"
-     WHERE (
-       LOWER(COALESCE(name, '')) LIKE ?
-       OR LOWER(COALESCE(startDate, '')) LIKE ?
-       OR LOWER(COALESCE(endDate, '')) LIKE ?
-       OR LOWER(COALESCE(status, '')) LIKE ?
-       OR LOWER(COALESCE(goal, '')) LIKE ?
-       OR LOWER(COALESCE(CAST(id AS TEXT), '')) LIKE ?
-     )
-     ${companyClause + filter.clause}
+     WHERE 1=1${companyClause + filter.clause + tokenClause.clause}
      ORDER BY "updatedAt" DESC
      LIMIT 8`,
-    Array(6).fill(like).concat(filter.params, companyParams),
+    tokenClause.params.concat(companyParams, filter.params),
   );
 
   return rows
@@ -57,7 +50,7 @@ export async function getSprintResults(query: string, companyClause: string, com
       buildResult({
         row,
         query,
-        type: "Sprint",
+        type: "Sprints",
         group: "Documentation",
         href: "/sprints",
         code: codeFromId("SPR", Number(row.id)),

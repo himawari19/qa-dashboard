@@ -36,6 +36,7 @@ export const tables = [
       "priority" TEXT NOT NULL,
       "dueDate" TEXT,
       "description" TEXT NOT NULL,
+      "acceptanceCriteria" TEXT NOT NULL DEFAULT '',
       "notes" TEXT NOT NULL DEFAULT '',
       "evidence" TEXT NOT NULL DEFAULT '',
       "relatedItems" TEXT DEFAULT '',
@@ -172,6 +173,19 @@ export const tables = [
     `
   },
   {
+    name: "SearchToken",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "entityType" TEXT NOT NULL,
+      "entityId" TEXT NOT NULL,
+      "entityIdInt" INTEGER NOT NULL DEFAULT 0,
+      "token" TEXT NOT NULL,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
     name: "MeetingNote",
     schema: `
       "id" SERIAL_OR_PK,
@@ -182,7 +196,9 @@ export const tables = [
       "title" TEXT NOT NULL,
       "attendees" TEXT NOT NULL DEFAULT '',
       "content" TEXT NOT NULL DEFAULT '',
+      "summary" TEXT NOT NULL DEFAULT '',
       "actionItems" TEXT NOT NULL DEFAULT '',
+      "relatedItems" TEXT DEFAULT '',
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -259,6 +275,9 @@ CREATE INDEX IF NOT EXISTS "idx_task_company_updated" ON "Task"("company", "upda
 CREATE INDEX IF NOT EXISTS "idx_task_company_status" ON "Task"("company", "status");
 CREATE INDEX IF NOT EXISTS "idx_task_company_project" ON "Task"("company", "project");
 CREATE INDEX IF NOT EXISTS "idx_task_company_sprint" ON "Task"("company", "sprintId");
+CREATE INDEX IF NOT EXISTS "idx_task_project_active_updated" ON "Task"("project", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_task_company_active_updated" ON "Task"("company", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_task_company_active_status_updated" ON "Task"("company", "status", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_task_status" ON "Task"("status");
 CREATE INDEX IF NOT EXISTS "idx_task_assignee" ON "Task"("assignee");
 CREATE INDEX IF NOT EXISTS "idx_bug_company" ON "Bug"("company");
@@ -267,54 +286,77 @@ CREATE INDEX IF NOT EXISTS "idx_bug_company_status" ON "Bug"("company", "status"
 CREATE INDEX IF NOT EXISTS "idx_bug_company_project" ON "Bug"("company", "project");
 CREATE INDEX IF NOT EXISTS "idx_bug_company_module" ON "Bug"("company", "module");
 CREATE INDEX IF NOT EXISTS "idx_bug_company_sprint" ON "Bug"("company", "sprintId");
+CREATE INDEX IF NOT EXISTS "idx_bug_project_active_created" ON "Bug"("project", "createdAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_bug_company_active_updated" ON "Bug"("company", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_bug_company_active_created" ON "Bug"("company", "createdAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_bug_company_active_status_updated" ON "Bug"("company", "status", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_bug_status" ON "Bug"("status");
 CREATE INDEX IF NOT EXISTS "idx_bug_suggesteddev" ON "Bug"("suggestedDev");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company" ON "TestCase"("company");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company_updated" ON "TestCase"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company_status" ON "TestCase"("company", "status");
 CREATE INDEX IF NOT EXISTS "idx_testcase_company_suite" ON "TestCase"("company", "testSuiteId");
+CREATE INDEX IF NOT EXISTS "idx_testcase_company_active_suite" ON "TestCase"("company", "testSuiteId", "id") WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_testcase_assignee" ON "TestCase"("assignee");
 CREATE INDEX IF NOT EXISTS "idx_testcase_status" ON "TestCase"("status");
 CREATE INDEX IF NOT EXISTS "idx_testcase_suite" ON "TestCase"("testSuiteId");
   CREATE INDEX IF NOT EXISTS "idx_testplan_company" ON "TestPlan"("company");
   CREATE INDEX IF NOT EXISTS "idx_testplan_company_updated" ON "TestPlan"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_testplan_company_project" ON "TestPlan"("company", "project");
+CREATE INDEX IF NOT EXISTS "idx_testplan_project_active_updated" ON "TestPlan"("project", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_testplan_company_sprint" ON "TestPlan"("company", "sprint");
 CREATE INDEX IF NOT EXISTS "idx_testplan_company_status" ON "TestPlan"("company", "status");
 CREATE INDEX IF NOT EXISTS "idx_testplan_company_endDate" ON "TestPlan"("company", "endDate");
 CREATE INDEX IF NOT EXISTS "idx_testplan_company_token" ON "TestPlan"("company", "publicToken");
+CREATE INDEX IF NOT EXISTS "idx_testplan_company_active_updated" ON "TestPlan"("company", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_testplan_company_active_sprint" ON "TestPlan"("company", "sprint", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
   CREATE INDEX IF NOT EXISTS "idx_testsuite_company" ON "TestSuite"("company");
   CREATE INDEX IF NOT EXISTS "idx_testsuite_company_updated" ON "TestSuite"("company", "updatedAt");
   CREATE INDEX IF NOT EXISTS "idx_testsuite_company_plan" ON "TestSuite"("company", "testPlanId");
   CREATE INDEX IF NOT EXISTS "idx_testsuite_company_status" ON "TestSuite"("company", "status");
   CREATE INDEX IF NOT EXISTS "idx_testsuite_assignee" ON "TestSuite"("assignee");
   CREATE INDEX IF NOT EXISTS "idx_testsuite_company_token" ON "TestSuite"("company", "publicToken");
+CREATE INDEX IF NOT EXISTS "idx_testsuite_plan_active_updated" ON "TestSuite"("testPlanId", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_testsuite_company_active_plan_updated" ON "TestSuite"("company", "testPlanId", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
   CREATE INDEX IF NOT EXISTS "idx_activitylog_company" ON "ActivityLog"("company");
   CREATE INDEX IF NOT EXISTS "idx_activitylog_company_created" ON "ActivityLog"("company", "createdAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_searchtoken_unique" ON "SearchToken"("company", "entityType", "entityId", "token");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_searchtoken_lookup" ON "SearchToken"("company", "entityType", "entityIdInt", "token");
+CREATE INDEX IF NOT EXISTS "idx_searchtoken_company_token" ON "SearchToken"("company", "entityType", "token");
   CREATE INDEX IF NOT EXISTS "idx_sprint_company" ON "Sprint"("company");
   CREATE INDEX IF NOT EXISTS "idx_sprint_company_updated" ON "Sprint"("company", "updatedAt");
   CREATE INDEX IF NOT EXISTS "idx_sprint_company_name" ON "Sprint"("company", "name");
-  CREATE INDEX IF NOT EXISTS "idx_sprint_company_status" ON "Sprint"("company", "status");
-  CREATE INDEX IF NOT EXISTS "idx_sprint_company_start" ON "Sprint"("company", "startDate");
-  CREATE INDEX IF NOT EXISTS "idx_sprint_company_endDate" ON "Sprint"("company", "endDate");
+CREATE INDEX IF NOT EXISTS "idx_sprint_company_status" ON "Sprint"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_sprint_company_start" ON "Sprint"("company", "startDate");
+CREATE INDEX IF NOT EXISTS "idx_sprint_company_endDate" ON "Sprint"("company", "endDate");
+CREATE INDEX IF NOT EXISTS "idx_sprint_name_active_start" ON "Sprint"("name", "startDate" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_sprint_company_active_start" ON "Sprint"("company", "startDate" DESC) WHERE "deletedAt" IS NULL;
   CREATE INDEX IF NOT EXISTS "idx_testcase_company_token" ON "TestCase"("company", "publicToken");
   CREATE INDEX IF NOT EXISTS "idx_testsession_company_scope_date" ON "TestSession"("company", "scope", "date");
+CREATE INDEX IF NOT EXISTS "idx_testsession_scope_active_date" ON "TestSession"("scope", "date" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_testsession_company_active_scope_date" ON "TestSession"("company", "scope", "date" DESC) WHERE "deletedAt" IS NULL;
   CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_updated" ON "MeetingNote"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_date" ON "MeetingNote"("company", "date");
 CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_token" ON "MeetingNote"("company", "publicToken");
 CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_project" ON "MeetingNote"("company", "project");
+CREATE INDEX IF NOT EXISTS "idx_meetingnote_project_active_date" ON "MeetingNote"("project", "date" DESC, "updatedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_meetingnote_company_active_date" ON "MeetingNote"("company", "date" DESC, "updatedAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_activitylog_company_created" ON "ActivityLog"("company", "createdAt");
 CREATE INDEX IF NOT EXISTS "idx_invite_company" ON "Invite"("company");
 CREATE INDEX IF NOT EXISTS "idx_invite_token" ON "Invite"("token");
 CREATE INDEX IF NOT EXISTS "idx_invite_company_status" ON "Invite"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_user_company_active_created" ON "User"("company", "createdAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_assignee_userId" ON "Assignee"("userId") WHERE "userId" IS NOT NULL;
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_updated" ON "Assignee"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_name" ON "Assignee"("company", "name");
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_status" ON "Assignee"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_assignee_company_active_updated" ON "Assignee"("company", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_deployment_company_updated" ON "Deployment"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_deployment_company_project" ON "Deployment"("company", "project");
+CREATE INDEX IF NOT EXISTS "idx_deployment_project_active_date" ON "Deployment"("project", "date" DESC, "createdAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_deployment_company_status" ON "Deployment"("company", "status");
 CREATE INDEX IF NOT EXISTS "idx_deployment_company_date" ON "Deployment"("company", "date");
+CREATE INDEX IF NOT EXISTS "idx_deployment_company_active_date" ON "Deployment"("company", "date" DESC, "createdAt" DESC) WHERE "deletedAt" IS NULL;
 `;
 
 function expandSchemaType(typeName: string, postgres: boolean) {
@@ -464,7 +506,14 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
       return sqlite.prepare(queryStr).all(...params) as T[];
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('no such column: deletedAt') || message.includes('no such column: "deletedAt"')) {
+      if (
+        message.includes('no such column: deletedAt') ||
+        message.includes('no such column: "deletedAt"') ||
+        message.includes('no such column: acceptanceCriteria') ||
+        message.includes('no such column: "acceptanceCriteria"') ||
+        message.includes('no such column: relatedItems') ||
+        message.includes('no such column: "relatedItems"')
+      ) {
         await applyMissingColumns();
         return sqlite.prepare(queryStr).all(...params) as T[];
       }
@@ -652,6 +701,21 @@ async function backfillPublicTokens() {
   }
 }
 
+async function backfillSearchTokenEntityIdInt() {
+  if (useSqlite) {
+    const sqlite = await getSqlite();
+    sqlite.prepare(
+      `UPDATE "SearchToken" SET "entityIdInt" = CAST("entityId" AS INTEGER) WHERE COALESCE("entityIdInt", 0) = 0`
+    ).run();
+    return;
+  }
+
+  const pool = await getPostgresPool();
+  await pool.query(
+    `UPDATE "SearchToken" SET "entityIdInt" = CAST("entityId" AS INTEGER) WHERE COALESCE("entityIdInt", 0) = 0`
+  );
+}
+
 async function backfillSortOrder() {
   const tablesToFill = ["Task", "Bug", "TestCase", "Sprint", "TestPlan", "TestSession", "TestSuite", "MeetingNote", "Deployment", "Assignee", "User"];
   if (useSqlite) {
@@ -723,6 +787,7 @@ async function ensureSchema() {
         
         await applyMissingColumns();
         await ensureKanbanSortOrderColumns();
+        await backfillSearchTokenEntityIdInt();
         await execSchemaSql(schemaIndexSql);
         await backfillPublicTokens();
         await backfillSortOrder();

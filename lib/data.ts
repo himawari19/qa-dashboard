@@ -20,6 +20,7 @@ import {
 import { getQualityTrend, getReleaseNotes } from "@/lib/test-management-data";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { getRoleLabel, normalizeRole } from "@/lib/roles";
+import { deleteSearchTokens, shouldIndexModule, syncSearchTokens } from "@/lib/search-index";
 
 export {
   makePublicToken,
@@ -39,6 +40,16 @@ function hydrateDeploymentNotes<T extends Record<string, any>>(row: T) {
     ...row,
     notes: generateDeploymentNotes(String(row.changelog ?? "")),
   };
+}
+
+async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>) {
+  if (!shouldIndexModule(module)) return;
+  await syncSearchTokens(module, company, entityId, data);
+}
+
+async function clearSearchIndex(module: ModuleKey, company: string, entityId: string | number) {
+  if (!shouldIndexModule(module)) return;
+  await deleteSearchTokens(module, company, entityId);
 }
 
 type DashboardCacheEntry = { expiresAt: number; data: unknown };
@@ -242,14 +253,11 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     tasks, 
     bugs, 
     testCases, 
-    taskCount,
-    bugCount,
-    caseCount,
+    summaryCounts,
     taskStatus,
     bugSeverity,
     sprint,
-    bugFixed,
-    taskCompleted,
+    completionCounts,
     bugTrend,
     allSprints,
     activity,
@@ -259,22 +267,31 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     todaySessions,
     critBugs,
     prioTasks,
-    suiteCount,
-    sessionCount,
+    suiteAndSessionCounts,
     recentSessions,
     heatmapRes
   ] = await Promise.all([
     selectAll(`SELECT "id", "title", "priority", "status" FROM "Task" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
     selectAll(`SELECT "id", "title", "severity", "priority", "status" FROM "Bug" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
     selectAll(`SELECT "id", "caseName", "priority", "status" FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, companyParams),
-    countRows("Task", company),
-    countRows("Bug", company),
-    countRows("TestCase", company),
+    db.get(
+      `SELECT
+         (SELECT COUNT(*) FROM "Task" ${projectWhere}) AS taskCount,
+         (SELECT COUNT(*) FROM "Bug" ${projectWhere}) AS bugCount,
+         (SELECT COUNT(*) FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS caseCount
+       `,
+      [...projectParams, ...projectParams, ...companyParams],
+    ) as Promise<any>,
     selectAll(`SELECT status, COUNT(*) as count FROM "Task" ${projectWhere} GROUP BY status`, projectParams),
     selectAll(`SELECT severity, COUNT(*) as count FROM "Bug" ${projectWhere} GROUP BY severity`, projectParams),
     db.get(`SELECT "id", "name", "startDate", "endDate", "status" FROM "Sprint" WHERE status = 'active' ${companyAndWhere} LIMIT 1`, companyParams) as Promise<any>,
-    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}`, projectParams) as Promise<any>,
-    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${projectAndWhere}`, projectParams) as Promise<any>,
+    db.get(
+      `SELECT
+         (SELECT COUNT(*) FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}) AS bugFixedCount,
+         (SELECT COUNT(*) FROM "Task" WHERE status = 'completed' ${projectAndWhere}) AS taskCompletedCount
+       `,
+      [...projectParams, ...projectParams],
+    ) as Promise<any>,
     selectAll(`SELECT DATE("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') ${projectAndWhere} GROUP BY DATE("createdAt") ORDER BY date ASC`, projectParams),
     selectAll(`SELECT id, name, "startDate", "endDate", status FROM "Sprint" ${companyWhere} ORDER BY "startDate" DESC LIMIT 20`, companyParams),
     selectAll(`SELECT "id", "entityType", "entityId", "action", "summary", "createdAt" FROM "ActivityLog" ${companyWhere} ORDER BY "createdAt" DESC LIMIT 10`, companyParams),
@@ -284,8 +301,13 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE DATE("createdAt") = DATE('now') ${projectAndWhere}`, projectParams),
     selectAll(`SELECT "id", "title", "severity" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
     selectAll(`SELECT "id", "title", "priority" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams),
-    countRows("TestSuite", company),
-    countRows("TestSession", company),
+    db.get(
+      `SELECT
+         (SELECT COUNT(*) FROM "TestSuite" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS suiteCount,
+         (SELECT COUNT(*) FROM "TestSession" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS sessionCount
+       `,
+      [...companyParams, ...companyParams],
+    ) as Promise<any>,
     selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams),
     selectAll(`
       WITH
@@ -331,6 +353,35 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       ORDER BY a.name ASC
     `, [...projectParams, ...projectParams, ...companyParams, ...projectParams, ...projectParams, ...projectParams, ...companyParams, ...projectParams, ...companyParams]),
   ]);
+
+  let taskCount = Number(summaryCounts?.taskCount ?? 0);
+  let bugCount = Number(summaryCounts?.bugCount ?? 0);
+  let caseCount = Number(summaryCounts?.caseCount ?? 0);
+  let suiteCount = Number(suiteAndSessionCounts?.suiteCount ?? 0);
+  let sessionCount = Number(suiteAndSessionCounts?.sessionCount ?? 0);
+  let bugFixed = { count: Number(completionCounts?.bugFixedCount ?? 0) };
+  let taskCompleted = { count: Number(completionCounts?.taskCompletedCount ?? 0) };
+  if (!summaryCounts) {
+    [taskCount, bugCount, caseCount] = await Promise.all([
+      countRows("Task", company),
+      countRows("Bug", company),
+      countRows("TestCase", company),
+    ]);
+  }
+  if (!suiteAndSessionCounts) {
+    [suiteCount, sessionCount] = await Promise.all([
+      countRows("TestSuite", company),
+      countRows("TestSession", company),
+    ]);
+  }
+  if (!completionCounts) {
+    const [bugFixedCount, taskCompletedCount] = await Promise.all([
+      db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}`, projectParams) as Promise<any>,
+      db.get(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${projectAndWhere}`, projectParams) as Promise<any>,
+    ]);
+    bugFixed = { count: Number(bugFixedCount?.count ?? 0) };
+    taskCompleted = { count: Number(taskCompletedCount?.count ?? 0) };
+  }
 
   const todayActivity = [...(todayTasks || []), ...(todayBugs || []), ...(todaySessions || [])];
 
@@ -384,28 +435,43 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   }
 
   // Pass rate per sprint (last 5 sprints)
-  const recentSprintsForRate = await selectAll(
-    `SELECT id, name, "startDate", "endDate" FROM "Sprint" ${companyWhere} ORDER BY "startDate" DESC LIMIT 5`,
-    companyParams
+  const sprintJoinClause = normalizedProject
+    ? (isAdmin
+      ? ' AND ts."project" = ?'
+      : ' AND ts."company" = ? AND ts."project" = ?')
+    : (isAdmin ? "" : ' AND ts."company" = ?');
+  const sprintJoinParams = normalizedProject
+    ? (isAdmin ? [normalizedProject] : [company, normalizedProject])
+    : (isAdmin ? [] : [company]);
+  const sprintWhereClause = isAdmin
+    ? 'WHERE sp."deletedAt" IS NULL'
+    : 'WHERE sp."company" = ? AND sp."deletedAt" IS NULL';
+  const sprintWhereParams = isAdmin ? [] : [company];
+  const sprintPassRateRows = await selectAll(
+    `SELECT sp.id, sp.name, sp."startDate", sp."endDate",
+            COALESCE(SUM(COALESCE(ts.passed, 0)), 0) AS passed,
+            COALESCE(SUM(COALESCE(ts."totalCases", 0)), 0) AS totalCases,
+            COUNT(ts.id) AS sessions
+     FROM "Sprint" sp
+     LEFT JOIN "TestSession" ts
+       ON COALESCE(ts."date", '') != ''
+      AND ts."date" BETWEEN sp."startDate" AND sp."endDate"
+      ${sprintJoinClause}
+     ${sprintWhereClause}
+     GROUP BY sp.id, sp.name, sp."startDate", sp."endDate"
+     ORDER BY sp."startDate" DESC
+     LIMIT 5`,
+    [...sprintJoinParams, ...sprintWhereParams],
   ) as any[];
-  const sprintPassRates = await Promise.all(
-    recentSprintsForRate.map(async (sp: any) => {
-      const sessions = await selectAll(
-        `SELECT passed, "totalCases" FROM "TestSession"
-         WHERE COALESCE("date", '') != ''
-           AND "date" BETWEEN ? AND ?
-           ${projectAndWhere}`,
-        [sp.startDate, sp.endDate, ...projectParams]
-      ) as any[];
-      const totalPassed = sessions.reduce((s: number, r: any) => s + Number(r.passed), 0);
-      const totalCases = sessions.reduce((s: number, r: any) => s + Number(r.totalCases), 0);
-      return {
-        name: String(sp.name).replace(/sprint\s*/i, "S").substring(0, 12),
-        passRate: totalCases > 0 ? Math.round(totalPassed * 100 / totalCases) : 0,
-        sessions: sessions.length,
-      };
-    })
-  );
+  const sprintPassRates = sprintPassRateRows.map((sp: any) => {
+    const totalPassed = Number(sp.passed ?? 0);
+    const totalCases = Number(sp.totalCases ?? 0);
+    return {
+      name: String(sp.name).replace(/sprint\s*/i, "S").substring(0, 12),
+      passRate: totalCases > 0 ? Math.round(totalPassed * 100 / totalCases) : 0,
+      sessions: Number(sp.sessions ?? 0),
+    };
+  });
 
   const successRate = (bugCount + taskCount) > 0 ? Math.round(((Number(bugFixed.count) + Number(taskCompleted.count)) / (bugCount + taskCount)) * 100) : 0;
   
@@ -654,7 +720,7 @@ export async function getModuleRows(module: ModuleKey) {
     case "bugs":
       return await selectAll(`SELECT "id", "company", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
     case "tasks":
-      return await selectAll(`SELECT "id", "company", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT "id", "company", "title", "project", "relatedFeature", "category", "status", "priority", "dueDate" AS "startDate", "dueDate" AS "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
     case "test-suites": {
       const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
       return (await selectAll(
@@ -763,7 +829,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
   const safeSize = Math.max(1, Math.floor(pageSize || 10));
   const offset = (safePage - 1) * safeSize;
   const limitClause = ` LIMIT ${safeSize} OFFSET ${offset}`;
-  const { clause: searchClause, params: searchParams } = buildSearchClause(module, search ?? "");
+  const { clause: searchClause, params: searchParams } = buildSearchClause(module, search ?? "", company);
 
   switch (module) {
     case "test-plans": {
@@ -800,7 +866,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "tasks": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Task" WHERE 1=1${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = await selectAll(`SELECT "id", "company", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE 1=1${andWhere}${searchClause} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams]);
+      const rows = await selectAll(`SELECT "id", "company", "title", "project", "relatedFeature", "category", "status", "priority", "dueDate" AS "startDate", "dueDate" AS "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE 1=1${andWhere}${searchClause} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "test-suites": {
@@ -898,14 +964,19 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
 
   switch (module) {
     case "test-plans": {
+      const publicToken = data.publicToken || makePublicToken();
       const res = await runInsert(
         `INSERT INTO "TestPlan" ("company", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, data.publicToken || makePublicToken(), data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
+        [company, publicToken, data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
       );
       await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`);
       invalidateDashboardCache(company);
       await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestPlan" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("test-plans", company, Number(created.id), data);
+      }
       return res;
     }
     case "test-cases": {
@@ -917,6 +988,10 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
       await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`);
       invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestCase" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("test-cases", company, Number(created.id), data);
+      }
       return res;
     }
     case "bugs": {
@@ -929,16 +1004,24 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
       await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`);
       invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Bug" WHERE "company" = ? AND "project" = ? AND "module" = ? AND "bugType" = ? AND "title" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.project, data.module, data.bugType, data.title]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("bugs", company, Number(created.id), data);
+      }
       return res;
     }
     case "tasks": {
       const res = await runInsert(
-        `INSERT INTO "Task" ("company", "title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "notes", "evidence", "relatedItems", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
+        `INSERT INTO "Task" ("company", "title", "project", "relatedFeature", "category", "status", "priority", "dueDate", "description", "acceptanceCriteria", "notes", "evidence", "relatedItems", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.acceptanceCriteria, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
       );
       await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`);
       invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Task" WHERE "company" = ? AND "title" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.title]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("tasks", company, Number(created.id), data);
+      }
       return res;
     }
     case "test-sessions": {
@@ -948,6 +1031,10 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         [company, data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
       await logActivity(company, "Session", data.date, "Executed", `Test execution session by ${data.tester} (${data.result})`);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSession" WHERE "company" = ? AND "date" = ? AND "project" = ? AND "sprint" = ? AND "tester" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.date, data.project, data.sprint, data.tester]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("test-sessions", company, Number(created.id), data);
+      }
       return res;
     }
     case "test-suites": {
@@ -958,6 +1045,10 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
       await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`);
       invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSuite" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.publicToken || ""]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("test-suites", company, Number(created.id), data);
+      }
       return res;
     }
     case "assignees": {
@@ -988,6 +1079,8 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
       if (user) {
         await syncAssigneeFromUser(user);
+        await syncSearchIndex("users", company, user.id, user);
+        await syncSearchIndex("assignees", company, user.id, { ...user, status: "active" });
       }
       await logActivity(company, "User", String(data.email), "Created", `Access granted for ${data.email}`);
       invalidateDashboardCache(company);
@@ -1008,16 +1101,24 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
       await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`);
       invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Sprint" WHERE "company" = ? AND "name" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.name]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("sprints", company, Number(created.id), data);
+      }
       return res;
     }
     case "meeting-notes": {
       const res = await runInsert(
-        `INSERT INTO "MeetingNote" ("company", "publicToken", "date", "project", "title", "attendees", "content", "actionItems")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, data.publicToken || makePublicToken(), data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.actionItems ?? ""]
+        `INSERT INTO "MeetingNote" ("company", "publicToken", "date", "project", "title", "attendees", "content", "summary", "actionItems", "relatedItems")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.publicToken || makePublicToken(), data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? ""]
       );
       await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`);
       invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "MeetingNote" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.publicToken || ""]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("meeting-notes", company, Number(created.id), data);
+      }
       return res;
     }
     case "deployments": {
@@ -1029,6 +1130,10 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
       await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${data.environment}: ${data.status}`);
       invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Deployment" WHERE "company" = ? AND "version" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.version]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("deployments", company, Number(created.id), data);
+      }
       return res;
     }
     default:
@@ -1045,12 +1150,16 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "tasks": {
       const res = await db.run(
         `UPDATE "Task"
-         SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "dueDate" = ?, "description" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "dueDate" = ?, "description" = ?, "acceptanceCriteria" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id, ...companyParam]
+        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.dueDate, data.description, data.acceptanceCriteria, data.notes, data.evidence, data.relatedItems, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`);
       invalidateDashboardCache(company);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Task" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("tasks", company, String(id), updatedRow);
+      }
       return res;
     }
     case "bugs": {
@@ -1062,6 +1171,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       );
       await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`);
       invalidateDashboardCache(company);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Bug" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("bugs", company, String(id), updatedRow);
+      }
       return res;
     }
     case "test-plans": {
@@ -1074,6 +1187,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`);
       invalidateDashboardCache(company);
       await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("test-plans", company, String(id), updatedRow);
+      }
       return res;
     }
     case "test-sessions": {
@@ -1084,6 +1201,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id, ...companyParam]
       );
       await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestSession" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("test-sessions", company, String(id), updatedRow);
+      }
       return res;
     }
     case "test-cases": {
@@ -1095,6 +1216,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       );
       await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`);
       invalidateDashboardCache(company);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestCase" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("test-cases", company, String(id), updatedRow);
+      }
       return res;
     }
     case "test-suites": {
@@ -1107,6 +1232,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       );
       await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`);
       invalidateDashboardCache(company);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestSuite" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("test-suites", company, String(id), updatedRow);
+      }
       return res;
     }
     case "assignees": {
@@ -1132,7 +1261,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
           `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
           [data.name, data.email, data.role, hashedPassword, id, ...companyParam]
         );
-        await syncAssigneeFromUser({ id: Number(id), company, name: data.name, email: data.email, role: data.role });
+        const updatedUser = { id: Number(id), company, name: data.name, email: data.email, role: data.role };
+        await syncAssigneeFromUser(updatedUser);
+        await syncSearchIndex("users", company, updatedUser.id, updatedUser);
+        await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
         await logActivity(company, "User", String(data.email), "Updated", `Security settings for ${data.email} updated`);
         invalidateDashboardCache(company);
         return res;
@@ -1141,7 +1273,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
           `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
           [data.name, data.email, data.role, id, ...companyParam]
         );
-        await syncAssigneeFromUser({ id: Number(id), company, name: data.name, email: data.email, role: data.role });
+        const updatedUser = { id: Number(id), company, name: data.name, email: data.email, role: data.role };
+        await syncAssigneeFromUser(updatedUser);
+        await syncSearchIndex("users", company, updatedUser.id, updatedUser);
+        await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
         await logActivity(company, "User", String(data.email), "Updated", `User info for ${data.email} updated`);
         invalidateDashboardCache(company);
         return res;
@@ -1156,17 +1291,25 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       );
       await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`);
       invalidateDashboardCache(company);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Sprint" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("sprints", company, String(id), updatedRow);
+      }
       return res;
     }
     case "meeting-notes": {
       const res = await db.run(
         `UPDATE "MeetingNote"
-         SET "date" = ?, "project" = ?, "title" = ?, "attendees" = ?, "content" = ?, "actionItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "date" = ?, "project" = ?, "title" = ?, "attendees" = ?, "content" = ?, "summary" = ?, "actionItems" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.date, data.project, data.title, data.attendees ?? "", data.content ?? "", data.actionItems ?? "", id, ...companyParam]
+        [data.date, data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? "", id, ...companyParam]
       );
       await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`);
       invalidateDashboardCache(company);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "MeetingNote" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("meeting-notes", company, String(id), updatedRow);
+      }
       return res;
     }
     case "deployments": {
@@ -1179,6 +1322,10 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       );
       await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`);
       invalidateDashboardCache(company);
+      const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Deployment" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
+      if (updatedRow) {
+        await syncSearchIndex("deployments", company, String(id), updatedRow);
+      }
       return res;
     }
     default:
@@ -1201,6 +1348,10 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
 
   const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
   await logActivity(company, table, entityId, "Deleted", `${table} removed`);
+  await clearSearchIndex(module, company, entityId);
+  if (table === "User") {
+    await clearSearchIndex("assignees", company, entityId);
+  }
   invalidateDashboardCache(company);
   return res;
 }
@@ -1221,6 +1372,12 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
   );
 
   await logActivity(company, table, ids.join(","), "Deleted", `${ids.length} ${table} records deleted`);
+  for (const entityId of ids) {
+    await clearSearchIndex(module, company, String(entityId));
+    if (table === "User") {
+      await clearSearchIndex("assignees", company, String(entityId));
+    }
+  }
   invalidateDashboardCache(company);
 }
 
@@ -1251,6 +1408,10 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
     hasSortOrder ? [status, sortOrder, id, ...qParams] : [status, id, ...qParams]
   );
   await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`);
+  const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "${table}" WHERE id = CAST(? AS INTEGER)${andWhere}`, [id, ...qParams]);
+  if (updatedRow) {
+    await syncSearchIndex(module, company, String(id), updatedRow);
+  }
   invalidateDashboardCache(company);
   return res;
 }
@@ -1260,8 +1421,15 @@ export async function clearModuleRecords(module: ModuleKey) {
 
   const table = getTableName(module);
   if (!table) return null;
+  const rows = shouldIndexModule(module) ? await selectAll(`SELECT "id" FROM "${table}"${where}`, params) : [];
   const res = await db.run(`DELETE FROM "${table}"${where}`, params);
   await logActivity(company, table, "ALL", "Cleared", `${table} records cleared`);
+  for (const row of rows) {
+    await clearSearchIndex(module, company, String(row.id));
+    if (table === "User") {
+      await clearSearchIndex("assignees", company, String(row.id));
+    }
+  }
   invalidateDashboardCache(company);
   return res;
 }
