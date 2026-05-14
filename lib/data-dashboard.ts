@@ -235,7 +235,6 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     prioTasks,
     suiteAndSessionCounts,
     recentSessions,
-    heatmapRes
   ] = await Promise.all([
     selectAll(`SELECT "id", "title", "priority", "status" FROM "Task" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
     selectAll(`SELECT "id", "title", "severity", "priority", "status" FROM "Bug" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
@@ -275,50 +274,46 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       [...companyParams, ...companyParams],
     ) as Promise<any>,
     selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams),
-    selectAll(`
-      WITH
-        TaskCounts AS (
-          SELECT assignee as name, COUNT(*) as cnt FROM "Task"
-          WHERE status != 'done' AND assignee != '' ${projectAndWhere} GROUP BY assignee
-        ),
-        BugCounts AS (
-          SELECT "suggestedDev" as name, COUNT(*) as cnt FROM "Bug"
-          WHERE status != 'closed' AND "suggestedDev" != '' ${projectAndWhere} GROUP BY "suggestedDev"
-        ),
-        SuiteCounts AS (
-          SELECT assignee as name, COUNT(*) as cnt FROM "TestSuite"
-          WHERE status != 'archived' AND assignee != '' ${companyAndWhere} GROUP BY assignee
-        ),
-        PlanCounts AS (
-          SELECT assignee as name, COUNT(*) as cnt FROM "TestPlan"
-          WHERE status != 'closed' AND assignee != '' ${projectAndWhere} GROUP BY assignee
-        ),
-        AllAssignees AS (
-          SELECT assignee as name FROM "Task" WHERE assignee != '' AND status != 'done' ${projectAndWhere}
-          UNION
-          SELECT "suggestedDev" as name FROM "Bug" WHERE "suggestedDev" != '' AND status != 'closed' ${projectAndWhere}
-          UNION
-          SELECT assignee as name FROM "TestSuite" WHERE assignee != '' AND status != 'archived' ${companyAndWhere}
-          UNION
-          SELECT assignee as name FROM "TestPlan" WHERE assignee != '' AND status != 'closed' ${projectAndWhere}
-          UNION
-          SELECT COALESCE("name", "email") as name FROM "User" ${companyWhere}
-        )
-      SELECT
-        a.name,
-        COALESCE(t.cnt, 0) as taskCount,
-        COALESCE(b.cnt, 0) as bugCount,
-        COALESCE(s.cnt, 0) as suiteCount,
-        COALESCE(p.cnt, 0) as planCount
-      FROM AllAssignees a
-      LEFT JOIN TaskCounts t ON a.name = t.name
-      LEFT JOIN BugCounts b ON a.name = b.name
-      LEFT JOIN SuiteCounts s ON a.name = s.name
-      LEFT JOIN PlanCounts p ON a.name = p.name
-      WHERE a.name IS NOT NULL AND a.name != ''
-      ORDER BY a.name ASC
-    `, [...projectParams, ...projectParams, ...companyParams, ...projectParams, ...projectParams, ...projectParams, ...companyParams, ...projectParams, ...companyParams]),
   ]);
+
+  // Heatmap: merge 4 lightweight queries instead of 1 heavy CTE
+  const [heatTaskCounts, heatBugCounts, heatSuiteCounts, heatPlanCounts] = await Promise.all([
+    selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "Task" WHERE status != 'done' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams),
+    selectAll(`SELECT "suggestedDev" as name, COUNT(*) as cnt FROM "Bug" WHERE status != 'closed' AND "suggestedDev" != '' ${projectAndWhere} GROUP BY "suggestedDev"`, projectParams),
+    selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestSuite" WHERE status != 'archived' AND assignee != '' ${companyAndWhere} GROUP BY assignee`, companyParams),
+    selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestPlan" WHERE status != 'closed' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams),
+  ]);
+
+  const heatmap = new Map<string, { taskCount: number; bugCount: number; suiteCount: number; planCount: number }>();
+  for (const row of heatTaskCounts) {
+    const name = String(row.name ?? "").trim();
+    if (!name) continue;
+    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    entry.taskCount = Number(row.cnt ?? 0);
+    heatmap.set(name, entry);
+  }
+  for (const row of heatBugCounts) {
+    const name = String(row.name ?? "").trim();
+    if (!name) continue;
+    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    entry.bugCount = Number(row.cnt ?? 0);
+    heatmap.set(name, entry);
+  }
+  for (const row of heatSuiteCounts) {
+    const name = String(row.name ?? "").trim();
+    if (!name) continue;
+    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    entry.suiteCount = Number(row.cnt ?? 0);
+    heatmap.set(name, entry);
+  }
+  for (const row of heatPlanCounts) {
+    const name = String(row.name ?? "").trim();
+    if (!name) continue;
+    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    entry.planCount = Number(row.cnt ?? 0);
+    heatmap.set(name, entry);
+  }
+  const heatmapRes = [...heatmap.entries()].map(([name, counts]) => ({ name, ...counts }));
 
   let taskCount = Number(summaryCounts?.taskCount ?? 0);
   let bugCount = Number(summaryCounts?.bugCount ?? 0);
@@ -546,7 +541,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       status: String(s.status),
     })),
   };
-  dashboardCache.set(cacheKey, { data, expiresAt: Date.now() + 15000 });
+  dashboardCache.set(cacheKey, { data, expiresAt: Date.now() + 30000 });
   return structuredClone(data as object);
 }
 

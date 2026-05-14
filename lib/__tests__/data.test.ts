@@ -864,17 +864,17 @@ describe("module row queries", () => {
 
   it("loads sprint rows with derived plan data", async () => {
     mocks.db.query.mockResolvedValueOnce([
-      { id: 1, name: "Sprint 1", startDate: "2026-04-01", endDate: "2026-04-30", status: "active" },
+      { id: 1, name: "Sprint 1", startDate: "2026-04-01", endDate: "2026-04-30", status: "active", _planInfo: null },
     ]);
 
     const rows = await getModuleRows("sprints");
 
     expect(mocks.db.query).toHaveBeenCalledWith(
       expect.stringContaining('FROM "Sprint" s'),
-      ["acme", "acme", "acme"],
+      ["acme", "acme"],
     );
     expect(rows).toEqual([
-      { id: 1, name: "Sprint 1", startDate: "2026-04-01", endDate: "2026-04-30", status: "active" },
+      { id: 1, name: "Sprint 1", startDate: "2026-04-01", endDate: "2026-04-30", status: "active", testPlanTitle: null, project: null },
     ]);
   });
 });

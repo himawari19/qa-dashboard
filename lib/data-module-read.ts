@@ -88,26 +88,29 @@ export async function getModuleRows(module: ModuleKey) {
       const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
       const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
       const subParams = isAdmin ? [] : [company];
-      return await selectAll(`
+      const sprintRows = await selectAll(`
         SELECT s.*,
-          (SELECT tp2."title" FROM "TestPlan" tp2
+          (SELECT tp2."title" || '|||' || tp2."project" FROM "TestPlan" tp2
             WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
               OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
               OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
             ${tpCompanyFilter}
             AND tp2."deletedAt" IS NULL
-            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS testPlanTitle,
-          (SELECT tp2."project" FROM "TestPlan" tp2
-            WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
-              OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
-              OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
-            ${tpCompanyFilter}
-            AND tp2."deletedAt" IS NULL
-            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS project
+            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS "_planInfo"
         FROM "Sprint" s
         ${sprintWhere}
         ORDER BY s."startDate" DESC
-      `, [...subParams, ...subParams, ...qParams]);
+      `, [...subParams, ...qParams]);
+      return sprintRows.map((row) => {
+        const info = String(row._planInfo ?? "");
+        const sep = info.indexOf("|||");
+        const { _planInfo, ...rest } = row;
+        return {
+          ...rest,
+          testPlanTitle: sep >= 0 ? info.slice(0, sep) : (info || null),
+          project: sep >= 0 ? info.slice(sep + 3) : null,
+        };
+      });
     }
     case "deployments":
       return (await selectAll(`SELECT "id", "company", "project", "date", "version", "changelog", "status", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams)).map(hydrateDeploymentNotes);
@@ -218,26 +221,29 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
       const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
       const subParams = isAdmin ? [] : [company];
-      const rows = await selectAll(`
+      const sprintRows = await selectAll(`
         SELECT s.*,
-          (SELECT tp2."title" FROM "TestPlan" tp2
+          (SELECT tp2."title" || '|||' || tp2."project" FROM "TestPlan" tp2
             WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
               OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
               OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
             ${tpCompanyFilter}
             AND tp2."deletedAt" IS NULL
-            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS testPlanTitle,
-          (SELECT tp2."project" FROM "TestPlan" tp2
-            WHERE (LOWER(TRIM(tp2."sprint")) = LOWER(TRIM(s."name"))
-              OR LOWER(TRIM(s."name")) LIKE LOWER(TRIM(tp2."sprint")) || '%'
-              OR LOWER(TRIM(tp2."sprint")) LIKE LOWER(TRIM(s."name")) || '%')
-            ${tpCompanyFilter}
-            AND tp2."deletedAt" IS NULL
-            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS project
+            ORDER BY tp2."updatedAt" DESC LIMIT 1) AS "_planInfo"
         FROM "Sprint" s
         ${sprintWhere}${isAdmin ? ' WHERE s."deletedAt" IS NULL' : ' AND s."deletedAt" IS NULL'}${searchClause}
         ORDER BY s."startDate" DESC${limitClause}
-      `, [...subParams, ...subParams, ...qParams, ...searchParams]);
+      `, [...subParams, ...qParams, ...searchParams]);
+      const rows = sprintRows.map((row) => {
+        const info = String(row._planInfo ?? "");
+        const sep = info.indexOf("|||");
+        const { _planInfo, ...rest } = row;
+        return {
+          ...rest,
+          testPlanTitle: sep >= 0 ? info.slice(0, sep) : (info || null),
+          project: sep >= 0 ? info.slice(sep + 3) : null,
+        };
+      });
       return { rows, total };
     }
     case "deployments": {
