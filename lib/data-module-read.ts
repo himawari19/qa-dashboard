@@ -2,7 +2,6 @@ import { db, isPostgres } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { type ModuleKey } from "@/lib/modules";
-import { backfillAssigneesFromUsers } from "@/lib/user-assignee-sync";
 import { buildSearchClause, countRows, getAccessScope, normalizeTestCaseRow, normalizeTestPlanRow, normalizeTestSuiteRow } from "@/lib/data-helpers";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { normalizeRole } from "@/lib/roles";
@@ -67,19 +66,6 @@ export async function getModuleRows(module: ModuleKey) {
       }));
     }
     case "assignees":
-      await backfillAssigneesFromUsers();
-      await db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
-        "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
-        "company" TEXT NOT NULL DEFAULT '',
-        "userId" INTEGER UNIQUE,
-        "name" TEXT NOT NULL,
-        "role" TEXT,
-        "email" TEXT,
-        "skills" TEXT DEFAULT '',
-        "status" TEXT NOT NULL DEFAULT 'active',
-        "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )`);
       const assigneeRows = await selectAll(`SELECT u."id", u."name", u."role", u."email", COALESCE(a."skills", '') as "skills", 'active' as "status"
         FROM "User" u
         LEFT JOIN "Assignee" a ON a."userId" = u."id"
@@ -92,18 +78,6 @@ export async function getModuleRows(module: ModuleKey) {
           id: String(item.id),
         }));
     case "meeting-notes":
-      // Emergency check to ensure table exists (fixes "no such table" errors)
-      await db.exec(`CREATE TABLE IF NOT EXISTS "MeetingNote" (
-        "id" ${isPostgres ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT"},
-        "company" TEXT NOT NULL DEFAULT '',
-        "publicToken" TEXT NOT NULL DEFAULT '',
-        "date" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "project" TEXT NOT NULL,
-        "title" TEXT NOT NULL,
-        "deletedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"},
-        "createdAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" ${isPostgres ? "TIMESTAMP" : "TEXT"} NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )`);
       return (await selectAll(`SELECT "id", "company", "title", "date", "project", "relatedItems", "summary", "actionItems", "status", "publicToken", "createdAt", "updatedAt", "deletedAt" FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "date" DESC, "updatedAt" DESC`, qParams)).map((item) => ({
         ...item,
         code: codeFromId("MEET", Number(item.id)),

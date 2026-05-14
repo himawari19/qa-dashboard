@@ -63,7 +63,11 @@ export async function GET(request: Request) {
         headers: { "X-Dashboard-Timeout": "true" },
       });
     }
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "private, max-age=10, stale-while-revalidate=20",
+      },
+    });
   } catch (error) {
     console.error("Dashboard API error:", error);
     return NextResponse.json(emptyDashboardData(), {

@@ -132,18 +132,11 @@ async function execRaw(queryStr: string): Promise<void> {
 }
 
 async function getNextSequentialId(table: string) {
-  const rows = await queryRaw<{ id: number | string }>(`SELECT "id" FROM "${table}" ORDER BY "id" ASC`);
-  let nextId = 1;
-  for (const row of rows) {
-    const currentId = Number(row.id);
-    if (!Number.isFinite(currentId) || currentId < nextId) continue;
-    if (currentId === nextId) {
-      nextId += 1;
-      continue;
-    }
-    if (currentId > nextId) break;
-  }
-  return nextId;
+  const row = await queryRaw<{ maxId: number | string | null }>(
+    `SELECT MAX("id") as "maxId" FROM "${table}"`,
+  );
+  const maxId = Number(row[0]?.maxId ?? 0);
+  return (Number.isFinite(maxId) && maxId > 0) ? maxId + 1 : 1;
 }
 
 export const db = {

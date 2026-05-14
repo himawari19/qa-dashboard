@@ -106,9 +106,10 @@ async function backfillPublicTokens(deps: DbBootstrapDeps) {
   if (useSqlite) {
     const sqlite = await deps.getSqlite();
     for (const { table, column } of tablesToFill) {
-      const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE COALESCE(${column}, '') = ''`).all() as Array<{ id: string | number }>;
+      const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE COALESCE("${column}", '') = '' LIMIT 100`).all() as Array<{ id: string | number }>;
+      if (rows.length === 0) continue;
       for (const row of rows) {
-        sqlite.prepare(`UPDATE "${table}" SET ${column} = ? WHERE id = ?`).run(randomBytes(16).toString("base64url"), row.id);
+        sqlite.prepare(`UPDATE "${table}" SET "${column}" = ? WHERE id = ?`).run(randomBytes(16).toString("base64url"), row.id);
       }
     }
     return;
@@ -144,10 +145,16 @@ async function backfillSortOrder(deps: DbBootstrapDeps) {
     for (const table of tablesToFill) {
       const hasSortOrder = (sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all("sortOrder") as any[]).length > 0;
       if (!hasSortOrder) continue;
-      const rows = sqlite.prepare(`SELECT id FROM "${table}" ORDER BY COALESCE("updatedAt", "createdAt") ASC, id ASC`).all() as Array<{ id: string | number }>;
-      rows.forEach((row, index) => {
-        sqlite.prepare(`UPDATE "${table}" SET "sortOrder" = ? WHERE id = ?`).run(index + 1, row.id);
-      });
+      // Only backfill rows that still have default sortOrder=0
+      const needsBackfill = (sqlite.prepare(`SELECT 1 FROM "${table}" WHERE "sortOrder" = 0 LIMIT 1`).all() as any[]).length > 0;
+      if (!needsBackfill) continue;
+      const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE "sortOrder" = 0 ORDER BY COALESCE("updatedAt", "createdAt") ASC, id ASC`).all() as Array<{ id: string | number }>;
+      // Start from max existing sortOrder
+      const maxRow = sqlite.prepare(`SELECT MAX("sortOrder") as m FROM "${table}"`).all() as Array<{ m: number | null }>;
+      let nextOrder = Number(maxRow[0]?.m ?? 0) + 1;
+      for (const row of rows) {
+        sqlite.prepare(`UPDATE "${table}" SET "sortOrder" = ? WHERE id = ?`).run(nextOrder++, row.id);
+      }
     }
     return;
   }
@@ -159,14 +166,18 @@ async function backfillSortOrder(deps: DbBootstrapDeps) {
         `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'sortOrder' LIMIT 1`,
         [table],
       );
-      return rows.length > 0 ? table : null;
+      if (rows.length === 0) return null;
+      // Check if any rows need backfill
+      const { rows: needRows } = await pool.query(`SELECT 1 FROM "${table}" WHERE "sortOrder" = 0 LIMIT 1`);
+      return needRows.length > 0 ? table : null;
     }),
   );
   await Promise.all(
     existing.filter(Boolean).map((table) =>
       pool.query(`WITH ranked AS (
-        SELECT id, ROW_NUMBER() OVER (ORDER BY COALESCE("updatedAt", "createdAt") ASC, id ASC) AS rn
+        SELECT id, (SELECT COALESCE(MAX("sortOrder"), 0) FROM "${table}") + ROW_NUMBER() OVER (ORDER BY COALESCE("updatedAt", "createdAt") ASC, id ASC) AS rn
         FROM "${table}"
+        WHERE "sortOrder" = 0
       ) UPDATE "${table}" t SET "sortOrder" = ranked.rn FROM ranked WHERE t.id = ranked.id`),
     ),
   );
@@ -201,6 +212,8 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
   }
 }
 
+const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean };
+
 export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
   if (typeof window !== "undefined") return;
   if (!deps.getSchemaInitPromise()) {
@@ -214,10 +227,15 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
 
         await applyMissingColumns(deps);
         await ensureKanbanSortOrderColumns(deps);
-        await backfillSearchTokenEntityIdInt(deps);
-        await execSchemaSql(schemaIndexSql, deps);
-        await backfillPublicTokens(deps);
-        await backfillSortOrder(deps);
+
+        // Only run expensive backfills once per process lifetime
+        if (!globalBootstrap.__schemaBootstrapDone) {
+          await backfillSearchTokenEntityIdInt(deps);
+          await execSchemaSql(schemaIndexSql, deps);
+          await backfillPublicTokens(deps);
+          await backfillSortOrder(deps);
+          globalBootstrap.__schemaBootstrapDone = true;
+        }
       } catch (err) {
         deps.setSchemaInitPromise(undefined);
         if (databaseUrl || useSqlite) {
