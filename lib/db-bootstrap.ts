@@ -214,6 +214,41 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
 
 const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean };
 
+const CURRENT_MIGRATION_VERSION = 2;
+
+async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
+  try {
+    if (useSqlite) {
+      const sqlite = await deps.getSqlite();
+      try {
+        const rows = sqlite.prepare('SELECT "version" FROM "_migrations" ORDER BY "version" DESC LIMIT 1').all() as Array<{ version: number }>;
+        return rows[0]?.version ?? 0;
+      } catch {
+        return 0;
+      }
+    }
+    const pool = await deps.getPostgresPool();
+    const { rows } = await pool.query('SELECT "version" FROM "_migrations" ORDER BY "version" DESC LIMIT 1');
+    return (rows[0] as { version: number })?.version ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function setMigrationVersion(deps: DbBootstrapDeps, version: number): Promise<void> {
+  const createSql = `CREATE TABLE IF NOT EXISTS "_migrations" ("version" INTEGER NOT NULL, "appliedAt" ${useSqlite ? "TEXT" : "TIMESTAMP"} NOT NULL DEFAULT CURRENT_TIMESTAMP)`;
+  const insertSql = `INSERT INTO "_migrations" ("version") VALUES (?)`;
+  if (useSqlite) {
+    const sqlite = await deps.getSqlite();
+    sqlite.exec(createSql);
+    sqlite.prepare(insertSql).run(version);
+    return;
+  }
+  const pool = await deps.getPostgresPool();
+  await pool.query(toPostgresQuery(createSql));
+  await pool.query(toPostgresQuery(insertSql), [version]);
+}
+
 export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
   if (typeof window !== "undefined") return;
   if (!deps.getSchemaInitPromise()) {
@@ -228,12 +263,16 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
         await applyMissingColumns(deps);
         await ensureKanbanSortOrderColumns(deps);
 
-        // Only run expensive backfills once per process lifetime
+        // Only run expensive backfills if migration version is behind
         if (!globalBootstrap.__schemaBootstrapDone) {
-          await backfillSearchTokenEntityIdInt(deps);
-          await execSchemaSql(schemaIndexSql, deps);
-          await backfillPublicTokens(deps);
-          await backfillSortOrder(deps);
+          const currentVersion = await getMigrationVersion(deps);
+          if (currentVersion < CURRENT_MIGRATION_VERSION) {
+            await backfillSearchTokenEntityIdInt(deps);
+            await execSchemaSql(schemaIndexSql, deps);
+            await backfillPublicTokens(deps);
+            await backfillSortOrder(deps);
+            await setMigrationVersion(deps, CURRENT_MIGRATION_VERSION);
+          }
           globalBootstrap.__schemaBootstrapDone = true;
         }
       } catch (err) {
