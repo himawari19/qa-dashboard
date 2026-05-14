@@ -20,6 +20,12 @@ const publicPaths = [
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Exact match for root landing page
+  if (pathname === "/") {
+    return NextResponse.next();
+  }
+
   if (publicPaths.some((path) => pathname === path || pathname.startsWith(path))) {
     return NextResponse.next();
   }

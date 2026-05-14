@@ -7,6 +7,8 @@ import { ModuleWorkspaceHeader } from"@/components/module-workspace-header";
 import { ModuleWorkspaceTable, type SortConfig } from"@/components/module-workspace-table";
 import { ModuleWorkspaceForm } from"@/components/module-workspace-form";
 import { ModuleWorkspaceModals } from"@/components/module-workspace-modals";
+import { FormDrawer } from"@/components/form-drawer";
+import { ModuleMobileCards } from"@/components/module-mobile-cards";
 import type { Dispatch, ReactNode, SetStateAction } from"react";
 import { getModuleWorkspaceIcon } from"@/components/module-workspace-utils";
 
@@ -87,6 +89,9 @@ type Props = {
  onToggleSelect?: (id: string | number) => void;
  onToggleSelectAll?: () => void;
  onBulkDelete?: () => void;
+ onInlineUpdate?: (rowId: string | number, field: string, value: string) => void;
+ onReorder?: (rowId: string | number, newIndex: number) => void;
+ reorderable?: boolean;
  onUpdateStatus: (id: string | number, status: string, sortOrder?: number) => Promise<void>;
  onDeleteConfirm: () => void;
  onDeleteCancel: () => void;
@@ -100,6 +105,7 @@ type Props = {
  filterOptions?: Array<{ key: string; label: string; options: Array<{ value: string; label: string }> }>;
  activeFilters?: Array<{ key: string; value: string; label: string }>;
  onFilterChange?: (filters: Array<{ key: string; value: string; label: string }>) => void;
+ onApplySavedFilter?: (filters: Array<{ key: string; value: string; label: string }>, search: string) => void;
  allColumns?: Array<{ key: string; label: string }>;
  visibleColumnKeys?: string[];
  onToggleColumn?: (key: string) => void;
@@ -175,6 +181,9 @@ export function ModuleWorkspaceShell({
  onToggleSelect,
  onToggleSelectAll,
  onBulkDelete,
+ onInlineUpdate,
+ onReorder,
+ reorderable,
  onUpdateStatus,
  onDeleteConfirm,
  onDeleteCancel,
@@ -188,6 +197,7 @@ export function ModuleWorkspaceShell({
  filterOptions,
  activeFilters,
  onFilterChange,
+ onApplySavedFilter,
  allColumns,
  visibleColumnKeys,
  onToggleColumn,
@@ -197,7 +207,7 @@ export function ModuleWorkspaceShell({
 }: Props) {
  return (
  <>
- <section className={showForm ?"overflow-visible rounded-2xl bg-white shadow-sm ring-1 ring-slate-200" :"overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200"}>
+ <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
  <ModuleWorkspaceHeader
  module={module as any}
  title={config.title}
@@ -219,6 +229,7 @@ export function ModuleWorkspaceShell({
  filterOptions={filterOptions}
  activeFilters={activeFilters}
  onFilterChange={onFilterChange}
+ onApplySavedFilter={onApplySavedFilter}
  allColumns={allColumns}
  visibleColumnKeys={visibleColumnKeys}
  onToggleColumn={onToggleColumn}
@@ -227,7 +238,77 @@ export function ModuleWorkspaceShell({
 
  {!showForm && module ==="test-suites" ? <div className="border-b border-slate-200/60 px-6 py-4" /> : null}
 
- {showForm ? (
+ {viewMode ==="table" ? (
+ <>
+ {/* Desktop table */}
+ <div className="hidden md:block">
+ <ModuleWorkspaceTable
+ module={module as any}
+ shortTitle={config.shortTitle}
+ visibleRows={visibleRows}
+ visibleColumns={visibleColumns}
+ safePage={safePage}
+ totalPages={totalPages}
+ totalItems={totalItems}
+ canAdd={canAdd}
+ canEdit={canEdit}
+ canDelete={canDelete}
+ pendingDeleteId={pendingDeleteId}
+ onAdd={onAdd}
+ onEditRow={onEditRow}
+ onViewRow={onViewRow}
+ onDeleteRow={onDeleteRow}
+ onReopenRow={onReopenRow}
+ onPrevPage={onPrevPage}
+ onNextPage={onNextPage}
+ onGoToPage={onGoToPage}
+ sortConfig={sortConfig}
+ onSort={onSort}
+ selectedIds={selectedIds}
+ onToggleSelect={onToggleSelect}
+ onToggleSelectAll={onToggleSelectAll}
+ onBulkDelete={onBulkDelete}
+ onInlineUpdate={onInlineUpdate}
+ statusOptions={statusOptions}
+ onReorder={onReorder}
+ reorderable={reorderable}
+ />
+ </div>
+ {/* Mobile card view */}
+ <div className="block md:hidden">
+ <ModuleMobileCards
+ module={module as any}
+ shortTitle={config.shortTitle}
+ rows={visibleRows}
+ columns={visibleColumns}
+ safePage={safePage}
+ totalPages={totalPages}
+ totalItems={totalItems}
+ canEdit={canEdit}
+ canDelete={canDelete}
+ onViewRow={onViewRow}
+ onEditRow={onEditRow}
+ onDeleteRow={onDeleteRow}
+ onPrevPage={onPrevPage}
+ onNextPage={onNextPage}
+ onGoToPage={onGoToPage}
+ />
+ </div>
+ </>
+ ) : (
+ <div className="overflow-hidden bg-transparent border-t border-slate-200/60 p-5">
+			<KanbanBoard rows={kanbanRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
+			</div>
+		)}
+ </section>
+
+ {/* Form Drawer */}
+ <FormDrawer
+ open={showForm}
+ title={editingRow ? `Edit ${config.shortTitle}` : `Create ${config.shortTitle}`}
+ subtitle={editingRow ? "Update existing data." : "Fill in new data with a consistent format."}
+ onClose={onCancelForm}
+ >
  <ModuleWorkspaceForm
  key={`${module}-${editingRow?.id ??"new"}`}
  module={module as any}
@@ -260,42 +341,7 @@ export function ModuleWorkspaceShell({
  versionSequenceLabel={versionSequenceLabel}
  versionSequenceDefaultValue={versionSequenceDefaultValue}
  />
- ) : null}
-
- {!showForm && viewMode ==="table" ? (
- <ModuleWorkspaceTable
- module={module as any}
- shortTitle={config.shortTitle}
- visibleRows={visibleRows}
- visibleColumns={visibleColumns}
- safePage={safePage}
- totalPages={totalPages}
- totalItems={totalItems}
- canAdd={canAdd}
- canEdit={canEdit}
- canDelete={canDelete}
- pendingDeleteId={pendingDeleteId}
- onAdd={onAdd}
- onEditRow={onEditRow}
- onViewRow={onViewRow}
- onDeleteRow={onDeleteRow}
- onReopenRow={onReopenRow}
- onPrevPage={onPrevPage}
- onNextPage={onNextPage}
- onGoToPage={onGoToPage}
- sortConfig={sortConfig}
- onSort={onSort}
- selectedIds={selectedIds}
- onToggleSelect={onToggleSelect}
- onToggleSelectAll={onToggleSelectAll}
- onBulkDelete={onBulkDelete}
- />
- ) : !showForm ? (
- <div className="overflow-hidden bg-transparent border-t border-slate-200/60 p-5">
-			<KanbanBoard rows={kanbanRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
-			</div>
-		) : null}
- </section>
+ </FormDrawer>
 
  <ModuleWorkspaceModals
  deleteOpen={deleteOpen}

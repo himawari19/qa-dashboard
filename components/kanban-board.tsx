@@ -75,11 +75,13 @@ export function KanbanBoard({
  statusOptions,
  onUpdateStatus,
  onViewRow,
+ wipLimits = {},
 }: {
  rows: Row[];
  statusOptions: { label: string; value: string }[];
  onUpdateStatus: (id: number, newStatus: string, sortOrder?: number) => Promise<void>;
  onViewRow: (row: Row) => void;
+ wipLimits?: Record<string, number>;
 }) {
  const [, startTransition] = useTransition();
  const [draggedId, setDraggedId] = useState<number | null>(null);
@@ -204,6 +206,8 @@ export function KanbanBoard({
  const accent = getAccent(status.value);
             const columnCards = orderedRows.filter((row) => statusAliases.get(normalizeStatus(getRowStatus(row))) === status.value);
  const isDropTarget = dragOverStatus === status.value && draggedId !== null;
+ const wipLimit = wipLimits[status.value];
+ const isOverWip = wipLimit !== undefined && columnCards.length > wipLimit;
 
  return (
  <div
@@ -211,6 +215,7 @@ export function KanbanBoard({
  className={cn(
 "flex flex-col rounded-2xl glass-card p-4 transition-all duration-300 border-t-4",
  isDropTarget ? accent.drop +" shadow-xl scale-[1.02]" : accent.border,
+ isOverWip && "ring-2 ring-amber-400/60",
  )}
  onDragOver={(e) => handleDragOver(e, status.value)}
  onDragLeave={() => setDragOverStatus(null)}
@@ -223,7 +228,22 @@ export function KanbanBoard({
  {status.label}
  </h4>
  </div>
+ <div className="flex items-center gap-1.5">
+ {wipLimit !== undefined && (
+ <span className={cn(
+ "text-[10px] font-bold",
+ isOverWip ? "text-amber-600" : "text-slate-400",
+ )}>
+ {columnCards.length}/{wipLimit}
+ </span>
+ )}
  <Badge value={String(columnCards.length)} />
+ {isOverWip && (
+ <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-700" title="Over WIP limit">
+ WIP
+ </span>
+ )}
+ </div>
  </div>
 
  <div className="flex flex-col gap-2.5">

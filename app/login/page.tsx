@@ -11,7 +11,7 @@ import { getPublicRoleOptions } from "@/lib/roles";
 
 function LoginContent() {
   const router = useRouter();
-  const [nextUrl, setNextUrl] = useState("/");
+  const [nextUrl, setNextUrl] = useState("/dashboard");
 
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [formData, setFormData] = useState({
@@ -28,7 +28,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setNextUrl(new URLSearchParams(window.location.search).get("next") || "/");
+    setNextUrl(new URLSearchParams(window.location.search).get("next") || "/dashboard");
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

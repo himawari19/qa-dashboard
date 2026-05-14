@@ -32,7 +32,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
  const companyName = String(user?.company || "").trim();
  const accountLabel = companyName || (user ? getRoleLabel(user?.role ||"", user?.company || "") :"Workspace");
  
- const isAuthScreen = pathname ==="/login" || pathname ==="/register";
+ const isAuthScreen = pathname ==="/login" || pathname ==="/register" || pathname ==="/";
 
  const refreshUser = async () => {
  try {
@@ -105,7 +105,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
   setLoggingOut(true);
   try {
    await fetch("/api/auth/logout", { method:"POST" });
-   router.replace("/login");
+   router.replace("/");
    router.refresh();
   } catch (err) {
    console.error("Logout failed:", err);
@@ -122,7 +122,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
  }
 
  return (
- <div className={cn(
+ <div suppressHydrationWarning className={cn(
 "flex min-h-screen bg-slate-50 mesh-gradient overflow-x-hidden"
  )}>
  {mobileOpen && (
@@ -141,6 +141,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
  </div>
  <div className="flex flex-1 flex-col min-w-0">
  <div
+ suppressHydrationWarning
  className="flex flex-1 flex-col transition-[margin-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:ml-[var(--sidebar-w)]"
  style={{"--sidebar-w": sidebarWidth } as React.CSSProperties}
  >

@@ -26,6 +26,29 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                try {
+                  document.querySelectorAll('[bis_skin_checked]').forEach(function(el){
+                    el.removeAttribute('bis_skin_checked');
+                  });
+                  new MutationObserver(function(mutations){
+                    mutations.forEach(function(m){
+                      if(m.type==='attributes'&&m.attributeName==='bis_skin_checked'){
+                        m.target.removeAttribute('bis_skin_checked');
+                      }
+                    });
+                  }).observe(document.documentElement,{attributes:true,subtree:true,attributeFilter:['bis_skin_checked']});
+                } catch(e){}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={dmSans.className} suppressHydrationWarning>
         <AppWrapper>
           {children}

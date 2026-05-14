@@ -132,6 +132,13 @@ export function NotificationPanel({
 }) {
  const [notifs, setNotifs] = useState<Notification[]>([]);
  const [loading, setLoading] = useState(true);
+ const [dismissed, setDismissed] = useState<Set<string>>(() => {
+   if (typeof window === "undefined") return new Set();
+   try {
+     const saved = window.localStorage.getItem("qa-notif-dismissed");
+     return saved ? new Set(JSON.parse(saved)) : new Set();
+   } catch { return new Set(); }
+ });
  const ref = useRef<HTMLDivElement>(null);
 
  useEffect(() => {
@@ -152,6 +159,29 @@ export function NotificationPanel({
  return () => document.removeEventListener("mousedown", handler);
  }, [anchorRef, onClose]);
 
+ const visibleNotifs = notifs.filter((n) => !dismissed.has(n.id));
+ const overdueNotifs = visibleNotifs.filter((n) => n.type === "overdue");
+ const deadlineNotifs = visibleNotifs.filter((n) => n.type === "deadline");
+
+ const handleDismiss = (id: string) => {
+   setDismissed((prev) => {
+     const next = new Set(prev);
+     next.add(id);
+     if (typeof window !== "undefined") {
+       window.localStorage.setItem("qa-notif-dismissed", JSON.stringify([...next]));
+     }
+     return next;
+   });
+ };
+
+ const handleDismissAll = () => {
+   const allIds = new Set(notifs.map((n) => n.id));
+   setDismissed(allIds);
+   if (typeof window !== "undefined") {
+     window.localStorage.setItem("qa-notif-dismissed", JSON.stringify([...allIds]));
+   }
+ };
+
  return (
  <div
  ref={ref}
@@ -159,33 +189,73 @@ export function NotificationPanel({
  >
  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
  <p className="text-xs font-black uppercase tracking-widest text-slate-700">Notifications</p>
+ <div className="flex items-center gap-2">
+ {visibleNotifs.length > 0 && (
+ <button onClick={handleDismissAll} className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition">
+ Dismiss all
+ </button>
+ )}
  <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition"><X size={14} weight="bold" /></button>
  </div>
+ </div>
  {loading && <div className="px-4 py-6 text-xs text-slate-400 text-center animate-pulse">Loading…</div>}
- {!loading && notifs.length === 0 && (
- <div className="px-4 py-6 text-xs text-slate-400 text-center">No alerts — everything looks good!</div>
+ {!loading && visibleNotifs.length === 0 && (
+ <div className="px-4 py-8 text-center">
+ <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500">
+ <Checks size={20} weight="bold" />
+ </div>
+ <p className="text-xs font-semibold text-slate-600">All clear!</p>
+ <p className="mt-0.5 text-[11px] text-slate-400">No pending alerts right now.</p>
+ </div>
  )}
- {!loading && notifs.length > 0 && (
- <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
- {notifs.map(n => (
- <Link
- key={n.id}
- href={n.href}
- prefetch={false}
- onClick={onClose}
- className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition group"
- >
- <div className={cn("mt-0.5 shrink-0 h-6 w-6 rounded-md flex items-center justify-center",
- n.type ==="overdue" ?"bg-red-100 text-red-600" :"bg-amber-100 text-amber-600"
- )}>
- {n.type ==="overdue" ? <WarningCircle size={14} weight="bold" /> : <ClockCountdown size={14} weight="bold" />}
+ {!loading && visibleNotifs.length > 0 && (
+ <div className="max-h-80 overflow-y-auto">
+ {overdueNotifs.length > 0 && (
+ <div>
+ <div className="sticky top-0 bg-white/95 backdrop-blur-sm px-4 py-1.5 border-b border-slate-100">
+ <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">Overdue ({overdueNotifs.length})</span>
+ </div>
+ {overdueNotifs.map(n => (
+ <div key={n.id} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition group">
+ <Link href={n.href} prefetch={false} onClick={onClose} className="flex items-start gap-3 flex-1 min-w-0">
+ <div className="mt-0.5 shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-red-100 text-red-600">
+ <WarningCircle size={14} weight="bold" />
  </div>
  <div className="flex-1 min-w-0">
  <p className="text-xs font-bold text-slate-800 leading-snug truncate">{n.title}</p>
- <p className="text-xs text-slate-400 mt-0.5 truncate">{n.detail}</p>
+ <p className="text-[11px] text-slate-400 mt-0.5 truncate">{n.detail}</p>
  </div>
  </Link>
+ <button onClick={() => handleDismiss(n.id)} className="shrink-0 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-slate-500 transition p-0.5" title="Dismiss">
+ <X size={12} weight="bold" />
+ </button>
+ </div>
  ))}
+ </div>
+ )}
+ {deadlineNotifs.length > 0 && (
+ <div>
+ <div className="sticky top-0 bg-white/95 backdrop-blur-sm px-4 py-1.5 border-b border-slate-100">
+ <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Upcoming ({deadlineNotifs.length})</span>
+ </div>
+ {deadlineNotifs.map(n => (
+ <div key={n.id} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition group">
+ <Link href={n.href} prefetch={false} onClick={onClose} className="flex items-start gap-3 flex-1 min-w-0">
+ <div className="mt-0.5 shrink-0 h-6 w-6 rounded-md flex items-center justify-center bg-amber-100 text-amber-600">
+ <ClockCountdown size={14} weight="bold" />
+ </div>
+ <div className="flex-1 min-w-0">
+ <p className="text-xs font-bold text-slate-800 leading-snug truncate">{n.title}</p>
+ <p className="text-[11px] text-slate-400 mt-0.5 truncate">{n.detail}</p>
+ </div>
+ </Link>
+ <button onClick={() => handleDismiss(n.id)} className="shrink-0 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-slate-500 transition p-0.5" title="Dismiss">
+ <X size={12} weight="bold" />
+ </button>
+ </div>
+ ))}
+ </div>
+ )}
  </div>
  )}
  </div>
@@ -364,6 +434,7 @@ export function Sidebar({
  <SidebarTooltip tooltip={tooltip} />
 
  <aside
+ suppressHydrationWarning
  className={cn(
 "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/50 bg-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
  collapsed ?"w-[72px]" :"w-[240px]",

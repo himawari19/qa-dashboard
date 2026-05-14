@@ -312,6 +312,55 @@ export function ModuleWorkspace({
     replaceWorkspaceUrl(params);
   }, [currentSearch, replaceWorkspaceUrl]);
 
+  // Inline cell update (status, priority, etc.)
+  const handleInlineUpdate = useCallback(async (rowId: string | number, field: string, value: string) => {
+    // Optimistic update
+    setLocalRows((prev) =>
+      prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row)),
+    );
+    try {
+      const res = await fetch(`/api/items/${module}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: rowId, [field]: value }),
+      });
+      if (!res.ok) {
+        toast("Failed to update", "error");
+        router.refresh();
+      } else {
+        toast("Updated", "success");
+      }
+    } catch {
+      toast("Failed to update", "error");
+      router.refresh();
+    }
+  }, [module, router]);
+
+  // Drag-to-reorder handler
+  const handleReorder = useCallback(async (rowId: string | number, newIndex: number) => {
+    setLocalRows((prev) => {
+      const oldIndex = prev.findIndex((r) => r.id === rowId);
+      if (oldIndex < 0 || oldIndex === newIndex) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIndex, 1);
+      next.splice(newIndex, 0, moved);
+      return next;
+    });
+    // Persist new sort order
+    try {
+      await fetch(`/api/items/${module}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: rowId, sortOrder: newIndex + 1 }),
+      });
+    } catch {
+      // Silent fail — optimistic update already applied
+    }
+  }, [module]);
+
+  // Modules that support manual reordering
+  const reorderable = module === "tasks" || module === "bugs" || module === "test-cases";
+
   // Clear selection when rows change
   useEffect(() => {
     setSelectedIds(new Set());
@@ -319,7 +368,7 @@ export function ModuleWorkspace({
 
   const visibleRows = useMemo(() => {
     let filtered = localRows;
-    // Apply active filters
+    // Apply active filters (client-side since these are quick filters on current page)
     if (activeFilters.length > 0) {
       filtered = filtered.filter((row) =>
         activeFilters.every((f) => {
@@ -328,29 +377,8 @@ export function ModuleWorkspace({
         }),
       );
     }
-    // Apply sort
-    if (!sortConfig) return filtered;
-    const { key, direction } = sortConfig;
-    return [...filtered].sort((a, b) => {
-      const aVal = String(a[key] ?? "").toLowerCase();
-      const bVal = String(b[key] ?? "").toLowerCase();
-      // Try numeric comparison
-      const aNum = Number(aVal);
-      const bNum = Number(bVal);
-      if (!isNaN(aNum) && !isNaN(bNum)) {
-        return direction === "asc" ? aNum - bNum : bNum - aNum;
-      }
-      // Date comparison
-      const aDate = new Date(aVal).getTime();
-      const bDate = new Date(bVal).getTime();
-      if (!isNaN(aDate) && !isNaN(bDate) && aVal.length > 4) {
-        return direction === "asc" ? aDate - bDate : bDate - aDate;
-      }
-      // String comparison
-      const cmp = aVal.localeCompare(bVal);
-      return direction === "asc" ? cmp : -cmp;
-    });
-  }, [localRows, sortConfig, activeFilters]);
+    return filtered;
+  }, [localRows, activeFilters]);
   const preferredColumnOrder = useMemo(() => getPreferredColumnOrder(module), [module]);
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
@@ -363,20 +391,29 @@ export function ModuleWorkspace({
   const defaultColumnKeys = useMemo(() => defaultColumns.map((c) => c.key), [defaultColumns]);
 
   // Column visibility state (persisted in localStorage)
-  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(() => {
-    if (typeof window === "undefined") return defaultColumnKeys;
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultColumnKeys);
+  const [columnKeysHydrated, setColumnKeysHydrated] = useState(false);
+
+  // Hydrate from localStorage after mount (avoids SSR mismatch)
+  useEffect(() => {
+    if (columnKeysHydrated) return;
     const saved = window.localStorage.getItem(`qa-columns:${module}`);
     if (saved) {
-      try { return JSON.parse(saved); } catch { /* ignore */ }
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= 2) {
+          setVisibleColumnKeys(parsed);
+        }
+      } catch { /* ignore */ }
     }
-    return defaultColumnKeys;
-  });
+    setColumnKeysHydrated(true);
+  }, [module, columnKeysHydrated]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && columnKeysHydrated) {
       window.localStorage.setItem(`qa-columns:${module}`, JSON.stringify(visibleColumnKeys));
     }
-  }, [visibleColumnKeys, module]);
+  }, [visibleColumnKeys, module, columnKeysHydrated]);
 
   const handleToggleColumn = useCallback((key: string) => {
     setVisibleColumnKeys((prev) => {
@@ -515,6 +552,10 @@ export function ModuleWorkspace({
         filterOptions={filterOptions}
         activeFilters={activeFilters}
         onFilterChange={setActiveFilters}
+        onApplySavedFilter={(filters, savedSearch) => {
+          setActiveFilters(filters);
+          handleSearchChange(savedSearch);
+        }}
         allColumns={config.columns}
         visibleColumnKeys={visibleColumnKeys}
         onToggleColumn={handleToggleColumn}
@@ -558,6 +599,9 @@ export function ModuleWorkspace({
         onToggleSelect={handleToggleSelect}
         onToggleSelectAll={handleToggleSelectAll}
         onBulkDelete={handleBulkDelete}
+        onInlineUpdate={handleInlineUpdate}
+        onReorder={handleReorder}
+        reorderable={reorderable}
         onUpdateStatus={onUpdateStatus}
         onDeleteConfirm={performSingleDelete}
         onDeleteCancel={() => setDeleteId(null)}

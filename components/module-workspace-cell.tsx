@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/badge";
 import { HighlightText } from "@/components/highlight-text";
-import { cn, formatDate } from "@/lib/utils";
+import { InlineStatusEditor } from "@/components/inline-status-editor";
+import { cn, formatDate, formatRelativeTime } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
 import type { ModuleKey } from "@/lib/modules";
 
@@ -33,6 +34,10 @@ type ModuleWorkspaceCellProps = {
   row: TableRow;
   column: Column;
   value: unknown;
+  onInlineUpdate?: (rowId: string | number, field: string, value: string) => void;
+  statusOptions?: Array<{ value: string; label: string }>;
+  priorityOptions?: Array<{ value: string; label: string }>;
+  canEdit?: boolean;
 };
 
 function getStatusDisplay(module: ModuleKey, value: string) {
@@ -74,7 +79,7 @@ function renderNotesValue(text: string) {
   );
 }
 
-export function ModuleWorkspaceCell({ module, row, column, value }: ModuleWorkspaceCellProps) {
+export function ModuleWorkspaceCell({ module, row, column, value, onInlineUpdate, statusOptions, priorityOptions, canEdit }: ModuleWorkspaceCellProps) {
   if (((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") || (module === "test-plans" && column.key === "project")) {
     const rowSpanKey = module === "test-plans" ? "projectRowSpan" : "testPlanRowSpan";
     const rowSpan = Number(row[rowSpanKey] ?? 1);
@@ -104,12 +109,29 @@ export function ModuleWorkspaceCell({ module, row, column, value }: ModuleWorksp
         </a>
       ) : (module === "users" || module === "assignees") && column.key === "role" ? (
         <Badge value={String(value)} displayValue={getRoleLabel(String(value), String(row.company ?? ""))} />
+      ) : column.tone === "status" && onInlineUpdate && statusOptions && canEdit ? (
+        <InlineStatusEditor
+          value={String(value)}
+          options={statusOptions}
+          onUpdate={(newVal) => onInlineUpdate(row.id, column.key, newVal)}
+        />
+      ) : column.tone === "priority" && onInlineUpdate && priorityOptions && canEdit ? (
+        <InlineStatusEditor
+          value={String(value)}
+          options={priorityOptions}
+          onUpdate={(newVal) => onInlineUpdate(row.id, column.key, newVal)}
+        />
       ) : column.tone === "status" ? (
         <Badge value={String(value)} displayValue={getStatusDisplay(module, String(value))} />
       ) : column.tone ? (
         <Badge value={String(value)} />
-      ) : column.key.toLowerCase().includes("date") ? (
-        formatDate(value == null ? null : String(value))
+      ) : column.key.toLowerCase().includes("date") || column.key === "createdAt" || column.key === "updatedAt" ? (
+        <span title={formatDate(value == null ? null : String(value))}>
+          {column.key === "createdAt" || column.key === "updatedAt"
+            ? formatRelativeTime(value == null ? null : String(value))
+            : formatDate(value == null ? null : String(value))
+          }
+        </span>
       ) : module === "test-plans" && column.key === "scope" && Array.isArray(row.relatedSuites) ? (
         <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto pr-1 scrollbar-thin">
           {row.relatedSuites.length > 0 ? (

@@ -138,6 +138,8 @@ export default async function ModulePage({
   const requestedPage = Number(rawPage ?? 1);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
   const searchQuery = String(Array.isArray(query.q) ? query.q[0] : query.q ?? "").trim();
+  const sortBy = String(Array.isArray(query.sortBy) ? query.sortBy[0] : query.sortBy ?? "").trim() || undefined;
+  const sortDir = String(Array.isArray(query.sortDir) ? query.sortDir[0] : query.sortDir ?? "").trim() as "asc" | "desc" | undefined;
 
   let rows: Record<string, unknown>[] = [];
   let kanbanRows: Record<string, unknown>[] = [];
@@ -154,14 +156,14 @@ export default async function ModulePage({
 
   const hiddenFields: string[] = [];
   try {
-    const firstPageData = await getModuleRowsPage(moduleKey as ModuleKey, currentPage, PAGE_SIZE, searchQuery);
+    const firstPageData = await getModuleRowsPage(moduleKey as ModuleKey, currentPage, PAGE_SIZE, searchQuery, sortBy, sortDir);
     totalItems = firstPageData.total;
 
     const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
     const safePage = Math.min(currentPage, totalPages);
     const resolvedPageData =
       safePage !== currentPage
-        ? await getModuleRowsPage(moduleKey as ModuleKey, safePage, PAGE_SIZE, searchQuery)
+        ? await getModuleRowsPage(moduleKey as ModuleKey, safePage, PAGE_SIZE, searchQuery, sortBy, sortDir)
         : firstPageData;
 
     rows = resolvedPageData.rows as Record<string, unknown>[];

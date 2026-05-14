@@ -7,7 +7,7 @@ import { ModuleRowActions } from "@/components/module-row-actions";
 import { ModuleWorkspaceCell } from "@/components/module-workspace-cell";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
-import { ArrowUp, ArrowDown, CheckSquare, Square, MinusSquare, Trash, PencilSimple } from "@phosphor-icons/react";
+import { ArrowUp, ArrowDown, CheckSquare, Square, MinusSquare, Trash, PencilSimple, DotsSixVertical } from "@phosphor-icons/react";
 import type { ModuleKey } from "@/lib/modules";
 
 type RelatedSuite = { id: string; title: string; token?: string; publicToken?: string };
@@ -63,6 +63,11 @@ type ModuleWorkspaceTableProps = {
   onToggleSelectAll?: () => void;
   onBulkDelete?: () => void;
   onBulkStatusChange?: (status: string) => void;
+  onInlineUpdate?: (rowId: string | number, field: string, value: string) => void;
+  statusOptions?: Array<{ value: string; label: string }>;
+  priorityOptions?: Array<{ value: string; label: string }>;
+  onReorder?: (rowId: string | number, newIndex: number) => void;
+  reorderable?: boolean;
 };
 
 export function ModuleWorkspaceTable({
@@ -91,10 +96,17 @@ export function ModuleWorkspaceTable({
   onToggleSelect,
   onToggleSelectAll,
   onBulkDelete,
+  onInlineUpdate,
+  statusOptions,
+  priorityOptions,
+  onReorder,
+  reorderable,
 }: ModuleWorkspaceTableProps) {
   const hasSelection = selectedIds && selectedIds.size > 0;
   const allSelected = visibleRows.length > 0 && selectedIds && visibleRows.every((row) => selectedIds.has(row.id));
   const someSelected = selectedIds && selectedIds.size > 0 && !allSelected;
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   return (
     <div className="max-w-full overflow-x-auto px-6 pb-32 pt-2">
@@ -128,6 +140,10 @@ export function ModuleWorkspaceTable({
       <table className="w-full min-w-[980px] border-collapse table-auto">
         <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
           <tr>
+            {/* Drag handle column */}
+            {reorderable && onReorder && (
+              <th className="border-b border-slate-200/60 w-8" />
+            )}
             {/* Checkbox column */}
             {onToggleSelectAll && (
               <th className="border-b border-slate-200/60 px-3 py-3 text-center w-10">
@@ -181,19 +197,39 @@ export function ModuleWorkspaceTable({
             <ModuleEmptyState
               shortTitle={shortTitle}
               canAdd={canAdd}
-              colSpan={visibleColumns.length + (onToggleSelectAll ? 3 : 2)}
+              colSpan={visibleColumns.length + (onToggleSelectAll ? 3 : 2) + (reorderable ? 1 : 0)}
               onAdd={onAdd}
             />
           ) : (
             visibleRows.map((row, index) => (
               <tr
                 key={String(row.id)}
+                draggable={reorderable && !!onReorder}
+                onDragStart={() => { if (reorderable) setDraggedIdx(index); }}
+                onDragOver={(e) => { if (reorderable && draggedIdx !== null) { e.preventDefault(); setDragOverIdx(index); } }}
+                onDragLeave={() => setDragOverIdx(null)}
+                onDrop={() => {
+                  if (reorderable && onReorder && draggedIdx !== null && draggedIdx !== index) {
+                    onReorder(visibleRows[draggedIdx].id, index);
+                  }
+                  setDraggedIdx(null);
+                  setDragOverIdx(null);
+                }}
+                onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); }}
                 className={cn(
                   "bg-transparent align-top transition-all duration-200 hover:bg-slate-50",
                   pendingDeleteId === row.id && "opacity-40 pointer-events-none",
                   selectedIds?.has(row.id) && "bg-blue-50/50",
+                  draggedIdx === index && "opacity-50",
+                  dragOverIdx === index && "border-t-2 border-blue-400",
                 )}
               >
+                {/* Drag handle */}
+                {reorderable && onReorder && (
+                  <td className="border-b border-slate-200/60 px-1 py-3 text-center align-top cursor-grab active:cursor-grabbing">
+                    <DotsSixVertical size={14} weight="bold" className="text-slate-300 hover:text-slate-500 transition" />
+                  </td>
+                )}
                 {/* Row checkbox */}
                 {onToggleSelect && (
                   <td className="border-b border-slate-200/60 px-3 py-3 text-center align-top">
@@ -231,6 +267,10 @@ export function ModuleWorkspaceTable({
                     row={row}
                     column={column}
                     value={row[column.key]}
+                    onInlineUpdate={onInlineUpdate}
+                    statusOptions={statusOptions}
+                    priorityOptions={priorityOptions}
+                    canEdit={canEdit}
                   />
                 ))}
                 <td className="border-b border-slate-200/60 px-4 py-3 align-top">

@@ -235,6 +235,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     prioTasks,
     suiteAndSessionCounts,
     recentSessions,
+    weekPulseData,
   ] = await Promise.all([
     selectAll(`SELECT "id", "title", "priority", "status" FROM "Task" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
     selectAll(`SELECT "id", "title", "severity", "priority", "status" FROM "Bug" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams),
@@ -274,6 +275,20 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       [...companyParams, ...companyParams],
     ) as Promise<any>,
     selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams),
+    // Week pulse: created vs resolved this week and last week
+    db.get(
+      `SELECT
+         (SELECT COUNT(*) FROM "Bug" WHERE "createdAt" >= DATE('now', '-7 days') ${projectAndWhere}) AS bugCreatedThisWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "createdAt" >= DATE('now', '-7 days') ${projectAndWhere}) AS taskCreatedThisWeek,
+         (SELECT COUNT(*) FROM "Bug" WHERE "status" IN ('fixed', 'closed') AND "updatedAt" >= DATE('now', '-7 days') ${projectAndWhere}) AS bugResolvedThisWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "status" IN ('done', 'completed') AND "updatedAt" >= DATE('now', '-7 days') ${projectAndWhere}) AS taskResolvedThisWeek,
+         (SELECT COUNT(*) FROM "Bug" WHERE "createdAt" >= DATE('now', '-14 days') AND "createdAt" < DATE('now', '-7 days') ${projectAndWhere}) AS bugCreatedLastWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "createdAt" >= DATE('now', '-14 days') AND "createdAt" < DATE('now', '-7 days') ${projectAndWhere}) AS taskCreatedLastWeek,
+         (SELECT COUNT(*) FROM "Bug" WHERE "status" IN ('fixed', 'closed') AND "updatedAt" >= DATE('now', '-14 days') AND "updatedAt" < DATE('now', '-7 days') ${projectAndWhere}) AS bugResolvedLastWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "status" IN ('done', 'completed') AND "updatedAt" >= DATE('now', '-14 days') AND "updatedAt" < DATE('now', '-7 days') ${projectAndWhere}) AS taskResolvedLastWeek
+       `,
+      [...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams],
+    ) as Promise<any>,
   ]);
 
   // Heatmap: merge 4 lightweight queries instead of 1 heavy CTE
@@ -533,6 +548,12 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     bugTrendData: bugTrend.map((r) => ({ date: String(r.date), count: Number(r.count) })),
     sprintBurndown,
     sprintPassRates: sprintPassRates.reverse(),
+    weekPulse: {
+      created: Number(weekPulseData?.bugCreatedThisWeek ?? 0) + Number(weekPulseData?.taskCreatedThisWeek ?? 0),
+      resolved: Number(weekPulseData?.bugResolvedThisWeek ?? 0) + Number(weekPulseData?.taskResolvedThisWeek ?? 0),
+      prevCreated: Number(weekPulseData?.bugCreatedLastWeek ?? 0) + Number(weekPulseData?.taskCreatedLastWeek ?? 0),
+      prevResolved: Number(weekPulseData?.bugResolvedLastWeek ?? 0) + Number(weekPulseData?.taskResolvedLastWeek ?? 0),
+    },
     sprints: allSprints.map((s) => ({
       id: Number(s.id),
       name: String(s.name),

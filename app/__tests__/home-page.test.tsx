@@ -60,17 +60,18 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUser: mocks.getCurrentUser,
 }));
 
-vi.mock("@/lib/data", () => ({
-  getDashboardData: mocks.getDashboardData,
-}));
-
 vi.mock("@/lib/db", () => ({
   db: {
     query: mocks.dbQuery,
   },
 }));
 
-import Home, { DashboardData } from "@/app/page";
+vi.mock("@/lib/data", () => ({
+  getDashboardData: mocks.getDashboardData,
+  getDashboardProjects: vi.fn(async () => ["Alpha", "Beta"]),
+}));
+
+import DashboardPage from "@/app/dashboard/page";
 
 let stateValues: unknown[] = [];
 let hookIndex = 0;
@@ -85,7 +86,7 @@ function resetHooks() {
 
 async function renderHome() {
   hookIndex = 0;
-  const element = await Home();
+  const element = await DashboardPage();
   return renderToStaticMarkup(element);
 }
 
@@ -165,9 +166,8 @@ describe("home page", () => {
     expect(markup).toContain("dashboard");
   });
 
-  it("DashboardData fetches server-side and passes initialData to DashboardHome", async () => {
-    const element = await DashboardData();
-    const markup = renderToStaticMarkup(element);
+  it("DashboardPage fetches server-side and renders dashboard", async () => {
+    const markup = await renderHome();
     expect(mocks.getDashboardData).toHaveBeenCalledTimes(1);
     expect(markup).toContain("dashboard");
   });

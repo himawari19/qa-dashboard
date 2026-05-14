@@ -5,6 +5,7 @@ import { Plus, FileXls, FilePdf, UploadSimple, MagnifyingGlass, Table, Kanban } 
 import type { ReactNode } from"react";
 import { ModuleFilterBar, type FilterValue } from"@/components/module-filter-bar";
 import { ColumnVisibilityToggle } from"@/components/column-visibility-toggle";
+import { SavedFilters } from"@/components/saved-filters";
 
 type FilterOption = {
   key: string;
@@ -38,6 +39,7 @@ type WorkspaceHeaderProps = {
  filterOptions?: FilterOption[];
  activeFilters?: FilterValue[];
  onFilterChange?: (filters: FilterValue[]) => void;
+ onApplySavedFilter?: (filters: FilterValue[], search: string) => void;
  allColumns?: ColumnDef[];
  visibleColumnKeys?: string[];
  onToggleColumn?: (key: string) => void;
@@ -65,6 +67,7 @@ export function ModuleWorkspaceHeader({
  filterOptions,
  activeFilters,
  onFilterChange,
+ onApplySavedFilter,
  allColumns,
  visibleColumnKeys,
  onToggleColumn,
@@ -207,6 +210,15 @@ export function ModuleWorkspaceHeader({
  filters={filterOptions}
  activeFilters={activeFilters}
  onFilterChange={onFilterChange}
+ />
+ )}
+
+ {onApplySavedFilter && activeFilters && (
+ <SavedFilters
+ module={module}
+ activeFilters={activeFilters}
+ search={search}
+ onApply={onApplySavedFilter}
  />
  )}
  </div>
