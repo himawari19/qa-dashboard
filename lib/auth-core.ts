@@ -160,16 +160,31 @@ export async function createSessionToken(
   if (!secret) {
     throw new Error("AUTH_SECRET is required.");
   }
+  // Include password hash prefix as version marker for revocation
+  let pv = "";
+  if (user) {
+    try {
+      const { db } = await import("./db");
+      const row = await db.get<{ password: string }>(
+        'SELECT "password" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
+        [user.id],
+      );
+      if (row?.password) {
+        pv = row.password.slice(0, 16);
+      }
+    } catch { /* non-critical */ }
+  }
   const payload = toBase64UrlBytes(JSON.stringify({
     email,
     ts: Date.now(),
+    ...(pv ? { pv } : {}),
     ...(user ? { id: user.id, name: user.name, role: user.role, company: user.company } : {}),
   }));
   const signature = await sign(payload, secret);
   return `${payload}.${signature}`;
 }
 
-const SESSION_DURATION = 6 * 60 * 60 * 1000;
+const SESSION_DURATION = Number(process.env.SESSION_TTL_HOURS || 6) * 60 * 60 * 1000;
 
 export async function verifySessionToken(token: string | undefined | null) {
   const { secret } = getAuthConfig();
@@ -207,7 +222,7 @@ export async function getCurrentUser() {
 
   try {
     const decoded = JSON.parse(fromBase64UrlBytes(payload)) as {
-      email?: string; ts?: number;
+      email?: string; ts?: number; pv?: string;
       id?: number; name?: string; role?: string; company?: string;
     };
     if (!decoded.email) return null;
@@ -215,6 +230,17 @@ export async function getCurrentUser() {
 
     // Fast path: user data embedded in token (new tokens after login)
     if (decoded.id && decoded.name !== undefined && decoded.role !== undefined && decoded.company !== undefined) {
+      // Verify session hasn't been revoked (password changed)
+      if (decoded.pv) {
+        const { db } = await import("./db");
+        const row = await db.get<{ password: string }>(
+          'SELECT "password" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
+          [decoded.id],
+        );
+        if (row?.password && row.password.slice(0, 16) !== decoded.pv) {
+          return null; // Password changed — session revoked
+        }
+      }
       return {
         id: decoded.id,
         name: decoded.name,

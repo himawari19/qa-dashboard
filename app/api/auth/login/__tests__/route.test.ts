@@ -14,6 +14,13 @@ vi.mock("@/lib/auth", () => ({
   sessionCookieName: () => "qa_daily_session",
 }));
 
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimitKey: (_ip: string, email: string) => `test|${email}`,
+  isRateLimited: () => ({ limited: false }),
+  recordFailedAttempt: () => {},
+  clearRateLimit: () => {},
+}));
+
 import { POST } from "@/app/api/auth/login/route";
 
 beforeEach(() => {
@@ -39,11 +46,11 @@ describe("auth login route", () => {
     const response = await POST(
       new Request("http://localhost/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email: "user@example.com", password: "bad" }),
+        body: JSON.stringify({ email: "user@example.com", password: "badpassword" }),
       }) as NextRequest,
     );
 
-    expect(mocks.validateCredentials).toHaveBeenCalledWith("user@example.com", "bad");
+    expect(mocks.validateCredentials).toHaveBeenCalledWith("user@example.com", "badpassword");
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "Invalid email or password." });
   });
