@@ -87,11 +87,11 @@ export function Toaster() {
  }, []);
 
  return (
- <div className="fixed right-8 top-8 z-[100] flex flex-col items-end gap-3">
- {toasts.map((t) => (
+ <div className="fixed bottom-6 left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center gap-3">
+ {toasts.slice(-3).map((t) => (
  <div
  key={t.id}
- className="flex min-w-[300px] origin-top-right animate-in fade-in slide-in-from-top-2 slide-in-from-right-4 zoom-in-95 transform items-center gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-xl duration-200"
+ className="flex min-w-[300px] max-w-md origin-bottom animate-in fade-in slide-in-from-bottom-2 zoom-in-95 transform items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xl duration-200"
  >
  {t.type ==="success" && <CheckCircle size={24} className="text-emerald-500" weight="fill" />}
  {t.type ==="error" && <WarningCircle size={24} className="text-rose-500" weight="fill" />}

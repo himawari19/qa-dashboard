@@ -4,7 +4,7 @@ import { KanbanBoard } from"@/components/kanban-board";
 import { type Attachment } from"@/components/attachment-uploader";
 import { ViewModal } from"@/components/module-view-modal";
 import { ModuleWorkspaceHeader } from"@/components/module-workspace-header";
-import { ModuleWorkspaceTable } from"@/components/module-workspace-table";
+import { ModuleWorkspaceTable, type SortConfig } from"@/components/module-workspace-table";
 import { ModuleWorkspaceForm } from"@/components/module-workspace-form";
 import { ModuleWorkspaceModals } from"@/components/module-workspace-modals";
 import type { Dispatch, ReactNode, SetStateAction } from"react";
@@ -80,6 +80,13 @@ type Props = {
  onReopenRow: (row: any) => void;
  onPrevPage: () => void;
  onNextPage: () => void;
+ onGoToPage?: (page: number) => void;
+ sortConfig?: SortConfig;
+ onSort?: (key: string) => void;
+ selectedIds?: Set<string | number>;
+ onToggleSelect?: (id: string | number) => void;
+ onToggleSelectAll?: () => void;
+ onBulkDelete?: () => void;
  onUpdateStatus: (id: string | number, status: string, sortOrder?: number) => Promise<void>;
  onDeleteConfirm: () => void;
  onDeleteCancel: () => void;
@@ -90,6 +97,13 @@ type Props = {
  onEditView: () => void;
  search: string;
  onSearchChange: (value: string) => void;
+ filterOptions?: Array<{ key: string; label: string; options: Array<{ value: string; label: string }> }>;
+ activeFilters?: Array<{ key: string; value: string; label: string }>;
+ onFilterChange?: (filters: Array<{ key: string; value: string; label: string }>) => void;
+ allColumns?: Array<{ key: string; label: string }>;
+ visibleColumnKeys?: string[];
+ onToggleColumn?: (key: string) => void;
+ onResetColumns?: () => void;
  initialTab?: string | null;
  onTabChange?: (tab: string) => void;
 };
@@ -154,6 +168,13 @@ export function ModuleWorkspaceShell({
  onReopenRow,
  onPrevPage,
  onNextPage,
+ onGoToPage,
+ sortConfig,
+ onSort,
+ selectedIds,
+ onToggleSelect,
+ onToggleSelectAll,
+ onBulkDelete,
  onUpdateStatus,
  onDeleteConfirm,
  onDeleteCancel,
@@ -164,6 +185,13 @@ export function ModuleWorkspaceShell({
  onEditView,
  search,
  onSearchChange,
+ filterOptions,
+ activeFilters,
+ onFilterChange,
+ allColumns,
+ visibleColumnKeys,
+ onToggleColumn,
+ onResetColumns,
  initialTab,
  onTabChange,
 }: Props) {
@@ -188,6 +216,13 @@ export function ModuleWorkspaceShell({
  onImportFile={onImportFile}
  search={search}
  onSearchChange={onSearchChange}
+ filterOptions={filterOptions}
+ activeFilters={activeFilters}
+ onFilterChange={onFilterChange}
+ allColumns={allColumns}
+ visibleColumnKeys={visibleColumnKeys}
+ onToggleColumn={onToggleColumn}
+ onResetColumns={onResetColumns}
  />
 
  {!showForm && module ==="test-suites" ? <div className="border-b border-slate-200/60 px-6 py-4" /> : null}
@@ -247,6 +282,13 @@ export function ModuleWorkspaceShell({
  onReopenRow={onReopenRow}
  onPrevPage={onPrevPage}
  onNextPage={onNextPage}
+ onGoToPage={onGoToPage}
+ sortConfig={sortConfig}
+ onSort={onSort}
+ selectedIds={selectedIds}
+ onToggleSelect={onToggleSelect}
+ onToggleSelectAll={onToggleSelectAll}
+ onBulkDelete={onBulkDelete}
  />
  ) : !showForm ? (
  <div className="overflow-hidden bg-transparent border-t border-slate-200/60 p-5">

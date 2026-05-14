@@ -3,6 +3,19 @@
 import Link from"next/link";
 import { Plus, FileXls, FilePdf, UploadSimple, MagnifyingGlass, Table, Kanban } from"@phosphor-icons/react";
 import type { ReactNode } from"react";
+import { ModuleFilterBar, type FilterValue } from"@/components/module-filter-bar";
+import { ColumnVisibilityToggle } from"@/components/column-visibility-toggle";
+
+type FilterOption = {
+  key: string;
+  label: string;
+  options: Array<{ value: string; label: string }>;
+};
+
+type ColumnDef = {
+  key: string;
+  label: string;
+};
 
 type WorkspaceHeaderProps = {
  module: string;
@@ -22,6 +35,13 @@ type WorkspaceHeaderProps = {
  onImportFile: (file: File) => void;
  search: string;
  onSearchChange: (value: string) => void;
+ filterOptions?: FilterOption[];
+ activeFilters?: FilterValue[];
+ onFilterChange?: (filters: FilterValue[]) => void;
+ allColumns?: ColumnDef[];
+ visibleColumnKeys?: string[];
+ onToggleColumn?: (key: string) => void;
+ onResetColumns?: () => void;
 };
 
 export function ModuleWorkspaceHeader({
@@ -42,6 +62,13 @@ export function ModuleWorkspaceHeader({
  onImportFile,
  search,
  onSearchChange,
+ filterOptions,
+ activeFilters,
+ onFilterChange,
+ allColumns,
+ visibleColumnKeys,
+ onToggleColumn,
+ onResetColumns,
 }: WorkspaceHeaderProps) {
  return (
  <>
@@ -124,6 +151,15 @@ export function ModuleWorkspaceHeader({
  </label>
  )}
 
+ {allColumns && visibleColumnKeys && onToggleColumn && onResetColumns && (
+ <ColumnVisibilityToggle
+ allColumns={allColumns}
+ visibleKeys={visibleColumnKeys}
+ onToggle={onToggleColumn}
+ onReset={onResetColumns}
+ />
+ )}
+
  {topContent ? <div className="flex w-full basis-full flex-col items-end">{topContent}</div> : null}
  </div>
  ) : null}
@@ -165,6 +201,14 @@ export function ModuleWorkspaceHeader({
  </button>
  </div>
  ) : null}
+
+ {filterOptions && filterOptions.length > 0 && activeFilters && onFilterChange && (
+ <ModuleFilterBar
+ filters={filterOptions}
+ activeFilters={activeFilters}
+ onFilterChange={onFilterChange}
+ />
+ )}
  </div>
 
  <div className="flex w-full min-w-0 shrink-0 items-center gap-3 xl:ml-auto xl:w-auto xl:justify-end">

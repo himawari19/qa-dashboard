@@ -11,8 +11,10 @@ import { useModuleWorkspaceActions } from "@/components/use-module-workspace-act
 import { ModuleWorkspaceShell } from "@/components/module-workspace-shell";
 import { buildWorkspaceUrl, withUpdatedWorkspaceParams } from "@/components/module-workspace-url";
 import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { getUserRoleOptions } from "@/lib/roles";
+import type { SortConfig } from "@/components/module-workspace-table";
 
 
 type Row = Record<string, string | number> & { id: string | number };
@@ -126,6 +128,15 @@ export function ModuleWorkspace({
   // Undo delete
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
+  // Sort state
+  const [sortConfig, setSortConfig] = useState<SortConfig>(() => {
+    const sortKey = searchParams.get("sortBy");
+    const sortDir = searchParams.get("sortDir");
+    if (sortKey) return { key: sortKey, direction: (sortDir === "asc" ? "asc" : "desc") };
+    return null;
+  });
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const { canAdd, canEdit, canDelete, isViewer } = useMemo(
     () => getModuleWorkspacePermissions(String(user?.role || "qa")),
     [user?.role],
@@ -183,6 +194,24 @@ export function ModuleWorkspace({
   const severityField = resolvedConfig.fields.find((f) => f.name === "severity");
   const severityOptions = severityField && "options" in severityField ? severityField.options : [];
 
+  // Build filter options from module config
+  const filterOptions = useMemo(() => {
+    const opts: Array<{ key: string; label: string; options: Array<{ value: string; label: string }> }> = [];
+    if (statusOptions.length > 0) {
+      opts.push({ key: "status", label: "Status", options: statusOptions });
+    }
+    if (priorityOptions.length > 0) {
+      opts.push({ key: "priority", label: "Priority", options: priorityOptions });
+    }
+    if (severityOptions.length > 0) {
+      opts.push({ key: "severity", label: "Severity", options: severityOptions });
+    }
+    return opts;
+  }, [statusOptions, priorityOptions, severityOptions]);
+
+  // Active filters state
+  const [activeFilters, setActiveFilters] = useState<Array<{ key: string; value: string; label: string }>>([]);
+
   const fieldIcons = useMemo(() => getFieldIcons(), []);
 
   const safePage = Math.min(currentPage, totalPages);
@@ -215,15 +244,157 @@ export function ModuleWorkspace({
     return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
   }, []);
 
-  const visibleRows = localRows;
+  // Sort handler
+  const handleSort = useCallback((key: string) => {
+    setSortConfig((prev) => {
+      const next: SortConfig = prev?.key === key
+        ? prev.direction === "asc" ? { key, direction: "desc" } : null
+        : { key, direction: "asc" };
+      // Sync to URL
+      const params = withUpdatedWorkspaceParams(currentSearch, (nextParams) => {
+        if (next) {
+          nextParams.set("sortBy", next.key);
+          nextParams.set("sortDir", next.direction);
+        } else {
+          nextParams.delete("sortBy");
+          nextParams.delete("sortDir");
+        }
+        nextParams.set("page", "1");
+      });
+      replaceWorkspaceUrl(params);
+      return next;
+    });
+  }, [currentSearch, replaceWorkspaceUrl]);
+
+  // Bulk selection handlers
+  const handleToggleSelect = useCallback((id: string | number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === localRows.length) return new Set();
+      return new Set(localRows.map((row) => row.id));
+    });
+  }, [localRows]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    try {
+      const res = await fetch(`/api/items/${module}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (res.ok) {
+        toast(`${ids.length} item(s) deleted`, "success");
+        setSelectedIds(new Set());
+        router.refresh();
+      } else {
+        toast("Failed to delete items", "error");
+      }
+    } catch {
+      toast("Failed to delete items", "error");
+    }
+  }, [selectedIds, module, router]);
+
+  // Go to specific page
+  const handleGoToPage = useCallback((targetPage: number) => {
+    const params = withUpdatedWorkspaceParams(currentSearch, (nextParams) => {
+      nextParams.set("page", String(targetPage));
+    });
+    replaceWorkspaceUrl(params);
+  }, [currentSearch, replaceWorkspaceUrl]);
+
+  // Clear selection when rows change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [rows]);
+
+  const visibleRows = useMemo(() => {
+    let filtered = localRows;
+    // Apply active filters
+    if (activeFilters.length > 0) {
+      filtered = filtered.filter((row) =>
+        activeFilters.every((f) => {
+          const val = String(row[f.key] ?? "").toLowerCase();
+          return val === f.value.toLowerCase();
+        }),
+      );
+    }
+    // Apply sort
+    if (!sortConfig) return filtered;
+    const { key, direction } = sortConfig;
+    return [...filtered].sort((a, b) => {
+      const aVal = String(a[key] ?? "").toLowerCase();
+      const bVal = String(b[key] ?? "").toLowerCase();
+      // Try numeric comparison
+      const aNum = Number(aVal);
+      const bNum = Number(bVal);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return direction === "asc" ? aNum - bNum : bNum - aNum;
+      }
+      // Date comparison
+      const aDate = new Date(aVal).getTime();
+      const bDate = new Date(bVal).getTime();
+      if (!isNaN(aDate) && !isNaN(bDate) && aVal.length > 4) {
+        return direction === "asc" ? aDate - bDate : bDate - aDate;
+      }
+      // String comparison
+      const cmp = aVal.localeCompare(bVal);
+      return direction === "asc" ? cmp : -cmp;
+    });
+  }, [localRows, sortConfig, activeFilters]);
   const preferredColumnOrder = useMemo(() => getPreferredColumnOrder(module), [module]);
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))
     .sort((a, b) => preferredColumnOrder.indexOf(a.key) - preferredColumnOrder.indexOf(b.key));
-  const visibleColumns = useMemo(
+  const defaultColumns = useMemo(
     () => defaultVisibleColumns.length > 0 ? defaultVisibleColumns : config.columns.slice(0, Math.min(6, config.columns.length)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [module]
+  );
+  const defaultColumnKeys = useMemo(() => defaultColumns.map((c) => c.key), [defaultColumns]);
+
+  // Column visibility state (persisted in localStorage)
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(() => {
+    if (typeof window === "undefined") return defaultColumnKeys;
+    const saved = window.localStorage.getItem(`qa-columns:${module}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch { /* ignore */ }
+    }
+    return defaultColumnKeys;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(`qa-columns:${module}`, JSON.stringify(visibleColumnKeys));
+    }
+  }, [visibleColumnKeys, module]);
+
+  const handleToggleColumn = useCallback((key: string) => {
+    setVisibleColumnKeys((prev) => {
+      if (prev.includes(key)) {
+        if (prev.length <= 2) return prev; // Keep at least 2 columns
+        return prev.filter((k) => k !== key);
+      }
+      return [...prev, key];
+    });
+  }, []);
+
+  const handleResetColumns = useCallback(() => {
+    setVisibleColumnKeys(defaultColumnKeys);
+  }, [defaultColumnKeys]);
+
+  const visibleColumns = useMemo(
+    () => config.columns.filter((col) => visibleColumnKeys.includes(col.key)),
+    [config.columns, visibleColumnKeys],
   );
   const versionSequenceField = resolvedConfig.fields.find((field) => field.helperKind === "version-sequence");
   const versionSequenceDefault = useMemo(() => getNextVersion(getLatestVersion(localRows)), [localRows]);
@@ -285,6 +456,17 @@ export function ModuleWorkspace({
     checkSprintDuplicate,
   } = useModuleWorkspaceActions(actionArgs);
 
+  // Keyboard shortcuts
+  useKeyboardShortcuts(
+    useMemo(() => [
+      { key: "n", description: "New item", action: () => { if (effectiveCanAdd && !showForm) openFormEditor(); } },
+      { key: "Escape", description: "Close form/modal", action: () => { if (showForm) closeFormEditor(); else if (viewingRow) { setViewingRow(null); setActiveTab(null); } } },
+      { key: "ArrowLeft", description: "Previous page", action: () => { if (safePage > 1) goToPage(safePage - 1); } },
+      { key: "ArrowRight", description: "Next page", action: () => { if (safePage < totalPages) goToPage(safePage + 1); } },
+    ], [effectiveCanAdd, showForm, viewingRow, safePage, totalPages]),
+    !showForm || true,
+  );
+
   return (
     <div className="space-y-6">
       <div className="animate-in fade-in slide-in-from-top-2 duration-500">
@@ -330,6 +512,13 @@ export function ModuleWorkspace({
         viewingRow={viewingRow}
         search={search}
         onSearchChange={handleSearchChange}
+        filterOptions={filterOptions}
+        activeFilters={activeFilters}
+        onFilterChange={setActiveFilters}
+        allColumns={config.columns}
+        visibleColumnKeys={visibleColumnKeys}
+        onToggleColumn={handleToggleColumn}
+        onResetColumns={handleResetColumns}
         onToggleForm={() => {
           if (showForm) closeFormEditor();
           else openFormEditor();
@@ -362,6 +551,13 @@ export function ModuleWorkspace({
         }}
         onPrevPage={() => goToPage(Math.max(1, safePage - 1))}
         onNextPage={() => goToPage(Math.min(totalPages, safePage + 1))}
+        onGoToPage={handleGoToPage}
+        sortConfig={sortConfig}
+        onSort={handleSort}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onToggleSelectAll={handleToggleSelectAll}
+        onBulkDelete={handleBulkDelete}
         onUpdateStatus={onUpdateStatus}
         onDeleteConfirm={performSingleDelete}
         onDeleteCancel={() => setDeleteId(null)}
