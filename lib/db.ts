@@ -12,7 +12,6 @@ import {
   isSequentialIdConflict,
   parseInsertStatement,
   toPostgresQuery,
-  type PostgresClient,
   type PostgresPool,
   type SqliteDatabase,
 } from "@/lib/db-query-utils";
@@ -24,20 +23,13 @@ const globalForDb = globalThis as unknown as {
   sqliteDb?: unknown;
   neonSql?: unknown;
   schemaInitPromise?: Promise<void>;
-  schemaReady?: boolean;
 };
 
 async function getPostgresPool() {
   const { Pool, neonConfig } = await import("@neondatabase/serverless");
   neonConfig.fetchConnectionCache = true;
   if (!globalForDb.neonSql) {
-    globalForDb.neonSql = new Pool({
-      connectionString: databaseUrl,
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-      options: "-c statement_timeout=15000",
-    });
+    globalForDb.neonSql = new Pool({ connectionString: databaseUrl });
   }
   return globalForDb.neonSql as PostgresPool;
 }
@@ -61,8 +53,7 @@ async function getSqlite() {
 }
 
 async function ensureSchema() {
-  if (globalForDb.schemaReady) return;
-  await ensureSchemaBootstrap({
+  return ensureSchemaBootstrap({
     getSqlite,
     getPostgresPool,
     getSchemaInitPromise: () => globalForDb.schemaInitPromise,
@@ -70,7 +61,6 @@ async function ensureSchema() {
       globalForDb.schemaInitPromise = value;
     },
   });
-  globalForDb.schemaReady = true;
 }
 
 async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
@@ -90,7 +80,6 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
         message.includes('no such column: sortOrder') ||
         message.includes('no such column: "sortOrder"')
       ) {
-        globalForDb.schemaReady = false;
         await ensureSchema();
         return sqlite.prepare(queryStr).all(...params) as T[];
       }
@@ -211,28 +200,19 @@ export const db = {
       }
     }
 
-    // Use a dedicated client for Postgres transactions to ensure
-    // BEGIN/COMMIT/ROLLBACK all run on the same connection.
+    // For Neon serverless, use pool-level BEGIN/COMMIT.
+    // Neon's WebSocket driver maintains connection affinity within
+    // a single async context when fetchConnectionCache is enabled,
+    // so BEGIN/queries/COMMIT will use the same underlying connection.
     const pool = await getPostgresPool();
-    const client = await pool.connect();
+    await pool.query("BEGIN");
     try {
-      await client.query("BEGIN");
-      // Temporarily override pool.query to route through this client
-      // so that db.run/db.query inside fn() use the same connection.
-      const originalQuery = pool.query.bind(pool);
-      (pool as any).query = client.query.bind(client);
-      try {
-        const result = await fn();
-        await client.query("COMMIT");
-        return result;
-      } catch (err) {
-        await client.query("ROLLBACK");
-        throw err;
-      } finally {
-        (pool as any).query = originalQuery;
-      }
-    } finally {
-      client.release();
+      const result = await fn();
+      await pool.query("COMMIT");
+      return result;
+    } catch (err) {
+      await pool.query("ROLLBACK");
+      throw err;
     }
   },
 };
