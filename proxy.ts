@@ -8,6 +8,7 @@ const publicPaths = [
   "/api/auth/register",
   "/api/auth/logout",
   "/api/auth/me",
+  "/api/health",
   "/favicon.ico",
   "/_next",
   "/api/upload",
@@ -17,6 +18,39 @@ const publicPaths = [
   "/test-suites/",
   "/test-cases/detail/",
 ];
+
+// Rate limiting for API routes (in-memory, per-instance)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 120; // 120 requests per minute per IP
+let lastCleanup = Date.now();
+
+function getClientIp(request: NextRequest): string {
+  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || request.headers.get("x-real-ip")
+    || "unknown";
+}
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+
+  // Cleanup stale entries every 5 minutes
+  if (now - lastCleanup > 5 * 60_000) {
+    for (const [key, val] of rateLimitStore) {
+      if (now > val.resetTime) rateLimitStore.delete(key);
+    }
+    lastCleanup = now;
+  }
+
+  const record = rateLimitStore.get(ip);
+  if (!record || now > record.resetTime) {
+    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  record.count++;
+  return record.count <= RATE_LIMIT_MAX;
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,9 +64,28 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Rate limiting for API routes
+  if (pathname.startsWith("/api")) {
+    const ip = getClientIp(request);
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": "60" } },
+      );
+    }
+  }
+
   const token = request.cookies.get("qa_daily_session")?.value;
   if (await verifySessionToken(token)) {
     return NextResponse.next();
+  }
+
+  // For API routes, return 401 instead of redirect
+  if (pathname.startsWith("/api")) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   const url = request.nextUrl.clone();

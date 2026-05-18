@@ -176,7 +176,9 @@ export async function GET() {
 
   try {
     const payload = await withTimeout(loadDigest(company, userName), TIMEOUT_MS, emptyPayload());
-    return NextResponse.json(payload);
+    return NextResponse.json(payload, {
+      headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" },
+    });
   } catch (error) {
     console.error("Digest endpoint error:", error);
     return NextResponse.json(emptyPayload(), { status: 200 });

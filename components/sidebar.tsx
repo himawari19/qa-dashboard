@@ -87,7 +87,7 @@ const ROLE_MENU: Record<string, string[]> = {
  admin: ["/","/dashboard","/test-plans","/test-suites","/test-cases","/test-execution","/bugs","/tasks","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt","/settings"],
  fullstack: ["/","/dashboard","/tasks","/bugs","/test-plans","/test-suites","/test-cases","/test-execution","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
  ai: ["/","/dashboard","/tasks","/bugs","/test-plans","/test-suites","/test-cases","/test-execution","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
- qa: ["/","/dashboard","/test-plans","/test-suites","/test-cases","/test-execution","/bugs","/sprints","/meeting-notes","/activity-log","/weekly-report","/reports/workload","/gantt"],
+ qa: ["/","/dashboard","/test-plans","/test-suites","/test-cases","/test-execution","/bugs","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
  fe: ["/","/dashboard","/tasks","/bugs","/sprints","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
  be: ["/","/dashboard","/tasks","/bugs","/sprints","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],
  pm: ["/","/dashboard","/tasks","/bugs","/test-plans","/sprints","/meeting-notes","/deployments","/activity-log","/weekly-report","/reports/workload","/gantt"],

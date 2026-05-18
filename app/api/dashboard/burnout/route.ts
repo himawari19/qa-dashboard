@@ -89,7 +89,9 @@ export async function GET() {
     }).sort((a, b) => b.points - a.points);
 
     burnoutCache.set(cacheKey, { data: result, expiresAt: Date.now() + 30000 });
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" },
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Failed to fetch burnout data" }, { status: 500 });

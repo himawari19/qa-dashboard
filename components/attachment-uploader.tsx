@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from"react";
 import { Paperclip, Link, X, Image, FilePdf, ArrowSquareOut } from"@phosphor-icons/react";
 import { cn } from"@/lib/utils";
+import { compressImage } from"@/lib/image-compress";
 
 export type Attachment = { type:"file" |"link"; url: string; name: string };
 
@@ -47,8 +48,9 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  if (disabled) return;
  setUploading(true);
  try {
+ const compressed = await compressImage(file);
  const fd = new FormData();
- fd.append("file", file);
+ fd.append("file", compressed);
  const res = await fetch("/api/upload", { method:"POST", body: fd });
  const data = await res.json();
  if (data.url) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDashboardData, getBugSeverityCounts, getTestPassRate, computeQualityHealthScore } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
+import { logger } from "@/lib/logger";
 
 function emptyDashboardData() {
   return {
@@ -125,7 +126,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Dashboard API error:", error);
+    logger.apiError("/api/dashboard", error, { company: user.company, userId: user.id });
     return NextResponse.json(emptyDashboardData(), {
       status: 200,
       headers: { "X-Dashboard-Error": "true" },

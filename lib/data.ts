@@ -19,6 +19,7 @@ import {
 } from "@/lib/data-helpers";
 import { getQualityTrend, getReleaseNotes } from "@/lib/test-management-data";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
+import { generateTestPlanNotes } from "@/lib/test-plan-notes";
 import { getRoleLabel, normalizeRole } from "@/lib/roles";
 import { deleteSearchTokens, shouldIndexModule, syncSearchTokens } from "@/lib/search-index";
 import {
@@ -72,12 +73,20 @@ function hydrateDeploymentNotes<T extends Record<string, any>>(row: T) {
 
 async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>) {
   if (!shouldIndexModule(module)) return;
-  await syncSearchTokens(module, company, entityId, data);
+  try {
+    await syncSearchTokens(module, company, entityId, data);
+  } catch (e) {
+    console.warn(`syncSearchIndex failed for ${module}/${entityId} (non-critical):`, e);
+  }
 }
 
 async function clearSearchIndex(module: ModuleKey, company: string, entityId: string | number) {
   if (!shouldIndexModule(module)) return;
-  await deleteSearchTokens(module, company, entityId);
+  try {
+    await deleteSearchTokens(module, company, entityId);
+  } catch (e) {
+    console.warn(`clearSearchIndex failed for ${module}/${entityId} (non-critical):`, e);
+  }
 }
 
 export {
@@ -119,14 +128,19 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
   switch (module) {
     case "test-plans": {
       const publicToken = data.publicToken || makePublicToken();
+      const notes = data.notes?.trim() ? data.notes : generateTestPlanNotes(data);
       const res = await runInsert(
         `INSERT INTO "TestPlan" ("company", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, data.notes ?? "", data.assignee ?? ""]
+        [company, publicToken, data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, notes, data.assignee ?? ""]
       );
       await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`, actor);
       invalidateDashboardCache(company);
-      await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+      try {
+        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+      } catch (e) {
+        console.warn("syncSprintFromTestPlan failed (non-critical):", e);
+      }
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestPlan" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
         await syncSearchIndex("test-plans", company, Number(created.id), data);
@@ -334,15 +348,20 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "test-plans": {
+      const notes = data.notes?.trim() ? data.notes : generateTestPlanNotes(data);
       const res = await db.run(
         `UPDATE "TestPlan"
          SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, data.notes, data.assignee ?? "", id, ...companyParam]
+        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, notes, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`, actor);
       invalidateDashboardCache(company);
-      await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+      try {
+        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+      } catch (e) {
+        console.warn("syncSprintFromTestPlan failed (non-critical):", e);
+      }
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
         await syncSearchIndex("test-plans", company, String(id), updatedRow);
@@ -504,6 +523,20 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
     await deleteAssigneeForUser(Number(id));
   }
 
+  // Cascade: soft-delete linked Sprint when a TestPlan is deleted
+  if (module === "test-plans") {
+    const plan = await db.get<{ sprint?: string }>(
+      `SELECT "sprint" FROM "TestPlan" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+      [id, ...companyParam],
+    );
+    if (plan?.sprint) {
+      await db.run(
+        `UPDATE "Sprint" SET "deletedAt" = CURRENT_TIMESTAMP WHERE "name" = ? AND "company" = ? AND "deletedAt" IS NULL`,
+        [plan.sprint, company],
+      );
+    }
+  }
+
   const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
   await logActivity(company, table, entityId, "Deleted", `${table} removed`, actor);
   await clearSearchIndex(module, company, entityId);
@@ -525,6 +558,22 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
   if (!table) return;
 
   const placeholderList = ids.map(() => "?").join(", ");
+
+  // Cascade: soft-delete linked Sprints when TestPlans are bulk-deleted
+  if (module === "test-plans") {
+    const plans = await db.query<{ sprint?: string }>(
+      `SELECT "sprint" FROM "TestPlan" WHERE "id" IN (${placeholderList})${companyFilter}`,
+      [...ids, ...companyParam],
+    );
+    const sprintNames = plans.map((p) => p.sprint).filter(Boolean) as string[];
+    if (sprintNames.length > 0) {
+      const sprintPlaceholders = sprintNames.map(() => "?").join(", ");
+      await db.run(
+        `UPDATE "Sprint" SET "deletedAt" = CURRENT_TIMESTAMP WHERE "name" IN (${sprintPlaceholders}) AND "company" = ? AND "deletedAt" IS NULL`,
+        [...sprintNames, company],
+      );
+    }
+  }
 
   await db.run(
     `UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id IN (${placeholderList})${companyFilter}`,

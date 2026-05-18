@@ -2,8 +2,14 @@ import { tables } from "@/lib/db-schema";
 
 const sequentialIdTables = new Set(tables.map((table) => table.name));
 
+export type PostgresClient = {
+  query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+  release: () => void;
+};
+
 export type PostgresPool = {
   query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+  connect: () => Promise<PostgresClient>;
 };
 
 export type SqliteDatabase = {

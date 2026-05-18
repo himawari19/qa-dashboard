@@ -1,102 +1,96 @@
 /**
- * Structured logger for QA Hub.
- * Outputs JSON in production, readable format in development.
- * No external dependencies — uses built-in console with structured data.
+ * Structured logger for production observability.
+ * Outputs JSON in production for easy parsing by log aggregators.
+ * Falls back to console in development for readability.
  */
 
-type LogLevel = "debug" | "info" | "warn" | "error";
+type LogLevel = "info" | "warn" | "error";
 
-const LOG_LEVELS: Record<LogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
-};
-
-const MIN_LEVEL = LOG_LEVELS[(process.env.LOG_LEVEL as LogLevel) || "info"] ?? 1;
-const IS_PROD = process.env.NODE_ENV === "production";
-
-let requestCounter = 0;
-
-function getTraceId(): string {
-  return `${Date.now().toString(36)}-${(++requestCounter).toString(36)}`;
+interface LogEntry {
+  level: LogLevel;
+  message: string;
+  route?: string;
+  company?: string;
+  userId?: string | number;
+  duration?: number;
+  error?: string;
+  stack?: string;
+  meta?: Record<string, unknown>;
+  timestamp: string;
 }
 
-function formatMessage(level: LogLevel, message: string, meta?: Record<string, unknown>): string {
-  if (IS_PROD) {
-    return JSON.stringify({
-      ts: new Date().toISOString(),
-      level,
-      msg: message,
-      ...meta,
-    });
+const isDev = process.env.NODE_ENV === "development";
+
+function formatEntry(entry: LogEntry): string {
+  if (isDev) {
+    const parts = [`[${entry.level.toUpperCase()}] ${entry.message}`];
+    if (entry.route) parts.push(`route=${entry.route}`);
+    if (entry.duration != null) parts.push(`${entry.duration}ms`);
+    if (entry.error) parts.push(`err=${entry.error}`);
+    return parts.join(" | ");
   }
-  const prefix = `[${level.toUpperCase().padEnd(5)}]`;
-  const metaStr = meta && Object.keys(meta).length > 0
-    ? ` ${JSON.stringify(meta)}`
-    : "";
-  return `${prefix} ${message}${metaStr}`;
+  return JSON.stringify(entry);
+}
+
+function log(level: LogLevel, message: string, context?: Partial<Omit<LogEntry, "level" | "message" | "timestamp">>) {
+  const entry: LogEntry = {
+    level,
+    message,
+    timestamp: new Date().toISOString(),
+    ...context,
+  };
+
+  const formatted = formatEntry(entry);
+
+  switch (level) {
+    case "error":
+      console.error(formatted);
+      break;
+    case "warn":
+      console.warn(formatted);
+      break;
+    default:
+      console.log(formatted);
+  }
 }
 
 export const logger = {
-  debug(message: string, meta?: Record<string, unknown>) {
-    if (LOG_LEVELS.debug < MIN_LEVEL) return;
-    console.debug(formatMessage("debug", message, meta));
+  info(message: string, context?: Partial<Omit<LogEntry, "level" | "message" | "timestamp">>) {
+    log("info", message, context);
   },
 
-  info(message: string, meta?: Record<string, unknown>) {
-    if (LOG_LEVELS.info < MIN_LEVEL) return;
-    console.info(formatMessage("info", message, meta));
+  warn(message: string, context?: Partial<Omit<LogEntry, "level" | "message" | "timestamp">>) {
+    log("warn", message, context);
   },
 
-  warn(message: string, meta?: Record<string, unknown>) {
-    if (LOG_LEVELS.warn < MIN_LEVEL) return;
-    console.warn(formatMessage("warn", message, meta));
+  error(message: string, err?: unknown, context?: Partial<Omit<LogEntry, "level" | "message" | "timestamp">>) {
+    const errorMessage = err instanceof Error ? err.message : String(err ?? "");
+    const stack = err instanceof Error ? err.stack : undefined;
+    log("error", message, { ...context, error: errorMessage, stack });
   },
 
-  error(message: string, error?: unknown, meta?: Record<string, unknown>) {
-    if (LOG_LEVELS.error < MIN_LEVEL) return;
-    const errorMeta: Record<string, unknown> = { ...meta };
-    if (error instanceof Error) {
-      errorMeta.errorName = error.name;
-      errorMeta.errorMessage = error.message;
-      if (!IS_PROD) {
-        errorMeta.stack = error.stack;
-      }
-    } else if (error !== undefined) {
-      errorMeta.errorRaw = String(error);
-    }
-    console.error(formatMessage("error", message, errorMeta));
+  /** Log an API route error with standard context */
+  apiError(route: string, err: unknown, context?: { company?: string; userId?: string | number }) {
+    logger.error(`API error: ${route}`, err, { route, ...context });
   },
 
-  /** Create a child logger with bound context */
-  child(context: Record<string, unknown>) {
-    return {
-      debug: (msg: string, meta?: Record<string, unknown>) => logger.debug(msg, { ...context, ...meta }),
-      info: (msg: string, meta?: Record<string, unknown>) => logger.info(msg, { ...context, ...meta }),
-      warn: (msg: string, meta?: Record<string, unknown>) => logger.warn(msg, { ...context, ...meta }),
-      error: (msg: string, err?: unknown, meta?: Record<string, unknown>) => logger.error(msg, err, { ...context, ...meta }),
-    };
+  /** Log a slow query warning */
+  slowQuery(route: string, duration: number, context?: { company?: string }) {
+    logger.warn(`Slow query detected`, { route, duration, ...context });
   },
-
-  traceId: getTraceId,
 };
+
+// --- Legacy exports (used by existing API routes) ---
 
 /**
  * Extract a user-friendly error message from an unknown error.
- * Falls back to the provided default message.
+ * Returns the fallback if the error is not informative.
  */
 export function friendlyErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
-    // Expose validation/constraint messages but not internal errors
     const msg = error.message;
-    if (
-      msg.includes("UNIQUE constraint") ||
-      msg.includes("duplicate key") ||
-      msg.includes("is required") ||
-      msg.includes("already exists") ||
-      msg.includes("not found")
-    ) {
+    // Expose Zod/validation messages
+    if (msg && !msg.includes("SQLITE") && !msg.includes("syntax") && msg.length < 200) {
       return msg;
     }
   }
@@ -104,8 +98,8 @@ export function friendlyErrorMessage(error: unknown, fallback: string): string {
 }
 
 /**
- * Log an error with context (convenience wrapper around logger.error).
+ * Log an error with route context (legacy helper).
  */
-export function logError(error: unknown, context: string): void {
-  logger.error(context, error);
+export function logError(error: unknown, context?: string): void {
+  logger.error(context || "Unhandled error", error, { route: context });
 }

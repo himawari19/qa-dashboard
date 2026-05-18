@@ -58,17 +58,30 @@ function createBlankDraft(suiteId: string, tcId: string): TestCaseRow {
  };
 }
 
+function extractPrefixAndNumber(tcId: string): { prefix: string; num: number; padLen: number } | null {
+ const match = tcId.match(/^(.*?)(\d+)$/);
+ if (!match) return null;
+ const prefix = match[1] ?? "";
+ const numStr = match[2] ?? "0";
+ return { prefix, num: Number.parseInt(numStr, 10), padLen: numStr.length };
+}
+
 function suggestNextId(rows: TestCaseRow[]) {
  if (rows.length === 0) return"TC-001";
  const last = String(rows[rows.length - 1]?.tcId ??"");
- const match = last.match(/(\d+)$/);
- if (match) {
- const suffix = match[1] ??"0";
- const next = Number.parseInt(suffix, 10) + 1;
- const prefix = last.replace(/\d+$/,"");
- return`${prefix}${String(next).padStart(suffix.length,"0")}`;
+ const parsed = extractPrefixAndNumber(last);
+ if (parsed) {
+ const next = parsed.num + 1;
+ return`${parsed.prefix}${String(next).padStart(parsed.padLen,"0")}`;
  }
  return`TC-${String(rows.length + 1).padStart(3,"0")}`;
+}
+
+function renumberRows(rows: TestCaseRow[], newPrefix: string, startNum: number, padLen: number): TestCaseRow[] {
+ return rows.map((row, i) => ({
+ ...row,
+ tcId: `${newPrefix}${String(startNum + i).padStart(padLen, "0")}`,
+ }));
 }
 
 function isFailedStatus(value: string) {
@@ -153,12 +166,19 @@ export function TestCaseGridRow({
  );
  };
  return (
- <tr className="align-top transition-colors hover:bg-slate-50/70">
+ <tr className={cn(
+  "align-top transition-colors",
+  mode === "edit"
+   ? "bg-blue-50/80 ring-2 ring-inset ring-blue-300"
+   : mode === "draft"
+   ? "bg-emerald-50/40"
+   : "hover:bg-slate-50/70",
+ )}>
  <td
  style={{ width: colMap.__row__, minWidth: colMap.__row__, maxWidth: colMap.__row__ }}
  className={cn(
 "border-b border-r border-slate-100 px-2 py-[4px] text-center text-xs font-bold uppercase tracking-wide text-slate-400",
- mode ==="draft" ?"bg-blue-50/50 text-blue-600" :"bg-transparent",
+ mode === "draft" ? "bg-blue-50/50 text-blue-600" : mode === "edit" ? "bg-blue-100/60 text-blue-700" : "bg-transparent",
  )}
  >
  {rowLabel}
@@ -288,37 +308,6 @@ export function TestCaseDetailEditor({
  setCases(initialCases.map((row) => normalizeRow(row, suiteId)));
  }, [initialCases, suiteId]);
 
- useEffect(() => {
- const draft = localStorage.getItem(`qa-draft-suite-${suiteId}`);
- if (!draft) return;
-
- try {
- const parsed = JSON.parse(draft) as Partial<TestCaseRow>;
- setDraftRow((current) => ({
- ...current,
- ...parsed,
- testSuiteId: suiteId,
- tcId: String(parsed.tcId ?? current.tcId),
- }));
- draftDirtyRef.current = true;
- toast("Restored draft from last session","info");
- } catch {
- // Ignore corrupt draft data.
- }
- }, [suiteId]);
-
- useEffect(() => {
- if (draftRow.caseName || draftRow.preCondition || draftRow.testStep || draftRow.expectedResult || draftRow.actualResult) {
- const { testSuiteId: _testSuiteId, ...rest } = draftRow;
- void _testSuiteId;
- localStorage.setItem(`qa-draft-suite-${suiteId}`, JSON.stringify(rest));
- }
- }, [draftRow, suiteId]);
-
- function clearDraft() {
- localStorage.removeItem(`qa-draft-suite-${suiteId}`);
- }
-
  function clearEditDraft(id: number | string) {
  if (String(editingIdRef.current ??"") !== String(id)) return;
 
@@ -372,6 +361,13 @@ export function TestCaseDetailEditor({
  editSaveLockRef.current = true;
  startTransition(async () => {
  try {
+ // Detect if prefix changed — renumber subsequent rows
+ const editedIndex = cases.findIndex((row) => row.id === savedId);
+ const originalRow = cases[editedIndex];
+ const oldParsed = originalRow ? extractPrefixAndNumber(String(originalRow.tcId ?? "")) : null;
+ const newParsed = extractPrefixAndNumber(String(savedEntry.tcId ?? ""));
+ const prefixChanged = oldParsed && newParsed && oldParsed.prefix !== newParsed.prefix;
+
  const res = await fetch("/api/items/test-cases", {
  method:"PATCH",
  headers: {"Content-Type":"application/json" },
@@ -380,11 +376,46 @@ export function TestCaseDetailEditor({
  const data = await res.json();
 
  if (res.ok) {
+ // If prefix changed, renumber all rows after the edited one
+ if (prefixChanged && newParsed && editedIndex >= 0) {
+ const subsequentRows = cases.slice(editedIndex + 1);
+ const renumbered = renumberRows(subsequentRows, newParsed.prefix, newParsed.num + 1, newParsed.padLen);
+
+ // Batch update subsequent rows on server
+ const updatePromises = renumbered.map((row, i) => {
+ const original = subsequentRows[i];
+ if (!original?.id || original.tcId === row.tcId) return Promise.resolve();
+ return fetch("/api/items/test-cases", {
+ method: "PATCH",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ id: original.id, entry: { ...original, tcId: row.tcId } }),
+ });
+ });
+ await Promise.all(updatePromises);
+
+ setCases((current) => {
+ const updated = [...current];
+ updated[editedIndex] = { ...updated[editedIndex], ...savedEntry };
+ for (let i = editedIndex + 1; i < updated.length; i++) {
+ updated[i] = { ...updated[i], tcId: renumbered[i - editedIndex - 1]?.tcId ?? updated[i].tcId };
+ }
+ return updated;
+ });
+ } else {
  setCases((current) => current.map((row) => (row.id === savedId ? { ...row, ...savedEntry } : row)));
+ }
+
  editDirtyRef.current = false;
  editDraftRef.current = null;
  setEditForm(null);
  setEditingId(null);
+ // Update draft row's suggested ID based on new state
+ setCases((current) => {
+ const nextId = suggestNextId(current);
+ setDraftRow((d) => draftDirtyRef.current ? d : { ...d, tcId: nextId });
+ draftRowRef.current = { ...draftRowRef.current, tcId: nextId };
+ return current;
+ });
  toast(data.message ||"Case updated","success");
  router.refresh();
  } else {
@@ -421,13 +452,11 @@ export function TestCaseDetailEditor({
  setDraftRow(nextDraft);
  draftRowRef.current = nextDraft;
  draftDirtyRef.current = false;
- clearDraft();
  } else {
  const nextDraft = createBlankDraft(suiteId, suggestNextId(cases));
  setDraftRow(nextDraft);
  draftRowRef.current = nextDraft;
  draftDirtyRef.current = false;
- clearDraft();
  }
  toast(result.message ||"Case added","success");
  router.refresh();

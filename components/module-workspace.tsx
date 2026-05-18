@@ -257,10 +257,9 @@ export function ModuleWorkspace({
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
     try {
-      const res = await fetch(`/api/items/${module}`, {
+      const idsParam = ids.join(",");
+      const res = await fetch(`/api/items/${module}?ids=${encodeURIComponent(idsParam)}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
       });
       if (res.ok) {
         toast(`${ids.length} item(s) deleted`, "success");

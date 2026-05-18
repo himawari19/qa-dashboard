@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
+import { logger } from "@/lib/logger";
 
 export interface ActivityEntry {
   id: number;
@@ -177,9 +178,11 @@ export async function GET(request: Request) {
 
     const result = collapseActivityEntries(entries);
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=20" },
+    });
   } catch (error) {
-    console.error("Activity feed API error:", error);
+    logger.apiError("/api/dashboard/activity", error);
     return NextResponse.json(
       { entries: [], collapsed: [] },
       { status: 200, headers: { "X-Activity-Error": "true" } },
