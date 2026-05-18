@@ -200,6 +200,7 @@ export const testCaseSchema = z.object({
   expectedResult: requiredText("Expected Result"),
   actualResult: optionalText,
   status: z.enum(["Pending", "Passed", "Failed", "Blocked"]),
+  priority: z.enum(["Critical", "High", "Medium", "Low"]).default("Medium"),
 });
 
 export const testPlanStatusOptions: Option[] = [
@@ -266,12 +267,14 @@ export const meetingNoteSchema = z.object({
   "attendees": optionalText,
   "content": optionalText,
   "actionItems": optionalText,
+  "relatedItems": optionalText,
 });
 
 export const assigneeSchema = z.object({
   name: requiredText("Full Name"),
   role: optionalText,
   email: z.string().trim().email("Invalid email format").optional().or(z.literal("")),
+  skills: optionalText,
   status: z.enum(["active", "inactive"]),
 });
 

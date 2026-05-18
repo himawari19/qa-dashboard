@@ -180,6 +180,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "expectedResult", label: "Expected Result", kind: "textarea", placeholder: "Should see Dashboard", required: true },
       { name: "actualResult", label: "Actual Result", kind: "textarea", placeholder: "Observed behavior during run" },
       { name: "status", label: "Status", kind: "select", options: [{ label: "Pending", value: "Pending" }, { label: "Passed", value: "Passed" }, { label: "Failed", value: "Failed" }, { label: "Blocked", value: "Blocked" }], required: true },
+      { name: "priority", label: "Priority", kind: "select", options: [{ label: "Critical", value: "Critical" }, { label: "High", value: "High" }, { label: "Medium", value: "Medium" }, { label: "Low", value: "Low" }], required: true },
     ],
     columns: [
       { key: "tcId", label: "TC ID" },
