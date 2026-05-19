@@ -1,6 +1,5 @@
 "use client";
 
-import Link from"next/link";
 import { usePathname, useRouter } from"next/navigation";
 import { useEffect, useRef, useState, useTransition } from"react";
 import { FilePdf, FileXls, MagnifyingGlass, UploadSimple } from"@phosphor-icons/react";
@@ -69,22 +68,22 @@ export function SuitesHeaderActions({
  className="h-11 w-full  border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
  />
  </div>
- <Link
+ <a
  href={`/api/export/${exportModule}`}
  title="Export Excel"
  aria-label="Export Excel"
  className="inline-flex h-11 w-11 items-center justify-center  border border-gray-200 bg-white text-gray-600 shadow-sm transition-all  hover:bg-blue-500 hover:text-white hover:border-blue-500"
  >
  <FileXls size={16} weight="bold" />
- </Link>
- <Link
+ </a>
+ <a
  href={`/api/export/${exportModule}?format=pdf`}
  title="Print / Export PDF"
  aria-label="Print / Export PDF"
  className="inline-flex h-11 w-11 items-center justify-center  border border-gray-200 bg-white text-gray-600 shadow-sm transition-all  hover:bg-blue-500 hover:text-white hover:border-blue-500"
  >
  <FilePdf size={16} weight="bold" />
- </Link>
+ </a>
  <button
  type="button"
  onClick={() => uploadRef.current?.click()}

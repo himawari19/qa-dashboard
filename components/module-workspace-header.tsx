@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Plus, FileXls, FilePdf, UploadSimple, MagnifyingGlass, Table, Kanban } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { ModuleFilterBar, type FilterValue } from "@/components/module-filter-bar";
@@ -113,23 +112,23 @@ export function ModuleWorkspaceHeader({
                   Add {shortTitle}
                 </button>
               )}
-              <Link
+              <a
                 href={`/api/export/${module}`}
                 title="Export Excel"
                 aria-label="Export Excel"
                 className="inline-flex h-8 w-8 items-center justify-center border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-blue-600"
               >
                 <FileXls size={15} weight="bold" />
-              </Link>
+              </a>
 
-              <Link
+              <a
                 href={`/api/export/${module}?format=pdf`}
                 title="Print / Export PDF"
                 aria-label="Print / Export PDF"
                 className="inline-flex h-8 w-8 items-center justify-center border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-blue-600"
               >
                 <FilePdf size={15} weight="bold" />
-              </Link>
+              </a>
 
               {canAdd && (
                 <label

@@ -114,7 +114,7 @@ export async function getModuleRows(module: ModuleKey) {
       });
     }
     case "deployments":
-      return (await selectAll(`SELECT "id", "company", "project", "date", "version", "changelog", "status", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams)).map(hydrateDeploymentNotes);
+      return (await selectAll(`SELECT "id", "company", "project", "date", "version", "environment", "developer", "changelog", "status", "notes", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams)).map(hydrateDeploymentNotes);
     default:
       return [];
   }
@@ -291,7 +291,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "deployments": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Deployment" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = (await selectAll(`SELECT "id", "company", "project", "date", "version", "changelog", "status", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map(hydrateDeploymentNotes);
+      const rows = (await selectAll(`SELECT "id", "company", "project", "date", "version", "environment", "developer", "changelog", "status", "notes", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map(hydrateDeploymentNotes);
       return { rows, total };
     }
     default:
