@@ -117,6 +117,12 @@ export function AppWrapper({ children }: AppWrapperProps) {
 
  const sidebarWidth = !mounted ?"240px" : (collapsed ?"72px" :"240px");
 
+ // Generate a consistent avatar color from user name/email
+ const avatarColors = ["bg-blue-600","bg-violet-600","bg-emerald-600","bg-amber-600","bg-rose-600","bg-cyan-600","bg-indigo-600","bg-teal-600"];
+ const avatarColor = avatarColors[
+ (String(user?.name || user?.email ||"U").charCodeAt(0) + String(user?.name || user?.email ||"U").length) % avatarColors.length
+ ];
+
  if (isAuthScreen) {
   return <>{children}</>;
  }
@@ -145,7 +151,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
  className="flex flex-1 flex-col transition-[margin-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:ml-[var(--sidebar-w)]"
  style={{"--sidebar-w": sidebarWidth } as React.CSSProperties}
  >
- <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/50 bg-white px-4 md:px-6 backdrop-blur-xl">
+ <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/40 bg-white/70 px-4 md:px-6 backdrop-blur-xl">
  <button
  type="button"
  onClick={() => setMobileOpen((v) => !v)}
@@ -179,7 +185,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
  onClick={() => setAccountOpen((v) => !v)}
  className="flex h-10 items-center gap-2 rounded-xl glass-card px-2.5 text-left shadow-sm transition-all duration-300 hover:scale-105"
  >
- <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-xs font-black text-white">
+ <span className={cn("flex h-7 w-7 items-center justify-center rounded-full text-xs font-black text-white", avatarColor)}>
  {String(user?.name || user?.email ||"U").slice(0, 1).toUpperCase()}
  </span>
  <span className="hidden max-w-28 flex-col leading-tight md:flex">
@@ -196,7 +202,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
  {accountOpen && (
  <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl glass-card p-4 shadow-2xl">
  <div className="flex items-start gap-3">
- <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white">
+ <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black text-white", avatarColor)}>
  {String(user?.name || user?.email ||"U").slice(0, 1).toUpperCase()}
  </div>
  <div className="min-w-0 flex-1">

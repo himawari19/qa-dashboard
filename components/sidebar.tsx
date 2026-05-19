@@ -293,20 +293,21 @@ function SidebarNavItem({
  onMouseEnter={(e) => showTooltip(e, item.label)}
  onMouseLeave={hideTooltip}
  className={cn(
-"group relative flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-300 outline-none focus:outline-none focus-visible:outline-none",
+"group relative flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 outline-none focus:outline-none focus-visible:outline-none",
  collapsed ?"justify-center px-0" :"gap-3 px-3",
  active
- ?"glass-card bg-sky-500/10 text-sky-700 border-sky-200/50 shadow-sm"
- :"text-slate-600 hover:bg-slate-100",
+ ?"bg-white text-sky-700 shadow-sm ring-1 ring-slate-200/80"
+ :"text-slate-600 hover:bg-white/60 hover:text-slate-800",
  )}
  >
- {active && !collapsed && <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sky-600 shadow-[0_0_10px_rgba(14,165,233,0.7)]" />}
+ {active && !collapsed && <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sky-600 shadow-[0_0_8px_rgba(14,165,233,0.6)]" />}
+ {active && collapsed && <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sky-600 shadow-[0_0_8px_rgba(14,165,233,0.6)]" />}
  <Icon
  size={18}
  weight="bold"
  className={cn(
-"transition-transform duration-200 group-hover:scale-110",
- active ?"text-sky-600" :"text-slate-400",
+"transition-all duration-200 group-hover:scale-110",
+ active ?"text-sky-600" :"text-slate-400 group-hover:text-slate-600",
  collapsed ?"mx-auto" :"shrink-0",
  )}
  />
@@ -335,8 +336,8 @@ function SidebarSection({
  {group.title && (
  <div
  className={cn(
-"px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 transition-all duration-300 whitespace-nowrap overflow-hidden",
- collapsed ?"opacity-0 h-0" :"opacity-100 h-auto mt-2",
+"px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400/80 transition-all duration-300 whitespace-nowrap overflow-hidden",
+ collapsed ?"opacity-0 h-0" :"opacity-100 h-auto mt-3",
  )}
  >
  {group.title}
@@ -425,7 +426,7 @@ export function Sidebar({
  <aside
  suppressHydrationWarning
  className={cn(
-"fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200 bg-slate-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+"fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/60 bg-slate-50/80 backdrop-blur-sm shadow-[2px_0_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
  collapsed ?"w-[72px]" :"w-[240px]",
  )}
  >
@@ -465,8 +466,8 @@ export function Sidebar({
  onClick={onToggle}
  onMouseEnter={(e) => showTooltip(e, collapsed ?"Expand Menu" :"")}
  onMouseLeave={hideTooltip}
- tone="text-slate-500 hover:bg-slate-50"
- icon={collapsed ? <CaretRight size={18} weight="bold" /> : <CaretLeft size={18} weight="bold" />}
+ tone="text-slate-400 hover:bg-white/60 hover:text-slate-600"
+ icon={collapsed ? <CaretRight size={18} weight="bold" className="transition-transform duration-300" /> : <CaretLeft size={18} weight="bold" className="transition-transform duration-300" />}
  label="Collapse Menu"
  />
 

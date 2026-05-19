@@ -33,12 +33,12 @@ export function PageShell({
  </div>
  )}
  <div>
- <div className="pb-5">
+ <div className="pb-6">
  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
  <div className="min-w-0 max-w-3xl">
- <div className="flex items-center gap-3">
+ <div className="flex items-center gap-3.5">
  {icon ? (
- <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+ <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
  {icon}
  </div>
  ) : null}
@@ -47,7 +47,7 @@ export function PageShell({
  <h1 className={eyebrow ?"mt-2 text-2xl font-bold tracking-tight md:text-3xl text-slate-900" :"text-2xl font-bold tracking-tight md:text-3xl text-slate-900"}>{title}</h1>
  </div>
  </div>
- {description ? <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{description}</p> : null}
+ {description ? <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p> : null}
  </div>
  {actions ? (
  <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 overflow-x-auto xl:w-auto xl:justify-end">
@@ -56,7 +56,7 @@ export function PageShell({
  ) : null}
  </div>
  </div>
- {controls ? <div className="border-b border-slate-200/60 pb-4 mb-4 text-sm text-slate-600">{controls}</div> : null}
+ {controls ? <div className="border-b border-slate-200/60 pb-4 mb-5 text-sm text-slate-600">{controls}</div> : null}
  <div className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200 px-6 py-5">{children}</div>
  </div>
  </section>

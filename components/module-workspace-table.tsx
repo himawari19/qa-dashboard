@@ -148,9 +148,11 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-transparent align-top transition-shadow duration-200 hover:bg-slate-50",
+        "align-top transition-colors duration-150",
+        index % 2 === 0 ? "bg-transparent" : "bg-slate-50/50",
+        "hover:bg-blue-50/40",
         pendingDeleteId === row.id && "opacity-40 pointer-events-none",
-        selectedIds?.has(row.id) && "bg-blue-50/50",
+        selectedIds?.has(row.id) && "bg-blue-50/60",
         isDragging && "opacity-30 bg-slate-100",
         isDragOverlay && "shadow-2xl bg-white opacity-100 ring-2 ring-sky-400/50",
       )}

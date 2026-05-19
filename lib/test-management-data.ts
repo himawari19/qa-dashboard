@@ -439,9 +439,9 @@ export async function getAllTestCasesWithSuite() {
   const qParams = shouldFilter ? [scope.company] : [];
 
   const rows = await selectAll(
-    `SELECT tc.*, ts.title AS suiteTitle, ts."publicToken" AS suiteToken, ts.status AS suiteStatus,
-            ts.assignee AS suiteAssignee,
-            tp.title AS planTitle, tp.project AS planProject
+    `SELECT tc.*, ts.title AS "suiteTitle", ts."publicToken" AS "suiteToken", ts.status AS "suiteStatus",
+            ts.assignee AS "suiteAssignee",
+            tp.title AS "planTitle", tp.project AS "planProject"
      FROM "TestCase" tc
       LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
       LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
