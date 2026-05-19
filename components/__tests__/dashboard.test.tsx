@@ -99,8 +99,7 @@ describe("ResolutionRateMetric in Dashboard", () => {
     const html = renderToStaticMarkup(
       <Dashboard {...baseProps} resolutionRate={{ current: 80, previousWeek: 70, delta: 10 }} />,
     );
-    expect(html).toContain("+10");
-    expect(html).toContain("pp vs last week");
+    expect(html).toContain("+10pp");
   });
 
   it("displays negative delta with minus sign (−X)", () => {
@@ -108,22 +107,21 @@ describe("ResolutionRateMetric in Dashboard", () => {
       <Dashboard {...baseProps} resolutionRate={{ current: 60, previousWeek: 75, delta: -15 }} />,
     );
     // Unicode minus sign \u2212
-    expect(html).toContain("\u221215");
-    expect(html).toContain("pp vs last week");
+    expect(html).toContain("\u221215pp");
   });
 
   it("displays zero delta as +0", () => {
     const html = renderToStaticMarkup(
       <Dashboard {...baseProps} resolutionRate={{ current: 70, previousWeek: 70, delta: 0 }} />,
     );
-    expect(html).toContain("+0");
+    expect(html).toContain("+0pp");
   });
 
   it("omits delta display when delta is null", () => {
     const html = renderToStaticMarkup(
       <Dashboard {...baseProps} resolutionRate={{ current: 80, previousWeek: null, delta: null }} />,
     );
-    expect(html).not.toContain("pp vs last week");
+    expect(html).not.toContain("resolution-rate-delta");
   });
 
   it("does not render when resolutionRate prop is undefined", () => {

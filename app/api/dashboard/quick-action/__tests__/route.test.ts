@@ -229,7 +229,7 @@ describe("PATCH /api/dashboard/quick-action", () => {
       await PATCH(makeRequest({ entityType: "Bug", entityId: 1, action: "assign", value: "john@test.com" }));
 
       expect(mocks.logActivity).toHaveBeenCalledWith(
-        "acme", "Bug", "1", "Updated", "Assigned Bug to john@test.com"
+        "acme", "Bug", "1", "Updated", "Assigned Bug to john@test.com", ""
       );
     });
   });
@@ -270,7 +270,7 @@ describe("PATCH /api/dashboard/quick-action", () => {
       await PATCH(makeRequest({ entityType: "Bug", entityId: 3, action: "status", value: "resolved" }));
 
       expect(mocks.logActivity).toHaveBeenCalledWith(
-        "acme", "Bug", "3", "Updated", "Changed Bug status to resolved"
+        "acme", "Bug", "3", "Updated", "Changed Bug status to resolved", ""
       );
     });
   });

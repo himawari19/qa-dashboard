@@ -70,8 +70,8 @@ export function DashboardSavedFilters({
       const res = await fetch("/api/dashboard/filters");
       if (!res.ok) return;
       const json = await res.json();
-      const own = (json.filters?.own ?? []).map(mapFilter);
-      const shared = (json.filters?.shared ?? []).map(mapFilter);
+      const own = (json.filters?.own ?? []).map(normalizeSavedFilter);
+      const shared = (json.filters?.shared ?? []).map(normalizeSavedFilter);
       setFilters({ own, shared });
     } catch {
       // Silently fail — filters are non-critical
@@ -421,7 +421,7 @@ function FilterChip({
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function mapFilter(raw: any): SavedFilter {
+export function normalizeSavedFilter(raw: any): SavedFilter {
   return {
     id: Number(raw.id ?? 0),
     name: String(raw.name ?? ""),

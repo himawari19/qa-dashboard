@@ -474,6 +474,7 @@ describe("module data access", () => {
       "Rina",
       "Added",
       "New team member: Rina",
+      "",
     ]);
   });
 
@@ -511,6 +512,7 @@ describe("module data access", () => {
       "7",
       "Status Update",
       "Bug status updated to closed",
+      "",
     ]);
   });
 

@@ -1111,6 +1111,80 @@ export async function createFilter(
 }
 
 /**
+ * Update a saved filter.
+ * Only the owner can update, and the updated name must remain unique.
+ * Calls logActivity on update.
+ */
+export async function updateFilter(
+  company: string,
+  userId: number,
+  filterId: number,
+  name: string,
+  project: string,
+  activityScope: string,
+  density: string,
+  shared: boolean,
+): Promise<{ filter?: DashboardFilterRow; error?: string }> {
+  const filter = await db.get<Record<string, unknown>>(
+    `SELECT "id", "userId", "name", "userName" FROM "DashboardFilter"
+     WHERE "id" = ? AND "company" = ? AND "deletedAt" IS NULL`,
+    [filterId, company],
+  );
+
+  if (!filter) {
+    return { error: "Filter not found" };
+  }
+
+  if (Number(filter.userId) !== userId) {
+    return { error: "Only the filter owner can update this filter" };
+  }
+
+  const conflict = await db.get<{ count: number | string }>(
+    `SELECT COUNT(*) as count FROM "DashboardFilter"
+     WHERE "company" = ? AND "userId" = ? AND "name" = ? AND "id" != ? AND "deletedAt" IS NULL`,
+    [company, userId, name, filterId],
+  );
+  if (Number(conflict?.count ?? 0) > 0) {
+    return { error: "A filter with this name already exists" };
+  }
+
+  await db.run(
+    `UPDATE "DashboardFilter"
+     SET "name" = ?, "project" = ?, "activityScope" = ?, "density" = ?, "shared" = ?, "updatedAt" = CURRENT_TIMESTAMP
+     WHERE "id" = ? AND "company" = ?`,
+    [name, project, activityScope, density, shared ? 1 : 0, filterId, company],
+  );
+
+  const updated = await db.get<Record<string, unknown>>(
+    `SELECT "id", "company", "userId", "userName", "name", "project", "activityScope", "density", "shared", "createdAt", "updatedAt"
+     FROM "DashboardFilter"
+     WHERE "id" = ? AND "company" = ? AND "deletedAt" IS NULL`,
+    [filterId, company],
+  );
+
+  const userName = String(filter.userName ?? "");
+  await logActivity(company, "DashboardFilter", String(filterId), "Updated", `${userName} updated filter "${name}"`, userName);
+
+  if (!updated) return {};
+
+  return {
+    filter: {
+      id: Number(updated.id),
+      company: String(updated.company ?? ""),
+      userId: Number(updated.userId ?? 0),
+      userName: String(updated.userName ?? ""),
+      name: String(updated.name ?? ""),
+      project: String(updated.project ?? ""),
+      activityScope: String(updated.activityScope ?? "team"),
+      density: String(updated.density ?? "comfortable"),
+      shared: Number(updated.shared ?? 0),
+      createdAt: String(updated.createdAt ?? ""),
+      updatedAt: String(updated.updatedAt ?? ""),
+    },
+  };
+}
+
+/**
  * Soft-delete a filter. Only the owner can delete.
  * Calls logActivity on deletion.
  * Returns success or an error string.

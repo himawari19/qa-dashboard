@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getAccessScope: vi.fn(),
   upsertHeartbeat: vi.fn(),
+  removeStalePresence: vi.fn(),
   dbRun: vi.fn(),
 }));
 
@@ -15,8 +16,9 @@ vi.mock("@/lib/data-helpers", () => ({
   getAccessScope: mocks.getAccessScope,
 }));
 
-vi.mock("@/lib/data-dashboard", () => ({
+vi.mock("@/lib/data", () => ({
   upsertHeartbeat: mocks.upsertHeartbeat,
+  removeStalePresence: mocks.removeStalePresence,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -39,6 +41,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getAccessScope.mockReturnValue({ company: "acme", isAdmin: false, andWhere: ' AND "company" = ?', params: ["acme"] });
   mocks.upsertHeartbeat.mockResolvedValue(undefined);
+  mocks.removeStalePresence.mockResolvedValue(undefined);
   mocks.dbRun.mockResolvedValue(undefined);
 });
 
@@ -51,7 +54,7 @@ describe("POST /api/dashboard/presence", () => {
 
       expect(response.status).toBe(401);
       const json = await response.json();
-      expect(json.code).toBe("FORBIDDEN");
+      expect(json.code).toBe("UNAUTHORIZED");
       expect(json.error).toBe("Authentication required");
     });
   });
@@ -112,7 +115,7 @@ describe("POST /api/dashboard/presence", () => {
       const response = await POST(makeRequest({ action: "heartbeat" }));
 
       expect(response.status).toBe(200);
-      expect(mocks.upsertHeartbeat).toHaveBeenCalledWith("acme", 3, "");
+      expect(mocks.upsertHeartbeat).toHaveBeenCalledWith("acme", 3, "User 3");
     });
 
     it("returns success for admin user", async () => {
@@ -136,8 +139,8 @@ describe("POST /api/dashboard/presence", () => {
       const json = await response.json();
       expect(json.success).toBe(true);
       expect(mocks.dbRun).toHaveBeenCalledWith(
-        expect.stringContaining("DELETE FROM"),
-        [7, "acme"],
+        expect.stringContaining('"userId" = CAST(? AS INTEGER)'),
+        [7],
       );
     });
 
@@ -149,8 +152,8 @@ describe("POST /api/dashboard/presence", () => {
 
       expect(response.status).toBe(200);
       expect(mocks.dbRun).toHaveBeenCalledWith(
-        expect.stringContaining('"company" = ?'),
-        [2, "other-co"],
+        expect.stringContaining('"userId" = CAST(? AS INTEGER)'),
+        [2],
       );
     });
   });
@@ -165,7 +168,7 @@ describe("POST /api/dashboard/presence", () => {
       expect(response.status).toBe(500);
       const json = await response.json();
       expect(json.code).toBe("INTERNAL_ERROR");
-      expect(json.error).toBe("An unexpected error occurred");
+      expect(json.error).toBe("Failed to update presence");
     });
 
     it("returns 500 when db.run throws on disconnect", async () => {

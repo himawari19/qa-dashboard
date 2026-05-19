@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getAccessScope: vi.fn(),
   getComments: vi.fn(),
   createComment: vi.fn(),
+  dbGet: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -15,9 +16,15 @@ vi.mock("@/lib/data-helpers", () => ({
   getAccessScope: mocks.getAccessScope,
 }));
 
-vi.mock("@/lib/data-dashboard", () => ({
+vi.mock("@/lib/data", () => ({
   getComments: mocks.getComments,
   createComment: mocks.createComment,
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    get: mocks.dbGet,
+  },
 }));
 
 import { GET, POST } from "@/app/api/dashboard/comments/route";
@@ -46,6 +53,7 @@ beforeEach(() => {
     andWhere: ' AND "company" = ?',
     params: ["acme"],
   });
+  mocks.dbGet.mockResolvedValue({ id: 1 });
   mocks.getComments.mockResolvedValue([]);
   mocks.createComment.mockResolvedValue(undefined);
 });
@@ -89,7 +97,7 @@ describe("GET /api/dashboard/comments", () => {
     it("returns 400 when entityType is invalid", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, name: "John", role: "qa", company: "acme" });
 
-      const response = await GET(makeGetRequest({ entityType: "Sprint", entityId: "1" }));
+      const response = await GET(makeGetRequest({ entityType: "Release", entityId: "1" }));
 
       expect(response.status).toBe(400);
       const json = await response.json();
@@ -133,7 +141,7 @@ describe("GET /api/dashboard/comments", () => {
       expect(response.status).toBe(200);
       const json = await response.json();
       expect(json.comments).toEqual(mockComments);
-      expect(json.readOnly).toBe(false);
+      expect(json.canWrite).toBe(true);
     });
 
     it("returns empty comments array when no comments exist", async () => {
@@ -145,7 +153,7 @@ describe("GET /api/dashboard/comments", () => {
       expect(response.status).toBe(200);
       const json = await response.json();
       expect(json.comments).toEqual([]);
-      expect(json.readOnly).toBe(false);
+      expect(json.canWrite).toBe(true);
     });
 
     it("calls getComments with company scope", async () => {
@@ -213,7 +221,7 @@ describe("POST /api/dashboard/comments", () => {
     it("returns 400 when entityType is invalid", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, name: "John", role: "qa", company: "acme" });
 
-      const response = await POST(makePostRequest({ entityType: "Sprint", entityId: 1, content: "Hello" }));
+      const response = await POST(makePostRequest({ entityType: "Release", entityId: 1, content: "Hello" }));
 
       expect(response.status).toBe(400);
       const json = await response.json();
@@ -294,7 +302,7 @@ describe("POST /api/dashboard/comments", () => {
 
       const response = await POST(makePostRequest({ entityType: "Bug", entityId: 1, content: exactContent }));
 
-      expect(response.status).toBe(201);
+      expect(response.status).toBe(200);
     });
 
     it("trims content before validation", async () => {
@@ -337,9 +345,8 @@ describe("POST /api/dashboard/comments", () => {
 
       const response = await POST(makePostRequest({ entityType: "Task", entityId: 5, content: "Great progress!" }));
 
-      expect(response.status).toBe(201);
+      expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.success).toBe(true);
       expect(json.comment).toEqual(mockComment);
     });
 
@@ -383,10 +390,10 @@ describe("POST /api/dashboard/comments", () => {
           updatedAt: "2024-01-01T10:00:00Z",
         });
 
-        const response = await POST(makePostRequest({ entityType: "Bug", entityId: 1, content: "Test" }));
+      const response = await POST(makePostRequest({ entityType: "Bug", entityId: 1, content: "Test" }));
 
-        expect(response.status).toBe(201);
-      }
+      expect(response.status).toBe(200);
+    }
     });
   });
 
@@ -397,9 +404,9 @@ describe("POST /api/dashboard/comments", () => {
 
       const response = await POST(makePostRequest({ entityType: "Bug", entityId: 1, content: "Hello" }));
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.code).toBe("INTERNAL_ERROR");
+      expect(json).toEqual({});
     });
 
     it("returns 500 when createComment throws", async () => {

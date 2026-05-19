@@ -28,6 +28,7 @@ vi.mock("@phosphor-icons/react", () => ({
   Clock: (props: Record<string, unknown>) => <svg data-testid="clock" {...props} />,
   Checks: (props: Record<string, unknown>) => <svg data-testid="checks" {...props} />,
   DotsThreeVertical: (props: Record<string, unknown>) => <svg data-testid="dots" {...props} />,
+  DotsSixVertical: (props: Record<string, unknown>) => <svg data-testid="dots-six" {...props} />,
   PencilSimple: (props: Record<string, unknown>) => <svg data-testid="pencil" {...props} />,
   Table: (props: Record<string, unknown>) => <svg data-testid="table" {...props} />,
 }));

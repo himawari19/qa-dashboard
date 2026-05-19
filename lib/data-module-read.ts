@@ -1,16 +1,16 @@
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { type ModuleKey } from "@/lib/modules";
-import { buildSearchClause, countRows, getAccessScope, normalizeTestCaseRow, normalizeTestPlanRow, normalizeTestSuiteRow } from "@/lib/data-helpers";
+import { buildSearchClause, getAccessScope, normalizeTestCaseRow, normalizeTestPlanRow, normalizeTestSuiteRow } from "@/lib/data-helpers";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { normalizeRole } from "@/lib/roles";
 
-async function selectAll(sqlStr: string, params: any[] = []): Promise<Array<Record<string, string | number | null>>> {
+async function selectAll(sqlStr: string, params: unknown[] = []): Promise<Array<Record<string, string | number | null>>> {
   return db.query<Record<string, string | number | null>>(sqlStr, params);
 }
 
-function hydrateDeploymentNotes<T extends Record<string, any>>(row: T) {
+function hydrateDeploymentNotes<T extends Record<string, unknown>>(row: T) {
   if (!row) return row;
   return {
     ...row,
@@ -72,8 +72,8 @@ export async function getModuleRows(module: ModuleKey) {
         WHERE u."deletedAt" IS NULL${isAdmin ? "" : ' AND u."company" = ?'}
         ORDER BY u."name" ASC`, qParams);
       return assigneeRows
-        .filter((item: any) => normalizeRole(String(item.role ?? "")) !== "admin")
-        .map((item: any) => ({
+        .filter((item: Record<string, string | number | null>) => normalizeRole(String(item.role ?? "")) !== "admin")
+        .map((item: Record<string, string | number | null>) => ({
           ...item,
           id: String(item.id),
         }));
@@ -104,7 +104,8 @@ export async function getModuleRows(module: ModuleKey) {
       return sprintRows.map((row) => {
         const info = String(row._planInfo ?? "");
         const sep = info.indexOf("|||");
-        const { _planInfo, ...rest } = row;
+        const rest = { ...row };
+        delete (rest as { _planInfo?: unknown })._planInfo;
         return {
           ...rest,
           testPlanTitle: sep >= 0 ? info.slice(0, sep) : (info || null),
@@ -277,7 +278,8 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       const rows = sprintRows.map((row) => {
         const info = String(row._planInfo ?? "");
         const sep = info.indexOf("|||");
-        const { _planInfo, ...rest } = row;
+        const rest = { ...row };
+        delete (rest as { _planInfo?: unknown })._planInfo;
         return {
           ...rest,
           testPlanTitle: sep >= 0 ? info.slice(0, sep) : (info || null),

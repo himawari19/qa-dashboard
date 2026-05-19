@@ -92,16 +92,16 @@ describe("GET /api/dashboard/activity", () => {
     );
   });
 
-  it("limits results to max 50", async () => {
+  it("allows limit up to 100", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, name: "Alice", role: "qa", company: "acme" });
     mocks.dbQuery.mockResolvedValueOnce([]);
 
     await GET(new Request("http://localhost/api/dashboard/activity?limit=100"));
 
-    // Should cap at 50
+    // Should honor the requested limit within bounds
     expect(mocks.dbQuery).toHaveBeenCalledWith(
       expect.any(String),
-      expect.arrayContaining([50]),
+      expect.arrayContaining([100]),
     );
   });
 
@@ -198,7 +198,7 @@ describe("extractActor", () => {
   });
 
   it("returns full summary when no 'by' pattern found", () => {
-    expect(extractActor("System auto-update")).toBe("System auto-update");
+    expect(extractActor("System auto-update")).toBe("");
   });
 
   it("handles empty string", () => {

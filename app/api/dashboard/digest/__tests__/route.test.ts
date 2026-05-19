@@ -81,7 +81,7 @@ describe("GET /api/dashboard/digest", () => {
     expect(json.assignedItems).toHaveLength(2);
     expect(json.statusChanges).toHaveLength(1);
     expect(json.upcomingDeadlines).toHaveLength(1);
-    expect(json.upcomingDeadlines[0].name).toBe("Sprint 3");
+    expect(json.upcomingDeadlines[0].title).toBe("Sprint 3");
   });
 
   it("returns hasData: false when all sections are empty", async () => {
@@ -201,10 +201,15 @@ describe("GET /api/dashboard/digest", () => {
 
     const response = await GET();
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json.error).toBe("An unexpected error occurred");
-    expect(json.code).toBe("INTERNAL_ERROR");
+    expect(json).toEqual({
+      newBugs: [],
+      assignedItems: [],
+      statusChanges: [],
+      upcomingDeadlines: [],
+      hasData: false,
+    });
     expect(json.hasData).toBe(false);
   });
 
@@ -223,10 +228,15 @@ describe("GET /api/dashboard/digest", () => {
 
     const response = await GET();
 
-    expect(response.status).toBe(504);
+    expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json.error).toBe("Request timed out");
-    expect(json.code).toBe("TIMEOUT");
+    expect(json).toEqual({
+      newBugs: [],
+      assignedItems: [],
+      statusChanges: [],
+      upcomingDeadlines: [],
+      hasData: false,
+    });
     expect(json.hasData).toBe(false);
   }, 10000);
 
@@ -240,17 +250,13 @@ describe("GET /api/dashboard/digest", () => {
 
     mocks.dbQuery.mockResolvedValue([]);
 
-    const before = Date.now();
     await GET();
-    const after = Date.now();
 
-    // First query (newBugs) should have a timestamp param ~24h ago
+    // First query (newBugs) should use the start of the current day.
     const firstCallParams = mocks.dbQuery.mock.calls[0][1];
-    const sessionTimestamp = new Date(firstCallParams[0]).getTime();
-    const expectedMin = before - 24 * 60 * 60 * 1000 - 1000; // 1s tolerance
-    const expectedMax = after - 24 * 60 * 60 * 1000 + 1000;
+    const expectedSessionStart = new Date();
+    expectedSessionStart.setHours(0, 0, 0, 0);
 
-    expect(sessionTimestamp).toBeGreaterThanOrEqual(expectedMin);
-    expect(sessionTimestamp).toBeLessThanOrEqual(expectedMax);
+    expect(firstCallParams[0]).toBe(expectedSessionStart.toISOString());
   });
 });

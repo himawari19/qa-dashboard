@@ -153,10 +153,10 @@ export async function getQualityTrend() {
   return Promise.all(
     weeks.reverse().map(async (w) => {
       const [bugsRes, fixedRes] = await Promise.all([
-        db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "createdAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]) as Promise<any>,
-        db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "status" = 'fixed' AND "updatedAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]) as Promise<any>,
+        db.get<{ count?: number }>(`SELECT COUNT(*) as count FROM "Bug" WHERE "createdAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]),
+        db.get<{ count?: number }>(`SELECT COUNT(*) as count FROM "Bug" WHERE "status" = 'fixed' AND "updatedAt" BETWEEN ? AND ? ${andWhere}`, [w.start, w.end, ...qParams]),
       ]);
-      return { label: w.label, bugs: Number(bugsRes.count), fixed: Number(fixedRes.count) };
+      return { label: w.label, bugs: Number(bugsRes?.count ?? 0), fixed: Number(fixedRes?.count ?? 0) };
     }),
   );
 }
@@ -210,7 +210,7 @@ export async function getProjectData(projectName: string) {
   ]);
 
   const planIds = plans.map((p) => String(p.id));
-  let suites: any[] = [];
+  let suites: Array<Record<string, string | number | null>> = [];
   if (planIds.length > 0) {
     const placeholders = planIds.map(() => "?").join(",");
     suites = await selectAll(
@@ -220,7 +220,7 @@ export async function getProjectData(projectName: string) {
   }
 
   const suiteIds = suites.map((s) => String(s.id));
-  let cases: any[] = [];
+  let cases: Array<Record<string, string | number | null>> = [];
   if (suiteIds.length > 0) {
     const placeholders = suiteIds.map(() => "?").join(",");
     cases = await selectAll(
@@ -235,7 +235,7 @@ export async function getProjectData(projectName: string) {
   const blocked = cases.filter((c) => String(c.status).toLowerCase() === "blocked").length;
   const pending = totalCases - passed - failed - blocked;
 
-  const casesBySuite: Record<string, any[]> = {};
+  const casesBySuite: Record<string, Array<Record<string, string | number | null>>> = {};
   for (const c of cases) {
     const sid = String(c.testSuiteId);
     if (!casesBySuite[sid]) casesBySuite[sid] = [];
@@ -381,13 +381,13 @@ export async function getPublicReportData(token: string) {
 
   // Sessions for all suites of this plan
   const suiteIds = suites.map((s) => String(s.id));
-  let sessions: any[] = [];
+  let sessions: Array<Record<string, string | number | null>> = [];
   if (suiteIds.length > 0) {
     const placeholders = suiteIds.map(() => "?").join(",");
     sessions = await selectAll(
       `SELECT id, company, date, project, sprint, tester, scope, "totalCases", passed, failed, blocked, result, notes, "updatedAt" FROM "TestSession" WHERE "scope" IN (${placeholders}) AND "deletedAt" IS NULL ${shouldFilter ? ' AND "company" = ?' : ""} ORDER BY "date" DESC LIMIT 15`,
       shouldFilter ? [...suites.map((s) => s.title), scope.company] : suites.map((s) => s.title),
-    ) as any[];
+    );
   }
 
   // Bugs for this plan's project

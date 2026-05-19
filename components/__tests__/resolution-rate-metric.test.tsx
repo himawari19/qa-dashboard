@@ -125,8 +125,7 @@ describe("ResolutionRateMetric", () => {
         resolutionRate={{ current: 80, previousWeek: 75, delta: 5 }}
       />,
     );
-    expect(html).toContain("+5");
-    expect(html).toContain("pp vs last week");
+    expect(html).toContain("+5pp");
   });
 
   it("displays negative delta with minus sign (−)", () => {
@@ -137,8 +136,7 @@ describe("ResolutionRateMetric", () => {
       />,
     );
     // Unicode minus sign \u2212
-    expect(html).toContain("\u221210");
-    expect(html).toContain("pp vs last week");
+    expect(html).toContain("\u221210pp");
   });
 
   it("omits delta display when delta is null", () => {
@@ -149,7 +147,7 @@ describe("ResolutionRateMetric", () => {
       />,
     );
     expect(html).toContain("80%");
-    expect(html).not.toContain("pp vs last week");
+    expect(html).not.toContain("resolution-rate-delta");
   });
 
   it("does not render when resolutionRate prop is undefined", () => {

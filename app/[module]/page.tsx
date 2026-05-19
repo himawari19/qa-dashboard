@@ -11,6 +11,22 @@ import { getItemTitleField, buildOgDescription } from "@/lib/og-helpers";
 
 export const dynamic = "force-dynamic";
 
+type ModuleRow = any;
+type PlanRow = ModuleRow & {
+  id: any;
+  title?: any;
+  project?: any;
+  publicToken?: any;
+};
+type SuiteRow = ModuleRow & {
+  id: any;
+  title?: any;
+  testPlanId?: any;
+  publicToken?: any;
+  project?: any;
+  testPlanLabel?: string;
+};
+
 export async function generateMetadata({
   params,
   searchParams,
@@ -178,7 +194,7 @@ export default async function ModulePage({
       const plans = await getTestPlanReferenceRows();
       const planMap = new Map<string, { project: string; title: string; publicToken: string }>();
       for (const plan of plans) {
-        const row = plan as any;
+        const row = plan as PlanRow;
         const id = String(row.id ?? "");
         if (!id) continue;
         planMap.set(id, row);

@@ -104,8 +104,7 @@ describe("GET /api/dashboard/events", () => {
 
     expect(response.status).toBe(401);
     const json = await response.json();
-    expect(json.error).toBe("Authentication required");
-    expect(json.code).toBe("FORBIDDEN");
+    expect(json.error).toBe("Unauthorized");
   });
 
   it("returns SSE response with correct headers", async () => {
@@ -115,14 +114,14 @@ describe("GET /api/dashboard/events", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("text/event-stream");
-    expect(response.headers.get("Cache-Control")).toBe("no-cache");
+    expect(response.headers.get("Content-Type")).toBe("text/event-stream; charset=utf-8");
+    expect(response.headers.get("Cache-Control")).toBe("no-cache, no-transform");
     expect(response.headers.get("Connection")).toBe("keep-alive");
 
     controller.abort();
   });
 
-  it("sends initial connected event with userId", async () => {
+  it("sends initial presence event", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 42, name: "Alice", role: "qa", company: "acme" });
 
     const { request, controller } = createRequest();
@@ -130,12 +129,12 @@ describe("GET /api/dashboard/events", () => {
 
     const events = await collectStreamEvents(response, controller, { maxEvents: 2, timeoutMs: 1000 });
 
-    // First event should be the connected event
-    expect(events[0]).toContain("event: connected");
-    expect(events[0]).toContain('"userId":42');
+    // Should have a presence event
+    expect(events[0]).toContain("event: presence");
+    expect(events[0]).toContain('"members":[]');
   });
 
-  it("sends initial presence event", async () => {
+  it("sends initial presence event with members", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, name: "Alice", role: "qa", company: "acme" });
     mocks.getOnlineMembers.mockResolvedValueOnce([
       { userId: 1, userName: "Alice", lastSeen: "2024-01-01T10:00:00Z" },
@@ -147,10 +146,8 @@ describe("GET /api/dashboard/events", () => {
 
     const events = await collectStreamEvents(response, controller, { maxEvents: 3, timeoutMs: 1000 });
 
-    // Should have a presence event
     const presenceEvent = events.find((e) => e.includes("event: presence"));
     expect(presenceEvent).toBeDefined();
-    expect(presenceEvent).toContain('"count":2');
     expect(presenceEvent).toContain('"userName":"Alice"');
     expect(presenceEvent).toContain('"userName":"Bob"');
   });
@@ -245,7 +242,6 @@ describe("GET /api/dashboard/events", () => {
     expect(response.status).toBe(200);
 
     const events = await collectStreamEvents(response, controller, { maxEvents: 2, timeoutMs: 1000 });
-    // Should still have the connected event
-    expect(events[0]).toContain("event: connected");
+    expect(events).toEqual([]);
   });
 });

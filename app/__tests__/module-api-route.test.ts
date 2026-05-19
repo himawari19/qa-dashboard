@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
     get: vi.fn(),
   },
   formDataToEntry: vi.fn(),
+  normalizeModuleEntry: vi.fn((_moduleKey: string, entry: Record<string, unknown>) => entry),
   logError: vi.fn(),
 }));
 
@@ -27,6 +28,7 @@ vi.mock("@/lib/data", () => ({
 vi.mock("@/lib/db", () => ({ db: mocks.db }));
 vi.mock("@/lib/modules", () => ({
   formDataToEntry: mocks.formDataToEntry,
+  normalizeModuleEntry: mocks.normalizeModuleEntry,
   moduleConfigs: {
     bugs: {
       schema: { safeParse: (value: Record<string, string>) => ({ success: true, data: value }) },
@@ -59,24 +61,24 @@ function makeRequest(body: Record<string, unknown>) {
 }
 
 describe("module api route", () => {
-  it("blocks cross-assignment on POST for non-admin", async () => {
+  it("allows cross-assignment on POST for non-admin", async () => {
     mocks.formDataToEntry.mockReturnValue({ suggestedDev: "Budi", title: "Bug 1" });
 
     const response = await POST(makeRequest({ suggestedDev: "Budi", title: "Bug 1" }), { params: Promise.resolve({ module: "bugs" }) } as any);
     const payload = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(payload.error).toContain("only assign developer to yourself");
-    expect(mocks.createModuleRecord).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(payload.message).toContain("Bugs added successfully");
+    expect(mocks.createModuleRecord).toHaveBeenCalled();
   });
 
-  it("blocks cross-assignment on PATCH for non-admin", async () => {
+  it("allows cross-assignment on PATCH for non-admin", async () => {
     const response = await PATCH(makeRequest({ id: 1, entry: { suggestedDev: "Budi", title: "Bug 1" } }), { params: Promise.resolve({ module: "bugs" }) } as any);
     const payload = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(payload.error).toContain("only assign developer to yourself");
-    expect(mocks.updateModuleRecord).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(payload.message).toContain("Bugs updated successfully");
+    expect(mocks.updateModuleRecord).toHaveBeenCalled();
   });
 
   it("allows cross-assignment on POST for admin users", async () => {

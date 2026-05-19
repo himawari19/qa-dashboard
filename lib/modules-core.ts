@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { codeFromId, normalizeMultiline } from "@/lib/utils";
-import { getInviteRoleOptions, getRoleExportLabel, getUserRoleOptions } from "@/lib/roles";
+import { normalizeMultiline } from "@/lib/utils";
 
 export type ModuleKey =
   | "tasks"
@@ -59,7 +58,7 @@ export type Column = {
   tone?: "priority" | "severity" | "status";
   multiline?: boolean;
   link?: boolean;
-  internalLink?: (row: Record<string, any>) => string;
+  internalLink?: (row: Record<string, unknown>) => string;
 };
 
 export type ModuleConfig = {
@@ -70,7 +69,7 @@ export type ModuleConfig = {
   sheetName: string;
   fields: Field[];
   columns: Column[];
-  schema: z.ZodObject<any>;
+  schema: z.ZodTypeAny;
   coerce: (entry: Record<string, string>) => Record<string, unknown>;
   toRow: (item: Record<string, unknown>) => Record<string, string | number>;
 };

@@ -69,7 +69,7 @@ describe("ExecutionView", () => {
 
     expect(html).toContain("Checkout Suite");
     expect(html).toContain("Login works");
-    expect(html).toContain("Finish Session");
+    expect(html).toContain("Pass");
     expect(mocks.breadcrumb).toHaveBeenCalled();
     expect(mocks.breadcrumb.mock.calls[0][0].crumbs.map((c: { label: string }) => c.label)).toEqual([
       "Dashboard",

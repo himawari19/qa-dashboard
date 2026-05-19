@@ -34,7 +34,7 @@ describe("login page", () => {
     const html = renderToStaticMarkup(<LoginPage />);
 
     expect(html).toContain("Welcome back");
-    expect(html).toContain("Enter your credentials to access your dashboard.");
+    expect(html).toContain("Sign in to access your QA workspace.");
     expect(html).toContain("Sign In");
     expect(mocks.routerPush).not.toHaveBeenCalled();
   });
