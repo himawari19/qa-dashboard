@@ -29,7 +29,7 @@ export function ModuleWorkspaceFormSelect({
  setOpenSelectField,
  setSelectValues,
 }: Props) {
- const selectedValue = selectValues[field.name] ?? String(editingRow?.[field.name] ??"");
+ const selectedValue = selectValues[field.name] !== undefined ? selectValues[field.name] : String(editingRow?.[field.name] ?? "");
  const isLocked = Boolean(field.readonly);
  const placeholderText = field.placeholder || `Select ${field.label}`;
 

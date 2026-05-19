@@ -2,7 +2,7 @@ import { db, isPostgres } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
-import { backfillAssigneesFromUsers, deleteAssigneeForUser, syncAssigneeFromUser } from "@/lib/user-assignee-sync";
+import { backfillAssigneesFromUsers, deleteAssigneeForUser, propagateNameChange, syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 import {
   buildSearchClause,
   countRows,
@@ -126,6 +126,12 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
   const company = getWriteCompany(user, data.company);
   const actor = user?.name || user?.email || "";
 
+  // Sanitize: prevent undefined/null from being stored as literal strings
+  for (const key of Object.keys(data)) {
+    if (data[key] === undefined || data[key] === "undefined" || data[key] === "null") {
+      data[key] = "";
+    }
+  }
 
   switch (module) {
     case "test-plans": {
@@ -293,12 +299,14 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
     }
     case "deployments": {
       const notes = generateDeploymentNotes(String(data.changelog ?? ""));
+      const env = String(data.environment ?? "").trim() || "";
+      const dev = String(data.developer ?? "").trim() || "";
       const res = await runInsert(
         `INSERT INTO "Deployment" ("company", "date", "version", "project", "environment", "developer", "changelog", "status", "notes")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, notes]
+        [company, data.date, data.version, data.project, env, dev, data.changelog ?? "", data.status, notes]
       );
-      await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${data.environment}: ${data.status}`, actor);
+      await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${env || "N/A"}: ${data.status}`, actor);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Deployment" WHERE "company" = ? AND "version" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.version]);
       if (created?.id !== undefined) {
@@ -317,6 +325,12 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
   const { company, where: _where, andWhere: companyFilter, params: companyParam } = scope;
   const actor = currentUser?.name || currentUser?.email || "";
 
+  // Sanitize: prevent undefined/null from being stored as literal strings
+  for (const key of Object.keys(data)) {
+    if (data[key] === undefined || data[key] === "undefined" || data[key] === "null") {
+      data[key] = "";
+    }
+  }
 
   switch (module) {
     case "tasks": {
@@ -431,6 +445,11 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       if (existingEmail) {
         throw new Error("Email address is already registered. Please use a different email.");
       }
+      // Get old name before update for propagation
+      const oldUserRow = await db.get<{ name: string | null; email: string | null }>('SELECT "name", "email" FROM "User" WHERE "id" = CAST(? AS INTEGER)', [id]);
+      const oldName = (oldUserRow?.name || oldUserRow?.email || "").trim();
+      const newName = (data.name || data.email || "").trim();
+
       const { hashPassword } = await import("@/lib/auth-core");
       if (data.password) {
         const hashedPassword = await hashPassword(data.password);
@@ -440,6 +459,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         );
         const updatedUser = { id: Number(id), company, name: data.name, email: data.email, role: data.role };
         await syncAssigneeFromUser(updatedUser);
+        if (oldName && newName && oldName !== newName) {
+          await propagateNameChange(company, oldName, newName);
+        }
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
         await logActivity(company, "User", String(data.email), "Updated", `Security settings for ${data.email} updated`, actor);
@@ -452,6 +474,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         );
         const updatedUser = { id: Number(id), company, name: data.name, email: data.email, role: data.role };
         await syncAssigneeFromUser(updatedUser);
+        if (oldName && newName && oldName !== newName) {
+          await propagateNameChange(company, oldName, newName);
+        }
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
         await logActivity(company, "User", String(data.email), "Updated", `User info for ${data.email} updated`, actor);
@@ -491,11 +516,13 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     }
     case "deployments": {
       const notes = generateDeploymentNotes(String(data.changelog ?? ""));
+      const env = String(data.environment ?? "").trim() || "";
+      const dev = String(data.developer ?? "").trim() || "";
       const res = await db.run(
         `UPDATE "Deployment"
          SET "date" = ?, "version" = ?, "project" = ?, "environment" = ?, "developer" = ?, "changelog" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.date, data.version, data.project, data.environment, data.developer, data.changelog ?? "", data.status, notes, id, ...companyParam]
+        [data.date, data.version, data.project, env, dev, data.changelog ?? "", data.status, notes, id, ...companyParam]
       );
       await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`, actor);
       invalidateDashboardCache(company);

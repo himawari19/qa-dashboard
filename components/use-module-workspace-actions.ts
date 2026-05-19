@@ -332,7 +332,12 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
   async function onUpdate(formData: FormData) {
     if (!editingRow) return;
 
-    const entry = Object.fromEntries(formData.entries());
+    const rawEntry = Object.fromEntries(formData.entries());
+    // Sanitize: prevent literal "undefined" strings from being stored
+    const entry: Record<string, FormDataEntryValue> = {};
+    for (const [key, value] of Object.entries(rawEntry)) {
+      entry[key] = value === "undefined" ? "" : value;
+    }
     if (module === "deployments") {
       entry.notes = generateDeploymentNotes(String(entry.changelog ?? ""));
     }

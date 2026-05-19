@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, createSessionToken, sessionCookieName } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
+import { syncAssigneeFromUser, propagateNameChange } from "@/lib/user-assignee-sync";
 
 export async function GET() {
   try {
@@ -43,6 +43,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
+    const oldName = (user.name || user.email || "").trim();
+    const newName = name.trim();
+
     if (password && password.length > 0) {
       if (password.length < 6) {
         return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
@@ -53,32 +56,37 @@ export async function PATCH(request: NextRequest) {
       
       await db.run(
         'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name.trim(), role?.trim() || "qa", hashedPassword, user.id]
+        [newName, role?.trim() || "qa", hashedPassword, user.id]
       );
       await syncAssigneeFromUser({
         id: user.id,
         company: user.company,
-        name: name.trim(),
+        name: newName,
         email: user.email,
         role: role?.trim() || "qa",
       });
     } else {
       await db.run(
         'UPDATE "User" SET "name" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [name.trim(), role?.trim() || "qa", user.id]
+        [newName, role?.trim() || "qa", user.id]
       );
       await syncAssigneeFromUser({
         id: user.id,
         company: user.company,
-        name: name.trim(),
+        name: newName,
         email: user.email,
         role: role?.trim() || "qa",
       });
     }
 
+    // Propagate name change to all existing records (tasks, test cases, bugs, etc.)
+    if (oldName !== newName) {
+      await propagateNameChange(user.company, oldName, newName);
+    }
+
     const updatedUser = {
       id: user.id,
-      name: name.trim(),
+      name: newName,
       role: (role?.trim() || "qa"),
       company: user.company,
     };

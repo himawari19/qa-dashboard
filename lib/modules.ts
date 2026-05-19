@@ -54,7 +54,7 @@ export function formDataToEntry(formData: FormData) {
   const entry: Record<string, string> = {};
   formData.forEach((value, key) => {
     if (typeof value === "string") {
-      entry[key] = value;
+      entry[key] = value === "undefined" ? "" : value;
     }
   });
   return entry;

@@ -68,6 +68,31 @@ export async function deleteAssigneeForUser(userId: number) {
   await db.run('UPDATE "Assignee" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "userId" = ?', [userId]);
 }
 
+/**
+ * When a user changes their display name, propagate the new name
+ * to all records that store the name as plain text (assignee, tester, developer, etc.)
+ */
+export async function propagateNameChange(company: string, oldName: string, newName: string) {
+  if (!oldName || !newName || oldName === newName) return;
+
+  const updates: Array<{ table: string; column: string }> = [
+    { table: "Task", column: "assignee" },
+    { table: "TestCase", column: "assignee" },
+    { table: "TestPlan", column: "assignee" },
+    { table: "TestSuite", column: "assignee" },
+    { table: "TestSession", column: "tester" },
+    { table: "Bug", column: "suggestedDev" },
+    { table: "Deployment", column: "developer" },
+  ];
+
+  for (const { table, column } of updates) {
+    await db.run(
+      `UPDATE "${table}" SET "${column}" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "${column}" = ? AND "company" = ? AND "deletedAt" IS NULL`,
+      [newName, oldName, company],
+    );
+  }
+}
+
 export async function backfillAssigneesFromUsers() {
   const users = await db.query<UserRow>(
     `SELECT "id", "company", "name", "email", "role"

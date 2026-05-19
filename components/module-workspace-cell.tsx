@@ -79,7 +79,9 @@ function renderNotesValue(text: string) {
   );
 }
 
-export function ModuleWorkspaceCell({ module, row, column, value, onInlineUpdate, statusOptions, priorityOptions, canEdit }: ModuleWorkspaceCellProps) {
+export function ModuleWorkspaceCell({ module, row, column, value: rawValue, onInlineUpdate, statusOptions, priorityOptions, canEdit }: ModuleWorkspaceCellProps) {
+  // Sanitize "undefined"/"null" string values from bad data
+  const value = (rawValue === "undefined" || rawValue === "UNDEFINED" || rawValue === "null") ? "" : rawValue;
   if (((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") || (module === "test-plans" && column.key === "project")) {
     const rowSpanKey = module === "test-plans" ? "projectRowSpan" : "testPlanRowSpan";
     const rowSpan = Number(row[rowSpanKey] ?? 1);

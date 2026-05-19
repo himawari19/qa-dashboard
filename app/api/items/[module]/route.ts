@@ -235,7 +235,10 @@ export async function PATCH(
 
     if (entry && typeof entry === "object") {
       const sanitizedEntry = Object.fromEntries(
-        Object.entries(entry as Record<string, unknown>).map(([key, value]) => [key, String(value ?? "")]),
+        Object.entries(entry as Record<string, unknown>).map(([key, value]) => {
+          const str = String(value ?? "");
+          return [key, str === "undefined" || str === "null" ? "" : str];
+        }),
       );
       const normalized = normalizeModuleEntry(moduleKey, sanitizedEntry);
       const schema = moduleConfigs[moduleKey].schema;
