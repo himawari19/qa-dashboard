@@ -17,7 +17,7 @@ function AttachmentIcon({ type, url }: { type: string; url: string }) {
  if (type ==="link") return <Link size={13} weight="bold" className="shrink-0 text-blue-500" />;
  if (url.match(/\.(png|jpe?g|gif|webp)$/i)) return <Image size={13} weight="bold" className="shrink-0 text-emerald-500" />;
  if (url.match(/\.pdf$/i)) return <FilePdf size={13} weight="bold" className="shrink-0 text-red-500" />;
- return <Paperclip size={13} weight="bold" className="shrink-0 text-slate-400" />;
+ return <Paperclip size={13} weight="bold" className="shrink-0 text-gray-400" />;
 }
 
 export function AttachmentUploader({ value, onChange, disabled }: AttachmentUploaderProps) {
@@ -84,14 +84,14 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  for (const file of Array.from(e.dataTransfer.files)) await uploadFile(file);
  }}
  className={cn(
-"relative flex min-h-[60px] cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed transition-colors text-center px-4 py-3",
- drag ?"border-sky-400 bg-sky-50/60" :"border-slate-200 hover:border-sky-300",
+"relative flex min-h-[60px] cursor-pointer flex-col items-center justify-center gap-1  border-2 border-dashed transition-colors text-center px-4 py-3",
+ drag ?"border-sky-400 bg-sky-50/60" :"border-gray-200 hover:border-sky-300",
  disabled ?"opacity-50 pointer-events-none" :"",
  )}
  onClick={() => fileInputRef.current?.click()}
  >
- <Paperclip size={16} weight="bold" className={cn("shrink-0", drag ?"text-sky-500" :"text-slate-400")} />
- <p className="text-[11px] font-semibold text-slate-400 leading-relaxed">
+ <Paperclip size={16} weight="bold" className={cn("shrink-0", drag ?"text-sky-500" :"text-gray-400")} />
+ <p className="text-[11px] font-semibold text-gray-400 leading-relaxed">
  {uploading ?"Uploading…" :"Drop files here, click to browse, or Ctrl+V to paste"}
  </p>
  <input
@@ -118,17 +118,17 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  onKeyDown={e => { if (e.key ==="Enter") { e.preventDefault(); addLink(); } }}
  placeholder="https://…"
  autoFocus
- className="flex-1 h-8 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none focus:border-sky-400"
+ className="flex-1 h-8  border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none focus:border-sky-400"
  />
- <button type="button" onClick={addLink} className="h-8 rounded-md bg-sky-600 px-3 text-xs font-bold text-white hover:bg-sky-700 transition">Add</button>
- <button type="button" onClick={() => setShowLinkInput(false)} className="h-8 px-2 text-slate-400 hover:text-slate-600 transition"><X size={13} weight="bold" /></button>
+ <button type="button" onClick={addLink} className="h-8  bg-sky-600 px-3 text-xs font-bold text-white hover:bg-sky-700 transition">Add</button>
+ <button type="button" onClick={() => setShowLinkInput(false)} className="h-8 px-2 text-gray-400 hover:text-gray-600 transition"><X size={13} weight="bold" /></button>
  </>
  ) : (
  <button
  type="button"
  onClick={() => setShowLinkInput(true)}
  disabled={disabled}
- className="flex h-7 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-500 hover:border-sky-400 hover:text-sky-600 transition"
+ className="flex h-7 items-center gap-1.5  border border-gray-200 px-2.5 text-xs font-semibold text-gray-500 hover:border-sky-400 hover:text-sky-600 transition"
  >
  <Link size={12} weight="bold" /> Add link
  </button>
@@ -139,21 +139,21 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  {value.length > 0 && (
  <div className="space-y-1">
  {value.map((att, idx) => (
- <div key={idx} className="flex items-center gap-2 rounded-md border border-slate-100 bg-slate-50 px-2.5 py-1.5">
+ <div key={idx} className="flex items-center gap-2  border border-gray-100 bg-gray-50 px-2.5 py-1.5">
  <AttachmentIcon type={att.type} url={att.url} />
  <a
  href={att.url}
  target="_blank"
  rel="noopener noreferrer"
- className="flex-1 min-w-0 text-xs font-medium text-slate-700 truncate hover:text-sky-600 hover:underline"
+ className="flex-1 min-w-0 text-xs font-medium text-gray-700 truncate hover:text-sky-600 hover:underline"
  >
  {att.name}
  </a>
- <a href={att.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-slate-300 hover:text-sky-500 transition">
+ <a href={att.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-gray-300 hover:text-sky-500 transition">
  <ArrowSquareOut size={12} weight="bold" />
  </a>
  {!disabled && (
- <button type="button" onClick={() => remove(idx)} className="shrink-0 text-slate-300 hover:text-red-500 transition">
+ <button type="button" onClick={() => remove(idx)} className="shrink-0 text-gray-300 hover:text-red-500 transition">
  <X size={12} weight="bold" />
  </button>
  )}

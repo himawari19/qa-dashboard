@@ -190,14 +190,14 @@ export function DashboardSavedFilters({
                 setShowSaveForm(true);
                 setSaveError("");
               }}
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-2.5 text-[11px] font-bold text-sky-700 transition hover:bg-sky-100 hover:border-sky-300"
+              className="inline-flex h-7 items-center gap-1.5  border border-sky-200 bg-sky-50 px-2.5 text-[11px] font-bold text-sky-700 transition hover:bg-sky-100 hover:border-sky-300"
               data-testid="save-filter-btn"
             >
               <FloppyDisk size={12} weight="bold" />
               Save Filter
             </button>
           ) : (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2  border border-gray-200 bg-white p-2 shadow-sm">
               <input
                 ref={inputRef}
                 type="text"
@@ -215,7 +215,7 @@ export function DashboardSavedFilters({
                 }}
                 placeholder="Filter name (1–50 chars)"
                 maxLength={50}
-                className="h-7 w-40 rounded-md border border-slate-200 px-2 text-xs outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-200"
+                className="h-7 w-40  border border-gray-200 px-2 text-xs outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-200"
                 data-testid="filter-name-input"
               />
 
@@ -224,10 +224,10 @@ export function DashboardSavedFilters({
                 type="button"
                 onClick={() => setShareToggle((v) => !v)}
                 className={cn(
-                  "inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-semibold transition",
+                  "inline-flex h-7 items-center gap-1  border px-2 text-[11px] font-semibold transition",
                   shareToggle
                     ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                    : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
                 )}
                 title={shareToggle ? "Shared with company" : "Private filter"}
                 data-testid="share-toggle"
@@ -240,7 +240,7 @@ export function DashboardSavedFilters({
                 type="button"
                 onClick={handleSave}
                 disabled={saving || saveName.trim().length === 0}
-                className="h-7 rounded-md bg-sky-600 px-3 text-[11px] font-bold text-white transition hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-7  bg-sky-600 px-3 text-[11px] font-bold text-white transition hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed"
                 data-testid="save-filter-confirm"
               >
                 {saving ? "Saving…" : "Save"}
@@ -254,7 +254,7 @@ export function DashboardSavedFilters({
                   setShareToggle(false);
                   setSaveError("");
                 }}
-                className="text-slate-400 hover:text-slate-600 transition"
+                className="text-gray-400 hover:text-gray-600 transition"
                 title="Cancel"
               >
                 <X size={13} weight="bold" />
@@ -273,7 +273,7 @@ export function DashboardSavedFilters({
       {/* Filter chips */}
       {!loading && allFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <BookmarkSimple size={12} weight="bold" className="text-slate-400 mr-0.5" />
+          <BookmarkSimple size={12} weight="bold" className="text-gray-400 mr-0.5" />
 
           {visibleFilters.map((filter) => {
             const disabled = !isProjectAvailable(filter.project);
@@ -297,7 +297,7 @@ export function DashboardSavedFilters({
             <button
               type="button"
               onClick={() => setShowMore((v) => !v)}
-              className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+              className="inline-flex h-6 items-center gap-1  px-2 text-[10px] font-bold text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
               data-testid="show-more-filters"
             >
               <CaretDown
@@ -314,14 +314,14 @@ export function DashboardSavedFilters({
       {/* Delete confirmation dialog for shared filters */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30" data-testid="delete-confirm-overlay">
-          <div className="w-80 rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div className="w-80  border border-gray-200 bg-white p-5 shadow-md">
             <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center  bg-rose-100">
                 <Warning size={18} weight="bold" className="text-rose-600" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Delete shared filter?</h3>
-                <p className="mt-1 text-xs text-slate-500">
+                <h3 className="text-sm font-bold text-gray-800">Delete shared filter?</h3>
+                <p className="mt-1 text-xs text-gray-500">
                   This will remove &ldquo;{deleteConfirm.name}&rdquo; for all team members.
                 </p>
               </div>
@@ -330,7 +330,7 @@ export function DashboardSavedFilters({
               <button
                 type="button"
                 onClick={() => setDeleteConfirm(null)}
-                className="h-8 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                className="h-8  border border-gray-200 px-3 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
                 data-testid="delete-cancel"
               >
                 Cancel
@@ -339,7 +339,7 @@ export function DashboardSavedFilters({
                 type="button"
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="h-8 rounded-md bg-rose-600 px-3 text-xs font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
+                className="h-8  bg-rose-600 px-3 text-xs font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
                 data-testid="delete-confirm"
               >
                 {deleting ? "Deleting…" : "Delete"}
@@ -370,10 +370,10 @@ function FilterChip({
   return (
     <span
       className={cn(
-        "group inline-flex h-6 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition",
+        "group inline-flex h-6 items-center gap-1  border px-2.5 text-[11px] font-semibold transition",
         disabled
-          ? "border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
-          : "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 cursor-pointer"
+          ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+          : "border-gray-200 bg-white text-gray-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 cursor-pointer"
       )}
       title={
         disabled
@@ -392,11 +392,11 @@ function FilterChip({
       </button>
 
       {filter.shared === 1 && (
-        <ShareNetwork size={9} weight="bold" className="shrink-0 text-slate-400" />
+        <ShareNetwork size={9} weight="bold" className="shrink-0 text-gray-400" />
       )}
 
       {!isOwn && (
-        <span className="text-[9px] text-slate-400 shrink-0">
+        <span className="text-[9px] text-gray-400 shrink-0">
           {filter.userName?.split(" ")[0] || ""}
         </span>
       )}
@@ -408,7 +408,7 @@ function FilterChip({
             e.stopPropagation();
             onDelete();
           }}
-          className="shrink-0 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 transition"
+          className="shrink-0 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-rose-500 transition"
           title="Delete filter"
           data-testid={`delete-filter-${filter.id}`}
         >

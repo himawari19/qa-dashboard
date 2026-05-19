@@ -159,13 +159,13 @@ export function CommentThread({ entityType, entityId }: CommentThreadProps) {
   }
 
   return (
-    <div className="border-t border-slate-100 px-5 py-4">
+    <div className="border-t border-gray-100 px-5 py-4">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <ChatCircle size={14} weight="bold" className="text-slate-400" />
-        <h3 className="text-xs font-black uppercase tracking-widest text-slate-600">Comments</h3>
+        <ChatCircle size={14} weight="bold" className="text-gray-400" />
+        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600">Comments</h3>
         {readOnly && (
-          <span className="ml-auto flex items-center gap-1 text-[10px] font-bold text-slate-400">
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-bold text-gray-400">
             <Lock size={10} weight="bold" /> Read-only
           </span>
         )}
@@ -175,7 +175,7 @@ export function CommentThread({ entityType, entityId }: CommentThreadProps) {
       {loading && (
         <div className="space-y-2">
           {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="h-12 animate-pulse rounded-md bg-slate-50" />
+            <div key={i} className="h-12 animate-pulse  bg-gray-50" />
           ))}
         </div>
       )}
@@ -184,15 +184,15 @@ export function CommentThread({ entityType, entityId }: CommentThreadProps) {
       {!loading && (
         <div ref={scrollRef} className="max-h-60 space-y-3 overflow-y-auto pr-1">
           {comments.length === 0 ? (
-            <p className="py-4 text-center text-xs text-slate-400">No comments yet.</p>
+            <p className="py-4 text-center text-xs text-gray-400">No comments yet.</p>
           ) : (
             comments.map((comment) => (
-              <div key={comment.id} className="rounded-md bg-slate-50 p-3">
+              <div key={comment.id} className=" bg-gray-50 p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-slate-700">{comment.authorName}</span>
-                  <span className="text-[10px] text-slate-400">{formatCommentTime(comment.createdAt)}</span>
+                  <span className="text-xs font-bold text-gray-700">{comment.authorName}</span>
+                  <span className="text-[10px] text-gray-400">{formatCommentTime(comment.createdAt)}</span>
                 </div>
-                <p className="text-xs text-slate-600 whitespace-pre-wrap break-words">{comment.content}</p>
+                <p className="text-xs text-gray-600 whitespace-pre-wrap break-words">{comment.content}</p>
               </div>
             ))
           )}
@@ -210,16 +210,16 @@ export function CommentThread({ entityType, entityId }: CommentThreadProps) {
               placeholder="Add a comment..."
               disabled={submitting}
               rows={2}
-              className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full resize-none  border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <div className="flex items-center justify-between mt-1.5">
-              <span className={`text-[10px] font-medium ${charCount > MAX_CONTENT ? "text-rose-500" : "text-slate-400"}`}>
+              <span className={`text-[10px] font-medium ${charCount > MAX_CONTENT ? "text-rose-500" : "text-gray-400"}`}>
                 {charCount}/{MAX_CONTENT}
               </span>
               <button
                 onClick={handleSubmit}
                 disabled={submitting || charCount === 0 || charCount > MAX_CONTENT}
-                className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1  bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <PaperPlaneTilt size={12} weight="bold" />
                 {submitting ? "Sending..." : "Send"}
@@ -250,7 +250,7 @@ export function CommentThread({ entityType, entityId }: CommentThreadProps) {
             disabled
             placeholder="You do not have write access"
             rows={2}
-            className="w-full resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
+            className="w-full resize-none  border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-400 cursor-not-allowed"
           />
         </div>
       )}

@@ -123,13 +123,13 @@ function StatCard({
 }) {
  return (
  <div className="glass-card flex items-start gap-3 p-4">
- <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white", color ??"bg-slate-400")}>
+ <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center  text-white", color ??"bg-gray-400")}>
  {icon}
  </div>
  <div className="min-w-0">
- <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">{label}</p>
- <p className="text-2xl font-black leading-tight text-slate-900">{value}</p>
- {sub && <p className="mt-0.5 text-[11px] font-medium text-slate-400">{sub}</p>}
+ <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">{label}</p>
+ <p className="text-2xl font-bold leading-tight text-gray-900">{value}</p>
+ {sub && <p className="mt-0.5 text-[11px] font-medium text-gray-400">{sub}</p>}
  </div>
  </div>
  );
@@ -148,10 +148,10 @@ function Panel({
 }) {
  return (
  <section className="glass-card overflow-hidden">
- <div className="flex items-start justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
+ <div className="flex items-start justify-between gap-3 border-b border-gray-200/70 px-5 py-4">
  <div>
- <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">{title}</p>
- {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
+ <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">{title}</p>
+ {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
  </div>
  {actions}
  </div>
@@ -365,13 +365,13 @@ export default function WeeklyReportPage() {
  return (
  <PageShell icon={<TrendUp size={22} weight="bold" />} title="Report" description="Track bugs, tasks, sessions, and sprint activity for the selected period." crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Report" }]}>
  <div className="space-y-4 animate-pulse">
- <div className="h-24 rounded-2xl bg-slate-100" />
+ <div className="h-24  bg-gray-100" />
  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
- {[...Array(4)].map((_, i) => <div key={i} className="h-24 rounded-2xl bg-slate-100" />)}
+ {[...Array(4)].map((_, i) => <div key={i} className="h-24  bg-gray-100" />)}
  </div>
  <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
- <div className="h-80 rounded-2xl bg-slate-100" />
- <div className="h-80 rounded-2xl bg-slate-100" />
+ <div className="h-80  bg-gray-100" />
+ <div className="h-80  bg-gray-100" />
  </div>
  </div>
  </PageShell>
@@ -382,8 +382,8 @@ export default function WeeklyReportPage() {
  return (
  <PageShell icon={<TrendUp size={22} weight="bold" />} title="Report" description="Track bugs, tasks, sessions, and sprint activity for the selected period." crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Report" }]}>
  <div className="glass-card p-8">
- <p className="text-sm font-semibold text-slate-900">Failed to load report.</p>
- <p className="mt-1 text-sm text-slate-500">{error ??"No data available."}</p>
+ <p className="text-sm font-semibold text-gray-900">Failed to load report.</p>
+ <p className="mt-1 text-sm text-gray-500">{error ??"No data available."}</p>
  </div>
  </PageShell>
  );
@@ -396,7 +396,7 @@ export default function WeeklyReportPage() {
  : summary.passRate >= 70
  ?"bg-amber-500"
  :"bg-rose-600"
- :"bg-slate-400";
+ :"bg-gray-400";
  const insightLine = summary.passRate === null
  ?"No test sessions recorded this period."
  :`${summary.sessions} session${summary.sessions === 1 ?"" :"s"} this period - pass rate ${summary.passRate}%.`;
@@ -410,70 +410,70 @@ export default function WeeklyReportPage() {
  actions={
  <button
  onClick={() => window.print()}
- className="flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50 print:hidden"
+ className="flex h-9 items-center gap-2  border border-gray-200 bg-white px-3 text-xs font-bold text-gray-600 transition hover:bg-gray-50 print:hidden"
  >
  <Printer size={15} weight="bold" />
  Print / PDF
  </button>
  }
  >
- <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 print:justify-between">
+ <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500 print:justify-between">
  <div className="relative flex items-center gap-1 print:hidden" ref={calRef}>
  <button
  onClick={() => goWeek(-1)}
- className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
+ className="flex h-8 w-8 items-center justify-center  border border-gray-200 bg-white text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
  >
  <CaretLeft size={14} weight="bold" />
  </button>
  <button
  onClick={() => { setCalMonth(new Date(weekStart)); setCalOpen(!calOpen); }}
- className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-600"
+ className="flex h-8 items-center gap-2  border border-gray-200 bg-white px-3 text-xs font-bold text-gray-700 transition hover:bg-blue-50 hover:text-blue-600"
  >
  <CalendarBlank size={14} weight="bold" />
  {formatDate(toDateStr(weekStart))} - {formatDate(toDateStr(weekEnd))}
  </button>
  <button
  onClick={() => goWeek(1)}
- className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
+ className="flex h-8 w-8 items-center justify-center  border border-gray-200 bg-white text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
  >
  <CaretRight size={14} weight="bold" />
  </button>
  {!isCurrentWeek && (
  <button
  onClick={() => { const m = getMonday(new Date()); setWeekStart(m); setCustomEnd(getSunday(m)); }}
- className="ml-1 flex h-8 items-center rounded-lg bg-blue-100 px-2.5 text-[11px] font-black uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
+ className="ml-1 flex h-8 items-center  bg-blue-100 px-2.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
  >
  This period
  </button>
  )}
 
  {calOpen && (
- <div className="absolute left-0 top-10 z-50 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
- <div className="mb-2 text-center text-[11px] font-bold text-slate-400">
+ <div className="absolute left-0 top-10 z-50 w-72  border border-gray-200 bg-white p-4 shadow-md animate-in fade-in  duration-200">
+ <div className="mb-2 text-center text-[11px] font-bold text-gray-400">
  {!rangeFrom ?"Select start date" : !rangeTo ?"Select end date" :`${formatDate(toDateStr(rangeFrom))} - ${formatDate(toDateStr(rangeTo))}`}
  </div>
  <div className="mb-3 flex items-center justify-between">
  <button
  type="button"
  onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
- className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100"
+ className="flex h-7 w-7 items-center justify-center  text-gray-500 transition hover:bg-gray-100"
  >
  <CaretLeft size={14} weight="bold" />
  </button>
- <span className="text-xs font-bold text-slate-700">
+ <span className="text-xs font-bold text-gray-700">
  {calMonth.toLocaleDateString("en-US", { month:"long", year:"numeric" })}
  </span>
  <button
  type="button"
  onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
- className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100"
+ className="flex h-7 w-7 items-center justify-center  text-gray-500 transition hover:bg-gray-100"
  >
  <CaretRight size={14} weight="bold" />
  </button>
  </div>
  <div className="mb-1 grid grid-cols-7 gap-1 text-center">
  {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
- <div key={d} className="text-[11px] font-bold uppercase text-slate-400">{d}</div>
+ <div key={d} className="text-[11px] font-bold uppercase text-gray-400">{d}</div>
  ))}
  </div>
  <div className="grid grid-cols-7 gap-1">
@@ -492,14 +492,14 @@ export default function WeeklyReportPage() {
  onClick={() => pickDate(day)}
  className={cn(
 "flex h-7 w-full items-center justify-center text-xs font-semibold transition hover:bg-blue-100",
- (isRangeStart || isRangeEnd) ?"rounded-md bg-blue-700 text-white ring-2 ring-blue-300" :
+ (isRangeStart || isRangeEnd) ?" bg-blue-700 text-white ring-2 ring-blue-300" :
  inPickedRange ?"bg-blue-500 text-white" :
- inCurrentRange ?"rounded-md bg-blue-600 text-white hover:bg-blue-700" :
-"rounded-md text-slate-700",
+ inCurrentRange ?" bg-blue-600 text-white hover:bg-blue-700" :
+" text-gray-700",
  isRangeStart &&"rounded-l-md rounded-r-none",
  isRangeEnd &&"rounded-r-md rounded-l-none",
  inPickedRange && !isRangeStart && !isRangeEnd &&"rounded-none",
- isToday && !inCurrentRange && !inPickedRange && !isRangeStart &&"font-black text-blue-600 bg-blue-50"
+ isToday && !inCurrentRange && !inPickedRange && !isRangeStart &&"font-bold text-blue-600 bg-blue-50"
  )}
  >
  {day.getDate()}
@@ -511,7 +511,7 @@ export default function WeeklyReportPage() {
  <button
  type="button"
  onClick={applyRange}
- className="mt-3 flex h-9 w-full items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-500"
+ className="mt-3 flex h-9 w-full items-center justify-center  bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-500"
  >
  Apply Filter
  </button>
@@ -522,10 +522,10 @@ export default function WeeklyReportPage() {
 
  <div className="hidden print:flex items-center gap-2">
  <CalendarBlank size={13} weight="bold" />
- Period: <span className="font-bold text-slate-700">{formatDate(toDateStr(weekStart))}</span> - <span className="font-bold text-slate-700">{formatDate(toDateStr(weekEnd))}</span>
+ Period: <span className="font-bold text-gray-700">{formatDate(toDateStr(weekStart))}</span> - <span className="font-bold text-gray-700">{formatDate(toDateStr(weekEnd))}</span>
  </div>
 
- <span className={cn("ml-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-black uppercase tracking-widest text-white", passRateTone)}>
+ <span className={cn("ml-2 inline-flex items-center gap-1  px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-white", passRateTone)}>
  <TrendIcon direction={reportMood?.tone ??"flat"} />
  {reportMood?.label}
  </span>
@@ -559,7 +559,7 @@ export default function WeeklyReportPage() {
  </BarChart>
  </ResponsiveContainer>
  ) : (
- <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-sm text-slate-500">
+ <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">
  No execution data this period.
  </div>
  )}
@@ -571,32 +571,32 @@ export default function WeeklyReportPage() {
  <div
  key={`${item.title}-${idx}`}
  className={cn(
-"rounded-2xl border p-4",
+" border p-4",
  item.tone ==="danger" &&"border-rose-200 bg-rose-50",
  item.tone ==="warning" &&"border-amber-200 bg-amber-50",
  item.tone ==="info" &&"border-sky-200 bg-sky-50",
  )}
  >
  <div className="flex items-start gap-3">
- <div className={cn("mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl text-white", item.tone ==="danger" ?"bg-rose-600" : item.tone ==="warning" ?"bg-amber-600" :"bg-sky-600")}>
+ <div className={cn("mt-0.5 flex h-8 w-8 items-center justify-center  text-white", item.tone ==="danger" ?"bg-rose-600" : item.tone ==="warning" ?"bg-amber-600" :"bg-sky-600")}>
  <WarningCircle size={16} weight="bold" />
  </div>
  <div className="min-w-0">
- <p className="text-sm font-bold text-slate-900">{item.title}</p>
- <p className="mt-0.5 text-xs text-slate-600">{item.detail}</p>
+ <p className="text-sm font-bold text-gray-900">{item.title}</p>
+ <p className="mt-0.5 text-xs text-gray-600">{item.detail}</p>
  </div>
  </div>
  </div>
  ))}
 
  <div className="grid grid-cols-2 gap-3 pt-1">
- <div className="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
- <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Open Bugs</p>
- <p className="mt-2 text-2xl font-black text-slate-900">{summary.openBugs}</p>
+ <div className=" border border-gray-200/70 bg-gray-50 p-4">
+ <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Open Bugs</p>
+ <p className="mt-2 text-2xl font-bold text-gray-900">{summary.openBugs}</p>
  </div>
- <div className="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
- <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Open Tasks</p>
- <p className="mt-2 text-2xl font-black text-slate-900">{summary.openTasks}</p>
+ <div className=" border border-gray-200/70 bg-gray-50 p-4">
+ <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Open Tasks</p>
+ <p className="mt-2 text-2xl font-bold text-gray-900">{summary.openTasks}</p>
  </div>
  </div>
  </div>
@@ -620,7 +620,7 @@ export default function WeeklyReportPage() {
  </BarChart>
  </ResponsiveContainer>
  ) : (
- <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-sm text-slate-500">
+ <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">
  No severity data.
  </div>
  )}
@@ -638,7 +638,7 @@ export default function WeeklyReportPage() {
  </BarChart>
  </ResponsiveContainer>
  ) : (
- <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-sm text-slate-500">
+ <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">
  No test plan data.
  </div>
  )}
@@ -649,11 +649,11 @@ export default function WeeklyReportPage() {
  <Panel title="New Bugs" subtitle="Bugs reported this period.">
  <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
  {(newBugs as WeeklyReportData["newBugs"]).map((bug) => (
- <button key={bug.id} type="button" onClick={() => setDetailModal({ type:"Bug", module:"bugs", id: bug.id, fields: [{ label:"Code", value: bug.code, icon:"title" }, { label:"Title", value: bug.title, icon:"title" }, { label:"Project", value: bug.project, icon:"project" }, { label:"Status", value: formatDisplayText(bug.status), icon:"status" }, { label:"Priority", value: formatDisplayText(bug.priority), icon:"priority" }, { label:"Severity", value: formatDisplayText(bug.severity), icon:"severity" }] })} className="w-full text-left rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
+ <button key={bug.id} type="button" onClick={() => setDetailModal({ type:"Bug", module:"bugs", id: bug.id, fields: [{ label:"Code", value: bug.code, icon:"title" }, { label:"Title", value: bug.title, icon:"title" }, { label:"Project", value: bug.project, icon:"project" }, { label:"Status", value: formatDisplayText(bug.status), icon:"status" }, { label:"Priority", value: formatDisplayText(bug.priority), icon:"priority" }, { label:"Severity", value: formatDisplayText(bug.severity), icon:"severity" }] })} className="w-full text-left  border border-gray-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
  <div className="flex items-start justify-between gap-2">
  <div className="min-w-0">
- <p className="truncate text-xs font-bold text-slate-900">{bug.code} · {bug.title}</p>
- <p className="mt-0.5 truncate text-[11px] text-slate-400">{bug.project} · {formatDisplayText(bug.priority)}</p>
+ <p className="truncate text-xs font-bold text-gray-900">{bug.code} · {bug.title}</p>
+ <p className="mt-0.5 truncate text-[11px] text-gray-400">{bug.project} · {formatDisplayText(bug.priority)}</p>
  </div>
  <Badge value={bug.status} />
  </div>
@@ -665,11 +665,11 @@ export default function WeeklyReportPage() {
  <Panel title="New Tasks" subtitle="Tasks created this period.">
  <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
  {(newTasks as WeeklyReportData["newTasks"]).map((task) => (
- <button key={task.id} type="button" onClick={() => setDetailModal({ type:"Task", module:"tasks", id: task.id, fields: [{ label:"Code", value: task.code, icon:"title" }, { label:"Title", value: task.title, icon:"title" }, { label:"Project", value: task.project, icon:"project" }, { label:"Status", value: formatDisplayText(task.status), icon:"status" }, { label:"Priority", value: formatDisplayText(task.priority), icon:"priority" }] })} className="w-full text-left rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
+ <button key={task.id} type="button" onClick={() => setDetailModal({ type:"Task", module:"tasks", id: task.id, fields: [{ label:"Code", value: task.code, icon:"title" }, { label:"Title", value: task.title, icon:"title" }, { label:"Project", value: task.project, icon:"project" }, { label:"Status", value: formatDisplayText(task.status), icon:"status" }, { label:"Priority", value: formatDisplayText(task.priority), icon:"priority" }] })} className="w-full text-left  border border-gray-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
  <div className="flex items-start justify-between gap-2">
  <div className="min-w-0">
- <p className="truncate text-xs font-bold text-slate-900">{task.code} · {task.title}</p>
- <p className="mt-0.5 truncate text-[11px] text-slate-400">{task.project} · {formatDisplayText(task.priority)}</p>
+ <p className="truncate text-xs font-bold text-gray-900">{task.code} · {task.title}</p>
+ <p className="mt-0.5 truncate text-[11px] text-gray-400">{task.project} · {formatDisplayText(task.priority)}</p>
  </div>
  <Badge value={task.status} />
  </div>
@@ -681,17 +681,17 @@ export default function WeeklyReportPage() {
  <Panel title="Top Assignees" subtitle="Most active contributors this period.">
  <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
  {assigneeLoad.length > 0 ? assigneeLoad.map((person, idx) => (
- <button key={`${person.name}-${idx}`} type="button" onClick={() => setDetailModal({ type:"Assignee", module:"reports/workload", id: 0, fields: [{ label:"Name", value: person.name, icon:"title" }, { label:"Rank", value:`#${idx + 1}`, icon:"status" }, { label:"Active Items", value: String(person.count), icon:"progressSummary" }] })} className="w-full flex items-center justify-between rounded-2xl border border-slate-200/70 px-3 py-2 transition hover:border-blue-200 hover:bg-blue-50/40">
+ <button key={`${person.name}-${idx}`} type="button" onClick={() => setDetailModal({ type:"Assignee", module:"reports/workload", id: 0, fields: [{ label:"Name", value: person.name, icon:"title" }, { label:"Rank", value:`#${idx + 1}`, icon:"status" }, { label:"Active Items", value: String(person.count), icon:"progressSummary" }] })} className="w-full flex items-center justify-between  border border-gray-200/70 px-3 py-2 transition hover:border-blue-200 hover:bg-blue-50/40">
  <div className="flex items-center gap-2 min-w-0">
- <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-black text-slate-500">
+ <div className="flex h-7 w-7 items-center justify-center  bg-gray-100 text-xs font-bold text-gray-500">
  {idx + 1}
  </div>
- <p className="truncate text-xs font-bold text-slate-800">{person.name}</p>
+ <p className="truncate text-xs font-bold text-gray-800">{person.name}</p>
  </div>
- <span className="text-xs font-black text-slate-500">{person.count}</span>
+ <span className="text-xs font-bold text-gray-500">{person.count}</span>
  </button>
  )) : (
- <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">
+ <div className=" border border-dashed border-gray-200 p-6 text-sm text-gray-500">
  No assignee data.
  </div>
  )}
@@ -703,19 +703,19 @@ export default function WeeklyReportPage() {
  <Panel
  title="Active Sprints"
  subtitle="Currently active sprints."
- actions={<span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-widest text-amber-600">{activeSprints.length} items</span>}
+ actions={<span className=" bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-amber-600">{activeSprints.length} items</span>}
  >
  <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
  {(activeSprints as WeeklyReportData["activeSprints"]).map((sprint) => (
- <button key={sprint.id} type="button" onClick={() => setDetailModal({ type:"Sprint", module:"sprints", id: sprint.id, fields: [{ label:"Name", value: sprint.name, icon:"title" }, { label:"Status", value: formatDisplayText(sprint.status), icon:"status" }, { label:"Goal", value: sprint.goal ||"-", icon:"description" }, { label:"Start Date", value: formatDate(sprint.startDate), icon:"date" }, { label:"End Date", value: formatDate(sprint.endDate), icon:"dueDate" }] })} className="w-full text-left rounded-2xl border border-slate-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
+ <button key={sprint.id} type="button" onClick={() => setDetailModal({ type:"Sprint", module:"sprints", id: sprint.id, fields: [{ label:"Name", value: sprint.name, icon:"title" }, { label:"Status", value: formatDisplayText(sprint.status), icon:"status" }, { label:"Goal", value: sprint.goal ||"-", icon:"description" }, { label:"Start Date", value: formatDate(sprint.startDate), icon:"date" }, { label:"End Date", value: formatDate(sprint.endDate), icon:"dueDate" }] })} className="w-full text-left  border border-gray-200/70 p-3 transition hover:border-blue-200 hover:bg-blue-50/40">
  <div className="flex items-start justify-between gap-2">
  <div className="min-w-0">
- <p className="truncate text-xs font-bold text-slate-900">{sprint.name}</p>
- {sprint.goal && <p className="mt-0.5 truncate text-[11px] text-slate-400">{sprint.goal}</p>}
+ <p className="truncate text-xs font-bold text-gray-900">{sprint.name}</p>
+ {sprint.goal && <p className="mt-0.5 truncate text-[11px] text-gray-400">{sprint.goal}</p>}
  </div>
  <Badge value={sprint.status} />
  </div>
- <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-slate-400">
+ <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-gray-400">
  <Clock size={11} weight="bold" />
  {formatDate(sprint.startDate)} – {formatDate(sprint.endDate)}
  </p>
@@ -727,13 +727,13 @@ export default function WeeklyReportPage() {
  <Panel title={`Recent Activity (${recentActivity.length})`} subtitle="Latest activity recorded in the system.">
  <div className="max-h-80 space-y-1.5 overflow-y-auto pr-1">
  {(recentActivity as WeeklyReportData["recentActivity"]).map((activity, idx) => (
- <div key={`${activity.createdAt}-${idx}`} className="flex items-start gap-2 rounded-2xl border border-slate-200/70 px-3 py-2">
- <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[10px] font-black uppercase text-slate-500">
+ <div key={`${activity.createdAt}-${idx}`} className="flex items-start gap-2  border border-gray-200/70 px-3 py-2">
+ <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center  bg-gray-100 text-[10px] font-bold uppercase text-gray-500">
  {activity.entityType?.[0] ??"?"}
  </span>
  <div className="min-w-0 flex-1">
- <p className="text-xs font-medium leading-snug text-slate-700">{activity.summary}</p>
- <p className="mt-0.5 text-[11px] uppercase tracking-widest text-slate-400">{formatDisplayText(activity.entityType)} · {formatDisplayText(activity.action)}</p>
+ <p className="text-xs font-medium leading-snug text-gray-700">{activity.summary}</p>
+ <p className="mt-0.5 text-[11px] uppercase tracking-widest text-gray-400">{formatDisplayText(activity.entityType)} · {formatDisplayText(activity.action)}</p>
  </div>
  </div>
  ))}
@@ -743,21 +743,21 @@ export default function WeeklyReportPage() {
 
  {detailModal && (
  <div
- className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center"
+ className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4  animate-in fade-in duration-200 sm:items-center"
  onMouseDown={(e) => { if (e.target === e.currentTarget) setDetailModal(null); }}
  >
- <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:slide-in-from-bottom-0">
- <div className="flex items-center justify-between border-b border-slate-200/60 px-4 py-3">
+ <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col  bg-white shadow-md animate-in slide-in-from-bottom-4 duration-150 sm:slide-in-from-bottom-0">
+ <div className="flex items-center justify-between border-b border-gray-200/60 px-4 py-3">
  <div>
- <p className="text-[11px] font-black uppercase tracking-widest text-blue-500">{detailModal.type}</p>
- <h2 className="text-sm font-black text-slate-900">
+ <p className="text-[11px] font-bold uppercase tracking-widest text-blue-500">{detailModal.type}</p>
+ <h2 className="text-sm font-bold text-gray-900">
  {detailModal.fields.find(f => f.label ==="Title")?.value || detailModal.fields.find(f => f.label ==="Name")?.value ||"Detail"}
  </h2>
  {detailModal.fields.find(f => f.label ==="Code") && (
- <p className="text-[11px] font-semibold text-slate-400">{detailModal.fields.find(f => f.label ==="Code")?.value}</p>
+ <p className="text-[11px] font-semibold text-gray-400">{detailModal.fields.find(f => f.label ==="Code")?.value}</p>
  )}
  </div>
- <button onClick={() => setDetailModal(null)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">×</button>
+ <button onClick={() => setDetailModal(null)} className=" p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">×</button>
  </div>
  <div className="flex-1 overflow-y-auto px-4 py-4">
  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -765,18 +765,18 @@ export default function WeeklyReportPage() {
  const isLong = f.label ==="Title" || f.label ==="Goal" || f.label ==="Name";
  const icon = f.icon ? fieldIcons[f.icon] : null;
  return (
- <div key={f.label} className={cn("rounded-xl bg-slate-50 px-3 py-2", isLong &&"sm:col-span-2")}>
- <div className="mb-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+ <div key={f.label} className={cn(" bg-gray-50 px-3 py-2", isLong &&"sm:col-span-2")}>
+ <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
  {icon}
  {f.label}
  </div>
- <p className="whitespace-pre-wrap text-xs font-semibold text-slate-800">{f.value ||"-"}</p>
+ <p className="whitespace-pre-wrap text-xs font-semibold text-gray-800">{f.value ||"-"}</p>
  </div>
  );
  })}
  </div>
  </div>
- <div className="flex items-center justify-end gap-2 border-t border-slate-200/60 px-4 py-3">
+ <div className="flex items-center justify-end gap-2 border-t border-gray-200/60 px-4 py-3">
  {detailModal.id > 0 && (
  <button
  onClick={() => {
@@ -784,12 +784,12 @@ export default function WeeklyReportPage() {
  setDetailModal(null);
  window.location.href =`/${detailModal.module}?edit=${detailModal.id}`;
  }}
- className="h-8 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:bg-blue-500 hover:-translate-y-0.5 hover:shadow-md"
+ className="h-8  bg-blue-600 px-4 text-xs font-bold text-white transition-all duration-150 hover:bg-blue-500  hover:shadow-md"
  >
  Edit
  </button>
  )}
- <button onClick={() => setDetailModal(null)} className="h-8 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:bg-rose-500 hover:-translate-y-0.5 hover:shadow-md">Close</button>
+ <button onClick={() => setDetailModal(null)} className="h-8  bg-rose-600 px-4 text-xs font-bold text-white transition-all duration-150 hover:bg-rose-500  hover:shadow-md">Close</button>
  </div>
  </div>
  </div>

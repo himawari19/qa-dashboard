@@ -74,7 +74,7 @@ export function DensityToggle({ containerSelector = "[data-dashboard-root]", cla
       role="group"
       aria-label="Dashboard density"
       className={cn(
-        "inline-flex items-center rounded-md border border-slate-200 bg-slate-50 p-0.5 text-[11px] font-bold transition-all duration-300",
+        "inline-flex items-center  border border-gray-200 bg-gray-50 p-0.5 text-[11px] font-bold transition-all duration-150",
         className,
       )}
       data-testid="density-toggle"
@@ -113,8 +113,8 @@ function DensityButton({
       aria-pressed={active}
       data-testid={`density-${label.toLowerCase()}`}
       className={cn(
-        "inline-flex h-7 items-center gap-1 rounded-md px-2.5 transition",
-        active ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700",
+        "inline-flex h-7 items-center gap-1  px-2.5 transition",
+        active ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700",
       )}
     >
       {icon}

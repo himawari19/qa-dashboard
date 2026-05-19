@@ -50,23 +50,23 @@ function FilterDropdown({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition",
+          "inline-flex h-8 items-center gap-1.5  border px-3 text-xs font-semibold transition",
           activeValue
             ? "border-blue-300 bg-blue-50 text-blue-700"
-            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
+            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
         )}
       >
         {selectedOption ? selectedOption.label : filter.label}
         <CaretDown size={11} weight="bold" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-48 overflow-y-auto  border border-gray-200 bg-white shadow-md animate-in fade-in  duration-150">
           <button
             type="button"
             onClick={() => { onSelect(""); setOpen(false); }}
             className={cn(
               "block w-full px-3 py-2 text-left text-xs font-medium transition",
-              !activeValue ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50",
+              !activeValue ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50",
             )}
           >
             All {filter.label}
@@ -78,7 +78,7 @@ function FilterDropdown({
               onClick={() => { onSelect(option.value); setOpen(false); }}
               className={cn(
                 "block w-full truncate px-3 py-2 text-left text-xs font-medium transition",
-                activeValue === option.value ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50",
+                activeValue === option.value ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50",
               )}
             >
               {option.label}
@@ -109,7 +109,7 @@ export function ModuleFilterBar({ filters, activeFilters, onFilterChange }: Modu
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500">
         <Funnel size={13} weight="bold" />
         Filters
       </span>
@@ -125,7 +125,7 @@ export function ModuleFilterBar({ filters, activeFilters, onFilterChange }: Modu
         <button
           type="button"
           onClick={clearAll}
-          className="inline-flex h-8 items-center gap-1 rounded-md bg-slate-100 px-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-200"
+          className="inline-flex h-8 items-center gap-1  bg-gray-100 px-2.5 text-xs font-bold text-gray-600 transition hover:bg-gray-200"
         >
           <X size={11} weight="bold" />
           Clear

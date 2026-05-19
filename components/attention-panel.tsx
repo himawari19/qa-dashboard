@@ -55,13 +55,13 @@ export function AttentionPanel({ items, userRole }: AttentionPanelProps) {
   const showQuickActions = canUseQuickActions(userRole);
 
   return (
-    <div className="lg:col-span-3 flex flex-col rounded-2xl border border-slate-200 bg-white p-5">
+    <div className="lg:col-span-3 flex flex-col  border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Attention Needed</h3>
+        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-700">Attention Needed</h3>
         <Warning size={15} className="text-amber-400" weight="bold" />
       </div>
       {items.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+        <div className="flex-1 flex flex-col items-center justify-center py-10 text-gray-400 gap-2">
           <CheckCircle size={28} weight="bold" className="text-emerald-400" />
           <p className="text-xs font-semibold">All clear - no critical items right now.</p>
         </div>
@@ -83,7 +83,7 @@ function AttentionRow({ item, canQuickAction }: { item: AttentionItem; canQuickA
 
   return (
     <div
-      className="animate-attention-slide-in relative flex items-center gap-2.5 rounded-lg border border-slate-100 p-3 hover:border-slate-200 hover:bg-slate-50 transition group"
+      className="animate-attention-slide-in relative flex items-center gap-2.5  border border-gray-100 p-3 hover:border-gray-200 hover:bg-gray-50 transition group"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}
@@ -100,7 +100,7 @@ function AttentionRow({ item, canQuickAction }: { item: AttentionItem; canQuickA
           {item.type === "task" && <Kanban size={14} weight="bold" className="text-blue-500" />}
           {item.type === "stuck" && <Timer size={14} weight="bold" className="text-amber-500" />}
         </div>
-        <span className="flex-1 text-xs font-semibold text-slate-700 truncate group-hover:text-slate-900">
+        <span className="flex-1 text-xs font-semibold text-gray-700 truncate group-hover:text-gray-900">
           {item.title}
         </span>
       </Link>
@@ -114,7 +114,7 @@ function AttentionRow({ item, canQuickAction }: { item: AttentionItem; canQuickA
       <AgeIndicator statusChangedAt={item.statusChangedAt ?? null} ageDays={item.ageDays ?? null} />
       <Badge value={item.badge} />
       <Link href={item.href} prefetch={false} aria-label="Open">
-        <CaretRight size={10} className="text-slate-300 group-hover:text-slate-500" />
+        <CaretRight size={10} className="text-gray-300 group-hover:text-gray-500" />
       </Link>
     </div>
   );

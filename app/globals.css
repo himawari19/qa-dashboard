@@ -1,30 +1,28 @@
 @import "tailwindcss";
 
-
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
-  --bg-app: #f8fafc;
-  --bg-sidebar: rgba(255, 255, 255, 0.7);
+  --bg-app: #fafbfc;
+  --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
-  --bg-header: rgba(255, 255, 255, 0.6);
+  --bg-header: #ffffff;
   --bg-input: #f8fafc;
-  --bg-table-head: #f1f5f9;
-  --bg-table-row-alt: rgba(248, 250, 252, 0.7);
-  --bg-module-header: #f8fafc;
-  --border-color: #e2e8f0;
-  --border-sidebar: #e2e8f0;
-  --border-module-header: #e2e8f0;
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --text-label: #64748b;
-  --accent-primary: #2563eb; /* Blue 600 */
-  --accent-secondary: #0ea5e9; /* Sky 500 */
-  --glass-blur: blur(12px);
+  --bg-table-head: #f8fafc;
+  --bg-table-row-alt: #fafbfc;
+  --bg-module-header: #ffffff;
+  --border-color: #e5e7eb;
+  --border-sidebar: #e5e7eb;
+  --border-module-header: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-label: #6b7280;
+  --accent-primary: #2563eb;
+  --accent-secondary: #3b82f6;
   /* Layout */
   --sidebar-expanded: 240px;
-  --sidebar-collapsed: 72px;
+  --sidebar-collapsed: 64px;
   /* Z-index scale */
   --z-base: 0;
   --z-sticky: 20;
@@ -37,15 +35,17 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "DM Sans", sans-serif;
-  --font-mono: "DM Sans", monospace;
-  --font-serif: "DM Sans", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "Inter", monospace;
+  --font-serif: "Inter", serif;
 }
 
 * {
   box-sizing: border-box;
+  border-radius: 0 !important;
 }
 
+html,
 body {
   overflow-x: hidden;
 }
@@ -53,59 +53,41 @@ body {
 body {
   background: var(--bg-app);
   color: var(--foreground);
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
-@keyframes meshMove {
-  0% { background-position: 0% 0%; }
-  50% { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
-}
+/* ── Utility classes (replacing old glass/mesh) ──────────────── */
 
 .mesh-gradient {
-  background: fixed;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(37, 99, 235, 0.08) 0px, transparent 50%);
-  background-size: 200% 200%;
-  animation: meshMove 15s ease infinite;
+  background: var(--bg-app);
 }
 
 .glass-card {
   background-color: #ffffff;
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-color);
 }
 
 .premium-button {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.3);
+  background: var(--accent-primary);
+  transition: all 150ms ease;
 }
 
 .premium-button:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
-  filter: brightness(1.1);
+  background: #1d4ed8;
 }
 
 .premium-button:active {
-  transform: translateY(0px);
+  background: #1e40af;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────── */
 
-/* Hide default scrollbar globally, use overlay style */
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
 *:hover {
-  scrollbar-color: rgba(148,163,184,0.4) transparent;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -117,17 +99,15 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: transparent;
-  border-radius: 99px;
-  transition: background 0.2s;
+  transition: background 0.15s;
 }
 *:hover::-webkit-scrollbar-thumb {
-  background: rgba(148,163,184,0.5);
+  background: rgba(156, 163, 175, 0.5);
 }
 *:hover::-webkit-scrollbar-thumb:hover {
-  background: rgba(100,116,139,0.8);
+  background: rgba(107, 114, 128, 0.7);
 }
 
-/* Sidebar: completely hidden scrollbar */
 aside ::-webkit-scrollbar {
   width: 0px;
 }
@@ -135,14 +115,7 @@ aside {
   scrollbar-width: none;
 }
 
-.font-serif {
-  font-family: var(--font-lato), sans-serif;
-}
-
-html,
-body {
-  overflow-x: hidden;
-}
+/* ── Base element resets ─────────────────────────────────────── */
 
 a,
 button,
@@ -152,14 +125,13 @@ select {
   appearance: none;
   -webkit-appearance: none;
   transition:
-    background-color 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease,
-    box-shadow 180ms ease;
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 /* ── Focus ring override ──────────────────────────────────────── */
-/* Outer elements (buttons, links, nav, labels): no visible focus ring */
+
 button:focus,
 button:focus-visible,
 button:focus-within,
@@ -178,7 +150,6 @@ label:focus-visible,
   -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Form inputs: subtle border highlight only (skip borderless inputs) */
 input:not([type="checkbox"]):not([type="radio"]):not(.border-none):focus,
 input:not([type="checkbox"]):not([type="radio"]):not(.border-none):focus-visible,
 textarea:focus,
@@ -190,13 +161,15 @@ select:focus-visible {
   box-shadow: none !important;
 }
 
-/* Borderless inputs (e.g. global search) - no focus styling */
 input.border-none:focus,
 input.border-none:focus-visible {
   outline: none !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* ── Print ────────────────────────────────────────────────────── */
+
 @media print {
   @page {
     size: A4;
@@ -209,10 +182,9 @@ input.border-none:focus-visible {
     margin: 0 !important;
   }
 
-  /* Hide navigation, sidebar, and buttons during print */
-  nav, 
-  aside, 
-  button, 
+  nav,
+  aside,
+  button,
   .no-print,
   [aria-label="Export Excel"],
   [aria-label="Download Template"],
@@ -221,7 +193,6 @@ input.border-none:focus-visible {
     display: none !important;
   }
 
-  /* Ensure main content takes full width */
   main {
     margin: 0 !important;
     padding: 0 !important;
@@ -232,16 +203,14 @@ input.border-none:focus-visible {
     display: block !important;
   }
 
-  /* Force background colors in print */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Prevent cards from breaking across pages */
-  section, .rounded-\[28px\], .rounded-md {
+  section {
     break-inside: avoid;
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #d1d5db !important;
     box-shadow: none !important;
   }
 }
@@ -249,32 +218,26 @@ input.border-none:focus-visible {
 .print-only {
   display: none;
 }
+
+/* ── Animations (kept minimal) ────────────────────────────────── */
+
 @keyframes show {
-  0%, 49.99% {
-    opacity: 0;
-    z-index: 1;
-  }
-  50%, 100% {
-    opacity: 1;
-    z-index: 5;
-  }
+  0%, 49.99% { opacity: 0; z-index: 1; }
+  50%, 100% { opacity: 1; z-index: 5; }
 }
 
 .animate-show {
   animation: show 0.7s;
 }
 
-/* ── Micro-Animations for Dashboard Data Updates ─────────────── */
-/* Requirement 15: Subtle animations on data value changes */
-
 @keyframes stat-value-pop {
   0% { transform: scale(1); opacity: 0.7; }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.02); }
   100% { transform: scale(1); opacity: 1; }
 }
 
 @keyframes attention-slide-in {
-  0% { transform: translateY(-100%); opacity: 0; }
+  0% { transform: translateY(-8px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
 
@@ -284,22 +247,35 @@ input.border-none:focus-visible {
 }
 
 .animate-stat-pop {
-  animation: stat-value-pop 300ms ease-out;
+  animation: stat-value-pop 200ms ease-out;
 }
 
 .animate-attention-slide-in {
-  animation: attention-slide-in 200ms ease-out;
+  animation: attention-slide-in 150ms ease-out;
 }
 
 .animate-activity-fade-in {
-  animation: activity-fade-in 200ms ease-out;
+  animation: activity-fade-in 150ms ease-out;
 }
 
-/* Requirement 15.4: Respect prefers-reduced-motion - instant changes, no transitions */
 @media (prefers-reduced-motion: reduce) {
   .animate-stat-pop,
   .animate-attention-slide-in,
   .animate-activity-fade-in {
     animation: none;
   }
+}
+
+/* ── Square Spinner ───────────────────────────────────────────── */
+
+@keyframes square-spin {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-square-spin {
+  animation: square-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }

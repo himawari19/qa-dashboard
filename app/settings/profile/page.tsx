@@ -36,8 +36,8 @@ export default async function ProfilePage() {
  {/* Header/Banner area */}
  <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
  <div className="absolute -bottom-10 left-8">
- <div className="h-20 w-20 rounded-2xl bg-white border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
- <div className="h-full w-full bg-slate-50 flex items-center justify-center text-slate-400">
+ <div className="h-20 w-20  bg-white border-4 border-white shadow-md flex items-center justify-center overflow-hidden">
+ <div className="h-full w-full bg-gray-50 flex items-center justify-center text-gray-400">
  <User size={40} weight="duotone" />
  </div>
  </div>
@@ -46,18 +46,18 @@ export default async function ProfilePage() {
 
  <div className="pt-14 p-8">
  <div className="mb-8">
- <h2 className="text-xl font-black text-slate-900">Account Details</h2>
- <p className="text-sm text-slate-500">Manage your identity within the QA Daily platform.</p>
+ <h2 className="text-xl font-bold text-gray-900">Account Details</h2>
+ <p className="text-sm text-gray-500">Manage your identity within the QA Daily platform.</p>
  </div>
 
  <ProfileForm user={JSON.parse(JSON.stringify(user))} />
  
- <div className="mt-12 pt-8 border-t border-slate-100">
- <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+ <div className="mt-12 pt-8 border-t border-gray-100">
+ <div className="flex items-start gap-4 p-4  bg-gray-50 border border-gray-100">
  <ShieldCheck size={24} className="text-emerald-500 shrink-0" weight="fill" />
  <div>
- <h4 className="text-sm font-bold text-slate-800">Security & Access</h4>
- <p className="text-xs text-slate-500 leading-relaxed mt-1">
+ <h4 className="text-sm font-bold text-gray-800">Security & Access</h4>
+ <p className="text-xs text-gray-500 leading-relaxed mt-1">
  Your account is linked to the <strong>{user.email}</strong> address. 
  Email updates are currently restricted to administrator-only actions to maintain audit log integrity.
  </p>

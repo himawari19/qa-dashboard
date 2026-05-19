@@ -42,7 +42,7 @@ export function ModuleRowActions({
         <button
           type="button"
           onClick={onView}
-          className="rounded-sm border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+          className="rounded-sm border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
         >
           View
         </button>

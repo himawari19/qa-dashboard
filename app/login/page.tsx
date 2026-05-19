@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft, ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -297,6 +298,14 @@ function LoginContent() {
               Access is managed by your workspace administrator.
             </p>
           )}
+
+          <Link
+            href="/"
+            className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-500 transition-colors hover:text-blue-600"
+          >
+            <ArrowLeft size={12} weight="bold" />
+            Back to homepage
+          </Link>
         </div>
       </div>
 

@@ -172,12 +172,12 @@ export function TestCaseGridRow({
    ? "bg-blue-50/80 ring-2 ring-inset ring-blue-300"
    : mode === "draft"
    ? "bg-emerald-50/40"
-   : "hover:bg-slate-50/70",
+   : "hover:bg-gray-50/70",
  )}>
  <td
  style={{ width: colMap.__row__, minWidth: colMap.__row__, maxWidth: colMap.__row__ }}
  className={cn(
-"border-b border-r border-slate-100 px-2 py-[4px] text-center text-xs font-bold uppercase tracking-wide text-slate-400",
+"border-b border-r border-gray-100 px-2 py-[4px] text-center text-xs font-bold uppercase tracking-wide text-gray-400",
  mode === "draft" ? "bg-blue-50/50 text-blue-600" : mode === "edit" ? "bg-blue-100/60 text-blue-700" : "bg-transparent",
  )}
  >
@@ -197,7 +197,7 @@ export function TestCaseGridRow({
 
  <td
  style={{ width: colMap.__action__, minWidth: colMap.__action__, maxWidth: colMap.__action__ }}
- className="border-b border-slate-100 bg-transparent px-2 py-[4px] align-middle"
+ className="border-b border-gray-100 bg-transparent px-2 py-[4px] align-middle"
  >
  <div className="flex items-center justify-center gap-2">
  {mode ==="view" ? (
@@ -205,7 +205,7 @@ export function TestCaseGridRow({
  <button
  type="button"
  onClick={onEdit}
- className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+ className="inline-flex h-8 w-8 items-center justify-center  bg-sky-50 text-sky-600 transition hover:bg-sky-100"
  title="Edit"
  >
  <PencilSimple size={12} weight="bold" />
@@ -213,7 +213,7 @@ export function TestCaseGridRow({
  <button
  type="button"
  onClick={onDelete}
- className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+ className="inline-flex h-8 w-8 items-center justify-center  bg-rose-50 text-rose-600 transition hover:bg-rose-100"
  title="Delete"
  >
  <Trash size={12} weight="bold" />
@@ -226,7 +226,7 @@ export function TestCaseGridRow({
  type="button"
  onClick={onSave}
  disabled={!canSave}
- className="inline-flex h-8 items-center justify-center rounded-md bg-blue-600 px-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+ className="inline-flex h-8 items-center justify-center  bg-blue-600 px-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
  >
  Save
  </button>
@@ -236,7 +236,7 @@ export function TestCaseGridRow({
  <button
  type="button"
  onClick={onReportBug}
- className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-amber-50 text-amber-600 transition hover:bg-amber-100"
+ className="inline-flex h-8 w-8 items-center justify-center  bg-amber-50 text-amber-600 transition hover:bg-amber-100"
  title="Report Bug"
  >
  <Bug size={14} weight="bold" />
@@ -562,71 +562,71 @@ export function TestCaseDetailEditor({
  <div className="flex flex-col gap-6">
  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
  <div className="glass-card space-y-3 p-4">
- <div className="border-b border-slate-100 pb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+ <div className="border-b border-gray-100 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
  Execution Status
  </div>
  <div className="flex gap-6">
  <div>
- <div className="text-xl font-black text-emerald-500">{passed}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">PASS</div>
+ <div className="text-xl font-bold text-emerald-500">{passed}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">PASS</div>
  </div>
  <div>
- <div className="text-xl font-black text-rose-500">{failed}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">FAIL</div>
+ <div className="text-xl font-bold text-rose-500">{failed}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">FAIL</div>
  </div>
  <div>
- <div className="text-xl font-black text-amber-500">{blocked}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">BLOCK</div>
+ <div className="text-xl font-bold text-amber-500">{blocked}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">BLOCK</div>
  </div>
  <div>
- <div className="text-xl font-black text-slate-400">{pendingCount}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">PEND</div>
+ <div className="text-xl font-bold text-gray-400">{pendingCount}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">PEND</div>
  </div>
  </div>
  </div>
 
  <div className="glass-card space-y-3 p-4">
- <div className="border-b border-slate-100 pb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+ <div className="border-b border-gray-100 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
  Test Type
  </div>
  <div className="flex gap-6">
  <div>
- <div className="text-xl font-black text-emerald-500">{positive}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">POS</div>
+ <div className="text-xl font-bold text-emerald-500">{positive}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">POS</div>
  </div>
  <div>
- <div className="text-xl font-black text-rose-500">{negative}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">NEG</div>
+ <div className="text-xl font-bold text-rose-500">{negative}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">NEG</div>
  </div>
  </div>
  </div>
 
  <div className="glass-card space-y-3 p-4">
- <div className="border-b border-slate-100 pb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+ <div className="border-b border-gray-100 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
  Priority
  </div>
  <div className="flex gap-5">
  <div>
- <div className="text-xl font-black text-red-700">{critical}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">CRIT</div>
+ <div className="text-xl font-bold text-red-700">{critical}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">CRIT</div>
  </div>
  <div>
- <div className="text-xl font-black text-rose-500">{high}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">HIGH</div>
+ <div className="text-xl font-bold text-rose-500">{high}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">HIGH</div>
  </div>
  <div>
- <div className="text-xl font-black text-sky-500">{medium}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">MED</div>
+ <div className="text-xl font-bold text-sky-500">{medium}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">MED</div>
  </div>
  <div>
- <div className="text-xl font-black text-slate-400">{low}</div>
- <div className="text-[11px] font-bold uppercase text-slate-400">LOW</div>
+ <div className="text-xl font-bold text-gray-400">{low}</div>
+ <div className="text-[11px] font-bold uppercase text-gray-400">LOW</div>
  </div>
  </div>
  </div>
  </div>
 
- <div className="overflow-auto rounded-2xl glass-card">
+ <div className="overflow-auto  glass-card">
  <table className="border-collapse" style={{ width: TOTAL_WIDTH, tableLayout:"fixed" }}>
  <colgroup>
  {COLS.map((column) => (
@@ -634,7 +634,7 @@ export function TestCaseDetailEditor({
  ))}
  </colgroup>
 
- <thead className="sticky top-0 z-20 bg-slate-200">
+ <thead className="sticky top-0 z-20 bg-gray-200">
  <tr>
  {COLS.map((column) => (
  <Th
@@ -709,17 +709,17 @@ export function TestCaseDetailEditor({
  </table>
  </div>
 
- <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-slate-500">
- <span className="font-semibold text-slate-600">
+ <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-gray-500">
+ <span className="font-semibold text-gray-600">
  Total: {cases.length} test case{cases.length !== 1 ?"s" :""}
  </span>
- <span className="text-slate-300">|</span>
+ <span className="text-gray-300">|</span>
  {passed > 0 && <span className="font-semibold text-emerald-600">{passed} Passed</span>}
  {failed > 0 && <span className="font-semibold text-rose-500">{failed} Failed</span>}
  {pendingCount > 0 && <span className="font-semibold text-amber-500">{pendingCount} Pending</span>}
  {blocked > 0 && <span className="font-semibold text-amber-600">{blocked} Blocked</span>}
  {passed === 0 && failed === 0 && pendingCount === 0 && blocked === 0 && (
- <span className="text-slate-400">No test results yet</span>
+ <span className="text-gray-400">No test results yet</span>
  )}
  </div>
  </div>

@@ -79,7 +79,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
 
   if (error) {
     return (
-      <InlineAlert variant="error" message={error} className="rounded-md px-6 py-5" />
+      <InlineAlert variant="error" message={error} className=" px-6 py-5" />
     );
   }
 
@@ -94,16 +94,16 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
           <div className="relative">
             <button
               onClick={() => setOpen((v) => !v)}
-              className="flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-sky-400 hover:text-sky-600"
+              className="flex h-8 items-center gap-2  border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 shadow-sm transition hover:border-sky-400 hover:text-sky-600"
             >
               <Funnel size={13} weight="bold" />
               {selectedProject || "All Projects"}
             </button>
             {open && (
-              <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-56 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-56 overflow-y-auto  border border-gray-200 bg-white shadow-md">
                 <button
                   onClick={() => { setSelectedProject(""); setOpen(false); }}
-                  className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-600 hover:bg-gray-50"
                 >
                   All Projects
                 </button>
@@ -111,7 +111,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
                   <button
                     key={p}
                     onClick={() => { setSelectedProject(p); setOpen(false); }}
-                    className="block w-full truncate px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700"
+                    className="block w-full truncate px-3 py-2 text-left text-xs font-medium text-gray-700 hover:bg-sky-50 hover:text-sky-700"
                   >
                     {p}
                   </button>
@@ -122,7 +122,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
           {selectedProject && (
             <button
               onClick={() => setSelectedProject("")}
-              className="flex h-8 items-center gap-1.5 rounded-md bg-sky-100 px-2.5 text-xs font-bold text-sky-700 transition hover:bg-sky-200"
+              className="flex h-8 items-center gap-1.5  bg-sky-100 px-2.5 text-xs font-bold text-sky-700 transition hover:bg-sky-200"
             >
               <X size={11} weight="bold" />
               Clear filter

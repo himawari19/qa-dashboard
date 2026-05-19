@@ -41,7 +41,7 @@ export function InlineStatusEditor({ value, options, onUpdate, disabled }: Inlin
         <Badge value={value} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px]  border border-gray-200 bg-white shadow-md animate-in fade-in  duration-150">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -53,7 +53,7 @@ export function InlineStatusEditor({ value, options, onUpdate, disabled }: Inlin
               }}
               className={cn(
                 "flex w-full items-center gap-2 px-3 py-2 text-xs font-medium transition",
-                opt.value === value ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50",
+                opt.value === value ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50",
               )}
             >
               <Badge value={opt.value} />

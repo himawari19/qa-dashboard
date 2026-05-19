@@ -43,7 +43,7 @@ export function CopyLinkButton({ module, itemId, activeTab }: CopyLinkButtonProp
     <button
       type="button"
       onClick={handleCopy}
-      className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+      className=" p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
       aria-label={copied ? "Link copied" : "Copy link"}
       title={copied ? "Link copied" : "Copy link"}
     >

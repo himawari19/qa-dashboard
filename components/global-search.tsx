@@ -69,10 +69,10 @@ const typeColors: Record<string, string> = {
  "Test Execution":"bg-cyan-100 text-cyan-700",
  "Meeting Notes":"bg-violet-100 text-violet-700",
  Sprints:"bg-orange-100 text-orange-700",
- Assignees:"bg-slate-100 text-slate-700",
- Users:"bg-slate-100 text-slate-700",
+ Assignees:"bg-gray-100 text-gray-700",
+ Users:"bg-gray-100 text-gray-700",
  "Deployment Log":"bg-teal-100 text-teal-700",
- "Daily Log":"bg-slate-100 text-slate-600",
+ "Daily Log":"bg-gray-100 text-gray-600",
 };
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -91,16 +91,16 @@ const typeIcons: Record<string, React.ReactNode> = {
 
 function ResultSkeleton() {
  return (
- <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+ <div className="overflow-hidden  border border-gray-200 bg-white">
  {Array.from({ length: 3 }).map((_, i) => (
- <div key={i} className="flex items-start gap-3 border-b border-slate-100 px-3 py-2.5 last:border-b-0 animate-pulse">
+ <div key={i} className="flex items-start gap-3 border-b border-gray-100 px-3 py-2.5 last:border-b-0 animate-pulse">
  <div className="mt-0.5 flex shrink-0 flex-col gap-1.5">
- <div className="h-4 w-14 rounded-full bg-slate-200" />
- <div className="h-3 w-10 rounded bg-slate-100" />
+ <div className="h-4 w-14  bg-gray-200" />
+ <div className="h-3 w-10 rounded bg-gray-100" />
  </div>
  <div className="flex-1 space-y-1.5 pt-0.5">
- <div className="h-4 w-3/4 rounded bg-slate-200" />
- <div className="h-3 w-1/2 rounded bg-slate-100" />
+ <div className="h-4 w-3/4 rounded bg-gray-200" />
+ <div className="h-3 w-1/2 rounded bg-gray-100" />
  </div>
  </div>
  ))}
@@ -109,7 +109,7 @@ function ResultSkeleton() {
 }
 
 const scopeColors: Record<SearchScope, { idle: string; active: string }> = {
- all: { idle:"border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700", active:"border-slate-400 bg-slate-100 text-slate-800" },
+ all: { idle:"border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700", active:"border-gray-400 bg-gray-100 text-gray-800" },
 "test-plans": { idle:"border-indigo-200 bg-indigo-50 text-indigo-600 hover:border-indigo-300 hover:text-indigo-700", active:"border-indigo-400 bg-indigo-100 text-indigo-800" },
 "test-suites": { idle:"border-emerald-200 bg-emerald-50 text-emerald-600 hover:border-emerald-300 hover:text-emerald-700", active:"border-emerald-400 bg-emerald-100 text-emerald-800" },
 "test-cases": { idle:"border-sky-200 bg-sky-50 text-sky-600 hover:border-sky-300 hover:text-sky-700", active:"border-sky-400 bg-sky-100 text-sky-800" },
@@ -119,9 +119,9 @@ const scopeColors: Record<SearchScope, { idle: string; active: string }> = {
 "meeting-notes": { idle:"border-violet-200 bg-violet-50 text-violet-600 hover:border-violet-300 hover:text-violet-700", active:"border-violet-400 bg-violet-100 text-violet-800" },
  sprints: { idle:"border-orange-200 bg-orange-50 text-orange-600 hover:border-orange-300 hover:text-orange-700", active:"border-orange-400 bg-orange-100 text-orange-800" },
  deployments: { idle:"border-teal-200 bg-teal-50 text-teal-600 hover:border-teal-300 hover:text-teal-700", active:"border-teal-400 bg-teal-100 text-teal-800" },
- assignees: { idle:"border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-700", active:"border-slate-400 bg-slate-100 text-slate-800" },
- users: { idle:"border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-700", active:"border-slate-400 bg-slate-100 text-slate-800" },
- activity: { idle:"border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-700", active:"border-slate-400 bg-slate-100 text-slate-800" },
+ assignees: { idle:"border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:text-gray-700", active:"border-gray-400 bg-gray-100 text-gray-800" },
+ users: { idle:"border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:text-gray-700", active:"border-gray-400 bg-gray-100 text-gray-800" },
+ activity: { idle:"border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:text-gray-700", active:"border-gray-400 bg-gray-100 text-gray-800" },
 };
 
 function readStringArray(raw: string | null) {
@@ -393,25 +393,25 @@ export function GlobalSearch({
 
  const modal = (
  <div className="fixed inset-0 z-[500] flex items-start justify-center px-3 pt-[6vh]">
- <button type="button" aria-label="Close search" onClick={() => setOpen(false)} className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" />
+ <button type="button" aria-label="Close search" onClick={() => setOpen(false)} className="absolute inset-0 bg-slate-950/55 " />
 
- <div className="relative z-[501] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
- <div className="border-b border-slate-100 px-4 py-3">
+ <div className="relative z-[501] w-full max-w-4xl overflow-hidden  border border-gray-200 bg-white shadow-md">
+ <div className="border-b border-gray-100 px-4 py-3">
  <div className="flex items-center gap-3">
- <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+ <div className="flex h-9 w-9 items-center justify-center  bg-sky-50 text-sky-600">
  <MagnifyingGlass size={16} weight="bold" />
  </div>
  <div className="min-w-0">
- <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Global Search</p>
- <p className="mt-0.5 text-xs text-slate-500">Fast search. Filters are behind More.</p>
+ <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-gray-400">Global Search</p>
+ <p className="mt-0.5 text-xs text-gray-500">Fast search. Filters are behind More.</p>
  </div>
  </div>
  </div>
 
  <div className="space-y-3 px-4 py-3">
  <div className="flex items-center gap-2">
- <div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
- <MagnifyingGlass size={15} weight="bold" className="shrink-0 text-slate-400" />
+ <div className="flex flex-1 items-center gap-2  border border-gray-200 bg-white px-3 py-2.5">
+ <MagnifyingGlass size={15} weight="bold" className="shrink-0 text-gray-400" />
  <input
  ref={inputRef}
  value={query}
@@ -421,16 +421,16 @@ export function GlobalSearch({
  autoComplete="off"
  autoCorrect="off"
  spellCheck="false"
- className="w-full border-none bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-none focus:outline-none focus:ring-0"
+ className="w-full border-none bg-transparent text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400 focus:border-none focus:outline-none focus:ring-0"
  />
  {query && (
- <button type="button" onClick={() => setQuery("")} className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700">
+ <button type="button" onClick={() => setQuery("")} className=" p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700">
  <X size={14} weight="bold" />
  </button>
  )}
  </div>
 
- <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 shadow-sm">
+ <div className=" border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-500 shadow-sm">
  {scopeLabel}
  </div>
 
@@ -439,10 +439,10 @@ export function GlobalSearch({
  onClick={() => setShowFilters((v) => !v)}
  aria-label="More filters"
  className={cn(
-"inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border shadow-sm transition-all",
+"inline-flex h-8 w-8 shrink-0 items-center justify-center  border shadow-sm transition-all",
  showFilters
  ?"border-sky-400 bg-sky-100 text-sky-700"
- :"border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+ :"border-gray-200 bg-white text-gray-600 hover:bg-gray-50",
  )}
  >
  <SlidersHorizontal size={13} weight="bold" />
@@ -455,10 +455,10 @@ export function GlobalSearch({
  onClick={() => scrollScopes("left")}
  aria-label="Scroll scopes left"
  className={cn(
-"flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full border shadow-sm transition-all",
+"flex h-8 w-8 shrink-0 items-center justify-center self-center  border shadow-sm transition-all",
  scopeCanScrollLeft
- ?"border-slate-200 bg-white text-slate-500 hover:border-sky-400 hover:text-sky-700"
- :"border-slate-100 bg-white text-slate-300 cursor-default",
+ ?"border-gray-200 bg-white text-gray-500 hover:border-sky-400 hover:text-sky-700"
+ :"border-gray-100 bg-white text-gray-300 cursor-default",
  )}
  >
  <CaretLeft size={12} weight="bold" />
@@ -491,7 +491,7 @@ export function GlobalSearch({
  type="button"
  onClick={() => setScope(option.value)}
  className={cn(
-"inline-flex h-8 items-center whitespace-nowrap rounded-full border px-3 text-xs font-semibold leading-none transition",
+"inline-flex h-8 items-center whitespace-nowrap  border px-3 text-xs font-semibold leading-none transition",
  active ? scopeColors[option.value].active : scopeColors[option.value].idle,
  )}
  >
@@ -507,10 +507,10 @@ export function GlobalSearch({
  onClick={() => scrollScopes("right")}
  aria-label="Scroll scopes right"
  className={cn(
-"flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full border shadow-sm transition-all",
+"flex h-8 w-8 shrink-0 items-center justify-center self-center  border shadow-sm transition-all",
  scopeCanScrollRight
- ?"border-slate-200 bg-white text-slate-500 hover:border-sky-400 hover:text-sky-700"
- :"border-slate-100 bg-white text-slate-300 cursor-default",
+ ?"border-gray-200 bg-white text-gray-500 hover:border-sky-400 hover:text-sky-700"
+ :"border-gray-100 bg-white text-gray-300 cursor-default",
  )}
  >
  <CaretRight size={12} weight="bold" />
@@ -523,25 +523,25 @@ export function GlobalSearch({
  value={status}
  onChange={(event) => setStatus(event.target.value)}
  placeholder="Status"
- className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400 transition-all focus:ring-0"
+ className="h-9  border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-400 transition-all focus:ring-0"
  />
  <input
  value={assignee}
  onChange={(event) => setAssignee(event.target.value)}
  placeholder="Assignee"
- className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400 transition-all focus:ring-0"
+ className="h-9  border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-400 transition-all focus:ring-0"
  />
  <input
  value={from}
  onChange={(event) => setFrom(event.target.value)}
  type="date"
- className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none transition-all focus:ring-0"
+ className="h-9  border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none transition-all focus:ring-0"
  />
  <input
  value={to}
  onChange={(event) => setTo(event.target.value)}
  type="date"
- className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none transition-all focus:ring-0"
+ className="h-9  border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none transition-all focus:ring-0"
  />
  </div>
  )}
@@ -552,7 +552,7 @@ export function GlobalSearch({
  <div className="space-y-3 flex-1 flex flex-col">
  {recentQueries.length > 0 ? (
  <>
- <div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+ <div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
  <div className="flex items-center gap-2">
  <ClockCounterClockwise size={13} weight="bold" />
  Recent searches
@@ -560,7 +560,7 @@ export function GlobalSearch({
  <button
  type="button"
  onClick={clearRecentQueries}
- className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 shadow-sm hover:border-rose-300 hover:text-rose-600"
+ className="inline-flex items-center gap-1  border border-gray-200 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 shadow-sm hover:border-rose-300 hover:text-rose-600"
  aria-label="Clear recent searches"
  title="Clear recent searches"
  >
@@ -574,7 +574,7 @@ export function GlobalSearch({
  key={item}
  type="button"
  onClick={() => setQuery(item)}
- className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-sm hover:border-sky-400 hover:text-sky-700"
+ className=" border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 shadow-sm hover:border-sky-400 hover:text-sky-700"
  >
  {item}
  </button>
@@ -582,7 +582,7 @@ export function GlobalSearch({
  </div>
  </>
  ) : (
- <div className="flex flex-1 items-center rounded-xl border border-dashed border-slate-200 bg-white px-3 py-4 text-sm text-slate-500">
+ <div className="flex flex-1 items-center  border border-dashed border-gray-200 bg-white px-3 py-4 text-sm text-gray-500">
  Search once to populate recent queries.
  </div>
  )}
@@ -590,18 +590,18 @@ export function GlobalSearch({
  ) : loading ? (
  <div className="space-y-2">
  <div className="flex items-center gap-2 px-1 pb-1">
- <CircleNotch size={12} className="animate-spin text-slate-400" weight="bold" />
- <span className="text-xs text-slate-400">Searching&hellip;</span>
+ <CircleNotch size={12} className="animate-spin text-gray-400" weight="bold" />
+ <span className="text-xs text-gray-400">Searching&hellip;</span>
  </div>
  <ResultSkeleton />
  </div>
  ) : flatResults.length === 0 ? (
- <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6">
- <p className="text-sm font-semibold text-slate-700">
+ <div className=" border border-dashed border-gray-200 bg-white px-4 py-6">
+ <p className="text-sm font-semibold text-gray-700">
  No results for <span className="text-sky-600">&ldquo;{query}&rdquo;</span>
  </p>
- <p className="mt-1 text-xs text-slate-500">Try:</p>
- <ul className="mt-2 space-y-1 text-xs text-slate-500">
+ <p className="mt-1 text-xs text-gray-500">Try:</p>
+ <ul className="mt-2 space-y-1 text-xs text-gray-500">
  {scope !=="all" && (
  <li>
  <button type="button" onClick={() => setScope("all")} className="text-sky-600 hover:underline">
@@ -627,10 +627,10 @@ export function GlobalSearch({
  {groupedResults.map((group) => (
  <div key={group.group} className="space-y-2">
  <div className="flex items-center justify-between px-1">
- <h3 className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">{group.group}</h3>
- <span className="text-[11px] font-medium text-slate-400">{group.items.length}</span>
+ <h3 className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-400">{group.group}</h3>
+ <span className="text-[11px] font-medium text-gray-400">{group.items.length}</span>
  </div>
- <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+ <div className="overflow-hidden  border border-gray-200 bg-white">
  {group.items.map((result) => {
  const index = flatResults.findIndex((item) => item.id === result.id);
  const isActive = index === activeIndex;
@@ -639,10 +639,10 @@ export function GlobalSearch({
  key={result.id}
  ref={isActive ? activeItemRef : null}
  className={cn(
-"flex items-stretch border-b border-slate-100 last:border-b-0 transition-colors",
+"flex items-stretch border-b border-gray-100 last:border-b-0 transition-colors",
  isActive
  ?"bg-sky-50/70 border-l-2 border-l-sky-400"
- :"hover:bg-slate-50",
+ :"hover:bg-gray-50",
  )}
  >
  <button
@@ -652,24 +652,24 @@ export function GlobalSearch({
  className="flex flex-1 items-start gap-3 px-3 py-2.5 text-left"
  >
  <div className="mt-0.5 flex shrink-0 flex-col items-start gap-1">
- <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide", typeColors[result.type] ||"bg-slate-100 text-slate-600")}>
+ <span className={cn("inline-flex items-center gap-1  px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide", typeColors[result.type] ||"bg-gray-100 text-gray-600")}>
  {typeIcons[result.type]}
  {formatDisplayText(result.type)}
  </span>
- <span className="text-[11px] font-semibold text-slate-400">{result.code}</span>
+ <span className="text-[11px] font-semibold text-gray-400">{result.code}</span>
  </div>
  <div className="min-w-0 flex-1">
- <p className="truncate text-sm font-semibold text-slate-900">
+ <p className="truncate text-sm font-semibold text-gray-900">
  <HighlightText text={result.label} query={query} linkify={false} />
  </p>
- <p className="mt-0.5 truncate text-xs text-slate-500">{result.sublabel}</p>
+ <p className="mt-0.5 truncate text-xs text-gray-500">{result.sublabel}</p>
  </div>
  </button>
  <div className="flex shrink-0 items-center gap-1 pr-1">
  <button
  type="button"
  onClick={() => copyCode(result.code)}
- className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+ className=" p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
  title="Copy code"
  aria-label="Copy code"
  >
@@ -678,7 +678,7 @@ export function GlobalSearch({
  <button
  type="button"
  onClick={() => openResultNewTab(result)}
- className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-violet-600"
+ className=" p-1.5 text-gray-400 hover:bg-gray-100 hover:text-violet-600"
  title="Open in new tab"
  aria-label="Open in new tab"
  >
@@ -687,7 +687,7 @@ export function GlobalSearch({
  <button
  type="button"
  onClick={() => openResult(result)}
- className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-sky-600"
+ className=" p-1.5 text-gray-400 hover:bg-gray-100 hover:text-sky-600"
  title="Open result"
  aria-label="Open result"
  >
@@ -707,18 +707,18 @@ export function GlobalSearch({
  </div>
  </div>
 
- <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-400">
+ <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2.5 text-[11px] text-gray-400">
  <p>{results.length > 0 ?`${results.length} result${results.length !== 1 ?"s" :""}` :"Ready to search"}</p>
  <div className="hidden items-center gap-3 sm:flex">
- {activeIndex >= 0 && <span>Selected: <span className="font-semibold text-slate-600">{activeResult?.code ??"-"}</span></span>}
+ {activeIndex >= 0 && <span>Selected: <span className="font-semibold text-gray-600">{activeResult?.code ??"-"}</span></span>}
  <span className="flex items-center gap-1">
- <kbd className="rounded border border-slate-200 bg-slate-100 px-1 py-0.5 text-[10px] font-bold">↑↓</kbd> navigate
+ <kbd className="rounded border border-gray-200 bg-gray-100 px-1 py-0.5 text-[10px] font-bold">↑↓</kbd> navigate
  </span>
  <span className="flex items-center gap-1">
- <kbd className="rounded border border-slate-200 bg-slate-100 px-1 py-0.5 text-[10px] font-bold">Enter</kbd> open
+ <kbd className="rounded border border-gray-200 bg-gray-100 px-1 py-0.5 text-[10px] font-bold">Enter</kbd> open
  </span>
  <span className="flex items-center gap-1">
- <kbd className="rounded border border-slate-200 bg-slate-100 px-1 py-0.5 text-[10px] font-bold">⌘↵</kbd> new tab
+ <kbd className="rounded border border-gray-200 bg-gray-100 px-1 py-0.5 text-[10px] font-bold">⌘↵</kbd> new tab
  </span>
  </div>
  </div>
@@ -732,13 +732,13 @@ export function GlobalSearch({
  type="button"
  onClick={() => setOpen(true)}
  className={cn(
-"flex w-full max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm transition hover:border-sky-300 hover:shadow-md sm:w-auto",
+"flex w-full max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2  border border-gray-200 bg-white px-4 py-2 text-sm text-gray-400 shadow-sm transition hover:border-sky-300  sm:w-auto",
  triggerClassName,
  )}
  >
  <MagnifyingGlass size={15} weight="bold" />
  <span className={cn("hidden flex-1 truncate text-left sm:inline", compactTrigger &&"hidden")}>{triggerLabel}</span>
- <kbd className={cn("hidden rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500 sm:inline", compactTrigger &&"hidden")}>
+ <kbd className={cn("hidden  border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-500 sm:inline", compactTrigger &&"hidden")}>
  {triggerShortcut}
  </kbd>
  </button>

@@ -38,10 +38,10 @@ export function formatAgeLabel(ageDays: number | null): string {
  * 1–7d: slate (default), 8–14d: amber, >14d: red, null/<1d: slate.
  */
 export function getAgeColorClasses(ageDays: number | null): string {
-  if (ageDays === null) return "bg-slate-100 text-slate-500";
+  if (ageDays === null) return "bg-gray-100 text-gray-500";
   if (ageDays > 14) return "bg-rose-100 text-rose-700";
   if (ageDays > 7) return "bg-amber-100 text-amber-700";
-  return "bg-slate-100 text-slate-600";
+  return "bg-gray-100 text-gray-600";
 }
 
 /**
@@ -59,7 +59,7 @@ export function AgeIndicator({ statusChangedAt, ageDays, className }: AgeIndicat
     <span
       data-testid="age-indicator"
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+        "inline-flex shrink-0 items-center justify-center  px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
         getAgeColorClasses(resolvedAge),
         className,
       )}

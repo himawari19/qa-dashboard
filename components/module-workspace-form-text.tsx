@@ -65,7 +65,7 @@ export function ModuleWorkspaceFormText({
 
  if (isLocked) {
  return (
- <div className="flex min-h-10 w-full items-center rounded-md border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-400 cursor-not-allowed select-none">
+ <div className="flex min-h-10 w-full items-center  border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-400 cursor-not-allowed select-none">
  {value ||"-"}
  <input type="hidden" name={field.name} value={value} />
  </div>
@@ -98,22 +98,22 @@ export function ModuleWorkspaceFormText({
  className={cn(
  field.kind ==="textarea" ?"min-h-10" :"min-h-10 overflow-y-hidden",
  field.helperKind ==="version-sequence" &&"pr-10",
- field.name ==="scope" && module ==="test-plans" &&"bg-slate-100 text-slate-500 cursor-not-allowed",
+ field.name ==="scope" && module ==="test-plans" &&"bg-gray-100 text-gray-500 cursor-not-allowed",
  )}
  />
  {field.helperKind ==="version-sequence" && (
  <span
- className="group absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full text-sky-600 outline-none"
+ className="group absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center  text-sky-600 outline-none"
  >
  <Info size={14} weight="bold" />
- <span className="pointer-events-none absolute right-0 bottom-full z-20 mb-2 w-max max-w-[240px] translate-y-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-0 shadow-lg transition group-hover:translate-y-0 group-hover:opacity-100">
+ <span className="pointer-events-none absolute right-0 bottom-full z-20 mb-2 w-max max-w-[240px] translate-y-1  border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 opacity-0 shadow-lg transition group-hover:translate-y-0 group-hover:opacity-100">
  {versionValue ? (
  <>
- Based on <span className="font-black">{versionValue}</span>
+ Based on <span className="font-bold">{versionValue}</span>
  {nextVersion ? (
  <>
  {""}
- | next <span className="font-black">{nextVersion}</span>
+ | next <span className="font-bold">{nextVersion}</span>
  </>
  ) : null}
  </>
@@ -125,9 +125,9 @@ export function ModuleWorkspaceFormText({
  )}
  </div>
  {field.name ==="sprint" && lastSprint && (
- <div className="flex items-center gap-1.5 text-xs text-slate-500">
+ <div className="flex items-center gap-1.5 text-xs text-gray-500">
  <span>
- Last sprint: <span className="font-bold text-slate-700">{lastSprint}</span>
+ Last sprint: <span className="font-bold text-gray-700">{lastSprint}</span>
  </span>
  </div>
  )}
@@ -135,11 +135,11 @@ export function ModuleWorkspaceFormText({
   <InlineAlert
   variant="warning"
   message="Sprint name already exists - you can still continue, but this may link to an existing sprint."
-  className="animate-in fade-in duration-200"
+  className="animate-in fade-in duration-150"
   />
   )}
   {(field.name ==="title" || field.name ==="caseName") && duplicates.length > 0 && (
-  <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+  <div className="animate-in fade-in  duration-150">
   <InlineAlert
   variant="warning"
   title={`Potential Duplicates Found (${duplicates.length})`}
@@ -151,11 +151,11 @@ export function ModuleWorkspaceFormText({
  key={dup.id}
  href={`/${module ==="tasks" ?"tasks" :"bugs"}?id=${dup.id}`}
  target="_blank"
- className="group flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-white p-2.5 text-xs transition hover:border-amber-400"
+ className="group flex items-center justify-between gap-3  border border-amber-200 bg-white p-2.5 text-xs transition hover:border-amber-400"
  >
  <div className="min-w-0 flex items-center gap-3">
- <span className="shrink-0 font-black text-amber-600">{dup.code}</span>
- <span className="truncate font-medium text-slate-700">{dup.title}</span>
+ <span className="shrink-0 font-bold text-amber-600">{dup.code}</span>
+ <span className="truncate font-medium text-gray-700">{dup.title}</span>
  </div>
  <Badge value={dup.status} className="shrink-0 text-[11px]" />
   </Link>

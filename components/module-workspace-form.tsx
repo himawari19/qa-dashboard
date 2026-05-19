@@ -134,13 +134,13 @@ export function ModuleWorkspaceForm({
  })}
  </div>
 
- <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-10 md:flex-row md:items-center md:justify-between">
+ <div className="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-10 md:flex-row md:items-center md:justify-between">
  <div className="flex flex-wrap gap-3">
  <button
  type="submit"
  disabled={pending}
  className={cn(
-"h-10 rounded-lg px-8 text-sm font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50",
+"h-10  px-8 text-sm font-bold text-white shadow-md transition-all duration-150  hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50",
 "bg-emerald-600 hover:bg-emerald-500",
  )}
  >
@@ -149,7 +149,7 @@ export function ModuleWorkspaceForm({
  <button
  type="button"
  onClick={onCancel}
- className="h-10 rounded-lg bg-white border border-slate-200 px-5 text-sm font-bold text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-50"
+ className="h-10  bg-white border border-gray-200 px-5 text-sm font-bold text-gray-700 transition-all duration-150  hover:bg-gray-50"
  >
  Cancel
  </button>

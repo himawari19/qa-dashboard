@@ -56,7 +56,7 @@ export function SuitesHeaderActions({
  return (
  <div className="flex flex-wrap items-center gap-3">
  <div className="relative w-full max-w-[360px] flex-1">
- <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+ <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
  <input
  type="text"
  value={value}
@@ -66,14 +66,14 @@ export function SuitesHeaderActions({
  updateQuery(nextValue);
  }}
  placeholder={placeholder}
- className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+ className="h-11 w-full  border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
  />
  </div>
  <Link
  href={`/api/export/${exportModule}`}
  title="Export Excel"
  aria-label="Export Excel"
- className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:shadow-md hover:bg-blue-500 hover:text-white hover:border-blue-500"
+ className="inline-flex h-11 w-11 items-center justify-center  border border-gray-200 bg-white text-gray-600 shadow-sm transition-all  hover:bg-blue-500 hover:text-white hover:border-blue-500"
  >
  <FileXls size={16} weight="bold" />
  </Link>
@@ -81,14 +81,14 @@ export function SuitesHeaderActions({
  href={`/api/export/${exportModule}?format=pdf`}
  title="Print / Export PDF"
  aria-label="Print / Export PDF"
- className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:shadow-md hover:bg-blue-500 hover:text-white hover:border-blue-500"
+ className="inline-flex h-11 w-11 items-center justify-center  border border-gray-200 bg-white text-gray-600 shadow-sm transition-all  hover:bg-blue-500 hover:text-white hover:border-blue-500"
  >
  <FilePdf size={16} weight="bold" />
  </Link>
  <button
  type="button"
  onClick={() => uploadRef.current?.click()}
- className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:shadow-md hover:bg-blue-500 hover:text-white hover:border-blue-500"
+ className="inline-flex h-11 w-11 items-center justify-center  border border-gray-200 bg-white text-gray-600 shadow-sm transition-all  hover:bg-blue-500 hover:text-white hover:border-blue-500"
  >
  <UploadSimple size={16} weight="bold" />
  </button>

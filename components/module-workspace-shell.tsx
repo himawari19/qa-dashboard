@@ -11,7 +11,7 @@ import { getModuleWorkspaceIcon } from"@/components/module-workspace-utils";
 
 const KanbanBoard = dynamic(() => import("@/components/kanban-board").then((module) => module.KanbanBoard), {
  ssr: false,
- loading: () => <div className="h-40 rounded-2xl border border-slate-200 bg-slate-50" />,
+ loading: () => <div className="h-40  border border-gray-200 bg-gray-50" />,
 });
 
 const ViewModal = dynamic(() => import("@/components/module-view-modal").then((module) => module.ViewModal), {
@@ -29,7 +29,7 @@ const ModuleWorkspaceModals = dynamic(
 
 const FormDrawer = dynamic(() => import("@/components/form-drawer").then((module) => module.FormDrawer), {
  ssr: false,
- loading: () => <div className="fixed inset-y-0 right-0 w-full max-w-lg border-l border-slate-200 bg-white" />,
+ loading: () => <div className="fixed inset-y-0 right-0 w-full max-w-lg border-l border-gray-200 bg-white" />,
 });
 
 type Row = Record<string, string | number> & { id: string | number };
@@ -221,7 +221,7 @@ export function ModuleWorkspaceShell({
 }: Props) {
  return (
  <>
- <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+ <section className="overflow-hidden bg-white border border-gray-200">
  <ModuleWorkspaceHeader
  module={module as any}
  title={config.title}
@@ -306,7 +306,7 @@ export function ModuleWorkspaceShell({
  </div>
  </>
  ) : (
- <div className="overflow-hidden bg-transparent border-t border-slate-200/60 p-5">
+ <div className="overflow-hidden bg-transparent border-t border-gray-200 p-4">
 			<KanbanBoard rows={kanbanRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
 			</div>
 		)}

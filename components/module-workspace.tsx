@@ -475,7 +475,7 @@ export function ModuleWorkspace({
 
   return (
     <div className="space-y-6">
-      <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+      <div className="animate-in fade-in  duration-150">
         <Breadcrumb crumbs={crumbs} />
       </div>
       <ModuleWorkspaceShell

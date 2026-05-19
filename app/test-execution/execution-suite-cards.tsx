@@ -68,17 +68,17 @@ export function ExecutionSuiteCards({
 
   if (!hasContent) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-20 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+      <div className=" border border-dashed border-gray-200 bg-gray-50/50 p-20 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center  bg-gray-100 text-gray-400">
           <Play size={32} weight="bold" />
         </div>
-        <h3 className="text-xl font-bold text-slate-900">No active suites found</h3>
-        <p className="mt-2 text-sm text-slate-500 max-w-sm mx-auto">
+        <h3 className="text-xl font-bold text-gray-900">No active suites found</h3>
+        <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
           Create a test suite and set its status to Active or Draft to start execution.
         </p>
         <Link
           href="/test-suites"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+          className="mt-6 inline-flex items-center gap-2  bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 shadow-lg shadow-blue-500/20"
         >
           Manage Test Suites
         </Link>
@@ -92,8 +92,8 @@ export function ExecutionSuiteCards({
       {inProgress.length > 0 && (
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-            <h2 className="text-xs font-black uppercase tracking-widest text-blue-600">
+            <div className="h-2 w-2  bg-blue-500 animate-pulse" />
+            <h2 className="text-xs font-bold uppercase tracking-widest text-blue-600">
               In Progress ({inProgress.length})
             </h2>
           </div>
@@ -109,7 +109,7 @@ export function ExecutionSuiteCards({
       {ready.length > 0 && (
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">
               Ready ({ready.length})
             </h2>
           </div>
@@ -133,18 +133,18 @@ function InProgressCard({ suite }: { suite: SuiteWithRun }) {
   return (
     <Link
       href={`/test-execution/${suite.publicToken}/run/${run.id}`}
-      className="group relative flex flex-col rounded-2xl border-2 border-blue-200 bg-white p-5 transition-all hover:border-blue-400 hover:shadow-lg hover:-translate-y-0.5"
+      className="group relative flex flex-col  border-2 border-blue-200 bg-white p-5 transition-all hover:border-blue-400 hover:shadow-lg "
     >
       {/* Status badge */}
       <div className="absolute top-4 right-4">
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-700">
+        <span className="inline-flex items-center gap-1  bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-700">
           <Lightning size={10} weight="fill" /> Run #{run.runNumber}
         </span>
       </div>
 
       <div className="mb-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{suite.project}</p>
-        <h3 className="text-base font-bold text-slate-900 pr-20 line-clamp-1">{suite.title}</h3>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{suite.project}</p>
+        <h3 className="text-base font-bold text-gray-900 pr-20 line-clamp-1">{suite.title}</h3>
       </div>
 
       {/* Progress ring */}
@@ -152,23 +152,23 @@ function InProgressCard({ suite }: { suite: SuiteWithRun }) {
         <ProgressRing progress={progress} size={48} />
         <div className="flex-1 grid grid-cols-3 gap-2 text-center">
           <div>
-            <p className="text-sm font-black text-emerald-600">{run.passed}</p>
-            <p className="text-[11px] font-bold text-slate-400">Pass</p>
+            <p className="text-sm font-bold text-emerald-600">{run.passed}</p>
+            <p className="text-[11px] font-bold text-gray-400">Pass</p>
           </div>
           <div>
-            <p className="text-sm font-black text-rose-500">{run.failed}</p>
-            <p className="text-[11px] font-bold text-slate-400">Fail</p>
+            <p className="text-sm font-bold text-rose-500">{run.failed}</p>
+            <p className="text-[11px] font-bold text-gray-400">Fail</p>
           </div>
           <div>
-            <p className="text-sm font-black text-amber-500">{run.blocked}</p>
-            <p className="text-[11px] font-bold text-slate-400">Block</p>
+            <p className="text-sm font-bold text-amber-500">{run.blocked}</p>
+            <p className="text-[11px] font-bold text-gray-400">Block</p>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-100">
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+      <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
           <User size={12} weight="bold" />
           <span className="font-semibold">{run.tester || "-"}</span>
         </div>
@@ -196,19 +196,19 @@ function ReadyCard({
     : null;
 
   return (
-    <div className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-slate-300 hover:shadow-md">
+    <div className="group flex flex-col  border border-gray-200 bg-white p-5 transition-all hover:border-gray-300 hover:shadow-md">
       <div className="mb-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{suite.project}</p>
-        <h3 className="text-base font-bold text-slate-900 line-clamp-1">{suite.title}</h3>
-        <p className="text-xs text-slate-400 mt-0.5">{suite.planName}</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{suite.project}</p>
+        <h3 className="text-base font-bold text-gray-900 line-clamp-1">{suite.title}</h3>
+        <p className="text-xs text-gray-400 mt-0.5">{suite.planName}</p>
       </div>
 
       {/* Stats row */}
-      <div className="flex items-center gap-3 mb-4 text-xs text-slate-500">
+      <div className="flex items-center gap-3 mb-4 text-xs text-gray-500">
         <span className="font-semibold">{suite.caseCount} cases</span>
         {suite.assignee && (
           <>
-            <span className="text-slate-300">·</span>
+            <span className="text-gray-300">·</span>
             <span className="flex items-center gap-1">
               <User size={11} weight="bold" /> {suite.assignee}
             </span>
@@ -216,7 +216,7 @@ function ReadyCard({
         )}
         {hasHistory && (
           <>
-            <span className="text-slate-300">·</span>
+            <span className="text-gray-300">·</span>
             <span className={cn(
               "font-bold",
               passRate !== null && passRate >= 80 ? "text-emerald-600" : passRate !== null && passRate >= 50 ? "text-amber-600" : "text-rose-500"
@@ -233,23 +233,23 @@ function ReadyCard({
           <span className="flex items-center gap-1 text-emerald-600"><CheckCircle size={12} weight="bold" />{lastRun.passed}</span>
           <span className="flex items-center gap-1 text-rose-500"><XCircle size={12} weight="bold" />{lastRun.failed}</span>
           <span className="flex items-center gap-1 text-amber-500"><Warning size={12} weight="bold" />{lastRun.blocked}</span>
-          <span className="text-slate-400 ml-auto">Run #{lastRun.runNumber}</span>
+          <span className="text-gray-400 ml-auto">Run #{lastRun.runNumber}</span>
         </div>
       )}
 
       {/* Actions */}
-      <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
+      <div className="mt-auto flex items-center gap-2 pt-3 border-t border-gray-100">
         <button
           onClick={() => onStartRun(suite)}
           disabled={creating || suite.caseCount === 0}
-          className="flex-1 inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 shadow-sm shadow-blue-500/20"
+          className="flex-1 inline-flex h-9 items-center justify-center gap-2  bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-700  disabled:opacity-40 shadow-sm shadow-blue-500/20"
         >
           <Play size={14} weight="fill" />
           {creating ? "Starting..." : "New Run"}
         </button>
         <Link
           href={`/test-execution/${suite.publicToken}`}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
+          className="inline-flex h-9 items-center justify-center gap-1.5  border border-gray-200 px-3 text-xs font-bold text-gray-600 transition hover:bg-gray-50 hover:border-gray-300"
         >
           <Clock size={13} weight="bold" /> History
         </Link>
@@ -283,7 +283,7 @@ function ProgressRing({ progress, size = 48 }: { progress: number; size?: number
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-black text-slate-700">{progress}%</span>
+        <span className="text-xs font-bold text-gray-700">{progress}%</span>
       </div>
     </div>
   );

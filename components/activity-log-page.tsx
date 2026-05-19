@@ -151,23 +151,23 @@ export function ActivityLogPage() {
       <div className="space-y-4">
         {/* Toolbar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
-            <button onClick={() => handleToggle("team")} className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all", scope === "team" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+          <div className="flex items-center gap-1  bg-gray-100 p-0.5">
+            <button onClick={() => handleToggle("team")} className={cn("flex items-center gap-1.5  px-3 py-1.5 text-xs font-bold transition-all", scope === "team" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700")}>
               <Users size={14} weight="bold" /> Team Activity
             </button>
-            <button onClick={() => handleToggle("my")} className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all", scope === "my" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+            <button onClick={() => handleToggle("my")} className={cn("flex items-center gap-1.5  px-3 py-1.5 text-xs font-bold transition-all", scope === "my" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700")}>
               <User size={14} weight="bold" /> My Activity
             </button>
           </div>
 
           <div className="flex items-center gap-2">
             <div className="relative">
-              <MagnifyingGlass size={14} weight="bold" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Search activity..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 w-48 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:border-blue-300 focus:outline-none transition" />
+              <MagnifyingGlass size={14} weight="bold" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input type="text" placeholder="Search activity..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 w-48  border border-gray-200 bg-white pl-8 pr-3 text-xs font-medium text-gray-700 placeholder:text-gray-400 focus:border-blue-300 focus:outline-none transition" />
             </div>
             <div className="relative">
-              <FunnelSimple size={14} weight="bold" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-8 pr-8 text-xs font-medium text-slate-700 focus:border-blue-300 focus:outline-none transition">
+              <FunnelSimple size={14} weight="bold" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-8 appearance-none  border border-gray-200 bg-white pl-8 pr-8 text-xs font-medium text-gray-700 focus:border-blue-300 focus:outline-none transition">
                 {ENTITY_TYPES.map((t) => (
                   <option key={t} value={t}>{t === "All" ? "All Types" : formatDisplayText(t)}</option>
                 ))}
@@ -177,13 +177,13 @@ export function ActivityLogPage() {
         </div>
 
         {/* Activity List */}
-        <div className="rounded-2xl border border-slate-200 bg-white">
+        <div className=" border border-gray-200 bg-white">
           {loading ? (
             <LoadingState />
           ) : !hasEntries ? (
             <EmptyState scope={scope} />
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-gray-100">
               {paginatedTimeline.map((item, idx) => {
                 if (item.type === "collapsed") {
                   const groupKey = `${item.group.action}-${item.group.entityType}-${item.group.actor}-${item.group.startTime}`;
@@ -223,8 +223,8 @@ export function ActivityLogPage() {
 
 function LoadingState() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
-      <SpinnerGap size={28} weight="bold" className="animate-spin text-slate-400" />
+    <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
+      <div className="h-5 w-5 animate-square-spin bg-gray-400" />
       <p className="text-xs font-semibold">Loading activity...</p>
     </div>
   );
@@ -232,10 +232,10 @@ function LoadingState() {
 
 function EmptyState({ scope }: { scope: "my" | "team" }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
-      <Clock size={32} weight="bold" className="text-slate-300" />
+    <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
+      <Clock size={32} weight="bold" className="text-gray-300" />
       <p className="text-sm font-semibold">No activity found</p>
-      <p className="text-xs text-slate-400">{scope === "my" ? "You have no recent activity." : "No team activity recorded yet."}</p>
+      <p className="text-xs text-gray-400">{scope === "my" ? "You have no recent activity." : "No team activity recorded yet."}</p>
     </div>
   );
 }
@@ -246,27 +246,27 @@ function CollapsedActivityEntry({ group, isExpanded, onToggle }: { group: Collap
 
   return (
     <div>
-      <button onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 transition text-left">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50">
-          {ENTITY_ICON[group.entityType] ?? <Clock size={14} className="text-slate-400" weight="bold" />}
+      <button onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center  border border-blue-200 bg-blue-50">
+          {ENTITY_ICON[group.entityType] ?? <Clock size={14} className="text-gray-400" weight="bold" />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-slate-700 leading-tight">
+          <p className="text-xs font-semibold text-gray-700 leading-tight">
             {group.count} {formatDisplayText(group.entityType)} {group.action}
-            <span className="text-slate-400 font-normal"> by </span>
-            <span className="text-slate-600">{group.actor}</span>
+            <span className="text-gray-400 font-normal"> by </span>
+            <span className="text-gray-600">{group.actor}</span>
           </p>
-          <p className="text-[11px] text-slate-400 mt-0.5">{formatTimeRange(group.startTime, group.endTime)}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">{formatTimeRange(group.startTime, group.endTime)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">{group.count} items</span>
-          <div className="shrink-0 text-slate-400">{isExpanded ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}</div>
+          <span className=" bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">{group.count} items</span>
+          <div className="shrink-0 text-gray-400">{isExpanded ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}</div>
         </div>
       </button>
       {isExpanded && (
-        <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-2 space-y-0.5">
+        <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-2 space-y-0.5">
           {displayEntries.map((entry) => <ActivityEntryRow key={entry.id} entry={entry} compact />)}
-          {remainingCount > 0 && <p className="text-[10px] font-semibold text-slate-400 text-center py-1">+{remainingCount} more entries</p>}
+          {remainingCount > 0 && <p className="text-[10px] font-semibold text-gray-400 text-center py-1">+{remainingCount} more entries</p>}
         </div>
       )}
     </div>
@@ -278,12 +278,12 @@ function ActivityEntryRow({ entry, compact = false }: { entry: ActivityEntry; co
   const cleanSummary = entry.summary.replace(/\s+by\s+.+$/i, "");
 
   return (
-    <div className={cn("flex items-center gap-3 transition", compact ? "py-2 px-2" : "px-4 py-3 hover:bg-slate-50")}>
-      <div className={cn("flex shrink-0 items-center justify-center rounded-full border", compact ? "h-6 w-6" : "h-8 w-8", getActionBorderColor(entry.action))}>
-        {ENTITY_ICON[entry.entityType] ?? <Clock size={compact ? 10 : 14} className="text-slate-400" weight="bold" />}
+    <div className={cn("flex items-center gap-3 transition", compact ? "py-2 px-2" : "px-4 py-3 hover:bg-gray-50")}>
+      <div className={cn("flex shrink-0 items-center justify-center  border", compact ? "h-6 w-6" : "h-8 w-8", getActionBorderColor(entry.action))}>
+        {ENTITY_ICON[entry.entityType] ?? <Clock size={compact ? 10 : 14} className="text-gray-400" weight="bold" />}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn("font-semibold text-slate-700 truncate leading-tight", compact ? "text-[11px]" : "text-xs")}>
+        <p className={cn("font-semibold text-gray-700 truncate leading-tight", compact ? "text-[11px]" : "text-xs")}>
           {cleanSummary}
         </p>
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -292,14 +292,14 @@ function ActivityEntryRow({ entry, compact = false }: { entry: ActivityEntry; co
           </span>
           {actor && (
             <>
-              <span className="text-[10px] text-slate-300">·</span>
-              <span className={cn("text-slate-500 flex items-center gap-0.5", compact ? "text-[10px]" : "text-[11px]")}>
+              <span className="text-[10px] text-gray-300">·</span>
+              <span className={cn("text-gray-500 flex items-center gap-0.5", compact ? "text-[10px]" : "text-[11px]")}>
                 <User size={9} weight="bold" /> {actor}
               </span>
             </>
           )}
-          <span className="text-[10px] text-slate-300">·</span>
-          <span className={cn("text-slate-400", compact ? "text-[10px]" : "text-[11px]")}>
+          <span className="text-[10px] text-gray-300">·</span>
+          <span className={cn("text-gray-400", compact ? "text-[10px]" : "text-[11px]")}>
             {formatDateTime(entry.createdAt)}
           </span>
         </div>
@@ -317,10 +317,10 @@ function ActionBadge({ action }: { action: string }) {
     Completed: { bg: "bg-emerald-50 text-emerald-600 border-emerald-200", icon: <Checks size={10} weight="bold" /> },
     "Status Update": { bg: "bg-amber-50 text-amber-600 border-amber-200", icon: <ArrowsClockwise size={10} weight="bold" /> },
   };
-  const c = config[action] || { bg: "bg-slate-50 text-slate-500 border-slate-200", icon: null };
+  const c = config[action] || { bg: "bg-gray-50 text-gray-500 border-gray-200", icon: null };
 
   return (
-    <span className={cn("shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold", c.bg)}>
+    <span className={cn("shrink-0 inline-flex items-center gap-1  border px-2 py-0.5 text-[10px] font-bold", c.bg)}>
       {c.icon} {action}
     </span>
   );
@@ -339,7 +339,7 @@ function getActionBorderColor(action: string): string {
   if (action === "Deleted") return "border-rose-200 bg-rose-50";
   if (action === "Completed") return "border-emerald-200 bg-emerald-50";
   if (action === "Status Update") return "border-amber-200 bg-amber-50";
-  return "border-slate-200 bg-slate-50";
+  return "border-gray-200 bg-gray-50";
 }
 
 function getEntityColor(entityType: string): string {
@@ -347,7 +347,7 @@ function getEntityColor(entityType: string): string {
   if (entityType === "Task") return "text-blue-500";
   if (entityType === "TestCase") return "text-emerald-500";
   if (entityType === "ExecutionRun") return "text-blue-500";
-  return "text-slate-400";
+  return "text-gray-400";
 }
 
 function normalizeTime(iso: string): number {

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppWrapper } from "@/components/app-wrapper";
 import { Toaster } from "@/components/ui/toast";
 
-const dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +14,6 @@ export const metadata: Metadata = {
     template: "%s | QA Daily Hub",
   },
   description: "A polished workspace for QA teams to manage test cases, execution, bugs, and daily activity.",
-  icons: {
-    icon: "/icon.svg",
-  },
 };
 
 export default function RootLayout({
@@ -49,7 +46,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={dmSans.className} suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <AppWrapper>
           {children}
         </AppWrapper>

@@ -27,7 +27,7 @@ export function InlineAlert({ variant = "info", message, title, className, compa
  return (
   <div
    className={cn(
-    "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
+    "flex items-start gap-2  border px-3 py-2 text-sm",
     style.box,
     compact && "px-0 py-0 border-0 bg-transparent",
     className,

@@ -115,7 +115,7 @@ export function QualityHealthScore({ qualityHealthScore }: QualityHealthScorePro
             r={radius}
             fill="none"
             strokeWidth={strokeWidth}
-            className="stroke-slate-100"
+            className="stroke-gray-100"
           />
           {/* Progress circle */}
           <circle
@@ -133,7 +133,7 @@ export function QualityHealthScore({ qualityHealthScore }: QualityHealthScorePro
         {/* Score text in center */}
         <div className="absolute inset-0 flex items-center justify-center">
           <span
-            className={cn("text-lg font-black", getScoreColor(displayScore))}
+            className={cn("text-lg font-bold", getScoreColor(displayScore))}
             data-testid="quality-health-score-value"
           >
             {displayScore}
@@ -142,18 +142,18 @@ export function QualityHealthScore({ qualityHealthScore }: QualityHealthScorePro
       </div>
 
       {/* Label */}
-      <p className="mt-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+      <p className="mt-1.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
         Health Score
       </p>
 
       {/* Tooltip */}
       {showTooltip && tooltipText && (
         <div
-          className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white shadow-xl"
+          className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap  bg-gray-900 px-2.5 py-1.5 text-xs font-semibold text-white shadow-md"
           data-testid="quality-health-score-tooltip"
         >
           {tooltipText}
-          <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+          <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
         </div>
       )}
     </div>

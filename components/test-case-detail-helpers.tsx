@@ -53,7 +53,7 @@ export const priorityOptions = ["Critical","High","Medium","Low"] as const;
 const toneCellClass: Record<string, string> = {
  Positive:"bg-emerald-100 text-emerald-700",
  Negative:"bg-rose-100 text-rose-700",
- Pending:"bg-slate-200 text-slate-700",
+ Pending:"bg-gray-200 text-gray-700",
  Passed:"bg-emerald-100 text-emerald-700",
  PASSED:"bg-emerald-100 text-emerald-700",
  Success:"bg-emerald-100 text-emerald-700",
@@ -65,13 +65,13 @@ const toneCellClass: Record<string, string> = {
  Critical:"bg-red-100 text-red-700",
  High:"bg-orange-100 text-orange-700",
  Medium:"bg-sky-100 text-sky-700",
- Low:"bg-slate-200 text-slate-700",
+ Low:"bg-gray-200 text-gray-700",
 };
 
 export function getToneClass(fieldKey: string, value: string) {
- if (fieldKey ==="typeCase") return toneCellClass[value] ??"bg-slate-100 text-slate-600";
- if (fieldKey ==="status") return toneCellClass[value] ??"bg-slate-100 text-slate-600";
- if (fieldKey ==="priority") return toneCellClass[value] ??"bg-slate-100 text-slate-600";
+ if (fieldKey ==="typeCase") return toneCellClass[value] ??"bg-gray-100 text-gray-600";
+ if (fieldKey ==="status") return toneCellClass[value] ??"bg-gray-100 text-gray-600";
+ if (fieldKey ==="priority") return toneCellClass[value] ??"bg-gray-100 text-gray-600";
  return"";
 }
 
@@ -98,7 +98,7 @@ export function Th({ children, w, className }: { children?: ReactNode; w: number
  <th
  style={{ width: w, minWidth: w, maxWidth: w }}
  className={cn(
-"border-b border-r border-slate-100 bg-slate-200 px-2 py-[5px] text-left text-xs font-bold uppercase tracking-wide text-slate-700 select-none",
+"border-b border-r border-gray-100 bg-gray-200 px-2 py-[5px] text-left text-xs font-bold uppercase tracking-wide text-gray-700 select-none",
  className,
  )}
  >
@@ -113,12 +113,12 @@ export function ReadCell({ value, w, onClick }: { value: string; w: number; onCl
  style={{ width: w, minWidth: w, maxWidth: w }}
  onClick={onClick}
  className={cn(
-"border-b border-r border-slate-100 bg-transparent px-[6px] py-[4px] align-top text-[12px] leading-[1.4] transition-colors",
- onClick ?"cursor-text hover:bg-slate-50" :"text-slate-700",
+"border-b border-r border-gray-100 bg-transparent px-[6px] py-[4px] align-top text-[12px] leading-[1.4] transition-colors",
+ onClick ?"cursor-text hover:bg-gray-50" :"text-gray-700",
  )}
  >
  <div className="flex h-full min-h-[28px] items-start whitespace-pre-wrap break-words">
- {value || <span className="text-slate-300">-</span>}
+ {value || <span className="text-gray-300">-</span>}
  </div>
  </td>
  );
@@ -131,12 +131,12 @@ export function BadgeCell({ value, w, fieldKey, onClick }: { value: string; w: n
  style={{ width: w, minWidth: w, maxWidth: w }}
  onClick={onClick}
  className={cn(
-"border-b border-r border-slate-100 p-0 align-top",
+"border-b border-r border-gray-100 p-0 align-top",
  toneClass ||"bg-transparent",
  )}
  >
  <div className="flex min-h-[28px] h-full w-full items-center px-[6px] py-[4px] text-xs font-bold uppercase tracking-wide">
- <span className={cn("truncate", !value &&"text-slate-400")}>
+ <span className={cn("truncate", !value &&"text-gray-400")}>
  {value ||"Select"}
  </span>
  </div>
@@ -166,7 +166,7 @@ export function EditTextCell({
  autoFocus?: boolean;
 }) {
  const sharedClass =
-"block h-full w-full flex-1 border-0 bg-transparent px-[6px] py-[4px] text-[12px] leading-[1.4] text-slate-800 outline-none focus:ring-0 placeholder:text-slate-300";
+"block h-full w-full flex-1 border-0 bg-transparent px-[6px] py-[4px] text-[12px] leading-[1.4] text-gray-800 outline-none focus:ring-0 placeholder:text-gray-300";
  const innerRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
 
  function syncMultilineHeight() {
@@ -221,7 +221,7 @@ export function EditTextCell({
  <td
  style={{ width: w, minWidth: w, maxWidth: w }}
  onClick={() => innerRef.current?.focus()}
- className="relative border-b border-r border-slate-100 bg-transparent p-0 align-top focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-400"
+ className="relative border-b border-r border-gray-100 bg-transparent p-0 align-top focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-400"
  >
  {multiline ? (
  <textarea
@@ -334,7 +334,7 @@ export function CustomSelect({
  style={{ width: w, minWidth: w, maxWidth: w }}
  onClick={openDropdown}
  className={cn(
-"relative border-b border-r border-slate-100 p-0 align-top cursor-pointer",
+"relative border-b border-r border-gray-100 p-0 align-top cursor-pointer",
  toneClass ||"bg-transparent",
  )}
  >
@@ -347,9 +347,9 @@ export function CustomSelect({
  type="button"
  onClick={openDropdown}
  onKeyDown={handleKeyDown}
- className="absolute inset-0 flex h-full w-full items-center justify-between gap-1 bg-transparent px-[6px] py-[4px] text-xs font-bold uppercase tracking-wide text-slate-800 outline-none focus:ring-2 focus:ring-inset focus:ring-sky-400"
+ className="absolute inset-0 flex h-full w-full items-center justify-between gap-1 bg-transparent px-[6px] py-[4px] text-xs font-bold uppercase tracking-wide text-gray-800 outline-none focus:ring-2 focus:ring-inset focus:ring-sky-400"
  >
- <span className={cn("truncate", !value &&"text-slate-400")}>
+ <span className={cn("truncate", !value &&"text-gray-400")}>
  {value || placeholder ||"Select"}
  </span>
  <CaretDown size={10} weight="bold" className="shrink-0 opacity-70" />
@@ -358,7 +358,7 @@ export function CustomSelect({
  <ul
  ref={listRef}
  style={{ position:"fixed", top: rect.top, left: rect.left, minWidth: rect.width, zIndex: 99999 }}
- className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl"
+ className="overflow-hidden  border border-gray-200 bg-white shadow-md"
  >
  {options.map((opt) => {
  const optTone = getToneClass(fieldKey, opt);
@@ -366,7 +366,7 @@ export function CustomSelect({
  <li key={opt}>
  <button
  type="button"
- className="flex w-full items-center gap-2 px-3 py-[5px] text-left text-xs font-bold uppercase tracking-wide text-slate-700 hover:bg-slate-50"
+ className="flex w-full items-center gap-2 px-3 py-[5px] text-left text-xs font-bold uppercase tracking-wide text-gray-700 hover:bg-gray-50"
  onMouseDown={(e) => e.stopPropagation()}
  onClick={(e) => {
  e.stopPropagation();
@@ -374,8 +374,8 @@ export function CustomSelect({
  setOpen(false);
  }}
  >
- <span className={cn("inline-block h-2 w-2 shrink-0 rounded-md", optTone ||"bg-slate-300")} />
- <span className={optTone ?"" :"text-slate-600"}>{opt}</span>
+ <span className={cn("inline-block h-2 w-2 shrink-0 ", optTone ||"bg-gray-300")} />
+ <span className={optTone ?"" :"text-gray-600"}>{opt}</span>
  </button>
  </li>
  );

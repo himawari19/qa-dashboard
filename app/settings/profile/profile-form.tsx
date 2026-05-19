@@ -90,7 +90,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
  {/* Name Field */}
  <div className="space-y-2">
- <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+ <label className="text-[11px] font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
  <User size={12} weight="bold" /> Full Name
  </label>
   <input
@@ -104,7 +104,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
   return next;
   });
   }}
-  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
+  className="w-full h-11 px-4  bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-gray-800"
   placeholder="e.g. John Doe"
   />
   <FormFieldError message={fieldErrors.name} />
@@ -112,43 +112,43 @@ export function ProfileForm({ user }: { user: UserProfile }) {
 
  {/* Role Field */}
  <div className="space-y-2">
- <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+ <label className="text-[11px] font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
  <Briefcase size={12} weight="bold" /> Role / Title
  </label>
  <input
  type="text"
  value={getRoleLabel(formData.role)}
  readOnly
- className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
+ className="w-full h-11 px-4  bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-gray-800"
  placeholder="Role"
  />
  </div>
 
  {/* Email (Read-only as per request) */}
  <div className="space-y-2">
- <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+ <label className="text-[11px] font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
  <EnvelopeSimple size={12} weight="bold" /> Email Address
  </label>
- <div className="w-full h-11 px-4 rounded-lg bg-slate-100 border border-slate-200 flex items-center text-sm font-bold text-slate-500 opacity-70 cursor-not-allowed justify-between">
+ <div className="w-full h-11 px-4  bg-gray-100 border border-gray-200 flex items-center text-sm font-bold text-gray-500 opacity-70 cursor-not-allowed justify-between">
  {user.email ||"No email linked"}
- <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-200 text-[8px] font-black uppercase tracking-wider text-slate-500">
+ <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-200 text-[8px] font-bold uppercase tracking-wider text-gray-500">
  <Warning size={10} weight="bold" /> Locked
  </div>
  </div>
  </div>
  </div>
 
- <div className="pt-8 border-t border-slate-100">
+ <div className="pt-8 border-t border-gray-100">
  <div className="mb-6">
- <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+ <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
  <CheckCircle size={16} className="text-blue-500" weight="bold" /> Security Update
  </h3>
-<p className="text-xs text-slate-500 mt-1">Leave password fields empty if you don&apos;t want to change it.</p>
+<p className="text-xs text-gray-500 mt-1">Leave password fields empty if you don&apos;t want to change it.</p>
  </div>
 
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
  <div className="space-y-2">
- <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">New Password</label>
+ <label className="text-[11px] font-bold uppercase tracking-widest text-gray-400">New Password</label>
   <input
   type="password"
   value={formData.password}
@@ -161,13 +161,13 @@ export function ProfileForm({ user }: { user: UserProfile }) {
   return next;
   });
   }}
-  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
+  className="w-full h-11 px-4  bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-gray-800"
   placeholder="••••••••"
   />
   <FormFieldError message={fieldErrors.password} />
  </div>
  <div className="space-y-2">
- <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</label>
+ <label className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Confirm New Password</label>
   <input
   type="password"
   value={formData.confirmPassword}
@@ -179,7 +179,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
   return next;
   });
   }}
-  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-slate-800"
+  className="w-full h-11 px-4  bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-sm font-bold text-gray-800"
   placeholder="••••••••"
   />
   <FormFieldError message={fieldErrors.confirmPassword} />
@@ -191,7 +191,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
  <button
  type="submit"
  disabled={loading}
- className="h-11 px-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 transition flex items-center gap-2"
+ className="h-11 px-8  bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-500/20 transition flex items-center gap-2"
  >
  {loading ?"Updating..." :"Save Changes"}
  </button>

@@ -63,20 +63,20 @@ export function ExecutionGroupList({ items }: { items: ExecutionItem[] }) {
  <button
  type="button"
  onClick={() => scroll("left")}
- className="absolute left-2 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 hover:bg-slate-100"
+ className="absolute left-2 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center  glass-card text-gray-700 shadow-md transition-all  hover:bg-gray-100"
  aria-label="Scroll left"
  >
- <CaretLeft size={17} weight="bold" className="text-slate-700" />
+ <CaretLeft size={17} weight="bold" className="text-gray-700" />
  </button>
  )}
  {showArrows && canScrollRight && (
  <button
  type="button"
  onClick={() => scroll("right")}
- className="absolute right-2 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 hover:bg-slate-100"
+ className="absolute right-2 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center  glass-card text-gray-700 shadow-md transition-all  hover:bg-gray-100"
  aria-label="Scroll right"
  >
- <CaretRight size={17} weight="bold" className="text-slate-700" />
+ <CaretRight size={17} weight="bold" className="text-gray-700" />
  </button>
  )}
 
@@ -88,24 +88,24 @@ export function ExecutionGroupList({ items }: { items: ExecutionItem[] }) {
  {items.map((item) => (
  <div
  key={item.id}
- className="group relative flex flex-col overflow-hidden rounded-2xl glass-card bg-white p-5 transition-all duration-300 hover:border-blue-400 hover:shadow-xl flex-shrink-0 w-[300px]"
+ className="group relative flex flex-col overflow-hidden  glass-card bg-white p-5 transition-all duration-150 hover:border-blue-400 hover:shadow-md flex-shrink-0 w-[300px]"
  >
  <div className="mb-4 flex items-start justify-between">
- <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-50 transition-colors">
+ <div className="h-10 w-10  bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-blue-50 transition-colors">
  <Table size={20} weight="bold" />
  </div>
  <Badge value={item.status} />
  </div>
 
- <h4 className="mb-1 text-base font-bold text-slate-900 transition-colors">
+ <h4 className="mb-1 text-base font-bold text-gray-900 transition-colors">
  {item.title}
  </h4>
- <p className="mb-6 text-sm text-slate-500 line-clamp-2 min-h-[40px]">
+ <p className="mb-6 text-sm text-gray-500 line-clamp-2 min-h-[40px]">
  {item.notes ||"No additional notes provided for this execution item."}
  </p>
 
- <div className="mt-auto flex items-center justify-between border-t border-slate-50 pt-4">
- <div className="flex items-center gap-3 text-xs font-bold text-slate-400">
+ <div className="mt-auto flex items-center justify-between border-t border-gray-50 pt-4">
+ <div className="flex items-center gap-3 text-xs font-bold text-gray-400">
  <div className="flex items-center gap-1" title="Passed">
  <CheckCircle size={14} className="text-emerald-500" />
  {item.passed ?? 0}
@@ -122,7 +122,7 @@ export function ExecutionGroupList({ items }: { items: ExecutionItem[] }) {
 
  <Link
  href={`/test-execution/${item.publicToken}`}
- className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-900 px-4 text-xs font-black uppercase tracking-wider text-white transition-all hover:bg-blue-600 hover:pr-5"
+ className="inline-flex h-9 items-center gap-2  bg-gray-900 px-4 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-blue-600 hover:pr-5"
  >
  Execute
  <Play size={14} weight="fill" />

@@ -35,7 +35,7 @@ export function ModuleWorkspaceFormSelect({
 
  if (isLocked) {
  return (
- <div className="flex min-h-10 w-full items-center rounded-md border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-400 cursor-not-allowed select-none">
+ <div className="flex min-h-10 w-full items-center  border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-400 cursor-not-allowed select-none">
  {(() => {
  const options = relatedOptions[field.name] ?? field.options ?? [];
  const current = options.find((opt) => opt.value === selectedValue);
@@ -54,8 +54,8 @@ export function ModuleWorkspaceFormSelect({
  type="button"
  onClick={() => setOpenSelectField(openSelectField === field.name ? null : field.name)}
  className={cn(
-"flex min-h-10 w-full items-center justify-between gap-3 rounded-md border bg-white px-4 py-3 text-left text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10",
- fieldError ?"border-rose-400 focus:border-rose-400 focus:ring-rose-500/10" :"border-slate-200",
+"flex min-h-10 w-full items-center justify-between gap-3  border bg-white px-4 py-3 text-left text-sm text-gray-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10",
+ fieldError ?"border-rose-400 focus:border-rose-400 focus:ring-rose-500/10" :"border-gray-200",
  )}
  >
  <span className="whitespace-normal break-words">
@@ -65,10 +65,10 @@ export function ModuleWorkspaceFormSelect({
  return current?.label || placeholderText;
  })()}
  </span>
- <CaretDown size={14} weight="bold" className="shrink-0 text-slate-400" />
+ <CaretDown size={14} weight="bold" className="shrink-0 text-gray-400" />
  </button>
  {openSelectField === field.name && (
- <div className="absolute left-0 top-full z-50 mt-1 max-h-52 w-full overflow-y-auto overscroll-contain rounded-md border border-slate-200 bg-white shadow-xl">
+ <div className="absolute left-0 top-full z-50 mt-1 max-h-52 w-full overflow-y-auto overscroll-contain  border border-gray-200 bg-white shadow-md">
  {(relatedOptions[field.name] ?? field.options ?? []).map((option) => (
  <button
  key={option.value}
@@ -78,7 +78,7 @@ export function ModuleWorkspaceFormSelect({
  setOpenSelectField(null);
  }}
  className={cn(
-"block w-full px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700",
+"block w-full px-4 py-3 text-left text-sm text-gray-700 transition hover:bg-emerald-50 hover:text-emerald-700",
  selectedValue === option.value &&"bg-emerald-50 text-emerald-700",
  )}
  >

@@ -149,33 +149,33 @@ function SortableRow({
       style={style}
       className={cn(
         "align-top transition-colors duration-150",
-        index % 2 === 0 ? "bg-transparent" : "bg-slate-50/50",
+        index % 2 === 0 ? "bg-transparent" : "bg-gray-50/50",
         "hover:bg-blue-50/40",
         pendingDeleteId === row.id && "opacity-40 pointer-events-none",
         selectedIds?.has(row.id) && "bg-blue-50/60",
-        isDragging && "opacity-30 bg-slate-100",
-        isDragOverlay && "shadow-2xl bg-white opacity-100 ring-2 ring-sky-400/50",
+        isDragging && "opacity-30 bg-gray-100",
+        isDragOverlay && "shadow-md bg-white opacity-100 ring-2 ring-blue-400/50",
       )}
       {...attributes}
     >
       {/* Drag handle */}
       {reorderable && onReorder && (
-        <td className="border-b border-slate-200/60 px-1 py-3 text-center align-top">
+        <td className="border-b border-gray-100 px-1 py-3 text-center align-top">
           <span
             {...listeners}
             className="inline-flex cursor-grab active:cursor-grabbing touch-none"
           >
-            <DotsSixVertical size={14} weight="bold" className="text-slate-300 hover:text-slate-500 transition" />
+            <DotsSixVertical size={14} weight="bold" className="text-gray-300 hover:text-gray-500 transition" />
           </span>
         </td>
       )}
       {/* Row checkbox */}
       {onToggleSelect && (
-        <td className="border-b border-slate-200/60 px-3 py-3 text-center align-top">
+        <td className="border-b border-gray-100 px-3 py-3 text-center align-top">
           <button
             type="button"
             onClick={() => onToggleSelect(row.id)}
-            className="inline-flex items-center justify-center text-slate-400 hover:text-blue-600 transition"
+            className="inline-flex items-center justify-center text-gray-400 hover:text-blue-600 transition"
           >
             {selectedIds?.has(row.id) ? (
               <CheckSquare size={16} weight="bold" className="text-blue-600" />
@@ -185,14 +185,14 @@ function SortableRow({
           </button>
         </td>
       )}
-      <td className="border-b border-slate-200/60 px-4 py-3 text-center text-xs font-bold text-slate-400 align-top">
+      <td className="border-b border-gray-100 px-4 py-3 text-center text-xs font-bold text-gray-400 align-top">
         <div className="flex flex-col items-center gap-1">
           <span>{(safePage - 1) * PAGE_SIZE + index + 1}</span>
           {module === "bugs" && row.status !== "fixed" && row.status !== "closed" && row.createdAt && !isNaN(new Date(String(row.createdAt)).getTime()) && (() => {
             const days = Math.floor((new Date().getTime() - new Date(String(row.createdAt)).getTime()) / (24 * 60 * 60 * 1000));
             return days > 3 ? (
               <span
-                className="rounded-md bg-rose-500 px-1 py-0.5 text-[10px] font-black leading-none text-white shadow-sm"
+                className="bg-rose-500 px-1 py-0.5 text-[10px] font-bold leading-none text-white"
                 title={`Stale Bug (${days} days old)`}
               >
                 {days}d
@@ -214,7 +214,7 @@ function SortableRow({
           canEdit={canEdit}
         />
       ))}
-      <td className="border-b border-slate-200/60 px-4 py-3 align-top">
+      <td className="border-b border-gray-100 px-4 py-3 align-top">
         <ModuleRowActions
           module={module}
           row={row}
@@ -308,43 +308,43 @@ export function ModuleWorkspaceTable({
 
   const tableContent = (
     <table className="w-full min-w-[980px] border-collapse table-auto">
-      <thead className="sticky top-0 z-10 bg-slate-200">
+      <thead className="sticky top-0 z-10 bg-gray-50">
         <tr>
           {/* Drag handle column */}
           {reorderable && onReorder && (
-            <th className="border-b border-slate-200/60 w-8" />
+            <th className="border-b border-gray-200 w-8" />
           )}
           {/* Checkbox column */}
           {onToggleSelectAll && (
-            <th className="border-b border-slate-200/60 px-3 py-3 text-center w-10">
+            <th className="border-b border-gray-200 px-3 py-2.5 text-center w-10">
               <button
                 type="button"
                 onClick={onToggleSelectAll}
-                className="inline-flex items-center justify-center text-slate-400 hover:text-blue-600 transition"
+                className="inline-flex items-center justify-center text-gray-400 hover:text-blue-600 transition"
                 title={allSelected ? "Deselect all" : "Select all"}
               >
                 {allSelected ? (
-                  <CheckSquare size={18} weight="bold" className="text-blue-600" />
+                  <CheckSquare size={16} weight="bold" className="text-blue-600" />
                 ) : someSelected ? (
-                  <MinusSquare size={18} weight="bold" className="text-blue-500" />
+                  <MinusSquare size={16} weight="bold" className="text-blue-500" />
                 ) : (
-                  <Square size={18} weight="bold" />
+                  <Square size={16} weight="bold" />
                 )}
               </button>
             </th>
           )}
-          <th className="border-b border-slate-200/60 px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 w-12">
+          <th className="border-b border-gray-200 px-3 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider text-gray-500 w-12">
             No.
           </th>
           {visibleColumns.map((column) => (
             <th
               key={column.key}
-              className="border-b border-slate-200/60 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-700"
+              className="border-b border-gray-200 px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500"
             >
               {column.label}
             </th>
           ))}
-          <th className="border-b border-slate-200/60 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-700">
+          <th className="border-b border-gray-200 px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">
             Action
           </th>
         </tr>
@@ -394,8 +394,8 @@ export function ModuleWorkspaceTable({
     <div className="max-w-full overflow-x-auto px-6 pb-32 pt-2">
       {/* Bulk action toolbar */}
       {hasSelection && (
-        <div className="mb-3 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50/80 px-4 py-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-          <span className="text-xs font-bold text-blue-700">
+        <div className="mb-3 flex items-center gap-3 border border-blue-200 bg-blue-50 px-4 py-2 animate-in fade-in duration-100">
+          <span className="text-xs font-semibold text-blue-700">
             {selectedIds.size} selected
           </span>
           <div className="h-4 w-px bg-blue-200" />
@@ -403,7 +403,7 @@ export function ModuleWorkspaceTable({
             <button
               type="button"
               onClick={onBulkDelete}
-              className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 hover:border-rose-300"
+              className="inline-flex items-center gap-1.5 border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
             >
               <Trash size={14} weight="bold" />
               Delete

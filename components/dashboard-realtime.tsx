@@ -222,7 +222,7 @@ export function DashboardRealtime() {
       {showBadge && (
         <button
           onClick={dismissBadge}
-          className="flex items-center gap-1.5 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-rose-600 transition"
+          className="flex items-center gap-1.5  bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-rose-600 transition"
           title={`${unreadCount} unread notifications - click to dismiss`}
         >
           <Bell size={14} weight="bold" />
@@ -230,44 +230,7 @@ export function DashboardRealtime() {
         </button>
       )}
 
-      {/* Connection status indicator */}
-      <div
-        className={cn(
-          "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] font-bold shadow-sm border",
-          connectionState === "connected" && "bg-emerald-50 text-emerald-700 border-emerald-200",
-          connectionState === "reconnecting" && "bg-amber-50 text-amber-700 border-amber-200",
-          connectionState === "disconnected" && "bg-red-50 text-red-700 border-red-200",
-        )}
-        title={
-          connectionState === "connected"
-            ? "Real-time updates active"
-            : connectionState === "reconnecting"
-              ? "Reconnecting to server..."
-              : "Disconnected - real-time updates unavailable"
-        }
-      >
-        {connectionState === "connected" && (
-          <>
-            <WifiHigh size={12} weight="bold" className="text-emerald-500" />
-            <span className="hidden sm:inline">Connected</span>
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          </>
-        )}
-        {connectionState === "reconnecting" && (
-          <>
-            <ArrowsClockwise size={12} weight="bold" className="text-amber-500 animate-spin" />
-            <span className="hidden sm:inline">Reconnecting</span>
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-          </>
-        )}
-        {connectionState === "disconnected" && (
-          <>
-            <WifiSlash size={12} weight="bold" className="text-red-500" />
-            <span className="hidden sm:inline">Disconnected</span>
-            <span className="h-2 w-2 rounded-full bg-red-400" />
-          </>
-        )}
-      </div>
+      {/* Connection status indicator - hidden */}
     </div>
   );
 }

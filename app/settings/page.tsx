@@ -60,8 +60,8 @@ export default async function SettingsPage() {
  description:"Configure workspace name, timezone, and regional preferences.",
  href:"#",
  icon: Gear,
- color:"text-slate-600",
- bg:"bg-slate-50",
+ color:"text-gray-600",
+ bg:"bg-gray-50",
  disabled: true
  },
  {
@@ -91,36 +91,36 @@ export default async function SettingsPage() {
  {settingsGroups.map((group, groupIdx) => (
  <div key={groupIdx} className="space-y-4">
  <div>
- <h2 className="text-lg font-bold text-slate-800">{group.title}</h2>
- <p className="text-sm text-slate-500">{group.description}</p>
+ <h2 className="text-lg font-bold text-gray-800">{group.title}</h2>
+ <p className="text-sm text-gray-500">{group.description}</p>
  </div>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  {group.items.map((item, itemIdx) => (
  <div 
  key={itemIdx}
- className={`relative group p-4 rounded-xl border border-slate-200/60 bg-white transition-all duration-300 ${item.disabled ?'opacity-50 grayscale' :'hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10'}`}
+ className={`relative group p-4  border border-gray-200/60 bg-white transition-all duration-150 ${item.disabled ?'opacity-50 grayscale' :'hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10'}`}
  >
  <div className="flex items-start gap-4">
- <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${item.bg}`}>
+ <div className={`h-10 w-10  flex items-center justify-center shrink-0 ${item.bg}`}>
  <item.icon size={24} weight="bold" className={item.color} />
  </div>
  
  <div className="flex-1 space-y-1">
- <h3 className="font-bold text-slate-800 flex items-center gap-2">
+ <h3 className="font-bold text-gray-800 flex items-center gap-2">
  {item.title}
  {item.disabled && (
- <span className="text-[11px] font-bold uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">Soon</span>
+ <span className="text-[11px] font-bold uppercase tracking-wider bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">Soon</span>
  )}
  </h3>
- <p className="text-sm text-slate-500 leading-relaxed">
+ <p className="text-sm text-gray-500 leading-relaxed">
  {item.description}
  </p>
  </div>
 
  {!item.disabled && (
  <div className="self-center">
- <CaretRight size={18} weight="bold" className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+ <CaretRight size={18} weight="bold" className="text-gray-300 group-hover:text-blue-500 transition-colors" />
  </div>
  )}
  </div>

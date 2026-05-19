@@ -57,7 +57,7 @@ function renderNotesValue(text: string) {
   if (!lines.length) return <span>-</span>;
 
   return (
-    <div className="space-y-1 text-xs leading-relaxed text-slate-700">
+    <div className="space-y-1 text-xs leading-relaxed text-gray-700">
       {lines.map((line, index) => {
         const match = line.match(/^(\d+\.\s*)?(?:\*\*)?(.+?)(?:\*\*)?:\s*(.+)$/);
         if (match) {
@@ -85,7 +85,7 @@ export function ModuleWorkspaceCell({ module, row, column, value, onInlineUpdate
     const rowSpan = Number(row[rowSpanKey] ?? 1);
     if (rowSpan === 0) return null;
     return (
-      <td key={column.key} rowSpan={rowSpan} className="max-w-64 border-b border-slate-200/60 px-4 py-3 text-sm text-slate-700 align-top whitespace-pre-wrap break-words">
+      <td key={column.key} rowSpan={rowSpan} className="max-w-64 border-b border-gray-200/60 px-4 py-3 text-sm text-gray-700 align-top whitespace-pre-wrap break-words">
         {column.internalLink && value ? (
           <Link href={column.internalLink(row)} className="break-all font-semibold text-blue-700 hover:underline">
             <HighlightText text={String(value)} query="" linkify={false} />
@@ -98,7 +98,7 @@ export function ModuleWorkspaceCell({ module, row, column, value, onInlineUpdate
   }
 
   return (
-    <td className={cn("max-w-64 border-b border-slate-200/60 px-4 py-3 text-sm text-slate-700 align-top whitespace-pre-wrap break-words")}>
+    <td className={cn("max-w-64 border-b border-gray-200/60 px-4 py-3 text-sm text-gray-700 align-top whitespace-pre-wrap break-words")}>
       {column.internalLink && value ? (
         <Link href={column.internalLink(row)} className="break-all text-blue-700 font-semibold hover:underline">
           <HighlightText text={String(value)} query="" linkify={false} />
@@ -145,11 +145,11 @@ export function ModuleWorkspaceCell({ module, row, column, value, onInlineUpdate
           )}
         </div>
       ) : column.key === "notes" && typeof value === "string" ? (
-        <div className={cn("max-w-[280px] rounded-sm bg-slate-50 p-2 text-xs leading-relaxed break-words cursor-default whitespace-normal", module === "test-suites" ? "min-h-12" : "h-24 overflow-y-auto")} title={value}>
+        <div className={cn("max-w-[280px] rounded-sm bg-gray-50 p-2 text-xs leading-relaxed break-words cursor-default whitespace-normal", module === "test-suites" ? "min-h-12" : "h-24 overflow-y-auto")} title={value}>
           {renderNotesValue(value)}
         </div>
       ) : column.multiline ? (
-        <div className={cn("max-w-[240px] rounded-sm bg-slate-50 p-2 text-xs leading-relaxed break-words whitespace-pre-wrap cursor-default", module === "test-suites" ? "min-h-12" : "h-24 overflow-y-auto")} title={String(value || "")}> 
+        <div className={cn("max-w-[240px] rounded-sm bg-gray-50 p-2 text-xs leading-relaxed break-words whitespace-pre-wrap cursor-default", module === "test-suites" ? "min-h-12" : "h-24 overflow-y-auto")} title={String(value || "")}> 
           <HighlightText text={String(value || "-")} query="" />
         </div>
       ) : (

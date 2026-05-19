@@ -98,8 +98,8 @@ export function DailyDigestCard() {
   if (dismissed) return null;
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-5" data-testid="daily-digest-card-loading">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+      <div className=" border border-gray-200 bg-white p-5" data-testid="daily-digest-card-loading">
+        <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
           <Sparkle size={14} weight="bold" /> Preparing your morning digest…
         </div>
       </div>
@@ -107,7 +107,7 @@ export function DailyDigestCard() {
   }
   if (error) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4" data-testid="daily-digest-card-error">
+      <div className=" border border-amber-200 bg-amber-50 p-4" data-testid="daily-digest-card-error">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
             <Warning size={14} weight="bold" />
@@ -117,7 +117,7 @@ export function DailyDigestCard() {
             <button
               type="button"
               onClick={fetchDigest}
-              className="inline-flex h-7 items-center gap-1 rounded-md bg-white px-3 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
+              className="inline-flex h-7 items-center gap-1  bg-white px-3 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
             >
               <ArrowsClockwise size={11} weight="bold" /> Retry
             </button>
@@ -138,23 +138,23 @@ export function DailyDigestCard() {
 
   return (
     <section
-      className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm"
+      className=" border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm"
       data-testid="daily-digest-card"
     >
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <span className="flex h-7 w-7 items-center justify-center  bg-blue-100 text-blue-600">
             <Sparkle size={13} weight="bold" />
           </span>
           <div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-blue-900">Morning Digest</h3>
-            <p className="text-[11px] text-slate-500">Updates since your last session</p>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-900">Morning Digest</h3>
+            <p className="text-[11px] text-gray-500">Updates since your last session</p>
           </div>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-white hover:text-slate-600"
+          className="flex h-7 w-7 items-center justify-center  text-gray-400 hover:bg-white hover:text-gray-600"
           aria-label="Dismiss digest"
         >
           <X size={12} weight="bold" />
@@ -206,12 +206,12 @@ function DigestSection({
     <div>
       <div className="flex items-center gap-1.5 mb-1.5">
         {icon}
-        <span className="text-[11px] font-black uppercase tracking-widest text-slate-600">
-          {title} {items.length > 0 && <span className="text-slate-400">({items.length})</span>}
+        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-600">
+          {title} {items.length > 0 && <span className="text-gray-400">({items.length})</span>}
         </span>
       </div>
       {items.length === 0 ? (
-        <p className="text-[11px] text-slate-400 italic">{empty}</p>
+        <p className="text-[11px] text-gray-400 italic">{empty}</p>
       ) : (
         <ul className="space-y-1">
           {items.slice(0, 10).map((item) => (
@@ -220,12 +220,12 @@ function DigestSection({
                 href={item.href}
                 prefetch={false}
                 className={cn(
-                  "block rounded-md px-2 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-white hover:text-blue-700 transition truncate",
+                  "block  px-2 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-white hover:text-blue-700 transition truncate",
                 )}
                 title={item.title}
               >
                 {item.title}
-                {item.meta && <span className="ml-1 text-[11px] font-medium text-slate-400">{item.meta}</span>}
+                {item.meta && <span className="ml-1 text-[11px] font-medium text-gray-400">{item.meta}</span>}
               </Link>
             </li>
           ))}

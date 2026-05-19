@@ -100,13 +100,13 @@ export default function WorkloadPage() {
  crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Workload Heatmap" }]}
  actions={
  <div className="relative">
- <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+ <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
  <input
  type="text"
  placeholder="Search by name or role..."
  value={search}
  onChange={(e) => setSearch(e.target.value)}
- className="h-10 w-64 rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-xs font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-blue-500/20"
+ className="h-10 w-64  border border-gray-200 bg-white pl-10 pr-4 text-xs font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-blue-500/20"
  />
  </div>
  }
@@ -114,51 +114,51 @@ export default function WorkloadPage() {
  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
  {/* Info Cards */}
  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
- <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+ <div className=" border border-gray-200 bg-white p-6 shadow-sm">
  <div className="flex items-center gap-3">
- <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+ <div className="flex h-10 w-10 items-center justify-center  bg-blue-50 text-blue-600">
  <Users size={20} weight="bold" />
  </div>
  <div>
- <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Resources</p>
- <p className="text-2xl font-black text-slate-900">{data.length}</p>
+ <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Resources</p>
+ <p className="text-2xl font-bold text-gray-900">{data.length}</p>
  </div>
  </div>
  </div>
- <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+ <div className=" border border-gray-200 bg-white p-6 shadow-sm">
  <div className="flex items-center gap-3">
- <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+ <div className="flex h-10 w-10 items-center justify-center  bg-amber-50 text-amber-600">
  <Warning size={20} weight="bold" />
  </div>
  <div>
- <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Over-Capacity</p>
- <p className="text-2xl font-black text-slate-900">
+ <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Over-Capacity</p>
+ <p className="text-2xl font-bold text-gray-900">
  {data.filter(i => i.level ==='critical' || i.level ==='high').length}
  </p>
  </div>
  </div>
  </div>
- <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+ <div className=" border border-gray-200 bg-white p-6 shadow-sm">
  <div className="flex items-center gap-3">
- <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+ <div className="flex h-10 w-10 items-center justify-center  bg-emerald-50 text-emerald-600">
  <TrendUp size={20} weight="bold" />
  </div>
  <div>
- <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Team Efficiency</p>
- <p className="text-2xl font-black text-slate-900">{efficiency}%</p>
+ <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Team Efficiency</p>
+ <p className="text-2xl font-bold text-gray-900">{efficiency}%</p>
  </div>
  </div>
  </div>
  </div>
 
  {/* Heatmap Grid */}
- <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+ <div className=" border border-gray-200 bg-white p-8 shadow-sm">
  <div className="mb-8 flex items-center justify-between">
  <div>
- <h3 className="text-lg font-black text-slate-900">Workload Heatmap</h3>
- <p className="text-sm text-slate-500">Visual breakdown of task and plan assignments per team member.</p>
+ <h3 className="text-lg font-bold text-gray-900">Workload Heatmap</h3>
+ <p className="text-sm text-gray-500">Visual breakdown of task and plan assignments per team member.</p>
  </div>
- <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-400">
+ <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-widest text-gray-400">
  <div className="flex items-center gap-1.5">
  <div className="h-3 w-3 rounded bg-sky-500 opacity-20" /> Low
  </div>
@@ -177,15 +177,15 @@ export default function WorkloadPage() {
  {loading ? (
  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
  {[...Array(8)].map((_, i) => (
- <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-50" />
+ <div key={i} className="h-32 animate-pulse  bg-gray-50" />
  ))}
  </div>
  ) : filtered.length === 0 ? (
  <div className="py-20 text-center">
- <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
- <Info size={32} className="text-slate-300" />
+ <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center  bg-gray-50">
+ <Info size={32} className="text-gray-300" />
  </div>
- <p className="text-sm font-bold text-slate-400">No resources found matching your search.</p>
+ <p className="text-sm font-bold text-gray-400">No resources found matching your search.</p>
  </div>
  ) : (
  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -194,10 +194,10 @@ export default function WorkloadPage() {
  key={item.id}
  onClick={() => openDetail(item)}
  className={cn(
-"group relative cursor-pointer overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl",
+"group relative cursor-pointer overflow-hidden  border p-5 transition-all duration-150 hover:scale-[1.02] hover:shadow-md",
  item.level ==='critical' 
  ?'border-rose-200 bg-rose-50/30' 
- :'border-slate-100 bg-slate-50/50'
+ :'border-gray-100 bg-gray-50/50'
  )}
  >
  {/* Intensity Overlay */}
@@ -209,31 +209,31 @@ export default function WorkloadPage() {
 
  <div className="relative z-10">
  <div className="mb-4 flex items-center justify-between">
- <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white">
+ <div className="flex h-10 w-10 items-center justify-center  bg-gray-900 text-[11px] font-bold text-white">
  {item.name.charAt(0).toUpperCase()}
  </div>
  <Badge value={item.level} />
  </div>
 
- <h4 className="truncate text-sm font-black text-slate-900">{item.name}</h4>
- <p className="mb-4 truncate text-[11px] font-bold uppercase tracking-widest text-slate-400">{getRoleLabel(item.role)}</p>
+ <h4 className="truncate text-sm font-bold text-gray-900">{item.name}</h4>
+ <p className="mb-4 truncate text-[11px] font-bold uppercase tracking-widest text-gray-400">{getRoleLabel(item.role)}</p>
 
  <div className="grid grid-cols-2 gap-2">
- <div className="rounded-xl border border-white/50 bg-white/50 p-2.5">
- <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tasks</p>
- <p className="text-sm font-black text-slate-900">{item.tasks}</p>
+ <div className=" border border-white/50 bg-white/50 p-2.5">
+ <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tasks</p>
+ <p className="text-sm font-bold text-gray-900">{item.tasks}</p>
  </div>
- <div className="rounded-xl border border-white/50 bg-white/50 p-2.5">
- <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Plans</p>
- <p className="text-sm font-black text-slate-900">{item.plans}</p>
+ <div className=" border border-white/50 bg-white/50 p-2.5">
+ <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Plans</p>
+ <p className="text-sm font-bold text-gray-900">{item.plans}</p>
  </div>
  </div>
 
  <div className="mt-4 flex items-center justify-between">
- <span className="text-[11px] font-bold text-slate-400">Workload Score</span>
+ <span className="text-[11px] font-bold text-gray-400">Workload Score</span>
  <span className={cn(
-"rounded-full px-2 py-0.5 text-[11px] font-black",
- item.level ==='critical' ?'bg-rose-500 text-white' :'bg-slate-900 text-white'
+" px-2 py-0.5 text-[11px] font-bold",
+ item.level ==='critical' ?'bg-rose-500 text-white' :'bg-gray-900 text-white'
  )}>
  {item.score}
  </span>
@@ -247,38 +247,38 @@ export default function WorkloadPage() {
 
  {/* Breakdown Table */}
  {!loading && filtered.length > 0 && (
- <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
- <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
- <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">Breakdown Details</h4>
+ <div className=" border border-gray-200 bg-white overflow-hidden shadow-sm">
+ <div className="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+ <h4 className="text-xs font-bold uppercase tracking-widest text-gray-500">Breakdown Details</h4>
  </div>
  <div className="overflow-x-auto">
  <table className="w-full text-left text-xs">
- <thead className="bg-slate-200">
- <tr className="border-b border-slate-100">
- <th className="px-6 py-4 font-black uppercase tracking-widest text-slate-400">Resource</th>
- <th className="px-6 py-4 font-black uppercase tracking-widest text-slate-400">Role</th>
- <th className="px-6 py-4 font-black uppercase tracking-widest text-slate-400">Active Tasks</th>
- <th className="px-6 py-4 font-black uppercase tracking-widest text-slate-400">Test Plans</th>
- <th className="px-6 py-4 font-black uppercase tracking-widest text-slate-400">Score</th>
+ <thead className="bg-gray-200">
+ <tr className="border-b border-gray-100">
+ <th className="px-6 py-4 font-bold uppercase tracking-widest text-gray-400">Resource</th>
+ <th className="px-6 py-4 font-bold uppercase tracking-widest text-gray-400">Role</th>
+ <th className="px-6 py-4 font-bold uppercase tracking-widest text-gray-400">Active Tasks</th>
+ <th className="px-6 py-4 font-bold uppercase tracking-widest text-gray-400">Test Plans</th>
+ <th className="px-6 py-4 font-bold uppercase tracking-widest text-gray-400">Score</th>
  </tr>
  </thead>
- <tbody className="divide-y divide-slate-100">
+ <tbody className="divide-y divide-gray-100">
  {filtered.map(item => (
- <tr key={item.id} onClick={() => openDetail(item)} className="cursor-pointer transition-colors hover:bg-slate-50/50">
+ <tr key={item.id} onClick={() => openDetail(item)} className="cursor-pointer transition-colors hover:bg-gray-50/50">
  <td className="px-6 py-4">
  <div className="flex items-center gap-3">
- <UserCircle size={20} className="text-slate-400" />
- <span className="font-bold text-slate-900">{item.name}</span>
+ <UserCircle size={20} className="text-gray-400" />
+ <span className="font-bold text-gray-900">{item.name}</span>
  </div>
  </td>
- <td className="px-6 py-4 font-medium text-slate-600">{getRoleLabel(item.role)}</td>
- <td className="px-6 py-4 font-black text-slate-900">
+ <td className="px-6 py-4 font-medium text-gray-600">{getRoleLabel(item.role)}</td>
+ <td className="px-6 py-4 font-bold text-gray-900">
  <div className="flex items-center gap-2">
  <CheckSquare size={14} className="text-blue-500" />
  {item.tasks}
  </div>
  </td>
- <td className="px-6 py-4 font-black text-slate-900">
+ <td className="px-6 py-4 font-bold text-gray-900">
  <div className="flex items-center gap-2">
  <Briefcase size={14} className="text-amber-500" />
  {item.plans}
@@ -286,7 +286,7 @@ export default function WorkloadPage() {
  </td>
  <td className="px-6 py-4">
  <span className={cn(
-"inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-black border",
+"inline-flex  px-2.5 py-0.5 text-[11px] font-bold border",
  getScoreColor(item.level)
  )}>
  {item.score}
@@ -303,54 +303,54 @@ export default function WorkloadPage() {
 
  {detail && (
  <div
- className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center"
+ className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4  animate-in fade-in duration-200 sm:items-center"
  onMouseDown={(e) => { if (e.target === e.currentTarget) setDetail(null); }}
  >
- <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:slide-in-from-bottom-0">
- <div className="flex items-center justify-between border-b border-slate-200/60 px-4 py-3">
+ <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col  bg-white shadow-md animate-in slide-in-from-bottom-4 duration-150 sm:slide-in-from-bottom-0">
+ <div className="flex items-center justify-between border-b border-gray-200/60 px-4 py-3">
  <div className="flex items-center gap-3">
- <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white">
+ <div className="flex h-10 w-10 items-center justify-center  bg-gray-900 text-[11px] font-bold text-white">
  {detail.member.name.charAt(0).toUpperCase()}
  </div>
  <div>
- <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Resource Detail</p>
- <h2 className="text-sm font-black text-slate-900">{detail.member.name}</h2>
- <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{getRoleLabel(detail.member.role)}</p>
+ <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Resource Detail</p>
+ <h2 className="text-sm font-bold text-gray-900">{detail.member.name}</h2>
+ <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{getRoleLabel(detail.member.role)}</p>
  </div>
  </div>
  <button
  onClick={() => setDetail(null)}
- className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+ className=" p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
  >
  ×
  </button>
  </div>
 
- <div className="grid grid-cols-3 gap-3 border-b border-slate-200/60 px-4 py-3">
- <div className="rounded-xl bg-blue-50 px-3 py-2">
- <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Tasks</p>
- <p className="text-lg font-black text-slate-900">{detail.member.tasks}</p>
+ <div className="grid grid-cols-3 gap-3 border-b border-gray-200/60 px-4 py-3">
+ <div className=" bg-blue-50 px-3 py-2">
+ <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Tasks</p>
+ <p className="text-lg font-bold text-gray-900">{detail.member.tasks}</p>
  </div>
- <div className="rounded-xl bg-blue-50 px-3 py-2">
- <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Plans</p>
- <p className="text-lg font-black text-slate-900">{detail.member.plans}</p>
+ <div className=" bg-blue-50 px-3 py-2">
+ <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Plans</p>
+ <p className="text-lg font-bold text-gray-900">{detail.member.plans}</p>
  </div>
- <div className="rounded-xl bg-blue-50 px-3 py-2">
- <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Score</p>
- <p className="text-lg font-black text-slate-900">{detail.member.score}</p>
+ <div className=" bg-blue-50 px-3 py-2">
+ <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Score</p>
+ <p className="text-lg font-bold text-gray-900">{detail.member.score}</p>
  </div>
  </div>
 
  <div className="flex-1 overflow-y-auto px-4 py-3">
- <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Active Items</p>
+ <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Active Items</p>
  {detailLoading ? (
  <div className="space-y-2">
  {[...Array(3)].map((_, i) => (
- <div key={i} className="h-14 animate-pulse rounded-xl bg-slate-50" />
+ <div key={i} className="h-14 animate-pulse  bg-gray-50" />
  ))}
  </div>
  ) : detail.items.length === 0 ? (
- <div className="py-10 text-center text-xs text-slate-400">No active items.</div>
+ <div className="py-10 text-center text-xs text-gray-400">No active items.</div>
  ) : (
  <div className="space-y-2">
  {detail.items.map((item, i) => (
@@ -359,29 +359,29 @@ export default function WorkloadPage() {
  href={item.href}
  prefetch={false}
  onClick={() => setDetail(null)}
- className="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40"
+ className="group flex items-center gap-3  border border-gray-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40"
  >
  <div className="min-w-0 flex-1">
- <p className="truncate text-xs font-bold text-slate-800 group-hover:text-blue-700">
+ <p className="truncate text-xs font-bold text-gray-800 group-hover:text-blue-700">
  {item.label}
  </p>
- <p className="mt-0.5 text-[11px] font-semibold text-slate-400">{item.sub}</p>
+ <p className="mt-0.5 text-[11px] font-semibold text-gray-400">{item.sub}</p>
  </div>
  <div className="flex shrink-0 items-center gap-1.5">
  {item.badge && <Badge value={item.badge} />}
  {item.badge2 && <Badge value={item.badge2} />}
  </div>
- <CaretRight size={12} className="shrink-0 text-slate-300 group-hover:text-blue-500" />
+ <CaretRight size={12} className="shrink-0 text-gray-300 group-hover:text-blue-500" />
  </Link>
  ))}
  </div>
  )}
  </div>
 
- <div className="flex items-center justify-end border-t border-slate-200/60 px-4 py-3">
+ <div className="flex items-center justify-end border-t border-gray-200/60 px-4 py-3">
  <button
  onClick={() => setDetail(null)}
- className="h-8 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white transition-all duration-300 hover:bg-rose-500 hover:-translate-y-0.5 hover:shadow-md"
+ className="h-8  bg-rose-600 px-4 text-xs font-bold text-white transition-all duration-150 hover:bg-rose-500  hover:shadow-md"
  >
  Close
  </button>

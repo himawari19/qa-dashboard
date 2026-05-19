@@ -750,34 +750,34 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  actions={
  <div className="grid w-full gap-3 lg:grid-cols-[minmax(170px,220px)_auto_minmax(180px,240px)_auto] lg:items-end lg:justify-items-end">
  <div className="flex w-full flex-col gap-1 lg:max-w-[220px]">
- <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Filter by</label>
+ <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Filter by</label>
  <div className="relative">
  <select
  value={filter}
  onChange={(e) => setFilter(e.target.value as GanttFilter)}
- className="h-9 min-w-[170px] appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-xs font-bold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus:border-sky-300"
+ className="h-9 min-w-[170px] appearance-none  border border-gray-200 bg-white px-3 pr-9 text-xs font-bold text-gray-700 shadow-sm outline-none transition hover:bg-gray-50 focus:border-sky-300"
  >
  <option value="all">All items</option>
  <option value="sprint">Sprints only</option>
  <option value="plan">Test plans only</option>
  <option value="task">Tasks only</option>
  </select>
- <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
+ <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-gray-400">
  <CaretRight size={12} weight="bold" className="rotate-90" />
  </div>
  </div>
  </div>
  <div className="flex w-full flex-col gap-1">
- <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status</label>
+ <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Status</label>
  <div className="flex gap-1.5">
  <button
  type="button"
  onClick={() => setHideCompleted(h => !h)}
  className={cn(
- "h-9 rounded-lg border px-3 text-xs font-bold shadow-sm transition",
+ "h-9  border px-3 text-xs font-bold shadow-sm transition",
  hideCompleted
  ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
- : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+ : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
  )}
  >
  {hideCompleted ? "Active" : "All"}
@@ -786,10 +786,10 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  type="button"
  onClick={() => setMyItemsOnly(m => !m)}
  className={cn(
- "h-9 rounded-lg border px-3 text-xs font-bold shadow-sm transition",
+ "h-9  border px-3 text-xs font-bold shadow-sm transition",
  myItemsOnly
  ? "border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100"
- : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+ : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
  )}
  >
  {myItemsOnly ? "Mine" : "Team"}
@@ -797,7 +797,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
  </div>
  <div className="flex w-full flex-col gap-1 lg:max-w-[240px]">
- <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Period</label>
+ <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Period</label>
  <div className="relative w-full">
  <button
  type="button"
@@ -805,21 +805,21 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  setPeriodPickerAnchor({ x: event.currentTarget.getBoundingClientRect().left, y: event.currentTarget.getBoundingClientRect().bottom });
  setPeriodPickerOpen((open) => !open);
  }}
- className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:border-sky-300"
+ className="flex h-9 w-full items-center justify-between  border border-gray-200 bg-white px-3 text-xs font-bold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:border-sky-300"
  >
  <span>{periodLabel}</span>
- <CaretRight size={12} weight="bold" className={cn("transition", periodPickerOpen ? "rotate-90" : "rotate-90 text-slate-400")} />
+ <CaretRight size={12} weight="bold" className={cn("transition", periodPickerOpen ? "rotate-90" : "rotate-90 text-gray-400")} />
  </button>
  {periodPickerOpen && typeof document !== "undefined" && createPortal(
  <div
  ref={periodPickerRef}
- className="fixed z-[9999] w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl"
+ className="fixed z-[9999] w-80  border border-gray-200 bg-white p-4 shadow-md"
  style={{ left: periodPickerAnchor?.x ?? 0, top: (periodPickerAnchor?.y ?? 0) + 44 }}
  >
  <div className="flex items-center justify-between">
- <button type="button" onClick={() => setPeriodPickerYear((y) => y - 1)} className="h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">‹</button>
- <div className="text-sm font-black text-slate-900">{periodPickerYear}</div>
- <button type="button" onClick={() => setPeriodPickerYear((y) => y + 1)} className="h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">›</button>
+ <button type="button" onClick={() => setPeriodPickerYear((y) => y - 1)} className="h-8 w-8  border border-gray-200 text-gray-500 hover:bg-gray-50">‹</button>
+ <div className="text-sm font-bold text-gray-900">{periodPickerYear}</div>
+ <button type="button" onClick={() => setPeriodPickerYear((y) => y + 1)} className="h-8 w-8  border border-gray-200 text-gray-500 hover:bg-gray-50">›</button>
  </div>
  <div className="mt-4 grid grid-cols-3 gap-2">
  {monthOptions.map((monthName, index) => {
@@ -834,8 +834,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  setPeriodPickerOpen(false);
  }}
  className={cn(
- "h-10 rounded-xl text-xs font-bold transition",
- isActive ? "bg-indigo-600 text-white shadow-sm" : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+ "h-10  text-xs font-bold transition",
+ isActive ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-50 text-gray-600 hover:bg-gray-100"
  )}
  >
  {monthName.slice(0, 3)}
@@ -851,17 +851,17 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
   setViewMode("month");
   setPeriodPickerOpen(false);
  }} className="text-xs font-semibold text-sky-600 hover:text-sky-700">Today</button>
- <button type="button" onClick={() => setPeriodPickerOpen(false)} className="text-xs font-semibold text-slate-400 hover:text-slate-700">Close</button>
+ <button type="button" onClick={() => setPeriodPickerOpen(false)} className="text-xs font-semibold text-gray-400 hover:text-gray-700">Close</button>
  </div>
  </div>, document.body)
  }
  </div>
  </div>
- <div className="flex h-9 items-center justify-self-end rounded-lg bg-slate-100 p-0.5">
+ <div className="flex h-9 items-center justify-self-end  bg-gray-100 p-0.5">
  {(["month","year"] as const).map(m => (
  <button key={m} onClick={() => setViewMode(m)}
- className={cn("h-7 rounded-md px-3 text-xs font-bold capitalize transition",
- viewMode === m ?"bg-indigo-600 text-white shadow-sm" :"text-slate-500 hover:text-slate-700"
+ className={cn("h-7  px-3 text-xs font-bold capitalize transition",
+ viewMode === m ?"bg-indigo-600 text-white shadow-sm" :"text-gray-500 hover:text-gray-700"
  )}>
  {m}
  </button>
@@ -876,13 +876,13 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  onClick={() => setEditModal(null)}
  >
  <div
- className="w-full max-w-2xl rounded-3xl border border-slate-200/80 bg-white p-5 shadow-2xl"
+ className="w-full max-w-2xl rounded-3xl border border-gray-200/80 bg-white p-5 shadow-md"
  onClick={(e) => e.stopPropagation()}
  >
  <div className="flex items-start justify-between gap-4">
  <div>
- <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Timeline details</p>
- <h3 className="mt-2 text-xl font-black text-slate-900">{editModal.item.label}</h3>
+ <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Timeline details</p>
+ <h3 className="mt-2 text-xl font-bold text-gray-900">{editModal.item.label}</h3>
  <a
  href={editModal.navigationLink}
  className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition"
@@ -893,59 +893,59 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <button
  type="button"
  onClick={() => setEditModal(null)}
- className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50"
+ className=" border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 shadow-sm hover:bg-gray-50"
  >
  Close
  </button>
  </div>
 
  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Type</p>
- <p className="mt-2 text-sm font-bold text-slate-900">
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Type</p>
+ <p className="mt-2 text-sm font-bold text-gray-900">
  {editModal.item.type ==="sprint" ?"Sprints" : editModal.item.type === "plan" ? "Test Plans" : "Tasks"}
  </p>
  </div>
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Status</p>
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Status</p>
  <div className="mt-2">
  <Badge value={editModal.item.status} />
  </div>
  </div>
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Progress</p>
- <p className="mt-2 text-sm font-bold text-slate-900">{editModal.progress}%</p>
- <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
- <div className="h-full rounded-full bg-indigo-500" style={{ width: `${editModal.progress}%` }} />
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Progress</p>
+ <p className="mt-2 text-sm font-bold text-gray-900">{editModal.progress}%</p>
+ <div className="mt-1 h-1.5 w-full overflow-hidden  bg-gray-200">
+ <div className="h-full  bg-indigo-500" style={{ width: `${editModal.progress}%` }} />
  </div>
  </div>
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Duration</p>
- <p className="mt-2 text-sm font-bold text-slate-900">
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Duration</p>
+ <p className="mt-2 text-sm font-bold text-gray-900">
  {Math.max(1, diffDays(parseDate(editModal.startDate), parseDate(editModal.endDate)) + 1)} days
  </p>
  </div>
  </div>
 
  <div className="mt-3 grid gap-3 sm:grid-cols-2">
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Start</p>
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Start</p>
  {editModal.canEdit ? (
  <input type="date" value={editModal.startDate}
  onChange={(e) => setEditModal({ ...editModal, startDate: e.target.value })}
- className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm font-bold text-slate-900" />
+ className="mt-2 w-full  border border-gray-200 px-2 py-1 text-sm font-bold text-gray-900" />
  ) : (
- <p className="mt-2 text-sm font-bold text-slate-900">{formatDate(editModal.startDate)}</p>
+ <p className="mt-2 text-sm font-bold text-gray-900">{formatDate(editModal.startDate)}</p>
  )}
  </div>
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">End</p>
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">End</p>
  {editModal.canEdit ? (
  <input type="date" value={editModal.endDate}
  onChange={(e) => setEditModal({ ...editModal, endDate: e.target.value })}
- className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm font-bold text-slate-900" />
+ className="mt-2 w-full  border border-gray-200 px-2 py-1 text-sm font-bold text-gray-900" />
  ) : (
- <p className="mt-2 text-sm font-bold text-slate-900">{formatDate(editModal.endDate)}</p>
+ <p className="mt-2 text-sm font-bold text-gray-900">{formatDate(editModal.endDate)}</p>
  )}
  </div>
  </div>
@@ -955,11 +955,11 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  )}
 
  {editModal.statusBreakdown.length > 0 && (
- <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Child Items</p>
+ <div className="mt-3  border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Child Items</p>
  <div className="mt-2 flex flex-wrap gap-2">
  {editModal.statusBreakdown.map((s) => (
- <span key={s.status} className="rounded-full bg-white border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700">
+ <span key={s.status} className=" bg-white border border-gray-200 px-2.5 py-1 text-xs font-bold text-gray-700">
  {formatDisplayText(s.status)}: {s.count}
  </span>
  ))}
@@ -968,22 +968,22 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  )}
 
  <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Summary</p>
- <p className="mt-2 text-sm font-semibold text-slate-800">
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Summary</p>
+ <p className="mt-2 text-sm font-semibold text-gray-800">
  {editModal.item.sublabel ||"No additional summary."}
  </p>
  </div>
- <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
- <p className="text-xs font-black uppercase tracking-widest text-slate-400">Related</p>
- <div className="mt-2 space-y-2 text-sm font-semibold text-slate-800">
+ <div className=" border border-gray-200/80 bg-gray-50 p-4">
+ <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Related</p>
+ <div className="mt-2 space-y-2 text-sm font-semibold text-gray-800">
  <p>
- <span className="text-slate-500">Owner:</span>{""}
+ <span className="text-gray-500">Owner:</span>{""}
  {editModal.item.owner ||"-"}
  </p>
  {editModal.item.type === "plan" && (
  <p>
- <span className="text-slate-500">Sprint:</span>{""}
+ <span className="text-gray-500">Sprint:</span>{""}
  {editModal.item.relatedSprint ||"-"}
  </p>
  )}
@@ -1011,7 +1011,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  toast("Failed to save changes", "error");
  }
  }}
- className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+ className=" bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
  >
  Save Changes
  </button>
@@ -1023,27 +1023,27 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
 
  {/* Floating tooltip */}
  {tooltip && (
- <div className="fixed z-[100] pointer-events-none px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold shadow-xl whitespace-nowrap border border-white/10"
+ <div className="fixed z-[100] pointer-events-none px-2.5 py-1.5  bg-gray-900 text-white text-xs font-semibold shadow-md whitespace-nowrap border border-white/10"
  style={{ left: tooltip.x + 14, top: tooltip.y - 36 }}>
  {tooltip.text}
- <div className="absolute left-3 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-900" />
+ <div className="absolute left-3 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900" />
  </div>
  )}
 
  {loading && (
  <div className="overflow-hidden animate-pulse">
- <div className="h-12 bg-slate-100" />
- {[...Array(6)].map((_, i) => <div key={i} className="h-12 border-t border-slate-100 bg-white" />)}
+ <div className="h-12 bg-gray-100" />
+ {[...Array(6)].map((_, i) => <div key={i} className="h-12 border-t border-gray-100 bg-white" />)}
  </div>
  )}
 
  {!loading && (
  <div className="relative overflow-hidden flex flex-col">
  {/* ── sticky header ── */}
- <div className="flex border-b-2 border-slate-200 bg-slate-50 sticky top-0 z-20 shadow-sm">
+ <div className="flex border-b-2 border-gray-200 bg-gray-50 sticky top-0 z-20 shadow-sm">
  {/* Label column header */}
- <div className="shrink-0 flex items-end px-4 pb-2 pt-3 border-r-2 border-slate-200" style={{ width: LABEL_W }}>
- <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Item</span>
+ <div className="shrink-0 flex items-end px-4 pb-2 pt-3 border-r-2 border-gray-200" style={{ width: LABEL_W }}>
+ <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Item</span>
  </div>
 
  {/* Scrollable header (mirrors body scroll) */}
@@ -1059,13 +1059,13 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  {viewMode ==="month" && null}
 
  {/* Top row: month / quarter / year */}
- <div className="relative h-7 border-b border-slate-200">
+ <div className="relative h-7 border-b border-gray-200">
  {topHeader.map((h, i) => (
  <div
  key={i}
- className="absolute top-0 bottom-0 flex items-center border-l border-slate-300/60 pl-2 overflow-hidden text-left"
+ className="absolute top-0 bottom-0 flex items-center border-l border-gray-300/60 pl-2 overflow-hidden text-left"
  style={{ left: h.colStart * dayPx, width: h.colSpan * dayPx }}>
- <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">{h.label}</span>
+ <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500 whitespace-nowrap">{h.label}</span>
  </div>
  ))}
  </div>
@@ -1081,7 +1081,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  ?"bg-sky-500/10 border-sky-400/60"
  : h.nonWorkLabel
  ?"bg-rose-400/[0.07] border-rose-300/50"
- :"border-slate-200/70"
+ :"border-gray-200/70"
  )}
  style={{ left: h.colStart * dayPx, width: h.colSpan * dayPx }}
  onMouseMove={h.nonWorkLabel ? (e) => setTooltip({ x: e.clientX, y: e.clientY, text: h.nonWorkLabel! }) : undefined}
@@ -1090,11 +1090,11 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <span className={cn("text-xs font-bold leading-none",
  h.isToday ?"text-sky-600"
  : h.nonWorkLabel ?"text-rose-500"
- :"text-slate-600"
+ :"text-gray-600"
  )}>{h.label}</span>
  {h.sublabel && (
  <span className={cn("text-[10px] leading-none mt-0.5",
- h.isToday ?"text-sky-500/70" : h.nonWorkLabel ?"text-rose-400/70" :"text-slate-400"
+ h.isToday ?"text-sky-500/70" : h.nonWorkLabel ?"text-rose-400/70" :"text-gray-400"
  )}>{h.sublabel}</span>
  )}
  </div>
@@ -1108,7 +1108,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <div ref={rowAreaRef} className="flex relative" style={{ height: renderedRowHeight }}>
 
  {/* Fixed label column */}
- <div className="relative shrink-0 border-r-2 border-slate-200 bg-white z-10" style={{ width: LABEL_W, height: renderedRowHeight }}>
+ <div className="relative shrink-0 border-r-2 border-gray-200 bg-white z-10" style={{ width: LABEL_W, height: renderedRowHeight }}>
  {/* Section headers */}
  {(() => {
  let yPos = 0;
@@ -1121,18 +1121,18 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  key={`section-${row.type}`}
  type="button"
  onClick={() => toggleSection(row.type)}
- className="absolute left-0 right-0 flex items-center gap-2 px-3 border-b border-slate-200 bg-slate-100/80 hover:bg-slate-100 transition-colors cursor-pointer select-none"
+ className="absolute left-0 right-0 flex items-center gap-2 px-3 border-b border-gray-200 bg-gray-100/80 hover:bg-gray-100 transition-colors cursor-pointer select-none"
  style={{ top, height: ROW_H, borderLeft: `3px solid ${SECTION_ACCENT_COLORS[row.type]}` }}
  >
  <CaretDown
  size={12}
  weight="bold"
- className={cn("text-slate-500 transition-transform duration-200", !row.expanded && "-rotate-90")}
+ className={cn("text-gray-500 transition-transform duration-200", !row.expanded && "-rotate-90")}
  />
- <span className="text-[11px] font-black uppercase tracking-[0.15em]" style={{ color: SECTION_ACCENT_COLORS[row.type] }}>
+ <span className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: SECTION_ACCENT_COLORS[row.type] }}>
  {row.label}
  </span>
- <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold" style={{ backgroundColor: SECTION_ACCENT_COLORS[row.type] + "15", color: SECTION_ACCENT_COLORS[row.type] }}>
+ <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center  px-1.5 text-[10px] font-bold" style={{ backgroundColor: SECTION_ACCENT_COLORS[row.type] + "15", color: SECTION_ACCENT_COLORS[row.type] }}>
  {row.count}
  </span>
  </button>
@@ -1148,18 +1148,18 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  return (
  <div key={`lbl-${item.type}-${item.id}`}
  className={cn(
-"absolute left-0 right-0 flex items-center gap-2.5 px-3 border-b border-slate-100 transition-colors",
+"absolute left-0 right-0 flex items-center gap-2.5 px-3 border-b border-gray-100 transition-colors",
  item.depth === 1 &&"pl-8",
- actualRow % 2 === 1 ?"bg-slate-50/60" :"bg-white"
+ actualRow % 2 === 1 ?"bg-gray-50/60" :"bg-white"
  )}
  style={{ top: actualRow * ROW_H, height: ROW_H, borderLeft: `3px solid ${SECTION_ACCENT_COLORS[item.type]}30` }}>
- <div className="shrink-0 h-6 w-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: item.color }}>
+ <div className="shrink-0 h-6 w-6  flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: item.color }}>
  {item.type ==="sprint" ? <Lightning size={11} weight="bold" /> : item.type === "task" ? <ListChecks size={11} weight="bold" /> : <ClipboardText size={11} weight="bold" />}
  </div>
  <div className="flex-1 min-w-0">
- <p className="text-[12px] font-bold text-slate-800 truncate leading-tight">{item.label}</p>
+ <p className="text-[12px] font-bold text-gray-800 truncate leading-tight">{item.label}</p>
  {item.sublabel && (
- <p className="text-[11px] text-slate-400 truncate mt-0.5">
+ <p className="text-[11px] text-gray-400 truncate mt-0.5">
  {item.sublabel}
  {item.relatedSprint ?` • ${item.relatedSprint}` :""}
  </p>
@@ -1201,7 +1201,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  yPos++;
  return (
  <div key={`hdr-bg-${row.type}`}
- className="absolute left-0 right-0 border-b border-slate-200 bg-slate-100/80"
+ className="absolute left-0 right-0 border-b border-gray-200 bg-gray-100/80"
  style={{ top, height: ROW_H }}
  />
  );
@@ -1216,8 +1216,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const actualRow = itemRowOffsets[idx] ?? idx;
  return (
  <div key={`bg-${idx}`}
- className={cn("absolute left-0 right-0 border-b border-slate-100",
- actualRow % 2 === 1 ?"bg-slate-50/60" :"bg-transparent"
+ className={cn("absolute left-0 right-0 border-b border-gray-100",
+ actualRow % 2 === 1 ?"bg-gray-50/60" :"bg-transparent"
  )}
  style={{ top: actualRow * ROW_H, height: ROW_H }}
  />
@@ -1228,7 +1228,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  {subHeader.map((h, i) => (
  <div key={`div-${i}`}
  className={cn("absolute top-0 bottom-0 w-px pointer-events-none z-[2]",
- h.isToday ?"bg-sky-400/30" :"bg-slate-200/60"
+ h.isToday ?"bg-sky-400/30" :"bg-gray-200/60"
  )}
  style={{ left: h.colStart * dayPx }}
  />
@@ -1258,9 +1258,9 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
 
  {displayItems.length === 0 && (
  <div className="absolute inset-x-0 top-16 z-[4] flex justify-center pointer-events-none">
- <div className="rounded-2xl border border-dashed border-slate-200 bg-white/90 px-5 py-3 text-center shadow-sm backdrop-blur-sm">
- <p className="text-sm font-semibold text-slate-500">No items in the current period.</p>
- <p className="mt-1 text-xs text-slate-400">Tanggal tetap tampil, data akan muncul saat ada item yang overlap.</p>
+ <div className=" border border-dashed border-gray-200 bg-white/90 px-5 py-3 text-center shadow-sm ">
+ <p className="text-sm font-semibold text-gray-500">No items in the current period.</p>
+ <p className="mt-1 text-xs text-gray-400">Tanggal tetap tampil, data akan muncul saat ada item yang overlap.</p>
  </div>
  </div>
  )}
@@ -1291,7 +1291,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  className={cn(
  "w-full h-full rotate-45 rounded-[3px] border-2 transition-all cursor-pointer",
  hoveredItemKey && !isRelated ? "opacity-20 saturate-50" : "opacity-100",
- isHovered ? "ring-2 ring-sky-400/50 scale-110" : "hover:scale-110",
+ isHovered ? "ring-2 ring-sky-400/50 scale-110" : "",
  )}
  style={{ backgroundColor: item.color + "30", borderColor: item.color }}
  onClick={() => {
@@ -1328,7 +1328,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  style={{ top: row.top, height: ROW_H - 20, left: row.left, width: row.width }}>
  <div
  className={cn(
-"w-full h-full rounded-md flex items-center px-2.5 overflow-hidden select-none group/bar relative transition-all",
+"w-full h-full  flex items-center px-2.5 overflow-hidden select-none group/bar relative transition-all",
  canEditTimeline(userRole) ? "cursor-grab" : "cursor-pointer",
  item.depth === 1 ?"rounded-l-none border-l-0" :"",
  hoveredItemKey && !isRelated ?"opacity-20 saturate-50" :"opacity-100",
@@ -1383,7 +1383,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </>
  )}
  {!canEditTimeline(userRole) && (
- <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 text-slate-400/60">
+ <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 text-gray-400/60">
  <Lock size={10} weight="bold" />
  </div>
  )}
@@ -1392,8 +1392,8 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-md" style={{ backgroundColor: item.color }} />
  {item.depth === 1 && (
  <div className="mr-2 h-6 w-4 shrink-0">
- <div className="h-full w-px bg-slate-300/80" />
- <div className="absolute mt-3 h-px w-4 bg-slate-300/80" />
+ <div className="h-full w-px bg-gray-300/80" />
+ <div className="absolute mt-3 h-px w-4 bg-gray-300/80" />
  </div>
  )}
  <span className={cn("text-xs font-bold truncate whitespace-nowrap relative z-[1]", item.depth === 1 ?"pl-0" :"pl-1.5")} style={{ color: item.color }}>
@@ -1409,7 +1409,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  <span className="text-[10px] font-bold" style={{ color: item.color }}>{progress}%</span>
  )}
  {isConflicted && (
- <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500/15 px-1 text-[10px] font-black text-amber-600" title="Potential overlap">
+ <span className="inline-flex h-4 min-w-4 items-center justify-center  bg-amber-500/15 px-1 text-[10px] font-bold text-amber-600" title="Potential overlap">
  !
  </span>
  )}
@@ -1427,19 +1427,19 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
 
  {/* ── legend ── */}
- <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-4 py-3 border-t-2 border-slate-100 bg-slate-50/80">
- <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
- <div className="h-3.5 w-0.5 rounded-full bg-sky-500/60 shrink-0" /> Today
+ <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-4 py-3 border-t-2 border-gray-100 bg-gray-50/80">
+ <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500">
+ <div className="h-3.5 w-0.5  bg-sky-500/60 shrink-0" /> Today
  </div>
- <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+ <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500">
  <div className="h-3.5 w-3.5 rounded bg-rose-400/15 border border-rose-300/50 shrink-0" /> Weekend / Holiday
  </div>
- <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
- <div className="h-3 w-3 rotate-45 rounded-[2px] border-2 border-slate-400 bg-slate-200/50 shrink-0" /> Milestone (1 day)
+ <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500">
+ <div className="h-3 w-3 rotate-45 rounded-[2px] border-2 border-gray-400 bg-gray-200/50 shrink-0" /> Milestone (1 day)
  </div>
- <div className="h-3 w-px bg-slate-300 mx-1" />
+ <div className="h-3 w-px bg-gray-300 mx-1" />
  {Object.entries(STATUS_COLORS).map(([status, color]) => (
- <div key={status} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+ <div key={status} className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500">
  <div className="h-3.5 w-5 rounded" style={{ backgroundColor: color +"20", border:`1.5px solid ${color}60`, borderLeft:`3px solid ${color}` }} />
  {formatDisplayText(status)}
  </div>

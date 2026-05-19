@@ -49,20 +49,20 @@ export function ModulePagination({
   };
 
   return (
-    <div className="mt-4 flex flex-col items-center gap-3 border-t border-slate-200/60 pt-4">
+    <div className="mt-4 flex flex-col items-center gap-3 border-t border-gray-200/60 pt-4">
       <div className="flex items-center gap-1.5">
         <button
           type="button"
           disabled={page <= 1}
           onClick={onPrev}
-          className="h-8 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-blue-400 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-8  border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 transition hover:border-blue-400 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           ←
         </button>
 
         {pageNumbers.map((p, idx) =>
           p === "..." ? (
-            <span key={`ellipsis-${idx}`} className="px-1 text-xs text-slate-400">
+            <span key={`ellipsis-${idx}`} className="px-1 text-xs text-gray-400">
               …
             </span>
           ) : (
@@ -74,10 +74,10 @@ export function ModulePagination({
                 else if (p < page) onPrev();
                 else if (p > page) onNext();
               }}
-              className={`h-8 min-w-[32px] rounded-md border px-2 text-xs font-semibold transition ${
+              className={`h-8 min-w-[32px]  border px-2 text-xs font-semibold transition ${
                 p === page
                   ? "border-blue-500 bg-blue-500 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-700"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-700"
               }`}
             >
               {p}
@@ -89,7 +89,7 @@ export function ModulePagination({
           type="button"
           disabled={page >= totalPages}
           onClick={onNext}
-          className="h-8 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-blue-400 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-8  border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 transition hover:border-blue-400 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           →
         </button>
@@ -104,12 +104,12 @@ export function ModulePagination({
               onChange={(e) => setJumpValue(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleJump(); }}
               placeholder="Go to"
-              className="h-8 w-16 rounded-md border border-slate-200 bg-white px-2 text-center text-xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+              className="h-8 w-16  border border-gray-200 bg-white px-2 text-center text-xs outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
             />
             <button
               type="button"
               onClick={handleJump}
-              className="h-8 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600 transition hover:border-blue-400 hover:text-blue-700"
+              className="h-8  border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-600 transition hover:border-blue-400 hover:text-blue-700"
             >
               Go
             </button>
@@ -117,7 +117,7 @@ export function ModulePagination({
         )}
       </div>
 
-      <p className="text-xs font-medium text-slate-500">
+      <p className="text-xs font-medium text-gray-500">
         Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)} of {totalItems} items
       </p>
     </div>

@@ -129,7 +129,7 @@ export function ModernDatePicker({
 
  if (!mounted) {
  return (
- <div className="h-12 w-full animate-pulse rounded-md border border-slate-200 bg-slate-100" />
+ <div className="h-12 w-full animate-pulse  border border-gray-200 bg-gray-100" />
  );
  }
 
@@ -138,7 +138,7 @@ export function ModernDatePicker({
  {/* Hidden native input so forms continue to work without changing module-workspace logic significantly */}
  <input type="hidden" name={name} value={selectedDate ? selectedDate.toISOString().split('T')[0] :""} />
  
- <div ref={triggerRef} className="group relative flex h-12 w-full items-center rounded-md border border-slate-200 bg-slate-50 transition focus-within:border-blue-300 focus-within:bg-white hover:bg-white">
+ <div ref={triggerRef} className="group relative flex h-12 w-full items-center  border border-gray-200 bg-gray-50 transition focus-within:border-blue-300 focus-within:bg-white hover:bg-white">
  <button
  type="button"
  onClick={() => setIsOpen(!isOpen)}
@@ -146,7 +146,7 @@ export function ModernDatePicker({
  className={cn(
 "flex h-full flex-grow items-center px-4 text-sm outline-none",
  disabled &&"cursor-not-allowed",
- !selectedDate ?"text-slate-400" :"text-slate-800"
+ !selectedDate ?"text-gray-400" :"text-gray-800"
  )}
  >
  <span>
@@ -165,7 +165,7 @@ export function ModernDatePicker({
  handleSelect(new Date());
  }}
  disabled={disabled}
- className="flex h-8 items-center rounded bg-blue-100 px-2 text-[11px] font-black uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
+ className="flex h-8 items-center rounded bg-blue-100 px-2 text-[11px] font-bold uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
  >
  Today
  </button>
@@ -173,7 +173,7 @@ export function ModernDatePicker({
  type="button"
  onClick={() => setIsOpen(!isOpen)}
  disabled={disabled}
- className="flex h-8 w-8 items-center justify-center text-slate-500 hover:text-blue-600"
+ className="flex h-8 w-8 items-center justify-center text-gray-500 hover:text-blue-600"
  >
  <CalendarBlank size={18} />
  </button>
@@ -184,23 +184,23 @@ export function ModernDatePicker({
  <div
  ref={dropdownRef}
  style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 99999 }}
- className="w-72 rounded-md border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200"
+ className="w-72  border border-gray-200 bg-white p-4 shadow-md animate-in fade-in  duration-150"
  >
  <div className="flex items-center justify-between mb-4">
  <button
  type="button"
  onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
- className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition"
+ className="flex h-8 w-8 items-center justify-center  hover:bg-gray-100 text-gray-600 transition"
  >
  <CaretLeft size={16} weight="bold" />
  </button>
- <div className="text-sm font-semibold text-slate-800">
+ <div className="text-sm font-semibold text-gray-800">
  {currentDate.toLocaleDateString('en-US', { month:'long', year:'numeric' })}
  </div>
  <button
  type="button"
  onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
- className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition"
+ className="flex h-8 w-8 items-center justify-center  hover:bg-gray-100 text-gray-600 transition"
  >
  <CaretRight size={16} weight="bold" />
  </button>
@@ -208,7 +208,7 @@ export function ModernDatePicker({
 
  <div className="grid grid-cols-7 gap-1 text-center mb-2">
  {weekDays.map(day => (
- <div key={day} className="text-xs font-bold uppercase text-slate-400">{day}</div>
+ <div key={day} className="text-xs font-bold uppercase text-gray-400">{day}</div>
  ))}
  </div>
 
@@ -229,8 +229,8 @@ export function ModernDatePicker({
  type="button"
  onClick={() => handleSelect(day)}
  className={cn(
-"flex h-8 w-8 items-center justify-center rounded-md text-sm transition-all hover:bg-blue-100",
- isSelected ?"bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700" :"text-slate-700",
+"flex h-8 w-8 items-center justify-center  text-sm transition-all hover:bg-blue-100",
+ isSelected ?"bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700" :"text-gray-700",
  isToday && !isSelected &&"text-blue-600 font-bold bg-blue-50"
  )}
  >

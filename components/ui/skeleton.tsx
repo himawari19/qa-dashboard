@@ -2,7 +2,7 @@ import { cn } from"@/lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
  return (
- <div className={cn("animate-pulse rounded-md bg-slate-200", className)} />
+ <div className={cn("animate-pulse  bg-gray-200", className)} />
  );
 }
 
@@ -13,7 +13,7 @@ export function ChartSkeleton({ bars = 7 }: { bars?: number }) {
  {heights.map((h, i) => (
  <div
  key={i}
- className="flex-1 rounded-t bg-slate-200"
+ className="flex-1 rounded-t bg-gray-200"
  style={{ height:`${h}%` }}
  />
  ))}

@@ -60,11 +60,11 @@ export class ErrorBoundary extends Component<Props, State> {
       const { error, errorInfo, detailsOpen, copied } = this.state;
 
       return (
-        <div className="flex min-h-[200px] w-full flex-col items-center justify-center rounded-md border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-rose-100 text-rose-600 mb-4">
+        <div className="flex min-h-[200px] w-full flex-col items-center justify-center  border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center  bg-rose-100 text-rose-600 mb-4">
             <WarningCircle size={28} weight="fill" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">Something went wrong</h3>
+          <h3 className="text-lg font-bold text-gray-900">Something went wrong</h3>
           <InlineAlert
             variant="error"
             message="Component failed to load. Please try refreshing the page or check your data format."
@@ -74,14 +74,14 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="mt-6 flex gap-2">
             <button
               onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
-              className="rounded-md bg-white px-4 py-2 text-xs font-bold text-rose-600 shadow-sm border border-rose-100 hover:bg-rose-100 transition"
+              className=" bg-white px-4 py-2 text-xs font-bold text-rose-600 shadow-sm border border-rose-100 hover:bg-rose-100 transition"
             >
               Try Again
             </button>
             {isDev && (
               <button
                 onClick={this.copyError}
-                className="rounded-md bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm border border-slate-200 hover:bg-slate-100 transition flex items-center gap-1.5"
+                className=" bg-white px-4 py-2 text-xs font-bold text-gray-600 shadow-sm border border-gray-200 hover:bg-gray-100 transition flex items-center gap-1.5"
               >
                 <CopySimple size={13} weight="bold" />
                 {copied ? "Copied!" : "Copy Error"}
@@ -104,15 +104,15 @@ export class ErrorBoundary extends Component<Props, State> {
                 {detailsOpen ? "Hide" : "Show"} error details
               </button>
               {detailsOpen && (
-                <div className="mt-2 rounded-md border border-rose-200 bg-white p-4 text-left">
+                <div className="mt-2  border border-rose-200 bg-white p-4 text-left">
                   <p className="text-xs font-bold text-rose-700 mb-1">{error.message}</p>
-                  <pre className="text-[11px] text-slate-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
+                  <pre className="text-[11px] text-gray-600 overflow-auto max-h-48 whitespace-pre-wrap break-all">
                     {error.stack}
                   </pre>
                   {errorInfo?.componentStack && (
                     <>
-                      <p className="text-xs font-bold text-slate-500 mt-3 mb-1">Component Stack:</p>
-                      <pre className="text-[11px] text-slate-500 overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                      <p className="text-xs font-bold text-gray-500 mt-3 mb-1">Component Stack:</p>
+                      <pre className="text-[11px] text-gray-500 overflow-auto max-h-32 whitespace-pre-wrap break-all">
                         {errorInfo.componentStack}
                       </pre>
                     </>

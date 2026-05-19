@@ -74,14 +74,14 @@ const STATUS_PILL: Record<string, string> = {
  Passed:"text-emerald-600 bg-emerald-50 border-emerald-200",
  Failed:"text-rose-600 bg-rose-50 border-rose-200",
  Blocked:"text-amber-600 bg-amber-50 border-amber-200",
- Pending:"text-slate-500 bg-slate-50 border-slate-200",
+ Pending:"text-gray-500 bg-gray-50 border-gray-200",
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
  Passed: <CheckCircle size={12} weight="fill" className="text-emerald-500" />,
  Failed: <XCircle size={12} weight="fill" className="text-rose-500" />,
  Blocked: <Warning size={12} weight="fill" className="text-amber-500" />,
- Pending: <Clock size={12} weight="fill" className="text-slate-400" />,
+ Pending: <Clock size={12} weight="fill" className="text-gray-400" />,
 };
 
 const TYPE_COLOR: Record<string, string> = {
@@ -93,7 +93,7 @@ const PRIORITY_COLOR: Record<string, string> = {
  Critical:"text-red-600",
  High:"text-red-500",
  Medium:"text-orange-500",
- Low:"text-slate-500",
+ Low:"text-gray-500",
 };
 
 /* ─── Sortable Test Case Row ─── */
@@ -128,40 +128,40 @@ function SortableTestCaseRow({
    style={style}
    {...attributes}
    className={cn(
-    "group/row transition-shadow duration-200 hover:bg-slate-50/70",
-    isDragging && "opacity-30 bg-slate-100",
-    isDragOverlay && "shadow-2xl bg-white opacity-100 ring-2 ring-sky-400/50",
+    "group/row transition-shadow duration-200 hover:bg-gray-50/70",
+    isDragging && "opacity-30 bg-gray-100",
+    isDragOverlay && "shadow-md bg-white opacity-100 ring-2 ring-sky-400/50",
    )}
   >
    <td className="px-2 py-3.5 align-top w-[36px]">
-    <span {...listeners} className="inline-flex cursor-grab active:cursor-grabbing touch-none text-slate-300 hover:text-slate-500 transition">
+    <span {...listeners} className="inline-flex cursor-grab active:cursor-grabbing touch-none text-gray-300 hover:text-gray-500 transition">
      <DotsSixVertical size={14} weight="bold" />
     </span>
    </td>
    <td className="px-3 py-3.5 align-top">
-    <span className="font-mono text-xs font-bold text-slate-400">{index + 1}</span>
+    <span className="font-mono text-xs font-bold text-gray-400">{index + 1}</span>
    </td>
    <td className="max-w-[360px] px-3 py-3.5 align-top">
     <div className="space-y-1">
-     <p className="truncate font-semibold text-slate-800">{testCase.caseName}</p>
+     <p className="truncate font-semibold text-gray-800">{testCase.caseName}</p>
      {testCase.actualResult && (
-      <p className="mt-0 truncate text-xs text-slate-400">{testCase.actualResult}</p>
+      <p className="mt-0 truncate text-xs text-gray-400">{testCase.actualResult}</p>
      )}
     </div>
    </td>
    <td className="hidden px-3 py-3.5 align-top md:table-cell">
-    <span className="text-xs font-semibold text-slate-600">
+    <span className="text-xs font-semibold text-gray-600">
      {testCase.assignee || suiteAssignee ||"Unassigned"}
     </span>
    </td>
    <td className="hidden px-3 py-3.5 align-top md:table-cell">
-    <span className={cn("text-xs font-semibold", TYPE_COLOR[testCase.typeCase] ?? "text-slate-500")}>{formatDisplayText(testCase.typeCase)}</span>
+    <span className={cn("text-xs font-semibold", TYPE_COLOR[testCase.typeCase] ?? "text-gray-500")}>{formatDisplayText(testCase.typeCase)}</span>
    </td>
    <td className="hidden px-3 py-3.5 align-top lg:table-cell">
-    <span className={cn("text-xs font-semibold", PRIORITY_COLOR[testCase.priority] ?? "text-slate-500")}>{formatDisplayText(testCase.priority)}</span>
+    <span className={cn("text-xs font-semibold", PRIORITY_COLOR[testCase.priority] ?? "text-gray-500")}>{formatDisplayText(testCase.priority)}</span>
    </td>
    <td className="px-3 py-3.5 align-top">
-    <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
+    <span className={cn("inline-flex items-center gap-1.5  border px-2 py-1 text-xs font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
      {STATUS_ICON[testCase.status] ?? STATUS_ICON.Pending}
      {formatDisplayText(testCase.status ||"Pending")}
     </span>
@@ -249,17 +249,17 @@ function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase
   <DndContext id="tc-dnd" sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
    <table className="w-full text-sm">
     <thead className="sticky top-0 z-10">
-     <tr className="border-b border-slate-100 bg-slate-200">
+     <tr className="border-b border-gray-100 bg-gray-200">
       <th className="w-[36px] px-2 py-3" />
-      <th className="w-[52px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">#</th>
-      <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
-      <th className="hidden w-[160px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Assignee</th>
-      <th className="hidden w-[120px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 md:table-cell">Type</th>
-      <th className="hidden w-[90px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 lg:table-cell">Priority</th>
-      <th className="w-[110px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Status</th>
+      <th className="w-[52px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">#</th>
+      <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Case Name</th>
+      <th className="hidden w-[160px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400 md:table-cell">Assignee</th>
+      <th className="hidden w-[120px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400 md:table-cell">Type</th>
+      <th className="hidden w-[90px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400 lg:table-cell">Priority</th>
+      <th className="w-[110px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Status</th>
      </tr>
     </thead>
-    <tbody className="divide-y divide-slate-100">
+    <tbody className="divide-y divide-gray-100">
      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
       {localCases.map((testCase, index) => (
        <SortableTestCaseRow key={testCase.id} testCase={testCase} index={index} suiteAssignee={suiteAssignee} />
@@ -393,9 +393,9 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  <div className="space-y-3 pb-6">
  <div>
  <div className="flex flex-col gap-4 lg:h-[calc(100vh-310px)] lg:min-h-[500px] lg:flex-row">
- <div className="flex max-h-[320px] w-full shrink-0 flex-col gap-1 overflow-y-auto border-b border-slate-200/70 bg-transparent p-3 lg:h-full lg:max-h-none lg:w-[360px] lg:border-b-0 lg:border-r">
+ <div className="flex max-h-[320px] w-full shrink-0 flex-col gap-1 overflow-y-auto border-b border-gray-200/70 bg-transparent p-3 lg:h-full lg:max-h-none lg:w-[360px] lg:border-b-0 lg:border-r">
  {filteredGroups.length === 0 ? (
- <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400">
+ <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-gray-400">
  <Checks size={32} weight="bold" />
  <p className="text-xs font-semibold">No suites found</p>
  </div>
@@ -409,8 +409,8 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  type="button"
  onClick={() => setSelectedKey(group.key)}
  className={cn(
-"w-full rounded-lg px-4 py-4 text-left transition-all",
- isActive ?"bg-blue-600 text-white shadow-sm shadow-blue-500/20" :"hover:bg-slate-50",
+"w-full  px-4 py-4 text-left transition-all",
+ isActive ?"bg-blue-600 text-white shadow-sm shadow-blue-500/20" :"hover:bg-gray-50",
  )}
  >
  <div className="flex items-start justify-between gap-3">
@@ -420,40 +420,40 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  {group.planProject}
  </p>
  )}
- <p className={cn("truncate text-sm font-bold leading-snug", isActive ?"text-white" :"text-slate-800")}>
+ <p className={cn("truncate text-sm font-bold leading-snug", isActive ?"text-white" :"text-gray-800")}>
  {group.suiteTitle}
  </p>
- <p className={cn("mt-0.5 truncate text-[11px] font-semibold", isActive ?"text-blue-200" :"text-slate-400")}>
+ <p className={cn("mt-0.5 truncate text-[11px] font-semibold", isActive ?"text-blue-200" :"text-gray-400")}>
  {group.planTitle ||"No plan"}
  </p>
  {group.suiteAssignee && (
- <p className={cn("mt-0.5 truncate text-[11px] font-semibold", isActive ?"text-blue-100" :"text-slate-500")}>
+ <p className={cn("mt-0.5 truncate text-[11px] font-semibold", isActive ?"text-blue-100" :"text-gray-500")}>
  {group.suiteAssignee}
  </p>
  )}
  </div>
  <span className={cn(
-"mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-black",
- isActive ?"bg-white/20 text-white" :"bg-slate-100 text-slate-500",
+"mt-0.5 shrink-0  px-1.5 py-0.5 text-[11px] font-bold",
+ isActive ?"bg-white/20 text-white" :"bg-gray-100 text-gray-500",
  )}>
  {displayCount}
  </span>
  </div>
- <div className={cn("mt-2 flex items-center gap-2.5 text-[11px] font-bold", isActive ?"text-blue-200" :"text-slate-400")}>
+ <div className={cn("mt-2 flex items-center gap-2.5 text-[11px] font-bold", isActive ?"text-blue-200" :"text-gray-400")}>
  <span className="flex items-center gap-1">
- <span className={cn("h-1.5 w-1.5 rounded-full", isActive ?"bg-emerald-300" :"bg-emerald-500")} />
+ <span className={cn("h-1.5 w-1.5 ", isActive ?"bg-emerald-300" :"bg-emerald-500")} />
  {group.passed}
  </span>
  <span className="flex items-center gap-1">
- <span className={cn("h-1.5 w-1.5 rounded-full", isActive ?"bg-rose-300" :"bg-rose-500")} />
+ <span className={cn("h-1.5 w-1.5 ", isActive ?"bg-rose-300" :"bg-rose-500")} />
  {group.failed}
  </span>
  <span className="flex items-center gap-1">
- <span className={cn("h-1.5 w-1.5 rounded-full", isActive ?"bg-amber-300" :"bg-amber-400")} />
+ <span className={cn("h-1.5 w-1.5 ", isActive ?"bg-amber-300" :"bg-amber-400")} />
  {group.blocked}
  </span>
  {group.cases.length > 0 && (
- <div className="ml-auto flex h-1 flex-1 max-w-[48px] overflow-hidden rounded-full bg-white/20">
+ <div className="ml-auto flex h-1 flex-1 max-w-[48px] overflow-hidden  bg-white/20">
  <div
  style={{ width:`${(group.passed / group.cases.length) * 100}%` }}
  className={cn("h-full transition-all", isActive ?"bg-emerald-300" :"bg-emerald-500")}
@@ -469,13 +469,13 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
 
  <div className="flex min-h-[520px] flex-1 flex-col overflow-hidden">
  {!selected ? (
- <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
+ <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
  <Table size={40} weight="bold" />
  <p className="text-sm font-semibold">Select a suite to view test cases</p>
  </div>
  ) : (
  <>
- <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
+ <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-6 py-4">
  <div className="min-w-0">
  {selected.planProject && (
  <p className="mb-0.5 text-[11px] font-bold uppercase tracking-widest text-blue-500">
@@ -483,16 +483,16 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  </p>
  )}
  <div className="flex items-center gap-2">
- <h2 className="truncate text-base font-bold text-slate-900">{selected.suiteTitle}</h2>
+ <h2 className="truncate text-base font-bold text-gray-900">{selected.suiteTitle}</h2>
  {selected.suiteStatus && <Badge value={selected.suiteStatus} />}
  </div>
  </div>
  <div className="flex items-center gap-2">
- <div className="hidden sm:flex items-center gap-3 text-xs font-bold text-slate-400">
+ <div className="hidden sm:flex items-center gap-3 text-xs font-bold text-gray-400">
  <span className="flex items-center gap-1"><CheckCircle size={13} className="text-emerald-500" />{selected.passed}</span>
  <span className="flex items-center gap-1"><XCircle size={13} className="text-rose-500" />{selected.failed}</span>
  <span className="flex items-center gap-1"><Warning size={13} className="text-amber-500" />{selected.blocked}</span>
- <span className="flex items-center gap-1"><Clock size={13} className="text-slate-400" />{selected.pending}</span>
+ <span className="flex items-center gap-1"><Clock size={13} className="text-gray-400" />{selected.pending}</span>
  </div>
  {(selected.suiteToken || selected.key) && (
  <div ref={menuRef} className="relative">
@@ -502,13 +502,13 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  aria-expanded={isMenuOpen}
  aria-haspopup="menu"
  onClick={() => setIsMenuOpen((open) => !open)}
- className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+ className="flex h-9 w-9 items-center justify-center  border border-gray-200 text-gray-500 transition hover:bg-gray-50"
  >
  <DotsThreeVertical size={18} weight="bold" />
  </button>
  {isMenuOpen && (
- <div className="absolute right-0 top-11 z-20 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
- <Link href={`/test-cases/${selected.suiteToken || selected.key}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50" onClick={() => setIsMenuOpen(false)}>
+ <div className="absolute right-0 top-11 z-20 w-56  border border-gray-200 bg-white p-2 shadow-lg">
+ <Link href={`/test-cases/${selected.suiteToken || selected.key}`} className="flex items-center gap-2  px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50" onClick={() => setIsMenuOpen(false)}>
  <PencilSimple size={16} weight="bold" />
  Edit Test Case
  </Link>
@@ -520,7 +520,7 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  </div>
 
  {displayCases.length === 0 ? (
- <div className="flex flex-1 flex-col items-center justify-center gap-2 text-slate-400">
+ <div className="flex flex-1 flex-col items-center justify-center gap-2 text-gray-400">
  <Checks size={32} weight="bold" />
  <p className="text-sm font-semibold">No cases match this filter</p>
  </div>
@@ -528,23 +528,23 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  <div className="flex flex-1 flex-col overflow-hidden">
  <div className="grid gap-3 px-4 py-4 md:hidden">
  {displayCases.map((testCase) => (
- <div key={testCase.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+ <div key={testCase.id} className=" border border-gray-200 bg-white p-4 shadow-sm">
  <div className="flex items-start justify-between gap-3">
  <div className="min-w-0">
- <h3 className="mt-1 truncate text-sm font-bold text-slate-900">{testCase.caseName}</h3>
- <p className="mt-1 text-xs text-slate-500">{testCase.assignee || selected.suiteAssignee ||"Unassigned"}</p>
+ <h3 className="mt-1 truncate text-sm font-bold text-gray-900">{testCase.caseName}</h3>
+ <p className="mt-1 text-xs text-gray-500">{testCase.assignee || selected.suiteAssignee ||"Unassigned"}</p>
  </div>
- <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
+ <span className={cn("inline-flex shrink-0 items-center gap-1.5  border px-2 py-1 text-xs font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
  {STATUS_ICON[testCase.status] ?? STATUS_ICON.Pending}
  {formatDisplayText(testCase.status ||"Pending")}
  </span>
  </div>
  <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold">
- <span className={TYPE_COLOR[testCase.typeCase] ?? "text-slate-500"}>{formatDisplayText(testCase.typeCase)}</span>
- <span className={PRIORITY_COLOR[testCase.priority] ?? "text-slate-500"}>{formatDisplayText(testCase.priority)}</span>
+ <span className={TYPE_COLOR[testCase.typeCase] ?? "text-gray-500"}>{formatDisplayText(testCase.typeCase)}</span>
+ <span className={PRIORITY_COLOR[testCase.priority] ?? "text-gray-500"}>{formatDisplayText(testCase.priority)}</span>
  </div>
  {testCase.actualResult && (
- <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-500">{testCase.actualResult}</p>
+ <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-gray-500">{testCase.actualResult}</p>
  )}
  </div>
  ))}

@@ -80,16 +80,16 @@ function CardActions({
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+        className=" p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
       >
         <DotsThree size={18} weight="bold" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute right-0 top-full z-50 mt-1 w-36  border border-gray-200 bg-white shadow-md animate-in fade-in  duration-150">
           <button
             type="button"
             onClick={() => { onView(); setOpen(false); }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
           >
             <Eye size={14} weight="bold" /> View
           </button>
@@ -97,7 +97,7 @@ function CardActions({
             <button
               type="button"
               onClick={() => { onEdit(); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
             >
               <PencilSimple size={14} weight="bold" /> Edit
             </button>
@@ -139,8 +139,8 @@ export function ModuleMobileCards({
   if (rows.length === 0) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm font-semibold text-slate-600">No {shortTitle} found</p>
-        <p className="mt-1 text-xs text-slate-400">Try adjusting your search or filters.</p>
+        <p className="text-sm font-semibold text-gray-600">No {shortTitle} found</p>
+        <p className="mt-1 text-xs text-gray-400">Try adjusting your search or filters.</p>
       </div>
     );
   }
@@ -151,18 +151,18 @@ export function ModuleMobileCards({
         <div
           key={String(row.id)}
           onClick={() => onViewRow(row)}
-          className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 active:scale-[0.98] hover:shadow-md"
+          className="cursor-pointer  border border-gray-200 bg-white p-4 shadow-sm transition-all duration-150 active:scale-[0.98] "
         >
           {/* Top row: code + actions */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
                   {row.code || `#${(safePage - 1) * PAGE_SIZE + index + 1}`}
                 </span>
                 {row.status && <Badge value={String(row.status)} className="text-[9px] min-w-0 px-2" />}
               </div>
-              <h4 className="mt-1.5 text-sm font-bold leading-snug text-slate-900 line-clamp-2">
+              <h4 className="mt-1.5 text-sm font-bold leading-snug text-gray-900 line-clamp-2">
                 {getTitle(row)}
               </h4>
             </div>
@@ -185,17 +185,17 @@ export function ModuleMobileCards({
               <Badge value={String(row.severity)} className="text-[9px] min-w-0 px-2" />
             )}
             {row.project && (
-              <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+              <span className=" bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
                 {String(row.project)}
               </span>
             )}
             {row.assignee && (
-              <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              <span className=" bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
                 {String(row.assignee)}
               </span>
             )}
             {(row.updatedAt || row.createdAt) && (
-              <span className="ml-auto text-[10px] text-slate-400" title={formatDate(String(row.updatedAt || row.createdAt))}>
+              <span className="ml-auto text-[10px] text-gray-400" title={formatDate(String(row.updatedAt || row.createdAt))}>
                 {formatRelativeTime(String(row.updatedAt || row.createdAt))}
               </span>
             )}

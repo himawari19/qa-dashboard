@@ -20,12 +20,12 @@ export default function GlobalError({
         <WarningCircle size={28} weight="bold" />
         <h2 className="text-xl font-bold">Unexpected Error</h2>
       </div>
-      <p className="max-w-md text-center text-sm text-slate-600">
+      <p className="max-w-md text-center text-sm text-gray-600">
         Something went wrong. Please try again or refresh the page.
       </p>
       <button
         onClick={reset}
-        className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+        className="flex items-center gap-2  bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700"
       >
         <ArrowClockwise size={16} weight="bold" />
         Try again

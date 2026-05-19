@@ -64,16 +64,16 @@ function buildStatusAliases(statusOptions: { label: string; value: string }[]) {
 }
 
 const columnAccents: Record<string, { border: string; header: string; dot: string; drop: string }> = {
-  todo: { border: "border-slate-300", header: "text-slate-500", dot: "bg-slate-400", drop: "border-slate-400 bg-slate-50/40" },
+  todo: { border: "border-gray-300", header: "text-gray-500", dot: "bg-gray-400", drop: "border-gray-400 bg-gray-50/40" },
   doing: { border: "border-blue-400", header: "text-blue-600", dot: "bg-blue-600", drop: "border-blue-400 bg-blue-50/40" },
   done: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
-  deferred: { border: "border-slate-400", header: "text-slate-600", dot: "bg-slate-500", drop: "border-slate-400 bg-slate-50/40" },
+  deferred: { border: "border-gray-400", header: "text-gray-600", dot: "bg-gray-500", drop: "border-gray-400 bg-gray-50/40" },
   open: { border: "border-red-400", header: "text-red-600", dot: "bg-red-500", drop: "border-red-400 bg-red-50/40" },
   in_progress: { border: "border-blue-400", header: "text-blue-600", dot: "bg-blue-600", drop: "border-blue-400 bg-blue-50/40" },
   ready_to_retest: { border: "border-violet-400", header: "text-violet-600", dot: "bg-violet-600", drop: "border-violet-400 bg-violet-50/40" },
   closed: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
   active: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
-  archived: { border: "border-slate-400", header: "text-slate-600", dot: "bg-slate-500", drop: "border-slate-400 bg-slate-50/40" },
+  archived: { border: "border-gray-400", header: "text-gray-600", dot: "bg-gray-500", drop: "border-gray-400 bg-gray-50/40" },
   draft: { border: "border-amber-400", header: "text-amber-600", dot: "bg-amber-500", drop: "border-amber-400 bg-amber-50/40" },
   passed: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
   failed: { border: "border-rose-400", header: "text-rose-600", dot: "bg-rose-500", drop: "border-rose-400 bg-rose-50/40" },
@@ -82,10 +82,10 @@ const columnAccents: Record<string, { border: string; header: string; dot: strin
 
 function getAccent(value: string) {
   return columnAccents[value] ?? {
-    border: "border-slate-200",
-    header: "text-slate-600",
-    dot: "bg-slate-400",
-    drop: "border-slate-200 bg-slate-50/40",
+    border: "border-gray-200",
+    header: "text-gray-600",
+    dot: "bg-gray-400",
+    drop: "border-gray-200 bg-gray-50/40",
   };
 }
 
@@ -124,13 +124,13 @@ function SortableCard({
       {...listeners}
       onClick={() => { if (!isDragging) onViewRow(card); }}
       className={cn(
-        "cursor-grab rounded-xl glass-card bg-white p-3 transition-shadow duration-200 hover:-translate-y-0.5 hover:shadow-lg active:cursor-grabbing",
+        "cursor-grab  glass-card bg-white p-3 transition-shadow duration-150  hover:shadow-lg active:cursor-grabbing",
         isDragging && "opacity-40 shadow-none",
-        isDragOverlay && "shadow-2xl scale-105 rotate-[2deg] ring-2 ring-sky-400/60 opacity-100",
+        isDragOverlay && "shadow-lg scale-105 rotate-[2deg] ring-2 ring-sky-400/60 opacity-100",
       )}
     >
       <div className="mb-2.5 flex items-start justify-between gap-2">
-        <span className="truncate text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">
+        <span className="truncate text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400">
           {card.code || `#${card.id}`}
         </span>
         <div className="shrink-0">
@@ -138,11 +138,11 @@ function SortableCard({
           {!card.priority && card.severity && <Badge value={String(card.severity)} />}
         </div>
       </div>
-      <p className="text-sm font-semibold leading-snug text-slate-800 line-clamp-2">
+      <p className="text-sm font-semibold leading-snug text-gray-800 line-clamp-2">
         {card.title || card.project}
       </p>
       {card.module && (
-        <p className="mt-1.5 truncate text-[11px] font-medium text-slate-400">
+        <p className="mt-1.5 truncate text-[11px] font-medium text-gray-400">
           {String(card.module)}
         </p>
       )}
@@ -177,15 +177,15 @@ function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-2xl glass-card p-4 transition-all duration-300 border-t-4",
-        isOver ? accent.drop + " shadow-xl scale-[1.02]" : accent.border,
+        "flex flex-col  glass-card p-4 transition-all duration-150 border-t-4",
+        isOver ? accent.drop + " shadow-md scale-[1.02]" : accent.border,
         isOverWip && "ring-2 ring-amber-400/60",
       )}
     >
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className={cn("h-2 w-2 rounded-md shrink-0", accent.dot)} />
-          <h4 className={cn("text-xs font-black uppercase tracking-[0.2em]", accent.header)}>
+          <span className={cn("h-2 w-2  shrink-0", accent.dot)} />
+          <h4 className={cn("text-xs font-bold uppercase tracking-[0.2em]", accent.header)}>
             {status.label}
           </h4>
         </div>
@@ -193,14 +193,14 @@ function KanbanColumn({
           {wipLimit !== undefined && (
             <span className={cn(
               "text-[10px] font-bold",
-              isOverWip ? "text-amber-600" : "text-slate-400",
+              isOverWip ? "text-amber-600" : "text-gray-400",
             )}>
               {cards.length}/{wipLimit}
             </span>
           )}
           <Badge value={String(cards.length)} />
           {isOverWip && (
-            <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-700" title="Over WIP limit">
+            <span className=" bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700" title="Over WIP limit">
               WIP
             </span>
           )}
@@ -215,14 +215,14 @@ function KanbanColumn({
         </SortableContext>
 
         {cards.length === 0 && !isOver && (
-          <div className="flex min-h-[4rem] items-center justify-center rounded-xl border-2 border-dashed border-slate-200/60">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">
+          <div className="flex min-h-[4rem] items-center justify-center  border-2 border-dashed border-gray-200/60">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-300">
               Empty
             </p>
           </div>
         )}
         {isOver && (
-          <div className="flex min-h-[4rem] items-center justify-center rounded-xl border-2 border-dashed border-sky-400 bg-sky-500/10 transition-all duration-200">
+          <div className="flex min-h-[4rem] items-center justify-center  border-2 border-dashed border-sky-400 bg-sky-500/10 transition-all duration-150">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-500">
               Release to move
             </p>
@@ -469,20 +469,20 @@ export function KanbanBoard({
         <button
           type="button"
           onClick={() => scrollByAmount(-320)}
-          className="absolute left-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 hover:bg-slate-100"
+          className="absolute left-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center  glass-card text-gray-700 shadow-md transition-all  hover:bg-gray-100"
           aria-label="Scroll left"
         >
-          <CaretLeft size={17} weight="bold" className="text-slate-700" />
+          <CaretLeft size={17} weight="bold" className="text-gray-700" />
         </button>
       ) : null}
       {canScrollRight ? (
         <button
           type="button"
           onClick={() => scrollByAmount(320)}
-          className="absolute right-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full glass-card text-slate-700 shadow-xl transition-all hover:scale-110 hover:bg-slate-100"
+          className="absolute right-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center  glass-card text-gray-700 shadow-md transition-all  hover:bg-gray-100"
           aria-label="Scroll right"
         >
-          <CaretRight size={17} weight="bold" className="text-slate-700" />
+          <CaretRight size={17} weight="bold" className="text-gray-700" />
         </button>
       ) : null}
     </div>

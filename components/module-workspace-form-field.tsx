@@ -96,14 +96,14 @@ export function ModuleWorkspaceFormField({
  const [, prefix ="", title, body] = match;
  return (
  <p key={`${index}-${title}`} className="leading-relaxed">
- <span className="font-semibold text-slate-500">{prefix}</span>
- <span className="font-bold text-slate-700">{title}:</span> {body}
+ <span className="font-semibold text-gray-500">{prefix}</span>
+ <span className="font-bold text-gray-700">{title}:</span> {body}
  </p>
  );
  }
 
  return (
- <p key={`${index}-${line}`} className="leading-relaxed text-slate-700">
+ <p key={`${index}-${line}`} className="leading-relaxed text-gray-700">
  {line}
  </p>
  );
@@ -114,14 +114,14 @@ export function ModuleWorkspaceFormField({
 
  return (
  <>
- <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
+ <span className="flex items-center gap-2 text-sm font-bold text-gray-700">
  {Icon}
  {field.label}
  {field.required && <span className="text-rose-500">*</span>}
  </span>
  {isLocked ? (
  <div className={cn(
-"w-full rounded-md border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-400 cursor-not-allowed select-none",
+"w-full  border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-400 cursor-not-allowed select-none",
  field.kind ==="textarea" ?"min-h-28 items-start whitespace-pre-wrap" :"flex min-h-10 items-center",
  )}>
  <div className={field.kind ==="textarea" ?"whitespace-pre-wrap break-words" :""}>
