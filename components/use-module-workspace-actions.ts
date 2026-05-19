@@ -188,7 +188,11 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
         ? Object.fromEntries(
             configFields
               .filter((field) => field.kind === "select")
-              .map((field) => [field.name, String(row[field.name] ?? "")]),
+              .map((field) => {
+                const raw = String(row[field.name] ?? "");
+                const sanitized = (raw === "undefined" || raw === "UNDEFINED" || raw === "null") ? "" : raw;
+                return [field.name, sanitized];
+              }),
           )
         : {},
     );

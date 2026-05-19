@@ -62,7 +62,7 @@ export function ModuleWorkspaceFormSelect({
  {(() => {
  const options = relatedOptions[field.name] ?? field.options ?? [];
  const current = options.find((opt) => opt.value === selectedValue);
- return current?.label || placeholderText;
+ return current?.label || (selectedValue ? selectedValue : placeholderText);
  })()}
  </span>
  <CaretDown size={14} weight="bold" className="shrink-0 text-gray-400" />
