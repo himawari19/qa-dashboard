@@ -425,13 +425,13 @@ export function Sidebar({
  <aside
  suppressHydrationWarning
  className={cn(
-"fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200/50 bg-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+"fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200 bg-slate-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
  collapsed ?"w-[72px]" :"w-[240px]",
  )}
  >
  <div className="flex w-full flex-col">
  {/* Logo */}
- <div className={cn("border-b border-slate-100/50 p-4 flex items-center gap-3", collapsed ?"justify-center" :"")}>
+ <div className={cn("border-b border-slate-200/80 p-4 flex items-center gap-3", collapsed ?"justify-center" :"")}>
  <BrandMark
  compact
  showLabel={!collapsed}

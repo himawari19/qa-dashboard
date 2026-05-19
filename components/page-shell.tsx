@@ -32,8 +32,8 @@ export function PageShell({
  <Breadcrumb crumbs={crumbs} />
  </div>
  )}
- <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200">
- <div className="border-b border-slate-200 px-6 py-5">
+ <div>
+ <div className="pb-5">
  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
  <div className="min-w-0 max-w-3xl">
  <div className="flex items-center gap-3">
@@ -56,8 +56,8 @@ export function PageShell({
  ) : null}
  </div>
  </div>
- {controls ? <div className="border-b border-slate-200 bg-white px-6 py-4 text-sm text-slate-600">{controls}</div> : null}
- <div className="min-w-0 px-6 py-5">{children}</div>
+ {controls ? <div className="border-b border-slate-200/60 pb-4 mb-4 text-sm text-slate-600">{controls}</div> : null}
+ <div className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200 px-6 py-5">{children}</div>
  </div>
  </section>
  );
