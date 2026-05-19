@@ -184,7 +184,12 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
   };
 
   const displayFields = config.fields.filter(
-    (field) => row[field.name] !== undefined && row[field.name] !== null && String(row[field.name]).trim() !== "",
+    (field) => {
+      const raw = row[field.name];
+      if (raw === undefined || raw === null) return false;
+      const str = String(raw).trim();
+      return str !== "" && str !== "undefined" && str !== "UNDEFINED" && str !== "null";
+    },
   );
 
   // Separate fields into metadata (short) and content (long)
@@ -267,7 +272,8 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
   }
 
   function renderFieldValue(field: FieldConfig) {
-    const value = String(row[field.name] ?? "");
+    const rawVal = String(row[field.name] ?? "");
+    const value = (rawVal === "undefined" || rawVal === "UNDEFINED" || rawVal === "null") ? "" : rawVal;
     const displayValue =
       field.kind === "select"
         ? field.options?.find(

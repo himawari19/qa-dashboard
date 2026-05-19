@@ -72,7 +72,9 @@ const toneMap = {
 } as const;
 
 export function Badge({ value, displayValue, className }: { value: string; displayValue?: string; className?: string }) {
-  const safeValue = String(value || "");
+  const raw = String(value || "");
+  const safeValue = (raw === "undefined" || raw === "UNDEFINED" || raw === "null") ? "" : raw;
+  if (!safeValue && !displayValue) return null;
   return (
     <span
       className={cn(
