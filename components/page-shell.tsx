@@ -14,6 +14,7 @@ export function PageShell({
  children,
  className,
  crumbs,
+ flush,
 }: {
  icon?: ReactNode;
  eyebrow?: string;
@@ -24,6 +25,7 @@ export function PageShell({
  children: React.ReactNode;
  className?: string;
  crumbs?: { label: string; href?: string }[];
+ flush?: boolean;
 }) {
  return (
  <section suppressHydrationWarning className={cn("space-y-5", className)}>
@@ -57,7 +59,10 @@ export function PageShell({
  </div>
  </div>
  {controls ? <div className="border-b border-slate-200/60 pb-4 mb-5 text-sm text-slate-600">{controls}</div> : null}
- <div className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200 px-6 py-5">{children}</div>
+ <div className={cn(
+ "min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200",
+ flush ? "p-0 overflow-hidden" : "px-6 py-5",
+ )}>{children}</div>
  </div>
  </section>
  );

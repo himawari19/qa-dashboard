@@ -211,6 +211,7 @@ export function RunExecutionView({
           items={items}
           runId={run.id}
           suiteTitle={suite.title}
+          elapsedSeconds={elapsed}
           onClose={(updated) => { setItems(updated); setIsPlayMode(false); }}
           onSaveVerdict={persistVerdict}
         />

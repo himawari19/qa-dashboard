@@ -1031,14 +1031,14 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  )}
 
  {loading && (
- <div className="glass-card overflow-hidden animate-pulse">
+ <div className="overflow-hidden animate-pulse">
  <div className="h-12 bg-slate-100" />
  {[...Array(6)].map((_, i) => <div key={i} className="h-12 border-t border-slate-100 bg-white" />)}
  </div>
  )}
 
  {!loading && (
- <div className="glass-card relative overflow-hidden flex flex-col">
+ <div className="relative overflow-hidden flex flex-col">
  {/* ── sticky header ── */}
  <div className="flex border-b-2 border-slate-200 bg-slate-50 sticky top-0 z-20 shadow-sm">
  {/* Label column header */}

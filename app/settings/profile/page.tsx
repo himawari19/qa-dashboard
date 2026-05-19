@@ -1,5 +1,6 @@
 import { PageShell } from"@/components/page-shell";
 import { getCurrentUser } from"@/lib/auth";
+import { isManagementAdmin } from"@/lib/roles";
 import { User, ShieldCheck } from"@phosphor-icons/react/dist/ssr";
 import { redirect } from"next/navigation";
 import { ProfileForm } from"./profile-form";
@@ -13,16 +14,22 @@ export default async function ProfilePage() {
  redirect("/login");
  }
 
+ const isAdmin = isManagementAdmin(user.role, user.company);
+
+ const crumbs = isAdmin
+ ? [
+ { label:"Dashboard", href:"/dashboard" },
+ { label:"Settings", href:"/settings" },
+ { label:"Profile" }
+ ]
+ : [{ label:"Profile" }];
+
  return (
  <PageShell 
  icon={<User size={22} weight="bold" />}
  title="My Profile" 
  description="View and update your personal information. Your email address is fixed for security."
- crumbs={[
- { label:"Dashboard", href:"/dashboard" },
- { label:"Settings", href:"/settings" },
- { label:"Profile" }
- ]}
+ crumbs={crumbs}
  >
  <div className="w-full">
  <div className="glass-card overflow-hidden">

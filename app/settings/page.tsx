@@ -1,8 +1,16 @@
 import { PageShell } from"@/components/page-shell";
 import { Users, Gear, CaretRight, UserPlus, Info, Lock } from"@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
+import { getCurrentUser } from"@/lib/auth";
+import { isManagementAdmin } from"@/lib/roles";
+import { redirect } from"next/navigation";
 
-export default function SettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage() {
+ const user = await getCurrentUser();
+ if (!user) redirect("/login");
+ if (!isManagementAdmin(user.role, user.company)) redirect("/settings/profile");
  const settingsGroups = [
  {
  title:"Personal",
