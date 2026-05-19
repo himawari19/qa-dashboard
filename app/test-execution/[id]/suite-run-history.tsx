@@ -140,7 +140,7 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
               {runs.map(run => {
                 const total = run.totalCases || suite.caseCount;
                 const passRate = total > 0 ? Math.round((run.passed / total) * 100) : 0;
-                const dateStr = run.startedAt ? new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—";
+                const dateStr = run.startedAt ? new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "-";
 
                 return (
                   <tr key={run.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
@@ -152,7 +152,7 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
                     </td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1.5 text-xs text-slate-600">
-                        <User size={12} weight="bold" /> {run.tester || "—"}
+                        <User size={12} weight="bold" /> {run.tester || "-"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -171,7 +171,7 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
                           {passRate}%
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-400">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">{dateStr}</td>

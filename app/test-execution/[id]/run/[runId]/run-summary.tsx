@@ -189,7 +189,7 @@ export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: s
                     <td className="px-4 py-2.5">
                       <VerdictBadge verdict={c.verdict} />
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500">{c.duration > 0 ? formatDuration(c.duration) : "—"}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500">{c.duration > 0 ? formatDuration(c.duration) : "-"}</td>
                     {hasPreviousRun && (
                       <td className="px-4 py-2.5">
                         {c.prevVerdict ? <VerdictBadge verdict={c.prevVerdict} small /> : <span className="text-[10px] text-slate-300">New</span>}
@@ -253,7 +253,7 @@ export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: s
                     <VerdictBadge verdict={c.prevVerdict || ""} small />
                     <ArrowRight size={12} className="text-slate-400" />
                     <VerdictBadge verdict={c.verdict} />
-                    <span className="text-xs font-semibold text-slate-700 truncate">{c.tcId} — {c.caseName}</span>
+                    <span className="text-xs font-semibold text-slate-700 truncate">{c.tcId} - {c.caseName}</span>
                   </div>
                 ))}
               </div>
@@ -271,7 +271,7 @@ export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: s
                     <VerdictBadge verdict={c.prevVerdict || ""} small />
                     <ArrowRight size={12} className="text-slate-400" />
                     <VerdictBadge verdict={c.verdict} />
-                    <span className="text-xs font-semibold text-slate-700 truncate">{c.tcId} — {c.caseName}</span>
+                    <span className="text-xs font-semibold text-slate-700 truncate">{c.tcId} - {c.caseName}</span>
                   </div>
                 ))}
               </div>

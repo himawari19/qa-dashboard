@@ -47,7 +47,7 @@ export function canUseQuickActions(role: string | undefined | null): boolean {
 }
 
 /**
- * AttentionPanel — lists critical bugs, priority tasks, and stuck items requiring action.
+ * AttentionPanel - lists critical bugs, priority tasks, and stuck items requiring action.
  * Renders an AgeIndicator on every item and reveals QuickActionButtons on hover/focus
  * for users with admin or superadmin roles.
  */
@@ -63,7 +63,7 @@ export function AttentionPanel({ items, userRole }: AttentionPanelProps) {
       {items.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
           <CheckCircle size={28} weight="bold" className="text-emerald-400" />
-          <p className="text-xs font-semibold">All clear — no critical items right now.</p>
+          <p className="text-xs font-semibold">All clear - no critical items right now.</p>
         </div>
       ) : (
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1" data-testid="attention-panel-list">

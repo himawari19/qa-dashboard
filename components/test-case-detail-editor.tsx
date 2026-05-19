@@ -350,7 +350,7 @@ export function TestCaseDetailEditor({
 
  if (!savedEntry || !savedId || pending || !requiredEditReady(savedEntry) || editSaveLockRef.current) return;
 
- // No changes — just close edit mode
+ // No changes - just close edit mode
  if (!editDirtyRef.current) {
  editDraftRef.current = null;
  setEditForm(null);
@@ -361,7 +361,7 @@ export function TestCaseDetailEditor({
  editSaveLockRef.current = true;
  startTransition(async () => {
  try {
- // Detect if prefix changed — renumber subsequent rows
+ // Detect if prefix changed - renumber subsequent rows
  const editedIndex = cases.findIndex((row) => row.id === savedId);
  const originalRow = cases[editedIndex];
  const oldParsed = originalRow ? extractPrefixAndNumber(String(originalRow.tcId ?? "")) : null;

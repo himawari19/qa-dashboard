@@ -190,7 +190,7 @@ select:focus-visible {
   box-shadow: none !important;
 }
 
-/* Borderless inputs (e.g. global search) — no focus styling */
+/* Borderless inputs (e.g. global search) - no focus styling */
 input.border-none:focus,
 input.border-none:focus-visible {
   outline: none !important;
@@ -295,7 +295,7 @@ input.border-none:focus-visible {
   animation: activity-fade-in 200ms ease-out;
 }
 
-/* Requirement 15.4: Respect prefers-reduced-motion — instant changes, no transitions */
+/* Requirement 15.4: Respect prefers-reduced-motion - instant changes, no transitions */
 @media (prefers-reduced-motion: reduce) {
   .animate-stat-pop,
   .animate-attention-slide-in,

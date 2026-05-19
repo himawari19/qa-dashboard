@@ -174,7 +174,7 @@ export function RunPlayMode({
                 : item.verdict === "Blocked" ? "bg-amber-500"
                 : "bg-white/20"
               )}
-              title={`${item.tcId} — ${item.caseName}`}
+              title={`${item.tcId} - ${item.caseName}`}
             />
           ))}
         </div>

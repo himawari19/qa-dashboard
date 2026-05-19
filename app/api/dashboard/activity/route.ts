@@ -184,8 +184,8 @@ export async function GET(request: Request) {
   } catch (error) {
     logger.apiError("/api/dashboard/activity", error);
     return NextResponse.json(
-      { entries: [], collapsed: [] },
-      { status: 200, headers: { "X-Activity-Error": "true" } },
+      { error: "Failed to load activity data." },
+      { status: 500 },
     );
   }
 }

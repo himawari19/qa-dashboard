@@ -23,6 +23,7 @@ const globalForDb = globalThis as unknown as {
   sqliteDb?: unknown;
   neonSql?: unknown;
   schemaInitPromise?: Promise<void>;
+  schemaReady?: boolean;
 };
 
 async function getPostgresPool() {
@@ -53,7 +54,9 @@ async function getSqlite() {
 }
 
 async function ensureSchema() {
-  return ensureSchemaBootstrap({
+  // Fast path: skip bootstrap overhead once schema is confirmed ready
+  if (globalForDb.schemaReady) return;
+  await ensureSchemaBootstrap({
     getSqlite,
     getPostgresPool,
     getSchemaInitPromise: () => globalForDb.schemaInitPromise,
@@ -61,6 +64,7 @@ async function ensureSchema() {
       globalForDb.schemaInitPromise = value;
     },
   });
+  globalForDb.schemaReady = true;
 }
 
 async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
@@ -170,7 +174,7 @@ export const db = {
             // Retry on conflict
           }
         }
-        // Final attempt — let it throw if it fails
+        // Final attempt - let it throw if it fails
         const finalId = await getNextSequentialId(parsedInsert.table);
         const finalInsert = buildSequentialInsert(queryStr, params, finalId);
         await runRaw(finalInsert.queryStr, finalInsert.params);
@@ -185,7 +189,7 @@ export const db = {
     await execRaw(queryStr);
   },
 
-  async transaction<T>(fn: () => Promise<T>): Promise<T> {
+  async transaction<T>(fn: (client?: unknown) => Promise<T>): Promise<T> {
     await ensureSchema();
     if (useSqlite) {
       const sqlite = await getSqlite();
@@ -200,19 +204,20 @@ export const db = {
       }
     }
 
-    // For Neon serverless, use pool-level BEGIN/COMMIT.
-    // Neon's WebSocket driver maintains connection affinity within
-    // a single async context when fetchConnectionCache is enabled,
-    // so BEGIN/queries/COMMIT will use the same underlying connection.
+    // For Neon serverless, acquire a dedicated client from the pool
+    // to guarantee all queries within the transaction use the same connection.
     const pool = await getPostgresPool();
-    await pool.query("BEGIN");
+    const client = await pool.connect();
     try {
-      const result = await fn();
-      await pool.query("COMMIT");
+      await client.query("BEGIN");
+      const result = await fn(client);
+      await client.query("COMMIT");
       return result;
     } catch (err) {
-      await pool.query("ROLLBACK");
+      await client.query("ROLLBACK");
       throw err;
+    } finally {
+      client.release();
     }
   },
 };

@@ -84,7 +84,7 @@ export function ModuleWorkspaceFormField({
 }: Props) {
  const Icon = fieldIcons[field.name] || <Note size={16} />;
  const isLocked = Boolean(field.readonly);
- const lockedValue = editingRow ? String(editingRow[field.name] ||"—") :"—";
+ const lockedValue = editingRow ? String(editingRow[field.name] ||"-") :"-";
 
  function renderLockedTextarea(value: string) {
  const lines = value.split(/\r?\n/).filter(Boolean);

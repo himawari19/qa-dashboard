@@ -11,7 +11,6 @@ import {
   type ModuleKey,
 } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
 import { isManagementAdmin } from "@/lib/roles";
 
 function assertModule(value: string): ModuleKey | null {
@@ -78,7 +77,10 @@ export async function POST(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || !isManagementAdmin(user.role, user.company))) {
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -123,7 +125,9 @@ export async function POST(
     });
   } catch (error) {
     logError(error, `POST /api/items/${moduleKey}`);
-    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to save data.") }, { status: 400 });
+    const message = friendlyErrorMessage(error, "Failed to save data.");
+    const status = error instanceof Error && error.message === message ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -146,7 +150,10 @@ export async function DELETE(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || !isManagementAdmin(user.role, user.company))) {
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -174,7 +181,9 @@ export async function DELETE(
     });
   } catch (error) {
     logError(error, `DELETE /api/items/${moduleKey}`);
-    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to delete data.") }, { status: 400 });
+    const message = friendlyErrorMessage(error, "Failed to delete data.");
+    const status = error instanceof Error && error.message === message ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -195,7 +204,10 @@ export async function PATCH(
   }
 
   const user = await getCurrentUser();
-  if (moduleKey === "users" && (!user || !isManagementAdmin(user.role, user.company))) {
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -268,6 +280,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid update payload." }, { status: 400 });
   } catch (error) {
     logError(error, `PATCH /api/items/${moduleKey}`);
-    return NextResponse.json({ error: friendlyErrorMessage(error, "Failed to update data.") }, { status: 400 });
+    const message = friendlyErrorMessage(error, "Failed to update data.");
+    const status = error instanceof Error && error.message === message ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

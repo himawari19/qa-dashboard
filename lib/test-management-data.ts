@@ -438,7 +438,7 @@ export async function getAllTestCasesWithSuite() {
   const andWhere = shouldFilter ? ' AND tc."company" = ?' : "";
   const qParams = shouldFilter ? [scope.company] : [];
 
-  return setCached(cacheKey("all-test-cases", scope, "suite"), await selectAll(
+  const rows = await selectAll(
     `SELECT tc.*, ts.title AS suiteTitle, ts."publicToken" AS suiteToken, ts.status AS suiteStatus,
             ts.assignee AS suiteAssignee,
             tp.title AS planTitle, tp.project AS planProject
@@ -448,5 +448,15 @@ export async function getAllTestCasesWithSuite() {
      WHERE tc."deletedAt" IS NULL${andWhere}
      ORDER BY tc."testSuiteId" ASC, tc.id ASC`,
     qParams,
-  ));
+  );
+
+  return setCached(cacheKey("all-test-cases", scope, "suite"), rows.map((r) => ({
+    ...normalizeTestCaseRow(r),
+    suiteTitle: String(r.suiteTitle ?? ""),
+    suiteToken: String(r.suiteToken ?? ""),
+    suiteStatus: String(r.suiteStatus ?? ""),
+    suiteAssignee: String(r.suiteAssignee ?? ""),
+    planTitle: String(r.planTitle ?? ""),
+    planProject: String(r.planProject ?? ""),
+  })));
 }

@@ -427,11 +427,11 @@ export function SuiteDetail({
  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs font-black">
  {s.tester?.[0]?.toUpperCase() ||"?"}
  </div>
- <span className="font-semibold text-slate-700">{s.tester ||"—"}</span>
+ <span className="font-semibold text-slate-700">{s.tester ||"-"}</span>
  </div>
  </td>
  <td className="px-3 py-3.5 hidden sm:table-cell">
- <span className="text-xs text-slate-500">{s.sprint ||"—"}</span>
+ <span className="text-xs text-slate-500">{s.sprint ||"-"}</span>
  </td>
  <td className="px-3 py-3.5">
  <div className="flex items-center gap-3 text-xs font-bold text-slate-400">
@@ -454,7 +454,7 @@ export function SuiteDetail({
 "inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-bold capitalize",
  RESULT_STYLE[s.result] ?? RESULT_STYLE.blocked
  )}>
- {s.result ||"—"}
+ {s.result ||"-"}
  </span>
  </td>
  </tr>

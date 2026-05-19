@@ -23,12 +23,12 @@ export function computeAgeDays(statusChangedAt: string | null | undefined, now: 
 
 /**
  * Format age display text.
- *  - null / "—" when age is null
+ *  - null / "-" when age is null
  *  - "Today" when age < 1
  *  - "{N}d" otherwise
  */
 export function formatAgeLabel(ageDays: number | null): string {
-  if (ageDays === null) return "—";
+  if (ageDays === null) return "-";
   if (ageDays < 1) return "Today";
   return `${ageDays}d`;
 }
@@ -45,7 +45,7 @@ export function getAgeColorClasses(ageDays: number | null): string {
 }
 
 /**
- * AgeIndicator badge — shows how long an attention item has been in its current status.
+ * AgeIndicator badge - shows how long an attention item has been in its current status.
  * Renders as a small, rounded pill with color encoding the staleness threshold.
  */
 export function AgeIndicator({ statusChangedAt, ageDays, className }: AgeIndicatorProps) {

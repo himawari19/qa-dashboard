@@ -27,7 +27,7 @@ describe("buildPdfBuffer", () => {
         "Project Name": "QA Daily",
         Topic: "Daily standup – sync 😅",
         Attendees: "Wahyu, Ana",
-        "Discussion / Summary": "Fix export — works with smart quotes “ok”",
+        "Discussion / Summary": "Fix export - works with smart quotes “ok”",
         "Action Items / Decisions": "1. Verify PDF download · 2. Ship",
       },
     ]);

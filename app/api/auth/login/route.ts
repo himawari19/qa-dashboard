@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    // Success — clear rate limit
+    // Success - clear rate limit
     clearRateLimit(key);
 
     const token = await createSessionToken(email, user);

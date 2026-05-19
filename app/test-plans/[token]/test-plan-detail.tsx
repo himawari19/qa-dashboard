@@ -222,7 +222,7 @@ export function TestPlanDetail({
  <span className="flex items-center gap-1.5 text-slate-500"><User size={13} weight="bold" className="text-slate-400" /><span className="font-semibold text-slate-700">{plan.assignee}</span></span>
  )}
  {(plan.startDate || plan.endDate) && (
- <span className="flex items-center gap-1.5 text-slate-500"><CalendarBlank size={13} weight="bold" className="text-slate-400" /><span className="font-semibold text-slate-700">{formatDate(plan.startDate)} — {formatDate(plan.endDate)}</span></span>
+ <span className="flex items-center gap-1.5 text-slate-500"><CalendarBlank size={13} weight="bold" className="text-slate-400" /><span className="font-semibold text-slate-700">{formatDate(plan.startDate)} - {formatDate(plan.endDate)}</span></span>
  )}
  </div>
  {(plan.scope || plan.notes) && (
@@ -405,7 +405,7 @@ export function TestPlanDetail({
  </div>
  </button>
 
- {/* Accordion — test cases */}
+ {/* Accordion - test cases */}
  {isOpen && (
  <div className="border-t border-slate-100">
  {/* Case filter bar */}

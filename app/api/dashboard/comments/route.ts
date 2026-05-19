@@ -39,7 +39,7 @@ async function userHasReadAccess(entityType: string, entityId: number, company: 
 }
 
 /**
- * Write access — for now, mirrors read access (any user with read access in the same
+ * Write access - for now, mirrors read access (any user with read access in the same
  * company can write a comment). The Comment_Thread spec calls out a read-only mode for
  * users with read but not write access; until per-entity ACLs are introduced we treat
  * read access as the gate. Role-restricted entities (e.g. settings) are not in

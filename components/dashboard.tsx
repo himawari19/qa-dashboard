@@ -1,12 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { DashboardDrawer } from "@/components/dashboard-drawer";
-import { DashboardStandupModal } from "@/components/dashboard-standup-modal";
 import {
   Bug, ClipboardText, PlayCircle, Checks, Note,
   ArrowRight, User,
@@ -19,10 +18,37 @@ import {
 } from "recharts";
 import { ResponsiveContainer } from "@/components/responsive-container";
 import { ChartSkeleton } from "@/components/ui/skeleton";
-import { QualityHealthScore } from "@/components/quality-health-score";
-import { AttentionPanel, useCurrentUserRole, type AttentionItem } from "@/components/attention-panel";
-import { DailyDigestCard } from "@/components/daily-digest-card";
+import { useCurrentUserRole, type AttentionItem } from "@/components/attention-panel";
 import { useValueChangeAnimation } from "@/hooks/use-value-change-animation";
+
+const DashboardDrawer = dynamic(() => import("@/components/dashboard-drawer").then((module) => module.DashboardDrawer), {
+  ssr: false,
+  loading: () => <SectionSkeleton className="h-72" />,
+});
+
+const DashboardStandupModal = dynamic(
+  () => import("@/components/dashboard-standup-modal").then((module) => module.DashboardStandupModal),
+  { ssr: false, loading: () => null },
+);
+
+const QualityHealthScore = dynamic(
+  () => import("@/components/quality-health-score").then((module) => module.QualityHealthScore),
+  { ssr: false, loading: () => <div className="h-24 rounded-2xl border border-slate-200 bg-slate-50" /> },
+);
+
+const AttentionPanel = dynamic(
+  () => import("@/components/attention-panel").then((module) => module.AttentionPanel),
+  { ssr: false, loading: () => <SectionSkeleton className="h-56" /> },
+);
+
+const DailyDigestCard = dynamic(
+  () => import("@/components/daily-digest-card").then((module) => module.DailyDigestCard),
+  { ssr: false, loading: () => <SectionSkeleton className="h-40" /> },
+);
+
+function SectionSkeleton({ className }: { className: string }) {
+  return <div className={`rounded-2xl border border-slate-200 bg-slate-50 ${className}`} />;
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -158,7 +184,7 @@ export function Dashboard({
         />
       )}
 
-      {/* Daily morning digest — only renders before noon, when not dismissed today, and when there is data */}
+      {/* Daily morning digest - only renders before noon, when not dismissed today, and when there is data */}
       <DailyDigestCard />
 
       <Breadcrumb crumbs={[{ label: "Dashboard" }]} />
@@ -243,7 +269,7 @@ export function Dashboard({
           <ChartBar size={14} className="text-slate-300" weight="bold" />
         </div>
 
-        {/* Pulse metrics row — compact inline */}
+        {/* Pulse metrics row - compact inline */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <PulseMetric
             label="Created"
@@ -269,7 +295,7 @@ export function Dashboard({
           )}
         </div>
 
-        {/* Mini bar chart — bugs by module (top 5) */}
+        {/* Mini bar chart - bugs by module (top 5) */}
         {distribution.bugByModule.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-100">
             <p className="text-[11px] font-bold text-slate-500 mb-2">Bug distribution by module</p>

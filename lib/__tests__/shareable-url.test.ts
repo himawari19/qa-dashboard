@@ -153,7 +153,7 @@ describe("preserveQueryParams", () => {
   it("handles remove then add in same call (add takes precedence)", () => {
     const params = new URLSearchParams("view=10&page=2");
     const result = preserveQueryParams(params, 20, true);
-    // removeView deletes first, then addView sets — so view=20
+    // removeView deletes first, then addView sets - so view=20
     expect(result.get("view")).toBe("20");
     expect(result.get("page")).toBe("2");
   });

@@ -6,7 +6,7 @@ const HEARTBEAT_INTERVAL_MS = 60_000; // 60 seconds
 const INACTIVITY_TIMEOUT_MS = 5 * 60_000; // 5 minutes
 
 /**
- * usePresenceHeartbeat — sends periodic heartbeat POSTs to the presence API
+ * usePresenceHeartbeat - sends periodic heartbeat POSTs to the presence API
  * while the dashboard is open and the user is active.
  *
  * Behavior:
@@ -31,7 +31,7 @@ export function usePresenceHeartbeat() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "heartbeat" }),
     }).catch(() => {
-      // Silently ignore heartbeat failures — presence is best-effort
+      // Silently ignore heartbeat failures - presence is best-effort
     });
   }, []);
 

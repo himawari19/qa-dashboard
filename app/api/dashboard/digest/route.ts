@@ -27,7 +27,7 @@ function emptyPayload(): DigestPayload {
 
 /**
  * Compute the user's last session boundary. We use the start of today as a
- * conservative approximation since session-end tracking is not persisted —
+ * conservative approximation since session-end tracking is not persisted -
  * everything created or updated since then qualifies as "new since last session".
  */
 function lastSessionIso(): string {

@@ -399,7 +399,7 @@ export default function WeeklyReportPage() {
  :"bg-slate-400";
  const insightLine = summary.passRate === null
  ?"No test sessions recorded this period."
- :`${summary.sessions} session${summary.sessions === 1 ?"" :"s"} this period — pass rate ${summary.passRate}%.`;
+ :`${summary.sessions} session${summary.sessions === 1 ?"" :"s"} this period - pass rate ${summary.passRate}%.`;
 
  return (
  <PageShell
@@ -430,7 +430,7 @@ export default function WeeklyReportPage() {
  className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-600"
  >
  <CalendarBlank size={14} weight="bold" />
- {formatDate(toDateStr(weekStart))} — {formatDate(toDateStr(weekEnd))}
+ {formatDate(toDateStr(weekStart))} - {formatDate(toDateStr(weekEnd))}
  </button>
  <button
  onClick={() => goWeek(1)}
@@ -450,7 +450,7 @@ export default function WeeklyReportPage() {
  {calOpen && (
  <div className="absolute left-0 top-10 z-50 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
  <div className="mb-2 text-center text-[11px] font-bold text-slate-400">
- {!rangeFrom ?"Select start date" : !rangeTo ?"Select end date" :`${formatDate(toDateStr(rangeFrom))} — ${formatDate(toDateStr(rangeTo))}`}
+ {!rangeFrom ?"Select start date" : !rangeTo ?"Select end date" :`${formatDate(toDateStr(rangeFrom))} - ${formatDate(toDateStr(rangeTo))}`}
  </div>
  <div className="mb-3 flex items-center justify-between">
  <button
@@ -522,7 +522,7 @@ export default function WeeklyReportPage() {
 
  <div className="hidden print:flex items-center gap-2">
  <CalendarBlank size={13} weight="bold" />
- Period: <span className="font-bold text-slate-700">{formatDate(toDateStr(weekStart))}</span> — <span className="font-bold text-slate-700">{formatDate(toDateStr(weekEnd))}</span>
+ Period: <span className="font-bold text-slate-700">{formatDate(toDateStr(weekStart))}</span> - <span className="font-bold text-slate-700">{formatDate(toDateStr(weekEnd))}</span>
  </div>
 
  <span className={cn("ml-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-black uppercase tracking-widest text-white", passRateTone)}>
@@ -538,7 +538,7 @@ export default function WeeklyReportPage() {
  <StatCard
  icon={<TrendUp size={18} weight="bold" />}
  label="Pass Rate"
- value={summary.passRate !== null ?`${summary.passRate}%` :"—"}
+ value={summary.passRate !== null ?`${summary.passRate}%` :"-"}
  sub={insightLine}
  color={passRateTone}
  />

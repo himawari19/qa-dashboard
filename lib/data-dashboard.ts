@@ -63,7 +63,7 @@ function hydrateDeploymentNotes<T extends Record<string, any>>(row: T) {
 }
 
 /**
- * Wraps a promise so it never rejects — returns fallback on error.
+ * Wraps a promise so it never rejects - returns fallback on error.
  * Used for graceful degradation in dashboard queries.
  */
 async function safeQuery<T>(promise: Promise<T>, fallback: T): Promise<T> {

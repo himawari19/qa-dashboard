@@ -99,7 +99,7 @@ async function getNotificationsSince(
 
 /**
  * GET /api/dashboard/events
- * Server-Sent Events stream — pushes presence and notification updates.
+ * Server-Sent Events stream - pushes presence and notification updates.
  *
  * Query params:
  *   - since: ISO timestamp; on initial connect, returns missed notifications since then.
@@ -145,7 +145,7 @@ export async function GET(request: Request) {
         lastMembersSignature = membersSignature(initial);
         safeEnqueue(sseFormat("presence", { members: initial }));
       } catch {
-        // graceful — keep stream open
+        // graceful - keep stream open
       }
 
       // Initial missed notifications snapshot

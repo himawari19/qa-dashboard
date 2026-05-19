@@ -2,7 +2,7 @@
 
 ## Introduction
 
-A comprehensive UX overhaul of the QA Daily Hub dashboard, delivered across five independently deployable phases. The goal is to transform the dashboard from a passive data display into an actionable, real-time collaboration hub — improving information density, reducing navigation friction, and enabling team-wide situational awareness. The overhaul targets the existing Next.js 16.2 App Router codebase using Tailwind CSS v4 and Phosphor Icons, maintaining full backward compatibility with the current role-based access control system.
+A comprehensive UX overhaul of the QA Daily Hub dashboard, delivered across five independently deployable phases. The goal is to transform the dashboard from a passive data display into an actionable, real-time collaboration hub - improving information density, reducing navigation friction, and enabling team-wide situational awareness. The overhaul targets the existing Next.js 16.2 App Router codebase using Tailwind CSS v4 and Phosphor Icons, maintaining full backward compatibility with the current role-based access control system.
 
 ## Glossary
 
@@ -92,7 +92,7 @@ A comprehensive UX overhaul of the QA Daily Hub dashboard, delivered across five
 3. WHILE an item age is greater than 7 calendar days and up to 14 calendar days, THE Age_Indicator SHALL render in amber to signal moderate staleness
 4. WHILE an item age exceeds 14 calendar days, THE Age_Indicator SHALL render in red to signal critical staleness
 5. IF an item age is less than 1 calendar day, THEN THE Age_Indicator SHALL display "Today" instead of a numeric day count
-6. IF an item has no recorded status-change timestamp, THEN THE Age_Indicator SHALL display "—" and render in the default slate color
+6. IF an item has no recorded status-change timestamp, THEN THE Age_Indicator SHALL display "-" and render in the default slate color
 
 ### Requirement 6: Activity Feed Filter Toggle
 
@@ -127,7 +127,7 @@ A comprehensive UX overhaul of the QA Daily Hub dashboard, delivered across five
 
 #### Acceptance Criteria
 
-1. THE Sidebar SHALL contain a "Work Tracking" group with items: Tasks, Bugs, Sprints — in that order, positioned as the third group after "Test Management"
+1. THE Sidebar SHALL contain a "Work Tracking" group with items: Tasks, Bugs, Sprints - in that order, positioned as the third group after "Test Management"
 2. THE Sidebar SHALL remove "Sprints" from the "Documentation" group, leaving "Documentation" with Meeting Notes only
 3. THE Sidebar SHALL move "Deployment Log" from the "Documentation" group into the "Reports" group, placed after the existing Report item
 4. THE Sidebar SHALL use icon weight "bold" and Title Case label casing for every navigation item across all groups

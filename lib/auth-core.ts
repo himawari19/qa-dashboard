@@ -238,7 +238,7 @@ export async function getCurrentUser() {
           [decoded.id],
         );
         if (row?.password && row.password.slice(0, 16) !== decoded.pv) {
-          return null; // Password changed — session revoked
+          return null; // Password changed - session revoked
         }
       }
       return {
@@ -250,7 +250,7 @@ export async function getCurrentUser() {
       };
     }
 
-    // Fallback: old tokens without embedded user data — hit DB once
+    // Fallback: old tokens without embedded user data - hit DB once
     const { db } = await import("./db");
     const user = await db.get<{ id: number; name: string; email: string; role: string; company: string }>(
       'SELECT id, name, email, role, company FROM "User" WHERE "email" = ?',

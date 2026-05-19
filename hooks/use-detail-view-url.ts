@@ -83,7 +83,7 @@ export function useDetailViewUrl({
       return;
     }
 
-    // Not found locally — fetch from API
+    // Not found locally - fetch from API
     async function fetchItem() {
       try {
         const res = await fetch(`/api/items/${module}/${parsedId}`);
@@ -128,11 +128,11 @@ export function useDetailViewUrl({
       const newUrl = `${window.location.pathname}?${newParams.toString()}`;
 
       if (openedFromUrlRef.current) {
-        // Opened from initial URL load — use replaceState so back goes to referrer
+        // Opened from initial URL load - use replaceState so back goes to referrer
         window.history.replaceState(null, "", newUrl);
         openedFromUrlRef.current = false;
       } else {
-        // Opened via user click — push new history entry
+        // Opened via user click - push new history entry
         suppressPopstateRef.current = true;
         window.history.pushState(null, "", newUrl);
         suppressPopstateRef.current = false;
@@ -156,7 +156,7 @@ export function useDetailViewUrl({
     }
   }, [viewingRow]);
 
-  // Sync URL tab param when activeTab changes (replaceState — no new history entry)
+  // Sync URL tab param when activeTab changes (replaceState - no new history entry)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -192,7 +192,7 @@ export function useDetailViewUrl({
       ? `${window.location.pathname}?${paramStr}`
       : window.location.pathname;
 
-    // Use replaceState — tab switches shouldn't create new history entries
+    // Use replaceState - tab switches shouldn't create new history entries
     window.history.replaceState(null, "", newUrl);
   }, [activeTab, viewingRow]);
 
@@ -206,7 +206,7 @@ export function useDetailViewUrl({
       const parsedId = parseViewId(viewParam);
 
       if (parsedId !== null) {
-        // URL has ?view — open the modal if not already open for this ID
+        // URL has ?view - open the modal if not already open for this ID
         if (!viewingRow || Number(viewingRow.id) !== parsedId) {
           const found = localRows.find((row) => Number(row.id) === parsedId);
           if (found) {
@@ -221,7 +221,7 @@ export function useDetailViewUrl({
           onTabChange(tabParam);
         }
       } else {
-        // URL has no ?view — close the modal if open
+        // URL has no ?view - close the modal if open
         if (viewingRow) {
           // Set prevViewingRowRef to null to prevent the URL sync effect from pushing state
           prevViewingRowRef.current = null;

@@ -3,7 +3,7 @@ import { db, isPostgres } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 import { logActivity } from "@/lib/data-helpers";
 
-// GET /api/execution-runs?suiteId=123 — list runs for a suite
+// GET /api/execution-runs?suiteId=123 - list runs for a suite
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data: runs });
 }
 
-// POST /api/execution-runs — create a new run for a suite
+// POST /api/execution-runs - create a new run for a suite
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

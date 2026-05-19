@@ -138,7 +138,7 @@ export default function GanttPage() {
   };
  }, [periodPickerOpen]);
 
- // Stable fetch key — only re-fetch when the actual period window changes
+ // Stable fetch key - only re-fetch when the actual period window changes
  const fetchRangeKey = useMemo(() => {
  if (viewMode === "year") return `${currentYear}-01-01:${currentYear}-12-31`;
  const ms = startOfMonth(focusDate);

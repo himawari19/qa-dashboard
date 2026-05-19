@@ -23,7 +23,7 @@ export function ModuleWorkspaceFormDate({ field, editingRow, fieldError, dateWar
  if (isLocked) {
  return (
  <div className="flex min-h-10 w-full items-center rounded-md border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-400 cursor-not-allowed select-none">
- {value ||"—"}
+ {value ||"-"}
  <input type="hidden" name={field.name} value={value} />
  </div>
  );

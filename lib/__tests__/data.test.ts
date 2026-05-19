@@ -768,7 +768,7 @@ describe("module row queries", () => {
 
   it("loads test cases with suite and plan context", async () => {
     mocks.db.query.mockResolvedValueOnce([
-      { id: 1, tcId: "TC-1", caseName: "Case 1", testSuiteId: "S1", status: "Passed", priority: "High", evidence: "", preCondition: "", testStep: "", expectedResult: "", actualResult: "", suiteTitle: "Suite A", suiteToken: "suite-token", suiteStatus: "active", planTitle: "Plan A", planProject: "QA Hub" },
+      { id: 1, tcId: "TC-1", caseName: "Case 1", testSuiteId: "S1", status: "Passed", priority: "High", evidence: "", preCondition: "", testStep: "", expectedResult: "", actualResult: "", suiteTitle: "Suite A", suiteToken: "suite-token", suiteStatus: "active", suiteAssignee: "Magnus QA", planTitle: "Plan A", planProject: "QA Hub" },
     ]);
 
     const rows = await getAllTestCasesWithSuite();
@@ -781,6 +781,7 @@ describe("module row queries", () => {
       id: 1,
       tcId: "TC-1",
       suiteTitle: "Suite A",
+      suiteAssignee: "Magnus QA",
       planTitle: "Plan A",
       planProject: "QA Hub",
     });

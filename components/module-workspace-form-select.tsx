@@ -39,7 +39,7 @@ export function ModuleWorkspaceFormSelect({
  {(() => {
  const options = relatedOptions[field.name] ?? field.options ?? [];
  const current = options.find((opt) => opt.value === selectedValue);
- return current?.label || String(editingRow?.[field.name] ??"—") ||"—";
+ return current?.label || String(editingRow?.[field.name] ??"-") ||"-";
  })()}
  <input type="hidden" name={field.name} value={selectedValue} readOnly />
  </div>

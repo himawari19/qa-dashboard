@@ -11,10 +11,10 @@ The architecture follows a layered approach:
 - **Real-Time Layer** (Phase 4): Server-Sent Events for presence and push notifications
 
 Key design principles:
-1. **Phase isolation** — each phase's code lives in clearly separated modules; no forward references
-2. **Additive-only DB changes** — new columns/tables only; never alter or remove existing schema
-3. **Graceful degradation** — missing data or failed features fall back silently to current behavior
-4. **SQLite/Postgres compatibility** — all queries use double-quoted camelCase columns and branch via `isPostgres`
+1. **Phase isolation** - each phase's code lives in clearly separated modules; no forward references
+2. **Additive-only DB changes** - new columns/tables only; never alter or remove existing schema
+3. **Graceful degradation** - missing data or failed features fall back silently to current behavior
+4. **SQLite/Postgres compatibility** - all queries use double-quoted camelCase columns and branch via `isPostgres`
 
 ## Architecture
 
@@ -144,7 +144,7 @@ graph TD
 #### `AgeIndicator`
 - Badge showing days since last status change: "Today", "3d", "10d"
 - Color coding: slate (1–7d), amber (8–14d), red (>14d)
-- Displays "—" when no status-change timestamp exists
+- Displays "-" when no status-change timestamp exists
 
 #### `ActivityFeedFilter`
 - Toggle with "My Activity" / "Team Activity" options
@@ -165,7 +165,7 @@ graph TD
 - "Work Tracking" group: Tasks, Bugs, Sprints
 - "Documentation" group: Meeting Notes only
 - "Reports" group: Report, Workload Heatmap, Deployment Log, Gantt / Timeline
-- All existing ROLE_MENU hrefs preserved — only group assignments change
+- All existing ROLE_MENU hrefs preserved - only group assignments change
 
 ### Phase 4 Components
 
@@ -273,7 +273,7 @@ CREATE INDEX IF NOT EXISTS "idx_dashfilter_company_shared" ON "DashboardFilter"(
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_dashfilter_unique_name" ON "DashboardFilter"("company", "userId", "name") WHERE "deletedAt" IS NULL;
 ```
 
-#### `PresenceHeartbeat` (Phase 4 — in-memory or lightweight table)
+#### `PresenceHeartbeat` (Phase 4 - in-memory or lightweight table)
 
 ```sql
 CREATE TABLE IF NOT EXISTS "PresenceHeartbeat" (
@@ -358,13 +358,13 @@ interface CollapsedGroup {
 Added query parameters: none (backward compatible)
 
 Added response fields (Phase 1):
-- `bugSeverityCounts` — severity breakdown counts
-- `resolutionRate` — current rate, previous week, delta
-- `qualityHealthScore` — composite score with component breakdown
+- `bugSeverityCounts` - severity breakdown counts
+- `resolutionRate` - current rate, previous week, delta
+- `qualityHealthScore` - composite score with component breakdown
 
 Added response fields (Phase 2):
-- `attentionItems[].statusChangedAt` — ISO timestamp
-- `attentionItems[].ageDays` — computed age in days
+- `attentionItems[].statusChangedAt` - ISO timestamp
+- `attentionItems[].ageDays` - computed age in days
 
 ### New Endpoints
 
@@ -426,12 +426,12 @@ Request body:
 
 Validation: content trimmed, 1–2000 chars. Returns 400 on violation.
 
-#### `GET /api/dashboard/events` (Phase 4 — SSE)
+#### `GET /api/dashboard/events` (Phase 4 - SSE)
 
 Server-Sent Events stream. Events:
-- `presence` — online members update
-- `notification` — assignment/critical bug alert
-- `data-update` — dashboard section refresh signal
+- `presence` - online members update
+- `notification` - assignment/critical bug alert
+- `data-update` - dashboard section refresh signal
 
 Connection: persistent, authenticated. Heartbeat every 30s.
 Reconnection: client-side exponential backoff.
@@ -507,7 +507,7 @@ No phase imports code from a later phase. Shared utilities (auth, db, data-helpe
 | Resolution rate | Zero created items | Display "N/A" |
 | Quality health score | Metric unavailable | Use 0 for that component; show tooltip |
 | Quick actions | Network error | Error toast; retain original state |
-| Age indicator | No timestamp | Display "—" in slate |
+| Age indicator | No timestamp | Display "-" in slate |
 | Activity filter | Fetch fails | Show loading state; retry button |
 | Presence | SSE disconnects | Show "unavailable" message |
 | Push notifications | Connection drops | Exponential backoff reconnection |
@@ -575,7 +575,7 @@ This feature involves a mix of pure computation logic (score calculations, activ
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+*A property is a characteristic or behavior that should hold true across all valid executions of a system - essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
 ### Property 1: Severity count summation invariant
 
@@ -609,7 +609,7 @@ This feature involves a mix of pure computation logic (score calculations, activ
 
 ### Property 6: Age indicator computation and color bands
 
-*For any* pair of dates (now, statusChangedAt) where statusChangedAt ≤ now, the age in days SHALL equal the floor of the calendar day difference. The display SHALL be "Today" when age < 1, the numeric day count followed by "d" otherwise. The color SHALL be slate for age 1–7, amber for age 8–14, and red for age > 14. When statusChangedAt is null, the display SHALL be "—" in slate.
+*For any* pair of dates (now, statusChangedAt) where statusChangedAt ≤ now, the age in days SHALL equal the floor of the calendar day difference. The display SHALL be "Today" when age < 1, the numeric day count followed by "d" otherwise. The color SHALL be slate for age 1–7, amber for age 8–14, and red for age > 14. When statusChangedAt is null, the display SHALL be "-" in slate.
 
 **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6**
 

@@ -82,7 +82,7 @@ async function collectStreamEvents(
       }
     }
   } catch {
-    // Stream was aborted — expected behavior
+    // Stream was aborted - expected behavior
   } finally {
     clearTimeout(timeout);
     try {

@@ -32,7 +32,7 @@ export function RunSummaryPage({ run, suite }: { run: RunData; suite: SuiteData 
         { label: "Dashboard", href: "/dashboard" },
         { label: "Test Execution", href: "/test-execution" },
         { label: suite.title, href: `/test-execution/${suite.publicToken}` },
-        { label: `Run #${run.runNumber} — Summary` },
+        { label: `Run #${run.runNumber} - Summary` },
       ]} />
 
       {/* Header */}

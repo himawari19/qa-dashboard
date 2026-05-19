@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
  * to trigger the stat-value-pop animation. The class is applied for
  * the animation duration (300ms) then removed.
  *
- * Uses transform and opacity only — no layout shifts.
+ * Uses transform and opacity only - no layout shifts.
  * Respects prefers-reduced-motion via the CSS @media rule in globals.css.
  */
 export function useValueChangeAnimation(value: number | string | null | undefined): string {

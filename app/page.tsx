@@ -46,7 +46,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-slate-900 overflow-x-hidden">
-      {/* Navigation — no color change on hover */}
+      {/* Navigation - no color change on hover */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
@@ -67,7 +67,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero — compact */}
+      {/* Hero - compact */}
       <header className="relative pt-14 bg-gradient-to-b from-blue-50/60 to-white">
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-6 pb-14 pt-16 text-center sm:pt-20 sm:pb-16">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
@@ -85,7 +85,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="mt-4 max-w-xl text-sm font-medium leading-relaxed text-slate-500">
-            The workspace built for QA teams — manage test plans, track bugs, execute sessions,
+            The workspace built for QA teams - manage test plans, track bugs, execute sessions,
             and keep your entire quality pipeline visible.
           </p>
 
@@ -116,7 +116,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Features Grid — compact */}
+      {/* Features Grid - compact */}
       <section className="bg-gradient-to-b from-slate-50 to-blue-50/20">
         <div className="mx-auto max-w-5xl px-6 py-16">
           <div className="mb-10 text-center">
@@ -175,7 +175,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Workflow Section — compact */}
+      {/* Workflow Section - compact */}
       <section className="bg-white">
         <div className="mx-auto max-w-5xl px-6 py-16">
           <div className="mb-10 text-center">
@@ -196,11 +196,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Additional Features — compact */}
+      {/* Additional Features - compact */}
       <section className="bg-gradient-to-b from-sky-50/30 to-slate-50/50">
         <div className="mx-auto max-w-5xl px-6 py-12">
           <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            <MiniFeature icon={<ShieldCheck size={16} weight="bold" />} label="Role-based Access" description="Admin, QA, Dev, PM — each sees what they need." />
+            <MiniFeature icon={<ShieldCheck size={16} weight="bold" />} label="Role-based Access" description="Admin, QA, Dev, PM - each sees what they need." />
             <MiniFeature icon={<Users size={16} weight="bold" />} label="Multi-workspace" description="Isolated company workspaces with team separation." />
             <MiniFeature icon={<Timer size={16} weight="bold" />} label="Activity Tracking" description="Full audit trail of every action across modules." />
             <MiniFeature icon={<Note size={16} weight="bold" />} label="Meeting Notes" description="Document standups, retrospectives, and decisions." />
@@ -208,7 +208,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA — compact */}
+      {/* CTA - compact */}
       <section className="bg-gradient-to-br from-blue-600 to-indigo-700">
         <div className="mx-auto max-w-3xl px-6 py-14 text-center">
           <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
@@ -229,7 +229,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer — compact */}
+      {/* Footer - compact */}
       <footer className="border-t border-slate-100 bg-slate-50 py-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2">

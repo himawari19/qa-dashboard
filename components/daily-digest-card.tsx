@@ -50,7 +50,7 @@ function writeDismissedKey(key: string) {
 }
 
 /**
- * DailyDigestCard — auto-generated morning summary card.
+ * DailyDigestCard - auto-generated morning summary card.
  * Shown at the top of the dashboard before 12:00 local time, when the user
  * has not dismissed it today and the digest endpoint reports `hasData: true`.
  */

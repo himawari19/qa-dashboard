@@ -118,7 +118,7 @@ export function ReadCell({ value, w, onClick }: { value: string; w: number; onCl
  )}
  >
  <div className="flex h-full min-h-[28px] items-start whitespace-pre-wrap break-words">
- {value || <span className="text-slate-300">—</span>}
+ {value || <span className="text-slate-300">-</span>}
  </div>
  </td>
  );

@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       // Opportunistically prune stale presence rows (cheap, indexed query)
       await removeStalePresence();
     } else {
-      // disconnect — remove the user's presence row
+      // disconnect - remove the user's presence row
       await db.run(`DELETE FROM "PresenceHeartbeat" WHERE "userId" = CAST(? AS INTEGER)`, [user.id]);
     }
     return NextResponse.json({ success: true });

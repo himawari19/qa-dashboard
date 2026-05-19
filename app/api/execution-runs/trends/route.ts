@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 
-// GET /api/execution-runs/trends?suiteId=123 — pass rate trend for a suite
+// GET /api/execution-runs/trends?suiteId=123 - pass rate trend for a suite
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

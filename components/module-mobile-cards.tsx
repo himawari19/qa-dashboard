@@ -134,7 +134,7 @@ export function ModuleMobileCards({
   onNextPage,
   onGoToPage,
 }: ModuleMobileCardsProps) {
-  const getTitle = (row: TableRow) => String(row.title || row.caseName || row.name || "—");
+  const getTitle = (row: TableRow) => String(row.title || row.caseName || row.name || "-");
 
   if (rows.length === 0) {
     return (

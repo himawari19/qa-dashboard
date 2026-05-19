@@ -1,13 +1,22 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Funnel, X } from "@phosphor-icons/react";
-import { Dashboard } from "@/components/dashboard";
 import { DashboardSkeleton } from "@/components/skeleton";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { DashboardRealtime } from "@/components/dashboard-realtime";
 import { usePresenceHeartbeat } from "@/components/use-presence-heartbeat";
 import { DashboardSavedFilters } from "@/components/dashboard-saved-filters";
+
+const Dashboard = dynamic(() => import("@/components/dashboard").then((module) => module.Dashboard), {
+  ssr: false,
+  loading: () => <DashboardSkeleton />,
+});
+
+const DashboardRealtime = dynamic(
+  () => import("@/components/dashboard-realtime").then((module) => module.DashboardRealtime),
+  { ssr: false, loading: () => null },
+);
 
 type Props = {
   initialData: any | null;
@@ -36,7 +45,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
     return () => { active = false; };
   }, [initialProjects.length]);
 
-  // Fetch dashboard data — skip initial fetch if server already provided it
+  // Fetch dashboard data - skip initial fetch if server already provided it
   useEffect(() => {
     if (!hasHydrated.current) {
       hasHydrated.current = true;

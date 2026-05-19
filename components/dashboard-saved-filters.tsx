@@ -74,7 +74,7 @@ export function DashboardSavedFilters({
       const shared = (json.filters?.shared ?? []).map(normalizeSavedFilter);
       setFilters({ own, shared });
     } catch {
-      // Silently fail — filters are non-critical
+      // Silently fail - filters are non-critical
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export function DashboardSavedFilters({
         return;
       }
 
-      // Success — reset form and refresh
+      // Success - reset form and refresh
       setSaveName("");
       setShareToggle(false);
       setShowSaveForm(false);
@@ -180,7 +180,7 @@ export function DashboardSavedFilters({
 
   return (
     <div className="space-y-2" data-testid="dashboard-saved-filters">
-      {/* Save Filter action — only visible when project filter is active */}
+      {/* Save Filter action - only visible when project filter is active */}
       {activeProject && (
         <div className="flex items-center gap-2">
           {!showSaveForm ? (

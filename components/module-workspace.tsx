@@ -323,7 +323,7 @@ export function ModuleWorkspace({
         body: JSON.stringify({ id: rowId, sortOrder: newIndex + 1 }),
       });
     } catch {
-      // Silent fail — optimistic update already applied
+      // Silent fail - optimistic update already applied
     }
   }, [module]);
 

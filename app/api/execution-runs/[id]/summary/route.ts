@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 
-// GET /api/execution-runs/[id]/summary — get run summary with comparison to previous run
+// GET /api/execution-runs/[id]/summary - get run summary with comparison to previous run
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

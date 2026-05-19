@@ -1,16 +1,36 @@
 "use client";
 
-import { KanbanBoard } from"@/components/kanban-board";
+import dynamic from"next/dynamic";
 import { type Attachment } from"@/components/attachment-uploader";
-import { ViewModal } from"@/components/module-view-modal";
 import { ModuleWorkspaceHeader } from"@/components/module-workspace-header";
 import { ModuleWorkspaceTable } from"@/components/module-workspace-table";
 import { ModuleWorkspaceForm } from"@/components/module-workspace-form";
-import { ModuleWorkspaceModals } from"@/components/module-workspace-modals";
-import { FormDrawer } from"@/components/form-drawer";
 import { ModuleMobileCards } from"@/components/module-mobile-cards";
 import type { Dispatch, ReactNode, SetStateAction } from"react";
 import { getModuleWorkspaceIcon } from"@/components/module-workspace-utils";
+
+const KanbanBoard = dynamic(() => import("@/components/kanban-board").then((module) => module.KanbanBoard), {
+ ssr: false,
+ loading: () => <div className="h-40 rounded-2xl border border-slate-200 bg-slate-50" />,
+});
+
+const ViewModal = dynamic(() => import("@/components/module-view-modal").then((module) => module.ViewModal), {
+ ssr: false,
+ loading: () => null,
+});
+
+const ModuleWorkspaceModals = dynamic(
+ () => import("@/components/module-workspace-modals").then((module) => module.ModuleWorkspaceModals),
+ {
+  ssr: false,
+  loading: () => null,
+ },
+);
+
+const FormDrawer = dynamic(() => import("@/components/form-drawer").then((module) => module.FormDrawer), {
+ ssr: false,
+ loading: () => <div className="fixed inset-y-0 right-0 w-full max-w-lg border-l border-slate-200 bg-white" />,
+});
 
 type Row = Record<string, string | number> & { id: string | number };
 

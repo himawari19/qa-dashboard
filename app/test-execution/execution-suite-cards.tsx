@@ -170,7 +170,7 @@ function InProgressCard({ suite }: { suite: SuiteWithRun }) {
       <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-100">
         <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
           <User size={12} weight="bold" />
-          <span className="font-semibold">{run.tester || "—"}</span>
+          <span className="font-semibold">{run.tester || "-"}</span>
         </div>
         <span className="text-[11px] font-bold text-blue-600 group-hover:text-blue-700 flex items-center gap-1">
           Continue <ArrowRight size={12} weight="bold" />

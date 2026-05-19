@@ -1,6 +1,6 @@
 "use client";
 
-// Legacy ExecutionView — kept for backward compatibility with existing tests.
+// Legacy ExecutionView - kept for backward compatibility with existing tests.
 // The new execution flow uses /test-execution/[id]/run/[runId]/run-execution-view.tsx
 
 import { useState, useEffect, useCallback } from "react";

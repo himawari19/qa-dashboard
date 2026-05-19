@@ -28,7 +28,7 @@ function readStoredDensity(): Density {
     const value = window.localStorage.getItem(STORAGE_KEY);
     if (value === "compact" || value === "comfortable") return value;
   } catch {
-    // localStorage unreadable — fall through
+    // localStorage unreadable - fall through
   }
   return DEFAULT_DENSITY;
 }
@@ -49,7 +49,7 @@ type DensityToggleProps = {
 };
 
 /**
- * DensityToggle — switches the dashboard between Compact and Comfortable layouts.
+ * DensityToggle - switches the dashboard between Compact and Comfortable layouts.
  * Persists the selection in localStorage and applies CSS custom properties to
  * the container so styles can react via `var(--qa-density-padding)` etc.
  */
@@ -57,7 +57,7 @@ export function DensityToggle({ containerSelector = "[data-dashboard-root]", cla
   // Lazy-init from localStorage so we never trigger a setState-in-effect.
   const [density, setDensity] = useState<Density>(() => readStoredDensity());
 
-  // Apply on every change (and initial mount). Side effect only — no setState here.
+  // Apply on every change (and initial mount). Side effect only - no setState here.
   useEffect(() => {
     if (typeof document === "undefined") return;
     const container = document.querySelector(containerSelector) as HTMLElement | null;

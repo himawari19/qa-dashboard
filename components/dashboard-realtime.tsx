@@ -32,7 +32,7 @@ function getBackoffDelay(attempt: number): number {
 // ── Component ──────────────────────────────────────────────────────────────
 
 /**
- * DashboardRealtime — SSE client for real-time dashboard updates.
+ * DashboardRealtime - SSE client for real-time dashboard updates.
  *
  * Establishes a persistent SSE connection to `/api/dashboard/events` on mount.
  * Handles:
@@ -168,7 +168,7 @@ export function DashboardRealtime() {
           }
         }, delay);
       } else {
-        // Max attempts reached — show disconnected state
+        // Max attempts reached - show disconnected state
         setConnectionState("disconnected");
       }
     };
@@ -192,7 +192,7 @@ export function DashboardRealtime() {
         }
       })
       .catch(() => {
-        // Not authenticated — don't connect
+        // Not authenticated - don't connect
       });
 
     return () => {
@@ -223,7 +223,7 @@ export function DashboardRealtime() {
         <button
           onClick={dismissBadge}
           className="flex items-center gap-1.5 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-rose-600 transition"
-          title={`${unreadCount} unread notifications — click to dismiss`}
+          title={`${unreadCount} unread notifications - click to dismiss`}
         >
           <Bell size={14} weight="bold" />
           <span>{unreadCount}</span>
@@ -243,7 +243,7 @@ export function DashboardRealtime() {
             ? "Real-time updates active"
             : connectionState === "reconnecting"
               ? "Reconnecting to server..."
-              : "Disconnected — real-time updates unavailable"
+              : "Disconnected - real-time updates unavailable"
         }
       >
         {connectionState === "connected" && (

@@ -62,7 +62,7 @@ export function parseTabParam(value: string | undefined | null): string | null {
 
 /**
  * Adds or removes the `view` and `tab` params while preserving all other params (page, q, filters).
- * Returns a new URLSearchParams instance — does not mutate the input.
+ * Returns a new URLSearchParams instance - does not mutate the input.
  */
 export function preserveQueryParams(
   currentParams: URLSearchParams,

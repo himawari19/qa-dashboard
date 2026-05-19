@@ -454,7 +454,7 @@ export function KanbanBoard({
           </div>
         </div>
 
-        {/* Drag Overlay — the floating card that follows cursor */}
+        {/* Drag Overlay - the floating card that follows cursor */}
         <DragOverlay dropAnimation={{
           duration: 250,
           easing: "cubic-bezier(0.25, 1, 0.5, 1)",

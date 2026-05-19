@@ -113,7 +113,7 @@ export function RunExecutionView({
         }),
       });
     } catch {
-      // Silent fail — will retry on next interaction
+      // Silent fail - will retry on next interaction
     }
   }, [run.id]);
 

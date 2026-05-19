@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 
-// GET /api/execution-runs/[id]/export — export run as printable HTML (for PDF via browser print)
+// GET /api/execution-runs/[id]/export - export run as printable HTML (for PDF via browser print)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -48,7 +48,7 @@ export async function GET(
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Execution Report — ${run.suiteTitle} Run #${run.runNumber}</title>
+  <title>Execution Report - ${run.suiteTitle} Run #${run.runNumber}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; font-size: 12px; }
@@ -73,8 +73,8 @@ export async function GET(
   </style>
 </head>
 <body>
-  <h1>${run.suiteTitle} — Run #${run.runNumber}</h1>
-  <p class="meta">Tester: ${run.tester || "—"} · Date: ${run.completedAt ? new Date(String(run.completedAt)).toLocaleDateString("en-GB") : new Date(String(run.startedAt)).toLocaleDateString("en-GB")} · Company: ${company || "—"}</p>
+  <h1>${run.suiteTitle} - Run #${run.runNumber}</h1>
+  <p class="meta">Tester: ${run.tester || "-"} · Date: ${run.completedAt ? new Date(String(run.completedAt)).toLocaleDateString("en-GB") : new Date(String(run.startedAt)).toLocaleDateString("en-GB")} · Company: ${company || "-"}</p>
 
   <div class="stats">
     <div class="stat"><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
@@ -96,7 +96,7 @@ export async function GET(
         <td>${v.caseName}</td>
         <td>${v.priority}</td>
         <td><span class="verdict verdict-${v.verdict}">${v.verdict}</span></td>
-        <td>${v.actualResult || "—"}</td>
+        <td>${v.actualResult || "-"}</td>
       </tr>`).join("")}
     </tbody>
   </table>

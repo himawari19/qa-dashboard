@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 
-// PATCH /api/execution-runs/[id]/verdict — auto-save a single verdict
+// PATCH /api/execution-runs/[id]/verdict - auto-save a single verdict
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -43,7 +43,7 @@ export async function GET(
   const keywords = title.toLowerCase().split(/\s+/).filter((k) => k.length > 2);
   if (keywords.length === 0) return NextResponse.json({ duplicates: [] });
 
-  // Simple keyword matching — filtered by company and excluding soft-deleted
+  // Simple keyword matching - filtered by company and excluding soft-deleted
   const query = `
     SELECT id, "${titleField}" as title, status FROM "${tableName}"
     WHERE company = ?

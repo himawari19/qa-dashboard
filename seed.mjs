@@ -1,4 +1,4 @@
-// seed.mjs — run with: node seed.mjs
+// seed.mjs - run with: node seed.mjs
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, unlinkSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -300,10 +300,10 @@ const tasks = [
   [C,3,"Test payment gateway integration","EcoShop Web","Payment","testing","doing","P1","2026-03-06","Validate Midtrans and DANA payment methods in staging.","Use sandbox credentials from .env.staging.","Wahyu Simbolon"],
   [C,3,"Regression test after cart hotfix","EcoShop Web","Cart","testing","done","P1","2026-03-04","Run full regression on cart module after BUG-003 fix.","All 18 test cases passed.","Dewi Kusuma"],
   [C,3,"Review test cases for promo code","EcoShop Web","Promo","documentation","todo","P2","2026-03-07","Audit and update TC library for discount code scenarios.","","Budi Santoso"],
-  [C,3,"Exploratory test — mobile checkout","EcoShop Web","Checkout","testing","doing","P2","2026-03-06","Explore checkout flow on iOS Safari and Android Chrome.","Found scroll issue on address step — BUG-004 raised.","Citra Lestari"],
+  [C,3,"Exploratory test - mobile checkout","EcoShop Web","Checkout","testing","doing","P2","2026-03-06","Explore checkout flow on iOS Safari and Android Chrome.","Found scroll issue on address step - BUG-004 raised.","Citra Lestari"],
   [C,3,"Write test cases for COD payment","EcoShop Web","Payment","documentation","todo","P2","2026-03-08","Create positive and negative test cases for Cash on Delivery.","","Budi Santoso"],
   [C,3,"Validate order confirmation email","EcoShop Web","Notifications","testing","todo","P2","2026-03-07","Check email template, links, and data accuracy post-order.","","Eko Wijaya"],
-  [C,3,"API test — /orders/create endpoint","EcoShop Web","Orders API","testing","doing","P1","2026-03-05","Test request/response structure, validation, and error codes.","Using Postman collection v3.","Andi Pratama"],
+  [C,3,"API test - /orders/create endpoint","EcoShop Web","Orders API","testing","doing","P1","2026-03-05","Test request/response structure, validation, and error codes.","Using Postman collection v3.","Andi Pratama"],
   [C,3,"Performance test checkout page","EcoShop Web","Performance","investigation","todo","P3","2026-03-10","Measure LCP and FID on checkout under 100 concurrent users.","","Citra Lestari"],
   [C,3,"Update test plan Sprint 3","EcoShop Web","Test Planning","documentation","done","P1","2026-03-01","Finalize scope, assign suites, and set milestones.","Approved by PM.","Wahyu Simbolon"],
   [C,2,"Regression test product search","EcoShop Web","Search","testing","done","P1","2026-01-25","Full regression after search algorithm update.","","Andi Pratama"],
@@ -314,8 +314,8 @@ const tasks = [
   [C,1,"Test login with Google OAuth","EcoShop Web","Auth","testing","done","P1","2026-01-08","Verify Google sign-in integration and session handling.","","Andi Pratama"],
   [C,1,"Write test cases for forgot password","EcoShop Web","Auth","documentation","done","P2","2026-01-07","Cover happy path, expired token, and invalid email.","","Budi Santoso"],
   [C,3,"Follow up BUG-017 retest","EcoShop Web","Cart","follow-up","todo","P1","2026-03-06","Retest after dev confirms fix for quantity update bug.","Waiting for build 3.4.2.","Andi Pratama"],
-  [C,3,"Meeting action: align QA & dev on API contract","EcoShop Web","Orders API","meeting-action","todo","P2","2026-03-08","Follow up from sprint planning — document agreed API error codes.","","Wahyu Simbolon"],
-  [C,3,"Accessibility audit — checkout form","EcoShop Web","Accessibility","testing","todo","P3","2026-03-12","Run axe-core scan and manual keyboard navigation test.","","Citra Lestari"],
+  [C,3,"Meeting action: align QA & dev on API contract","EcoShop Web","Orders API","meeting-action","todo","P2","2026-03-08","Follow up from sprint planning - document agreed API error codes.","","Wahyu Simbolon"],
+  [C,3,"Accessibility audit - checkout form","EcoShop Web","Accessibility","testing","todo","P3","2026-03-12","Run axe-core scan and manual keyboard navigation test.","","Citra Lestari"],
   [C,3,"Smoke test after deployment v3.4","EcoShop Web","Smoke Test","testing","todo","P1","2026-03-09","Run smoke suite on staging after v3.4 deployment.","","Wahyu Simbolon"],
   [C,4,"Plan Sprint 4 test scope","EcoShop Web","Test Planning","documentation","todo","P1","2026-03-15","Define test scope for order management features.","","Wahyu Simbolon"],
 ];
@@ -354,10 +354,10 @@ console.log("✓ Bugs (22)");
 // ── TEST PLANS (4) ────────────────────────────────────────────
 const iPlan = db.prepare(`INSERT INTO "TestPlan" ("company","publicToken","title","project","sprint","scope","status","startDate","endDate","assignee","notes") VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
 const pt = [tok(), tok(), tok(), tok()];
-iPlan.run(C,pt[0],"Test Plan — Sprint 1: Auth & Onboarding","EcoShop Web","Sprint 1","Registration, Login, OAuth, Password Reset, Session Management","closed","2026-01-01","2026-01-14","Wahyu Simbolon","All critical auth flows must pass before sprint close.");
-iPlan.run(C,pt[1],"Test Plan — Sprint 2: Product Catalog","EcoShop Web","Sprint 2","Product Listing, Search, Filter, Product Detail, Reviews","closed","2026-01-15","2026-01-28","Wahyu Simbolon","Focus on search accuracy and filter correctness.");
-iPlan.run(C,pt[2],"Test Plan — Sprint 3: Checkout & Payment","EcoShop Web","Sprint 3","Cart, Checkout, Payment Gateway, Promo Code, Order Confirmation","active","2026-03-01","2026-03-14","Wahyu Simbolon","Payment integration is highest priority. Block release on P1 bugs.");
-iPlan.run(C,pt[3],"Test Plan — Sprint 4: Order Management","EcoShop Web","Sprint 4","Order History, Status Tracking, Notifications, Returns","draft","2026-03-15","2026-03-28","Wahyu Simbolon","Draft — pending sprint kickoff.");
+iPlan.run(C,pt[0],"Test Plan - Sprint 1: Auth & Onboarding","EcoShop Web","Sprint 1","Registration, Login, OAuth, Password Reset, Session Management","closed","2026-01-01","2026-01-14","Wahyu Simbolon","All critical auth flows must pass before sprint close.");
+iPlan.run(C,pt[1],"Test Plan - Sprint 2: Product Catalog","EcoShop Web","Sprint 2","Product Listing, Search, Filter, Product Detail, Reviews","closed","2026-01-15","2026-01-28","Wahyu Simbolon","Focus on search accuracy and filter correctness.");
+iPlan.run(C,pt[2],"Test Plan - Sprint 3: Checkout & Payment","EcoShop Web","Sprint 3","Cart, Checkout, Payment Gateway, Promo Code, Order Confirmation","active","2026-03-01","2026-03-14","Wahyu Simbolon","Payment integration is highest priority. Block release on P1 bugs.");
+iPlan.run(C,pt[3],"Test Plan - Sprint 4: Order Management","EcoShop Web","Sprint 4","Order History, Status Tracking, Notifications, Returns","draft","2026-03-15","2026-03-28","Wahyu Simbolon","Draft - pending sprint kickoff.");
 console.log("✓ Test Plans (4)");
 
 // ── TEST SUITES (12) ──────────────────────────────────────────
@@ -371,8 +371,8 @@ iSuite.run(C,st[4],"2","TS-005: Product Filter & Sort","Dewi Kusuma","active","C
 iSuite.run(C,st[5],"2","TS-006: Product Detail Page","Budi Santoso","active","Image gallery, stock indicator, reviews, add to cart button.");
 iSuite.run(C,st[6],"3","TS-007: Shopping Cart","Andi Pratama","active","Add, remove, update quantity, cart persistence, badge count.");
 iSuite.run(C,st[7],"3","TS-008: Checkout Flow","Wahyu Simbolon","active","Address selection, delivery options, order summary, submit.");
-iSuite.run(C,st[8],"3","TS-009: Payment — Credit Card","Citra Lestari","active","Visa/Mastercard via Midtrans, 3DS auth, decline scenarios.");
-iSuite.run(C,st[9],"3","TS-010: Payment — E-Wallet & COD","Eko Wijaya","active","DANA, GoPay, OVO, and Cash on Delivery payment flows.");
+iSuite.run(C,st[8],"3","TS-009: Payment - Credit Card","Citra Lestari","active","Visa/Mastercard via Midtrans, 3DS auth, decline scenarios.");
+iSuite.run(C,st[9],"3","TS-010: Payment - E-Wallet & COD","Eko Wijaya","active","DANA, GoPay, OVO, and Cash on Delivery payment flows.");
 iSuite.run(C,st[10],"3","TS-011: Promo & Discount Codes","Budi Santoso","draft","Valid codes, expired codes, stacking rules, max discount cap.");
 iSuite.run(C,st[11],"4","TS-012: Order History & Status","Dewi Kusuma","draft","Order list, status timeline, receipt download, reorder.");
 console.log("✓ Test Suites (12)");
@@ -439,14 +439,14 @@ console.log("✓ Test Cases (50)");
 // ── TEST SESSIONS (10) ────────────────────────────────────────
 const iSess = db.prepare(`INSERT INTO "TestSession" ("company","date","project","sprint","tester","scope","totalCases","passed","failed","blocked","result","notes") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
 iSess.run(C,"2026-01-10","EcoShop Web","Sprint 1","Dewi Kusuma","TS-001: User Registration","5","5","0","0","pass","All registration TCs passed cleanly.");
-iSess.run(C,"2026-01-11","EcoShop Web","Sprint 1","Andi Pratama","TS-002: Login & Logout","5","4","1","0","fail","TC-010 failed — account lock mechanism missing.");
-iSess.run(C,"2026-01-12","EcoShop Web","Sprint 1","Budi Santoso","TS-003: Password Management","4","3","1","0","fail","TC-014 failed — same-password validation missing.");
+iSess.run(C,"2026-01-11","EcoShop Web","Sprint 1","Andi Pratama","TS-002: Login & Logout","5","4","1","0","fail","TC-010 failed - account lock mechanism missing.");
+iSess.run(C,"2026-01-12","EcoShop Web","Sprint 1","Budi Santoso","TS-003: Password Management","4","3","1","0","fail","TC-014 failed - same-password validation missing.");
 iSess.run(C,"2026-01-20","EcoShop Web","Sprint 2","Andi Pratama","TS-004: Product Search","5","5","0","0","pass","Search working correctly after hotfix.");
 iSess.run(C,"2026-01-21","EcoShop Web","Sprint 2","Dewi Kusuma","TS-005: Product Filter & Sort","4","4","0","0","pass","All filter combinations passed.");
-iSess.run(C,"2026-01-22","EcoShop Web","Sprint 2","Budi Santoso","TS-006: Product Detail Page","4","3","1","0","fail","TC-027 — OOS add-to-cart not disabled.");
+iSess.run(C,"2026-01-22","EcoShop Web","Sprint 2","Budi Santoso","TS-006: Product Detail Page","4","3","1","0","fail","TC-027 - OOS add-to-cart not disabled.");
 iSess.run(C,"2026-03-03","EcoShop Web","Sprint 3","Wahyu Simbolon","TS-007: Shopping Cart","5","2","3","0","fail","BUG-003 and BUG-018 raised from this session.");
 iSess.run(C,"2026-03-04","EcoShop Web","Sprint 3","Andi Pratama","TS-007: Cart Regression (post-hotfix)","5","5","0","0","pass","BUG-003 confirmed fixed. All cart TCs pass.");
-iSess.run(C,"2026-03-05","EcoShop Web","Sprint 3","Citra Lestari","TS-009: Payment Credit Card","4","0","2","2","fail","BUG-002 open — payment gateway not stable in sandbox.");
+iSess.run(C,"2026-03-05","EcoShop Web","Sprint 3","Citra Lestari","TS-009: Payment Credit Card","4","0","2","2","fail","BUG-002 open - payment gateway not stable in sandbox.");
 iSess.run(C,"2026-03-06","EcoShop Web","Sprint 3","Eko Wijaya","TS-010: E-Wallet & COD","4","1","2","1","fail","TC-044 failed, TC-045 blocked pending sandbox fix.");
 console.log("✓ Test Sessions (10)");
 
@@ -457,9 +457,9 @@ iMtg.run(C,tok(),"2026-01-14","EcoShop Web","Sprint 1 Retrospective","QA Team, P
 iMtg.run(C,tok(),"2026-01-15","EcoShop Web","Sprint 2 Kickoff Meeting","Full QA Team, Dev Team, Product","Scope for Sprint 2 covers product catalog. Priority is search accuracy and filter performance.","1. Budi: Write TC for product detail by Jan 17\n2. Citra: Set up performance test baseline");
 iMtg.run(C,tok(),"2026-01-28","EcoShop Web","Sprint 2 Retrospective","QA Team, Scrum Master","3 bugs found, 2 closed. Product detail OOS issue deferred to Sprint 3 backlog.","1. Wahyu: Add OOS bug to Sprint 3 criteria\n2. All: Update TCs for revised filter logic");
 iMtg.run(C,tok(),"2026-02-28","EcoShop Web","Sprint 3 Kickoff & Test Planning","Full QA Team, Dev Team, PO","Payment integration is highest risk. QA to start sandbox testing Day 1. COD scope limited to Jabodetabek.","1. Wahyu: Create test plan by Mar 1\n2. Citra: Configure Midtrans sandbox\n3. Eko: Document COD zip code list");
-iMtg.run(C,tok(),"2026-03-03","EcoShop Web","Bug Triage Meeting — Sprint 3","QA Engineer, Developer, Product","Reviewed 5 open bugs. BUG-001 and BUG-019 classified as release blockers. BUG-016 deferred.","1. Dev: Fix BUG-001 by Mar 5\n2. Dev: Fix BUG-019 by Mar 6\n3. Wahyu: Update test plan risk section");
+iMtg.run(C,tok(),"2026-03-03","EcoShop Web","Bug Triage Meeting - Sprint 3","QA Engineer, Developer, Product","Reviewed 5 open bugs. BUG-001 and BUG-019 classified as release blockers. BUG-016 deferred.","1. Dev: Fix BUG-001 by Mar 5\n2. Dev: Fix BUG-019 by Mar 6\n3. Wahyu: Update test plan risk section");
 iMtg.run(C,tok(),"2026-03-05","EcoShop Web","API Contract Alignment","QA Team, Backend Team","Aligned on /orders/create error response codes. QA to update API test collection accordingly.","1. Andi: Update Postman collection\n2. Backend: Share swagger for orders API");
-iMtg.run(C,tok(),"2026-03-06","EcoShop Web","Daily Standup — March 6","QA Team","BUG-003 confirmed fixed. BUG-002 still open. Citra found mobile layout issue BUG-004.","1. Dewi: Retest BUG-004 on multiple devices\n2. Andi: Continue API test suite");
+iMtg.run(C,tok(),"2026-03-06","EcoShop Web","Daily Standup - March 6","QA Team","BUG-003 confirmed fixed. BUG-002 still open. Citra found mobile layout issue BUG-004.","1. Dewi: Retest BUG-004 on multiple devices\n2. Andi: Continue API test suite");
 iMtg.run(C,tok(),"2026-03-08","EcoShop Web","Mid-Sprint Check-in","QA Team, Product Manager","7 of 22 planned TCs executed. On track. 3 critical bugs still open.","1. Wahyu: Daily bug status report to PM\n2. All: Prioritize checkout suite this week");
 iMtg.run(C,tok(),"2026-03-15","EcoShop Web","Sprint 4 Planning","Full Team","Scope: order history, notifications, returns. QA to draft test plan.","1. Wahyu: Draft test plan Sprint 4 by Mar 16\n2. Budi: Write TC for order history");
 console.log("✓ Meeting Notes (10)");
@@ -471,21 +471,21 @@ const acts = [
   [C,"Bug","2","created","BUG-002 created: Payment gateway returns 422 for valid card [critical]"],
   [C,"Bug","3","status_update","BUG-003 status updated: open → in_progress"],
   [C,"Task","1","created","TASK-001 created: Verify checkout flow end-to-end [P1]"],
-  [C,"Task","3","status_update","TASK-003 completed: Regression test after cart hotfix — all cases passed"],
-  [C,"TestCase","28","status_update","TC-028 status: Pending → Failed — cart quantity update not working"],
-  [C,"TestCase","27","status_update","TC-027 status: Pending → Failed — OOS add-to-cart button not disabled"],
-  [C,"TestSession","7","created","Session created: Shopping Cart Suite — 5 cases, 2 passed, 3 failed"],
-  [C,"TestSession","8","created","Session created: Cart Regression — 5 cases, all passed"],
-  [C,"Bug","7","status_update","BUG-007 status: open → closed — search hotfix verified by Andi"],
-  [C,"Bug","11","status_update","BUG-011 status: open → closed — OTP Gmail issue resolved"],
-  [C,"Bug","12","status_update","BUG-012 status: open → closed — login after reset fixed"],
+  [C,"Task","3","status_update","TASK-003 completed: Regression test after cart hotfix - all cases passed"],
+  [C,"TestCase","28","status_update","TC-028 status: Pending → Failed - cart quantity update not working"],
+  [C,"TestCase","27","status_update","TC-027 status: Pending → Failed - OOS add-to-cart button not disabled"],
+  [C,"TestSession","7","created","Session created: Shopping Cart Suite - 5 cases, 2 passed, 3 failed"],
+  [C,"TestSession","8","created","Session created: Cart Regression - 5 cases, all passed"],
+  [C,"Bug","7","status_update","BUG-007 status: open → closed - search hotfix verified by Andi"],
+  [C,"Bug","11","status_update","BUG-011 status: open → closed - OTP Gmail issue resolved"],
+  [C,"Bug","12","status_update","BUG-012 status: open → closed - login after reset fixed"],
   [C,"Task","10","status_update","TASK-010 completed: Test plan Sprint 3 finalized and approved"],
-  [C,"Bug","19","created","BUG-019 created: Duplicate order on payment timeout [critical] — release blocker"],
+  [C,"Bug","19","created","BUG-019 created: Duplicate order on payment timeout [critical] - release blocker"],
   [C,"MeetingNote","6","created","Meeting note created: Bug Triage Meeting Sprint 3"],
   [C,"Bug","21","created","BUG-021 created: Total miscalculates with multiple promos [critical]"],
-  [C,"TestCase","36","status_update","TC-036 status: Pending → Failed — expired promo accepted"],
+  [C,"TestCase","36","status_update","TC-036 status: Pending → Failed - expired promo accepted"],
   [C,"Task","18","created","TASK-018 created: Follow up BUG-017 retest after build 3.4.2"],
-  [C,"Bug","3","status_update","BUG-003 status: in_progress → closed — cart quantity fix confirmed"],
+  [C,"Bug","3","status_update","BUG-003 status: in_progress → closed - cart quantity fix confirmed"],
   [C,"TestPlan","3","created","Test Plan Sprint 3 created: Checkout & Payment scope defined"],
 ];
 acts.forEach(a => iAct.run(...a));

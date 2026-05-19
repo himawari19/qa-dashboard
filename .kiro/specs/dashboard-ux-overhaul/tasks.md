@@ -81,7 +81,7 @@ Transform the QA Daily Hub dashboard from a passive data display into an actiona
     - Create badge component showing days since last status change
     - Display "Today" for age < 1 day, "{N}d" for N days
     - Apply color coding: slate (1–7d), amber (8–14d), red (>14d)
-    - Display "—" in slate when `statusChangedAt` is null
+    - Display "-" in slate when `statusChangedAt` is null
     - Render on every item in the AttentionPanel
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
@@ -110,12 +110,12 @@ Transform the QA Daily Hub dashboard from a passive data display into an actiona
 - [x] 3. Phase 3: Sidebar Restructure (Requirement 8)
   - [x] 3.1 Restructure sidebar navigation groups in `components/sidebar.tsx`
     - Reorder groups to: (untitled Dashboard), Test Management, Work Tracking, Documentation, Reports, System Settings
-    - Create "Work Tracking" group containing: Tasks, Bugs, Sprints — in that order
+    - Create "Work Tracking" group containing: Tasks, Bugs, Sprints - in that order
     - Remove "Defects & Tasks" group; relocate its items (Bugs, Tasks) to "Work Tracking"
     - Update "Documentation" group to contain Meeting Notes only (remove Sprints)
     - Move "Deployment Log" from "Documentation" into "Reports" group after existing Report item
     - Ensure all items use icon weight "bold" and Title Case label casing
-    - Preserve all existing ROLE_MENU visibility rules — same hrefs per role before and after
+    - Preserve all existing ROLE_MENU visibility rules - same hrefs per role before and after
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 17.1_
 
 
@@ -251,13 +251,13 @@ Transform the QA Daily Hub dashboard from a passive data display into an actiona
     - Attention item entry: slide-in-from-top, 200ms ease-out
     - Activity entry: fade-in opacity 0→1, 200ms ease-out
     - Use transform and opacity only (no layout shifts)
-    - Respect `prefers-reduced-motion: reduce` — instant changes, no transitions
+    - Respect `prefers-reduced-motion: reduce` - instant changes, no transitions
     - Animate each changed element independently and concurrently
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6_
 
 
 - [x] 6. Phase isolation and backward compatibility verification
-  - [x] 6.1 Verify phase isolation — no forward references between phases
+  - [x] 6.1 Verify phase isolation - no forward references between phases
     - Ensure Phase 1 code does not import from Phases 2–5
     - Ensure Phase 2 code does not import from Phases 3–5
     - Ensure Phase 3 code has no shared module-level state with other phases
@@ -275,7 +275,7 @@ Transform the QA Daily Hub dashboard from a passive data display into an actiona
 
 ## Notes
 
-- Testing tasks have been removed per user request — testing will be handled manually
+- Testing tasks have been removed per user request - testing will be handled manually
 - Each task references specific requirements for traceability
 - All SQL must use double-quoted camelCase columns per AGENTS.md rules
 - All CRUD operations must call `logActivity()` per project conventions

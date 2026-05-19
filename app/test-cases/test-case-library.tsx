@@ -84,10 +84,16 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
  Pending: <Clock size={12} weight="fill" className="text-slate-400" />,
 };
 
-const PRIORITY_DOT: Record<string, string> = {
- High:"bg-rose-500",
- Medium:"bg-amber-400",
- Low:"bg-slate-300",
+const TYPE_COLOR: Record<string, string> = {
+ Positive:"text-teal-600",
+ Negative:"text-rose-600",
+};
+
+const PRIORITY_COLOR: Record<string, string> = {
+ Critical:"text-red-600",
+ High:"text-red-500",
+ Medium:"text-orange-500",
+ Low:"text-slate-500",
 };
 
 /* ─── Sortable Test Case Row ─── */
@@ -149,13 +155,10 @@ function SortableTestCaseRow({
     </span>
    </td>
    <td className="hidden px-3 py-3.5 align-top md:table-cell">
-    <span className="text-xs text-slate-500">{formatDisplayText(testCase.typeCase)}</span>
+    <span className={cn("text-xs font-semibold", TYPE_COLOR[testCase.typeCase] ?? "text-slate-500")}>{formatDisplayText(testCase.typeCase)}</span>
    </td>
    <td className="hidden px-3 py-3.5 align-top lg:table-cell">
-    <div className="flex items-center gap-1.5">
-     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[testCase.priority] ??"bg-slate-300")} />
-     <span className="text-xs font-semibold text-slate-600">{formatDisplayText(testCase.priority)}</span>
-    </div>
+    <span className={cn("text-xs font-semibold", PRIORITY_COLOR[testCase.priority] ?? "text-slate-500")}>{formatDisplayText(testCase.priority)}</span>
    </td>
    <td className="px-3 py-3.5 align-top">
     <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold", STATUS_PILL[testCase.status] ?? STATUS_PILL.Pending)}>
@@ -243,7 +246,7 @@ function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase
  }
 
  return (
-  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+  <DndContext id="tc-dnd" sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
    <table className="w-full text-sm">
     <thead className="sticky top-0 z-10">
      <tr className="border-b border-slate-100 bg-slate-200">
@@ -536,9 +539,9 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  {formatDisplayText(testCase.status ||"Pending")}
  </span>
  </div>
- <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
- <span className="rounded-full bg-slate-100 px-2 py-1">{formatDisplayText(testCase.typeCase)}</span>
- <span className="rounded-full bg-slate-100 px-2 py-1">{formatDisplayText(testCase.priority)}</span>
+ <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold">
+ <span className={TYPE_COLOR[testCase.typeCase] ?? "text-slate-500"}>{formatDisplayText(testCase.typeCase)}</span>
+ <span className={PRIORITY_COLOR[testCase.priority] ?? "text-slate-500"}>{formatDisplayText(testCase.priority)}</span>
  </div>
  {testCase.actualResult && (
  <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-500">{testCase.actualResult}</p>

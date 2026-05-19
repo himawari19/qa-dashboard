@@ -3,7 +3,7 @@ import { db, isPostgres } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 import { logActivity } from "@/lib/data-helpers";
 
-// GET /api/execution-runs/[id] — get run details + verdicts
+// GET /api/execution-runs/[id] - get run details + verdicts
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -41,7 +41,7 @@ export async function GET(
   return NextResponse.json({ data: { run, verdicts } });
 }
 
-// PATCH /api/execution-runs/[id] — update run (finish, update notes, etc.)
+// PATCH /api/execution-runs/[id] - update run (finish, update notes, etc.)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -93,7 +93,7 @@ export async function PATCH(
       [passed, failed, blocked, body.notes ?? null, body.tester ?? null, id, ...companyParams]
     );
 
-    await logActivity(company, "ExecutionRun", id, "Completed", `Run #${run.runNumber} completed — ${passed}P/${failed}F/${blocked}B`, user.name || user.email || "");
+    await logActivity(company, "ExecutionRun", id, "Completed", `Run #${run.runNumber} completed - ${passed}P/${failed}F/${blocked}B`, user.name || user.email || "");
 
     return NextResponse.json({ data: { passed, failed, blocked, status: "completed" } });
   }
