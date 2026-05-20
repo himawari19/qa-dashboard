@@ -252,7 +252,7 @@ function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase
      <tr className="border-b border-gray-100 bg-gray-200">
       <th className="w-[36px] px-2 py-3" />
       <th className="w-[52px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">#</th>
-      <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Case Name</th>
+      <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400">Test Case Name</th>
       <th className="hidden w-[160px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400 md:table-cell">Assignee</th>
       <th className="hidden w-[120px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400 md:table-cell">Type</th>
       <th className="hidden w-[90px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-gray-400 lg:table-cell">Priority</th>

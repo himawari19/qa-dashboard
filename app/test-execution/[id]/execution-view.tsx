@@ -90,7 +90,7 @@ export function ExecutionView({
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
       <Breadcrumb crumbs={[
         { label: "Dashboard", href: "/dashboard" },
-        { label: "Test Execution", href: "/test-execution" },
+        { label: "Test Sessions", href: "/test-execution" },
         { label: executionGroup.title },
       ]} />
 

@@ -108,7 +108,7 @@ export default async function TestExecutionPage({
       icon={<Play size={22} weight="bold" />}
       title="Execution Center"
       description="Start new runs, continue in-progress executions, or review past results."
-      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Execution" }]}
+      crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Sessions" }]}
       actions={<SuitesHeaderActions initialSearch={initialSearch} placeholder="Search suites..." exportModule="test-suites" importModule="test-suites" />}
     >
       <ExecutionSuiteCards inProgress={inProgress} ready={ready} />

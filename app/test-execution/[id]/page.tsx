@@ -65,7 +65,7 @@ export default async function SuiteExecutionPage({ params }: { params: Promise<{
       description={`${suiteData.caseCount} test cases · ${runsData.length} execution runs`}
       crumbs={[
         { label: "Dashboard", href: "/dashboard" },
-        { label: "Test Execution", href: "/test-execution" },
+        { label: "Test Sessions", href: "/test-execution" },
         { label: suiteData.title },
       ]}
     >

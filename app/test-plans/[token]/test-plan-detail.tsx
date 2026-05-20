@@ -435,7 +435,7 @@ export function TestPlanDetail({
  <thead className="sticky top-0 bg-slate-200 z-10">
  <tr className="border-b border-slate-100">
  <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[80px]">ID</th>
- <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Case Name</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Test Case Name</th>
  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell w-[100px]">Type</th>
  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden lg:table-cell w-[90px]">Priority</th>
  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 w-[120px]">Status</th>

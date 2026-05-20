@@ -77,8 +77,8 @@ export function getToneClass(fieldKey: string, value: string) {
 
 export const COLS = [
  { key:"__row__", label:"#", width: 56 },
- { key:"tcId", label:"TC ID", width: 100 },
- { key:"caseName", label:"Case Name", width: 220 },
+ { key:"tcId", label:"Test Case ID", width: 100 },
+ { key:"caseName", label:"Test Case Name", width: 220 },
  { key:"typeCase", label:"Type", width: 110 },
  { key:"preCondition", label:"Pre Condition", width: 220 },
  { key:"testStep", label:"Test Step", width: 260 },

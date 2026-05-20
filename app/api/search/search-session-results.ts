@@ -17,7 +17,7 @@ export async function getSessionResults(query: string, companyClause: string, co
       const exactItem = buildResult({
         row: exactRow,
         query,
-        type: "Test Execution",
+        type: "Test Sessions",
         group: "Test Management",
         href: "/test-execution",
         code: codeFromId("SES", Number(exactRow.id)),
@@ -53,7 +53,7 @@ export async function getSessionResults(query: string, companyClause: string, co
       buildResult({
         row,
         query,
-        type: "Test Execution",
+        type: "Test Sessions",
         group: "Test Management",
         href: "/test-execution",
         code: codeFromId("SES", Number(row.id)),

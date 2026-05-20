@@ -80,7 +80,7 @@ export function TestCaseDetailPage({
       className="flex h-10 items-center gap-2  bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
     >
       <PlayCircle size={18} weight="bold" />
-      Submit for Test Execution
+      Submit for Test Sessions
     </button>
   );
 

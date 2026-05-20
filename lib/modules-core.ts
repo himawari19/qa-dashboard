@@ -190,8 +190,8 @@ export const bugSchema = z.object({
 
 export const testCaseSchema = z.object({
   testSuiteId: requiredText("Suite ID"),
-  tcId: requiredText("TC ID"),
-  caseName: requiredText("Case Name"),
+  tcId: requiredText("Test Case ID"),
+  caseName: requiredText("Test Case Name"),
   assignee: optionalText,
   typeCase: z.enum(["Positive", "Negative"]),
   preCondition: requiredText("Pre-condition"),
@@ -252,7 +252,7 @@ export const testSessionSchema = z.object({
 });
 
 export const suiteSchema = z.object({
-  title: requiredText("Suite Name"),
+  title: requiredText("Test Suite Name"),
   testPlanId: optionalText,
   assignee: optionalText,
   notes: optionalText,

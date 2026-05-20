@@ -73,7 +73,7 @@ describe("ExecutionView", () => {
     expect(mocks.breadcrumb).toHaveBeenCalled();
     expect(mocks.breadcrumb.mock.calls[0][0].crumbs.map((c: { label: string }) => c.label)).toEqual([
       "Dashboard",
-      "Test Execution",
+      "Test Sessions",
       "Checkout Suite",
     ]);
   });

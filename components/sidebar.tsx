@@ -42,7 +42,7 @@ const groups: SidebarGroup[] = [
       { href: "/test-plans", label: "Test Plans", icon: ClipboardText },
       { href: "/test-suites", label: "Test Suites", icon: Table },
       { href: "/test-cases", label: "Test Cases", icon: Checks },
-      { href: "/test-execution", label: "Test Execution", icon: PlayCircle },
+      { href: "/test-execution", label: "Test Sessions", icon: PlayCircle },
     ],
   },
   {

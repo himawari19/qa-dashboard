@@ -86,7 +86,7 @@ export async function GET(
 
   <table>
     <thead>
-      <tr><th>#</th><th>TC ID</th><th>Case Name</th><th>Priority</th><th>Verdict</th><th>Actual Result</th></tr>
+      <tr><th>#</th><th>Test Case ID</th><th>Test Case Name</th><th>Priority</th><th>Verdict</th><th>Actual Result</th></tr>
     </thead>
     <tbody>
       ${verdicts.map((v, i) => `

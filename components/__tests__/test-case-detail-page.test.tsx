@@ -68,7 +68,7 @@ describe("TestCaseDetailPage", () => {
 
     expect(html).toContain("Test Cases");
     expect(html).toContain("Checkout Suite");
-    expect(html).toContain("Submit for Test Execution");
+    expect(html).toContain("Submit for Test Sessions");
     expect(html).toContain("data-testid=\"fullstack\"");
 
     expect(mocks.pageShell).toHaveBeenCalled();

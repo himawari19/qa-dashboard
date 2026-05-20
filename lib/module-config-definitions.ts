@@ -158,8 +158,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     toRow: (item) => ({
       ID: String(item.id),
       "Suite ID": String(item.testSuiteId),
-      "TC ID": String(item.tcId),
-      "Case Name": String(item.caseName),
+      "Test Case ID": String(item.tcId),
+      "Test Case Name": String(item.caseName),
       Assignee: String(item.assignee ?? ""),
       "Type Case": String(item.typeCase),
       "Pre-Condition": String(item.preCondition),
@@ -170,8 +170,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "testSuiteId", label: "Suite ID", kind: "select", options: [], required: true },
-      { name: "tcId", label: "TC ID", kind: "text", placeholder: "e.g. TC-001", required: true },
-      { name: "caseName", label: "Case Name", kind: "text", placeholder: "e.g. Valid Login", required: true },
+      { name: "tcId", label: "Test Case ID", kind: "text", placeholder: "e.g. TC-001", required: true },
+      { name: "caseName", label: "Test Case Name", kind: "text", placeholder: "e.g. Valid Login", required: true },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "typeCase", label: "Type Case", kind: "select", options: [{ label: "Positive", value: "Positive" }, { label: "Negative", value: "Negative" }], required: true },
       { name: "preCondition", label: "Pre-condition", kind: "textarea", placeholder: "e.g. Database is clean", required: true },
@@ -182,8 +182,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "priority", label: "Priority", kind: "select", options: [{ label: "Critical", value: "Critical" }, { label: "High", value: "High" }, { label: "Medium", value: "Medium" }, { label: "Low", value: "Low" }], required: true },
     ],
     columns: [
-      { key: "tcId", label: "TC ID" },
-      { key: "caseName", label: "Case Name", multiline: true, internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
+      { key: "tcId", label: "Test Case ID" },
+      { key: "caseName", label: "Test Case Name", multiline: true, internalLink: (row) => `/test-cases/detail/${row.publicToken}` },
       { key: "testSuiteId", label: "Suite ID" },
       { key: "assignee", label: "Assignee" },
       { key: "priority", label: "Priority", tone: "priority" },
@@ -199,8 +199,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     schema: testPlanSchema,
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
-      Title: String(item.title),
       "Project Name": String(item.project),
+      "Test Plan Name": String(item.title),
       Sprint: String(item.sprint),
       Status: String(item.status),
       "Start Date": String(item.startDate),
@@ -209,7 +209,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. CRM System", required: true },
-      { name: "title", label: "Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
+      { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. Sprint 12", required: true },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "status", label: "Status", kind: "select", options: testPlanStatusOptions, required: true },
@@ -219,8 +219,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "notes", label: "Notes / Exclusions", kind: "textarea", span: 1, placeholder: "Things not covered in this plan..." },
     ],
     columns: [
-      { key: "title", label: "Plan Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
       { key: "project", label: "Project Name", internalLink: (row) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
+      { key: "title", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.publicToken}` },
       { key: "sprint", label: "Sprint" },
       { key: "startDate", label: "Start" },
       { key: "endDate", label: "End" },
@@ -230,8 +230,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
   "test-sessions": {
-    title: "Test Execution",
-    shortTitle: "Test Execution",
+    title: "Test Sessions",
+    shortTitle: "Test Sessions",
     description: "Record daily execution sessions, totals, and final outcome in one place.",
     prefix: "SES",
     sheetName: "Test Sessions",
@@ -289,14 +289,14 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     coerce: (entry) => normalizeEntry(entry),
     toRow: (item) => ({
       ID: codeFromId("SUITE", Number(item.id)),
-      "Plan Name": String(item.testPlanId ?? ""),
-      Title: String(item.title),
+      "Test Plan Name": String(item.testPlanId ?? ""),
+      "Test Suite Name": String(item.title),
       Assignee: String(item.assignee ?? ""),
       Status: String(item.status),
     }),
     fields: [
-      { name: "testPlanId", label: "Plan Name", kind: "select", options: [], required: true },
-      { name: "title", label: "Suite Name", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
+      { name: "testPlanId", label: "Test Plan Name", kind: "select", options: [], required: true },
+      { name: "title", label: "Test Suite Name", kind: "text", placeholder: "e.g. Checkout Flow Regression", required: true },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
       { name: "status", label: "Status", kind: "select", options: [
         { label: "Draft", value: "draft" },
@@ -306,8 +306,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "notes", label: "Goal / Notes", kind: "textarea", rows: 3, placeholder: "Describe the objective of this suite..." },
     ],
     columns: [
-      { key: "title", label: "Suite Name", internalLink: (row) => `/test-suites/${row.publicToken || row.token || ""}` },
-      { key: "testPlanLabel", label: "Plan Name", internalLink: (row) => `/test-plans/${row.testPlanToken}` },
+      { key: "testPlanLabel", label: "Test Plan Name", internalLink: (row) => `/test-plans/${row.testPlanToken}` },
+      { key: "title", label: "Test Suite Name", internalLink: (row) => `/test-suites/${row.publicToken || row.token || ""}` },
       { key: "assignee", label: "Assignee" },
       { key: "notes", label: "Goal / Notes", multiline: true },
       { key: "status", label: "Status", tone: "status" },
@@ -482,7 +482,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     fields: [
       { name: "name", label: "Sprint Name", kind: "text", placeholder: "e.g. Sprint 24", required: true },
       { name: "project", label: "Project Name", kind: "text", placeholder: "Auto-filled from plan", readonly: true },
-      { name: "testPlanTitle", label: "Plan Name", kind: "text", placeholder: "Linked from plan", readonly: true },
+      { name: "testPlanTitle", label: "Test Plan Name", kind: "text", placeholder: "Linked from plan", readonly: true },
       { name: "startDate", label: "Start Date", kind: "date", required: true },
       { name: "endDate", label: "End Date", kind: "date", required: true },
       { name: "status", label: "Status", kind: "select", options: sprintStatusOptions, required: true },
@@ -491,7 +491,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     columns: [
       { key: "name", label: "Sprint Name" },
       { key: "project", label: "Project Name" },
-      { key: "testPlanTitle", label: "Plan Name" },
+      { key: "testPlanTitle", label: "Test Plan Name" },
       { key: "startDate", label: "Start Date" },
       { key: "endDate", label: "End Date" },
       { key: "status", label: "Status", tone: "status" },

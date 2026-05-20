@@ -340,7 +340,7 @@ export function SuiteDetail({
  <thead className="sticky top-0 bg-slate-100 z-10">
  <tr className="border-b border-slate-200">
  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 w-[80px]">ID</th>
- <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Case Name</th>
+              <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Test Case Name</th>
  <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden md:table-cell w-[160px]">Assignee</th>
  <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden md:table-cell w-[110px]">Type</th>
  <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell w-[90px]">Priority</th>

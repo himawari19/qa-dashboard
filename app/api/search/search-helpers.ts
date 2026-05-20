@@ -65,7 +65,7 @@ export const SCOPE_LABELS: Record<SearchScope, string> = {
   "test-plans": "Test Plans",
   "test-suites": "Test Suites",
   "test-cases": "Test Cases",
-  "test-sessions": "Test Execution",
+  "test-sessions": "Test Sessions",
   "meeting-notes": "Meeting Notes",
   sprints: "Sprints",
   assignees: "Assignees",

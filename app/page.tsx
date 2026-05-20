@@ -183,7 +183,7 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <FeatureCard icon={<ClipboardText size={18} weight="bold" />} color="text-blue-600" bg="bg-blue-100" title="Test Plans & Suites" desc="Organize scenarios into plans and suites. Link to sprints. Track coverage." />
             <FeatureCard icon={<Checks size={18} weight="bold" />} color="text-emerald-600" bg="bg-emerald-100" title="Test Case Library" desc="Preconditions, steps, expected results. Reusable across suites and plans." />
-            <FeatureCard icon={<PlayCircle size={18} weight="bold" />} color="text-amber-600" bg="bg-amber-100" title="Test Execution" desc="Run sessions, record verdicts live. See pass rates per cycle instantly." />
+            <FeatureCard icon={<PlayCircle size={18} weight="bold" />} color="text-amber-600" bg="bg-amber-100" title="Test Sessions" desc="Run sessions, record verdicts live. See pass rates per cycle instantly." />
             <FeatureCard icon={<Bug size={18} weight="bold" />} color="text-rose-600" bg="bg-rose-100" title="Bug Tracking" desc="Severity, priority, assignee, evidence. Full lifecycle from open to closed." />
             <FeatureCard icon={<Kanban size={18} weight="bold" />} color="text-violet-600" bg="bg-violet-100" title="Tasks & Sprints" desc="Kanban board, sprint planning, status workflows. Keep dev and QA in sync." />
             <FeatureCard icon={<ChartBar size={18} weight="bold" />} color="text-indigo-600" bg="bg-indigo-100" title="Dashboard & Reports" desc="Quality health score, burndown, heatmaps, weekly digest. All automated." />
