@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { db } from "@/lib/db";
+import { db, isPostgres } from "@/lib/db";
 import { isAdminUser } from "@/lib/auth-core";
 import { getCurrentUser } from "@/lib/auth";
 import { buildSearchTokenClause, syncSearchTokens } from "@/lib/search-index";
@@ -83,6 +83,8 @@ export function getTableName(module: import("@/lib/modules").ModuleKey) {
       return "User";
     case "deployments":
       return "Deployment";
+    case "work-logs":
+      return "WorkLog";
     default:
       console.warn(`getTableName: unhandled module key: ${module}`);
       return "";
@@ -142,6 +144,7 @@ export function getSearchableColumns(module: string): string[] {
     case "sprints": return ["name", "status", "goal"];
     case "users": return ["name", "email", "role"];
     case "deployments": return ["version", "project", "environment", "developer", "status", "changelog"];
+    case "work-logs": return ["date", "category", "project", "description", "output", "assignee"];
     default: return ["title", "name", "status"];
   }
 }
@@ -154,7 +157,11 @@ export function buildSearchClause(module: string, search: string, company = ""):
     return tokenClause as { clause: string; params: string[] };
   }
   const columns = getSearchableColumns(module);
-  const conditions = columns.map((col) => `INSTR(LOWER(COALESCE("${col}", '')), ?) > 0`);
+  const conditions = columns.map((col) =>
+    isPostgres
+      ? `POSITION(? IN LOWER(COALESCE("${col}", ''))) > 0`
+      : `INSTR(LOWER(COALESCE("${col}", '')), ?) > 0`
+  );
   const param = q.toLowerCase();
   return {
     clause: ` AND (${conditions.join(" OR ")})`,

@@ -15,6 +15,7 @@ const titleFieldMap: Record<ModuleKey, string> = {
   sprints: "name",
   users: "name",
   deployments: "version",
+  "work-logs": "description",
 };
 
 /**

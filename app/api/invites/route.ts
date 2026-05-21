@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
   });
 
   if ("error" in result) {
+    if (result.error === "USER_LIMIT_REACHED") {
+      return NextResponse.json({
+        error: "USER_LIMIT_REACHED",
+        current: (result as any).current,
+        max: (result as any).max,
+        plan: (result as any).plan,
+      }, { status: 403 });
+    }
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 

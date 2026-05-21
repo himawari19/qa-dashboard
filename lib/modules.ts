@@ -18,6 +18,7 @@ export const moduleOrder: ModuleKey[] = [
   "sprints",
   "users",
   "deployments",
+  "work-logs",
 ];
 
 export const moduleLabels = Object.fromEntries(

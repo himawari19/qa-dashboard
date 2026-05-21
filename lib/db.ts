@@ -75,6 +75,7 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (
+        message.includes('no such table') ||
         message.includes('no such column: deletedAt') ||
         message.includes('no such column: "deletedAt"') ||
         message.includes('no such column: acceptanceCriteria') ||
@@ -84,6 +85,7 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
         message.includes('no such column: sortOrder') ||
         message.includes('no such column: "sortOrder"')
       ) {
+        globalForDb.schemaReady = false;
         await ensureSchema();
         return sqlite.prepare(queryStr).all(...params) as T[];
       }
@@ -100,7 +102,18 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
 async function runRaw(queryStr: string, params: unknown[] = []): Promise<void> {
   if (useSqlite) {
     const sqlite = await getSqlite();
-    sqlite.prepare(queryStr).run(...params);
+    try {
+      sqlite.prepare(queryStr).run(...params);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('no such table')) {
+        globalForDb.schemaReady = false;
+        await ensureSchema();
+        sqlite.prepare(queryStr).run(...params);
+        return;
+      }
+      throw error;
+    }
     return;
   }
 

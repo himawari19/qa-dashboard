@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, isPostgres } from "@/lib/db";
 
 export type SearchScope =
   | "all"
@@ -180,7 +180,11 @@ export function buildResult({
 }
 
 export function buildSearchSql(columns: string[], companyClause: string, extraWhere = "") {
-  const searchClause = columns.map((column) => `INSTR(LOWER(COALESCE(${column}, '')), ?) > 0`).join(" OR ");
+  const searchClause = columns.map((column) =>
+    isPostgres
+      ? `POSITION(? IN LOWER(COALESCE(${column}, ''))) > 0`
+      : `INSTR(LOWER(COALESCE(${column}, '')), ?) > 0`
+  ).join(" OR ");
   return `WHERE (${searchClause})${extraWhere}${companyClause}`;
 }
 

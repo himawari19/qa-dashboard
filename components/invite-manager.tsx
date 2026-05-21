@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from"react";
-import { CaretDown, Plus, Trash } from"@phosphor-icons/react";
+import { CaretDown, Plus, Trash, Warning } from"@phosphor-icons/react";
 import { toast } from"@/components/ui/toast";
 import { getInviteRoleOptions, getRoleLabel } from"@/lib/roles";
 import { cn } from"@/lib/utils";
+import { ConfirmModal } from"@/components/ui/confirm-modal";
 
 type Invite = {
  token: string;
@@ -21,6 +22,7 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
  const [invites, setInvites] = useState<Invite[]>([]);
  const [loading, setLoading] = useState(false);
  const [showInviteForm, setShowInviteForm] = useState(!embedded);
+ const [limitModal, setLimitModal] = useState<{ current: number; max: number; plan: string } | null>(null);
 
  const loadInvites = async () => {
  const res = await fetch("/api/invites");
@@ -44,7 +46,13 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
  }),
  });
  const data = await res.json().catch(() => null);
- if (!res.ok) throw new Error(data?.error ||"Failed to create invite");
+ if (!res.ok) {
+ if (data?.error === "USER_LIMIT_REACHED") {
+ setLimitModal({ current: data.current, max: data.max, plan: data.plan });
+ return;
+ }
+ throw new Error(data?.error ||"Failed to create invite");
+ }
  toast("Invite link generated","success");
  await loadInvites();
  } catch (err) {
@@ -79,6 +87,60 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
 
  const content = (
  <>
+ {/* Upgrade Plan Modal */}
+ {limitModal && (
+ <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 animate-in fade-in duration-150">
+ <div className="w-full max-w-md border border-gray-200 bg-white p-6 shadow-xl mx-4">
+ <div className="flex items-center gap-3 mb-4">
+ <div className="flex h-10 w-10 items-center justify-center bg-amber-100 text-amber-600">
+ <Warning size={20} weight="bold" />
+ </div>
+ <div>
+ <h3 className="text-sm font-bold text-gray-900">User Limit Reached</h3>
+ <p className="text-xs text-gray-500">Your workspace has reached its maximum capacity.</p>
+ </div>
+ </div>
+ <div className="border border-amber-100 bg-amber-50 px-4 py-3 mb-4">
+ <div className="flex items-center justify-between text-sm">
+ <span className="text-gray-700">Current users</span>
+ <span className="font-bold text-gray-900">{limitModal.current} / {limitModal.max}</span>
+ </div>
+ <div className="flex items-center justify-between text-sm mt-1">
+ <span className="text-gray-700">Current plan</span>
+ <span className="font-bold text-gray-900 capitalize">{limitModal.plan}</span>
+ </div>
+ </div>
+ <div className="space-y-2 mb-5">
+ <p className="text-xs font-semibold text-gray-700">Upgrade options:</p>
+ <div className="grid grid-cols-2 gap-2">
+ {limitModal.plan === "free" && (
+ <div className="border border-blue-200 bg-blue-50 px-3 py-2">
+ <p className="text-xs font-bold text-blue-700">Pro Plan</p>
+ <p className="text-[11px] text-blue-600">Up to 25 users</p>
+ <p className="text-[10px] text-blue-500 mt-0.5">Rp 490.000/month</p>
+ </div>
+ )}
+ <div className="border border-violet-200 bg-violet-50 px-3 py-2">
+ <p className="text-xs font-bold text-violet-700">Enterprise</p>
+ <p className="text-[11px] text-violet-600">Up to 100 users</p>
+ <p className="text-[10px] text-violet-500 mt-0.5">Rp 1.490.000/month</p>
+ </div>
+ </div>
+ </div>
+ <div className="flex gap-2">
+ <button onClick={() => setLimitModal(null)}
+ className="flex-1 h-9 border border-gray-200 text-xs font-semibold text-gray-600 transition hover:bg-gray-50">
+ Close
+ </button>
+ <a href="mailto:admin@qa-daily.local?subject=Upgrade Plan Request"
+ className="flex-1 flex h-9 items-center justify-center bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-700">
+ Contact to Upgrade
+ </a>
+ </div>
+ </div>
+ </div>
+ )}
+
  <div className={compact ?"flex items-center justify-end gap-2" : embedded ?"flex items-center justify-end gap-2" :"flex flex-wrap items-center justify-between gap-3"}>
  {!embedded && !compact ? (
  <div>

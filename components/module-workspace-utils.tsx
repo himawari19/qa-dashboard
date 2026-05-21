@@ -73,6 +73,7 @@ export function getModuleWorkspaceIcon(module: ModuleKey) {
     sprints: <Kanban size={22} weight="bold" />,
     users: <Gear size={22} weight="bold" />,
     deployments: <RocketLaunch size={22} weight="bold" />,
+    "work-logs": <Clock size={22} weight="bold" />,
   };
 
   return icons[module];

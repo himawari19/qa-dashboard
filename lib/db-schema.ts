@@ -228,6 +228,7 @@ export const tables = [
       "email" TEXT UNIQUE,
       "password" TEXT NOT NULL,
       "role" TEXT NOT NULL DEFAULT 'qa',
+      "avatar" TEXT DEFAULT '',
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -345,6 +346,82 @@ export const tables = [
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
+  },
+  {
+    name: "WorkLog",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "date" TEXT NOT NULL,
+      "startTime" TEXT NOT NULL,
+      "endTime" TEXT NOT NULL,
+      "category" TEXT NOT NULL,
+      "project" TEXT NOT NULL,
+      "description" TEXT NOT NULL,
+      "output" TEXT DEFAULT '',
+      "notes" TEXT DEFAULT '',
+      "assignee" TEXT DEFAULT '',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "Company",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "name" TEXT NOT NULL UNIQUE,
+      "plan" TEXT NOT NULL DEFAULT 'free',
+      "planExpiry" TEXT,
+      "maxUsers" INTEGER NOT NULL DEFAULT 10,
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "AdminAuditLog",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "actor" TEXT NOT NULL,
+      "action" TEXT NOT NULL,
+      "target" TEXT NOT NULL DEFAULT '',
+      "detail" TEXT NOT NULL DEFAULT '',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "Announcement",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "title" TEXT NOT NULL,
+      "message" TEXT NOT NULL,
+      "type" TEXT NOT NULL DEFAULT 'info',
+      "targetCompany" TEXT NOT NULL DEFAULT '',
+      "active" INTEGER NOT NULL DEFAULT 1,
+      "createdBy" TEXT NOT NULL DEFAULT '',
+      "expiresAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "SupportTicket",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL,
+      "subject" TEXT NOT NULL,
+      "message" TEXT NOT NULL,
+      "category" TEXT NOT NULL DEFAULT 'general',
+      "status" TEXT NOT NULL DEFAULT 'open',
+      "priority" TEXT NOT NULL DEFAULT 'normal',
+      "createdBy" TEXT NOT NULL DEFAULT '',
+      "adminReply" TEXT NOT NULL DEFAULT '',
+      "repliedAt" DATE_TYPE,
+      "closedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
   }
 ];
 
@@ -451,6 +528,20 @@ CREATE INDEX IF NOT EXISTS "idx_presence_company_lastseen" ON "PresenceHeartbeat
 CREATE INDEX IF NOT EXISTS "idx_dashfilter_company_user" ON "DashboardFilter"("company", "userId");
 CREATE INDEX IF NOT EXISTS "idx_dashfilter_company_shared" ON "DashboardFilter"("company", "shared");
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_dashfilter_unique_name" ON "DashboardFilter"("company", "userId", "name") WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_worklog_company" ON "WorkLog"("company");
+CREATE INDEX IF NOT EXISTS "idx_worklog_company_date" ON "WorkLog"("company", "date");
+CREATE INDEX IF NOT EXISTS "idx_worklog_company_assignee" ON "WorkLog"("company", "assignee");
+CREATE INDEX IF NOT EXISTS "idx_worklog_company_active_date" ON "WorkLog"("company", "date" DESC) WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_company_name" ON "Company"("name");
+CREATE INDEX IF NOT EXISTS "idx_company_status" ON "Company"("status");
+CREATE INDEX IF NOT EXISTS "idx_company_plan" ON "Company"("plan");
+CREATE INDEX IF NOT EXISTS "idx_auditlog_created" ON "AdminAuditLog"("createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_auditlog_actor" ON "AdminAuditLog"("actor");
+CREATE INDEX IF NOT EXISTS "idx_announcement_active" ON "Announcement"("active");
+CREATE INDEX IF NOT EXISTS "idx_announcement_target" ON "Announcement"("targetCompany");
+CREATE INDEX IF NOT EXISTS "idx_supportticket_company" ON "SupportTicket"("company");
+CREATE INDEX IF NOT EXISTS "idx_supportticket_status" ON "SupportTicket"("status");
+CREATE INDEX IF NOT EXISTS "idx_supportticket_company_status" ON "SupportTicket"("company", "status");
 `;
 
 export function expandSchemaType(typeName: string, postgres: boolean) {

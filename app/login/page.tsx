@@ -110,7 +110,11 @@ function LoginContent() {
         return;
       }
 
-      router.push(nextUrl);
+      // Superadmin goes directly to admin overview
+      const isSuperAdmin = data.role === "superadmin" && !String(data.company || "").trim();
+      const redirectTo = isSuperAdmin ? "/admin/overview" : nextUrl;
+
+      router.push(redirectTo);
       router.refresh();
       toast("Welcome back!", "success");
     } catch (err) {

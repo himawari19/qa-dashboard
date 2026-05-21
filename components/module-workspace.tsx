@@ -102,6 +102,7 @@ export function ModuleWorkspace({
   }), [nextRouter]);
   const [pending, startTransition] = useTransition();
   const [localRows, setLocalRows] = useState(rows);
+  const [localKanbanRows, setLocalKanbanRows] = useState(kanbanRows);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [editingRow, setEditingRow] = useState<Row | null>(null);
@@ -141,6 +142,10 @@ export function ModuleWorkspace({
   useEffect(() => {
     setLocalRows(rows);
   }, [rows]);
+
+  useEffect(() => {
+    setLocalKanbanRows(kanbanRows);
+  }, [kanbanRows]);
 
   // URL synchronization for shareable detail links
   const handleOpenRow = useCallback((row: Row) => {
@@ -283,9 +288,12 @@ export function ModuleWorkspace({
 
   // Inline cell update (status, priority, etc.)
   const handleInlineUpdate = useCallback(async (rowId: string | number, field: string, value: string) => {
-    // Optimistic update
+    // Optimistic update both views
     setLocalRows((prev) =>
       prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row)),
+    );
+    setLocalKanbanRows((prev) =>
+      prev.map((row) => (String(row.id) === String(rowId) ? { ...row, [field]: value } : row)),
     );
     try {
       const res = await fetch(`/api/items/${module}`, {
@@ -298,6 +306,7 @@ export function ModuleWorkspace({
         router.refresh();
       } else {
         toast("Updated", "success");
+        router.refresh();
       }
     } catch {
       toast("Failed to update", "error");
@@ -307,25 +316,45 @@ export function ModuleWorkspace({
 
   // Drag-to-reorder handler
   const handleReorder = useCallback(async (rowId: string | number, newIndex: number) => {
+    let reorderItems: { id: number | string; sortOrder: number }[] = [];
     setLocalRows((prev) => {
       const oldIndex = prev.findIndex((r) => r.id === rowId);
       if (oldIndex < 0 || oldIndex === newIndex) return prev;
       const next = [...prev];
       const [moved] = next.splice(oldIndex, 1);
       next.splice(newIndex, 0, moved);
+      // Recompute sortOrder for affected range
+      const start = Math.min(oldIndex, newIndex);
+      const end = Math.max(oldIndex, newIndex);
+      reorderItems = next.slice(start, end + 1).map((row, i) => ({
+        id: row.id,
+        sortOrder: start + i + 1,
+      }));
       return next;
     });
-    // Persist new sort order
-    try {
-      await fetch(`/api/items/${module}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: rowId, sortOrder: newIndex + 1 }),
-      });
-    } catch {
-      // Silent fail - optimistic update already applied
+    // Persist and sync
+    if (reorderItems.length > 0) {
+      // Optimistic update kanban rows too
+      setLocalKanbanRows((prev) =>
+        prev.map((row) => {
+          const match = reorderItems.find((item) => String(item.id) === String(row.id));
+          return match ? { ...row, sortOrder: match.sortOrder } : row;
+        })
+      );
+      try {
+        const res = await fetch(`/api/items/${module}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reorder: reorderItems }),
+        });
+        if (res.ok) {
+          router.refresh();
+        }
+      } catch {
+        router.refresh();
+      }
     }
-  }, [module]);
+  }, [module, router]);
 
   // All modules support manual reordering
   const reorderable = true;
@@ -448,6 +477,7 @@ export function ModuleWorkspace({
     setOpenSelectField,
     setPendingDeleteId,
     setDeleteId,
+    setKanbanRows: setLocalKanbanRows,
   } satisfies Parameters<typeof useModuleWorkspaceActions>[0];
 
   const {
@@ -457,6 +487,7 @@ export function ModuleWorkspace({
     handleFormSubmit,
     onImport,
     onUpdateStatus,
+    onBatchReorder,
     performSingleDelete,
     checkDuplicates,
     checkSprintDuplicate,
@@ -505,7 +536,7 @@ export function ModuleWorkspace({
         dateWarnings={dateWarnings}
         editingRow={editingRow}
         visibleRows={visibleRows}
-        kanbanRows={kanbanRows}
+        kanbanRows={localKanbanRows}
         visibleColumns={visibleColumns}
         safePage={safePage}
         totalPages={totalPages}
@@ -566,6 +597,7 @@ export function ModuleWorkspace({
         onReorder={handleReorder}
         reorderable={reorderable}
         onUpdateStatus={onUpdateStatus}
+        onBatchReorder={onBatchReorder}
         onDeleteConfirm={performSingleDelete}
         onDeleteCancel={() => setDeleteId(null)}
         onReopenReasonChange={setReopenReason}

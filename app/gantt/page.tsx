@@ -102,7 +102,6 @@ export default function GanttPage() {
  const rowAreaRef = useRef<HTMLDivElement>(null);
  const headerRef = useRef<HTMLDivElement>(null);
  const periodPickerRef = useRef<HTMLDivElement>(null);
- const isSyncingScrollRef = useRef(false);
  const wasDraggingRef = useRef(false);
  const scrollFrameRef = useRef<number | null>(null);
  const viewportRangeTimerRef = useRef<number | null>(null);
@@ -251,11 +250,27 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  useLayoutEffect(() => {
  const el = bodyRef.current;
  if (!el) return;
- const update = () => setTimelineViewportWidth(el.clientWidth);
- update();
+ let rafId: number | null = null;
+ const update = () => {
+ if (rafId !== null) cancelAnimationFrame(rafId);
+ rafId = requestAnimationFrame(() => {
+ rafId = null;
+ const w = el.clientWidth;
+ setTimelineViewportWidth((prev) => {
+ // Only update if the change is significant (>2px) to avoid scroll jitter
+ if (Math.abs(prev - w) > 2) return w;
+ return prev;
+ });
+ });
+ };
+ // Set initial value immediately
+ setTimelineViewportWidth(el.clientWidth);
  const observer = new ResizeObserver(update);
  observer.observe(el);
- return () => observer.disconnect();
+ return () => {
+ observer.disconnect();
+ if (rafId !== null) cancelAnimationFrame(rafId);
+ };
  }, [loading]);
 
  const items: GanttItem[] = useMemo(() => {
@@ -426,7 +441,10 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  const baseDayPx = Math.round(DAY_PX[viewMode] * ZOOM_SCALE[zoomLevel]);
  const dayPx = useMemo(() => {
  if (!timelineViewportWidth || totalCols <= 0) return baseDayPx;
- return Math.max(baseDayPx, Math.ceil(timelineViewportWidth / totalCols));
+ // Only expand dayPx if the total content would be narrower than the viewport.
+ // Use floor instead of ceil to avoid sub-pixel rounding that causes scroll jumps.
+ const fitPx = Math.floor(timelineViewportWidth / totalCols);
+ return Math.max(baseDayPx, fitPx);
  }, [baseDayPx, timelineViewportWidth, totalCols]);
  const totalWidth = totalCols * dayPx;
 
@@ -546,16 +564,14 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  }).filter(Boolean) as { col: number; label: string }[];
  }, [viewStart, totalCols, viewMode, holidays]);
 
- const syncTimelineScroll = useCallback((source:"body" |"header") => {
+ const syncTimelineScroll = useCallback(() => {
  const body = bodyRef.current;
  const hdr = headerRef.current;
- if (!body || !hdr || isSyncingScrollRef.current) return;
+ if (!body || !hdr) return;
 
- isSyncingScrollRef.current = true;
- const left = source ==="body" ? body.scrollLeft : hdr.scrollLeft;
- body.scrollLeft = left;
- hdr.scrollLeft = left;
+ hdr.scrollLeft = body.scrollLeft;
 
+ const left = body.scrollLeft;
  const firstVisible = Math.max(0, Math.floor(left / dayPx));
  const visibleDays = Math.max(1, Math.ceil(body.clientWidth / dayPx));
  const start = addDays(viewStart, firstVisible);
@@ -566,10 +582,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  viewportRangeTimerRef.current = window.setTimeout(() => {
  setViewportRange({ start, end });
  viewportRangeTimerRef.current = null;
- }, 120);
- window.requestAnimationFrame(() => {
- isSyncingScrollRef.current = false;
- });
+ }, 200);
  }, [dayPx, viewStart]);
 
  useEffect(() => {
@@ -638,20 +651,16 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  // sync header with body scroll
  useEffect(() => {
  const body = bodyRef.current;
- const hdr = headerRef.current;
- if (!body || !hdr) return;
- const scheduleSync = (source:"body" |"header") => {
+ if (!body) return;
+ const onBodyScroll = () => {
  if (scrollFrameRef.current !== null) return;
  scrollFrameRef.current = window.requestAnimationFrame(() => {
  scrollFrameRef.current = null;
- syncTimelineScroll(source);
+ syncTimelineScroll();
  });
  };
- const onBodyScroll = () => scheduleSync("body");
- const onHeaderScroll = () => scheduleSync("header");
  body.addEventListener("scroll", onBodyScroll, { passive: true });
- hdr.addEventListener("scroll", onHeaderScroll, { passive: true });
- syncTimelineScroll("body");
+ syncTimelineScroll();
  return () => {
  if (scrollFrameRef.current !== null) {
  window.cancelAnimationFrame(scrollFrameRef.current);
@@ -662,7 +671,6 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  viewportRangeTimerRef.current = null;
  }
  body.removeEventListener("scroll", onBodyScroll);
- hdr.removeEventListener("scroll", onHeaderScroll);
  };
  }, [syncTimelineScroll, loading]);
 
@@ -1047,7 +1055,7 @@ const scopeParts = [profile.email, profile.company, profile.id].filter(Boolean);
  </div>
 
  {/* Scrollable header (mirrors body scroll) */}
- <div ref={headerRef} className="flex-1 overflow-x-auto overflow-y-hidden select-none" style={{ scrollBehavior:"auto" }}>
+ <div ref={headerRef} className="flex-1 overflow-x-hidden overflow-y-hidden select-none" style={{ scrollBehavior:"auto" }}>
  <div style={{ width: totalWidth, minWidth: totalWidth, position:"relative" }}>
 
  {/* Weekend/holiday tint in header */}

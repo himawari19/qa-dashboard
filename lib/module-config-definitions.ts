@@ -27,6 +27,8 @@ import {
   testPlanStatusOptions,
   testSessionSchema,
   severityOptions,
+  workLogCategoryOptions,
+  workLogSchema,
 } from "@/lib/modules-core";
 
 export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
@@ -497,5 +499,45 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "status", label: "Status", tone: "status" },
     ],
   },
+  "work-logs": {
+    title: "Work Log",
+    shortTitle: "Work Log",
+    description: "Log daily work activities with time tracking for reporting to management.",
+    prefix: "WL",
+    sheetName: "Work Logs",
+    schema: workLogSchema,
+    coerce: (entry) => normalizeEntry(entry),
+    toRow: (item) => ({
+      ID: codeFromId("WL", Number(item.id)),
+      Date: String(item.date ?? ""),
+      "Start Time": String(item.startTime ?? ""),
+      "End Time": String(item.endTime ?? ""),
+      Category: String(item.category ?? ""),
+      Project: String(item.project ?? ""),
+      Description: String(item.description ?? ""),
+      Output: String(item.output ?? ""),
+      Notes: String(item.notes ?? ""),
+      Assignee: String(item.assignee ?? ""),
+    }),
+    fields: [
+      { name: "date", label: "Date", kind: "date", required: true },
+      { name: "startTime", label: "Start Time", kind: "text", placeholder: "e.g. 08:00", required: true },
+      { name: "endTime", label: "End Time", kind: "text", placeholder: "e.g. 12:00", required: true },
+      { name: "category", label: "Category", kind: "select", options: workLogCategoryOptions, required: true },
+      { name: "project", label: "Project", kind: "select", options: [], required: true },
+      { name: "description", label: "Description", kind: "textarea", placeholder: "What did you work on?", required: true, span: 3 },
+      { name: "output", label: "Output / Deliverable", kind: "textarea", placeholder: "What was produced or completed?", span: 3 },
+      { name: "notes", label: "Notes", kind: "textarea", placeholder: "Additional notes or blockers...", span: 3 },
+    ],
+    columns: [
+      { key: "date", label: "Date" },
+      { key: "startTime", label: "Start" },
+      { key: "endTime", label: "End" },
+      { key: "category", label: "Category" },
+      { key: "project", label: "Project" },
+      { key: "description", label: "Description", multiline: true },
+      { key: "output", label: "Output", multiline: true },
+      { key: "assignee", label: "Person" },
+    ],
+  },
 };
-

@@ -2,7 +2,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, unlinkSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 
 const dbPaths = [join(process.cwd(), "prisma", "dev.db"), join(process.cwd(), "main.db")];
 let dbReused = false;
@@ -28,7 +28,7 @@ const DB_PATH = join(process.cwd(), "prisma", "dev.db");
 const db = new DatabaseSync(DB_PATH);
 
 if (dbReused) {
-  const tables = ["ActivityLog","Invite","Deployment","MeetingNote","TestSession","TestCase","TestSuite","TestPlan","Bug","Task","Assignee","User","Sprint"];
+  const tables = ["WorkLog","DashboardFilter","PresenceHeartbeat","DashboardComment","CaseVerdict","ExecutionRun","ActivityLog","Invite","Deployment","MeetingNote","TestSession","TestCase","TestSuite","TestPlan","Bug","Task","Assignee","User","Sprint","SearchToken","Company","AdminAuditLog","Announcement","SupportTicket"];
   for (const t of tables) {
     try { db.exec(`DROP TABLE IF EXISTS "${t}"`); } catch {}
   }
@@ -59,16 +59,27 @@ function loadEnvFile(filePath = join(process.cwd(), ".env")) {
 
 loadEnvFile();
 
-async function hashPassword(password) {
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest("SHA-256", enc.encode(password));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+function hashPassword(password) {
+  return createHash("sha256").update(password).digest("hex");
 }
 function tok() { return randomBytes(16).toString("base64url"); }
+function isoDate(daysOffset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  return d.toISOString().slice(0, 10);
+}
+function isoTimestamp(daysOffset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  return d.toISOString();
+}
 
 db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
 
-db.exec(`CREATE TABLE IF NOT EXISTS "Sprint" (
+
+// ─── Create Tables ───────────────────────────────────────────────────────────
+db.exec(`
+CREATE TABLE IF NOT EXISTS "Sprint" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "name" TEXT NOT NULL,
@@ -76,11 +87,12 @@ db.exec(`CREATE TABLE IF NOT EXISTS "Sprint" (
   "endDate" TEXT,
   "status" TEXT NOT NULL DEFAULT 'active',
   "goal" TEXT DEFAULT '',
+  "sortOrder" INTEGER NOT NULL DEFAULT 0,
+  "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "Task" (
+);
+CREATE TABLE IF NOT EXISTS "Task" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "sprintId" INTEGER REFERENCES "Sprint"(id),
@@ -91,16 +103,21 @@ db.exec(`CREATE TABLE IF NOT EXISTS "Task" (
   "status" TEXT NOT NULL,
   "priority" TEXT NOT NULL,
   "dueDate" TEXT,
+  "startDate" TEXT,
+  "endDate" TEXT,
   "description" TEXT NOT NULL,
+  "acceptanceCriteria" TEXT NOT NULL DEFAULT '',
   "notes" TEXT NOT NULL DEFAULT '',
   "evidence" TEXT NOT NULL DEFAULT '',
   "relatedItems" TEXT DEFAULT '',
   "assignee" TEXT DEFAULT '',
+  "attachments" TEXT DEFAULT '',
+  "sortOrder" INTEGER NOT NULL DEFAULT 0,
+  "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "Bug" (
+);
+CREATE TABLE IF NOT EXISTS "Bug" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "sprintId" INTEGER REFERENCES "Sprint"(id),
@@ -118,11 +135,13 @@ db.exec(`CREATE TABLE IF NOT EXISTS "Bug" (
   "evidence" TEXT NOT NULL DEFAULT '',
   "relatedItems" TEXT DEFAULT '',
   "suggestedDev" TEXT DEFAULT '',
+  "attachments" TEXT DEFAULT '',
+  "sortOrder" INTEGER NOT NULL DEFAULT 0,
+  "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "TestCase" (
+);
+CREATE TABLE IF NOT EXISTS "TestCase" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "publicToken" TEXT NOT NULL DEFAULT '',
@@ -131,6 +150,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS "TestCase" (
   "typeCase" TEXT NOT NULL,
   "preCondition" TEXT NOT NULL,
   "caseName" TEXT NOT NULL,
+  "assignee" TEXT DEFAULT '',
   "testStep" TEXT NOT NULL,
   "expectedResult" TEXT NOT NULL,
   "actualResult" TEXT DEFAULT '',
@@ -140,12 +160,12 @@ db.exec(`CREATE TABLE IF NOT EXISTS "TestCase" (
   "priority" TEXT DEFAULT 'Medium',
   "lastRunAt" TEXT,
   "relatedItems" TEXT DEFAULT '',
+  "sortOrder" INTEGER NOT NULL DEFAULT 0,
   "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "TestPlan" (
+);
+CREATE TABLE IF NOT EXISTS "TestPlan" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "publicToken" TEXT NOT NULL DEFAULT '',
@@ -161,9 +181,8 @@ db.exec(`CREATE TABLE IF NOT EXISTS "TestPlan" (
   "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "TestSession" (
+);
+CREATE TABLE IF NOT EXISTS "TestSession" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "date" TEXT NOT NULL,
@@ -178,11 +197,11 @@ db.exec(`CREATE TABLE IF NOT EXISTS "TestSession" (
   "result" TEXT NOT NULL,
   "notes" TEXT,
   "evidence" TEXT,
+  "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "TestSuite" (
+);
+CREATE TABLE IF NOT EXISTS "TestSuite" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "publicToken" TEXT NOT NULL DEFAULT '',
@@ -194,9 +213,8 @@ db.exec(`CREATE TABLE IF NOT EXISTS "TestSuite" (
   "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "ActivityLog" (
+);
+CREATE TABLE IF NOT EXISTS "ActivityLog" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "entityType" TEXT NOT NULL,
@@ -205,9 +223,18 @@ db.exec(`CREATE TABLE IF NOT EXISTS "ActivityLog" (
   "summary" TEXT NOT NULL,
   "actor" TEXT NOT NULL DEFAULT '',
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "MeetingNote" (
+);
+CREATE TABLE IF NOT EXISTS "SearchToken" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "entityType" TEXT NOT NULL,
+  "entityId" TEXT NOT NULL,
+  "entityIdInt" INTEGER NOT NULL DEFAULT 0,
+  "token" TEXT NOT NULL,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "MeetingNote" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "publicToken" TEXT NOT NULL DEFAULT '',
@@ -216,36 +243,39 @@ db.exec(`CREATE TABLE IF NOT EXISTS "MeetingNote" (
   "title" TEXT NOT NULL,
   "attendees" TEXT NOT NULL DEFAULT '',
   "content" TEXT NOT NULL DEFAULT '',
+  "summary" TEXT NOT NULL DEFAULT '',
   "actionItems" TEXT NOT NULL DEFAULT '',
+  "relatedItems" TEXT DEFAULT '',
   "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "Assignee" (
+);
+CREATE TABLE IF NOT EXISTS "Assignee" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
+  "userId" INTEGER UNIQUE,
   "name" TEXT NOT NULL,
   "role" TEXT,
   "email" TEXT,
   "skills" TEXT DEFAULT '',
   "status" TEXT NOT NULL DEFAULT 'active',
+  "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "User" (
+);
+CREATE TABLE IF NOT EXISTS "User" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "name" TEXT,
   "email" TEXT UNIQUE,
   "password" TEXT NOT NULL,
   "role" TEXT NOT NULL DEFAULT 'qa',
+  "avatar" TEXT DEFAULT '',
+  "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "Invite" (
+);
+CREATE TABLE IF NOT EXISTS "Invite" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "token" TEXT NOT NULL UNIQUE,
   "company" TEXT NOT NULL,
@@ -256,9 +286,8 @@ db.exec(`CREATE TABLE IF NOT EXISTS "Invite" (
   "acceptedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS "Deployment" (
+);
+CREATE TABLE IF NOT EXISTS "Deployment" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "company" TEXT NOT NULL DEFAULT '',
   "date" TEXT NOT NULL,
@@ -269,281 +298,459 @@ db.exec(`CREATE TABLE IF NOT EXISTS "Deployment" (
   "changelog" TEXT NOT NULL DEFAULT '',
   "status" TEXT NOT NULL DEFAULT 'success',
   "notes" TEXT DEFAULT '',
+  "deletedAt" TEXT,
   "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-)`);
-
-const C = "";
-
-// ── SPRINTS ────────────────────────────────────────────────────
-const iSprint = db.prepare(`INSERT INTO "Sprint" ("company","name","startDate","endDate","status","goal") VALUES (?,?,?,?,?,?)`);
-iSprint.run(C,"Sprint 1: Onboarding & Auth","2026-01-01","2026-01-14","completed","Complete user registration, login, and profile setup flows.");
-iSprint.run(C,"Sprint 2: Product Catalog","2026-01-15","2026-01-28","completed","Implement product listing, search, filter, and detail pages.");
-iSprint.run(C,"Sprint 3: Checkout & Payment","2026-03-01","2026-03-14","active","Complete checkout funnel, payment integration, and promo codes.");
-iSprint.run(C,"Sprint 4: Order Management","2026-03-15","2026-03-28","planning","Build order history, status tracking, and notification system.");
-console.log("✓ Sprints (4)");
-
-// ── ASSIGNEES ──────────────────────────────────────────────────
-const iAsg = db.prepare(`INSERT INTO "Assignee" ("company","name","role","email","skills","status") VALUES (?,?,?,?,?,?)`);
-iAsg.run(C,"Wahyu Simbolon","QA Engineer","wahyu@ecoshop.id","Test Planning, Bug Triage, Automation","active");
-iAsg.run(C,"Andi Pratama","QA Engineer","andi@ecoshop.id","Manual Testing, Regression, API Testing","active");
-iAsg.run(C,"Dewi Kusuma","QA Engineer","dewi@ecoshop.id","UI Testing, Accessibility, Mobile","active");
-iAsg.run(C,"Budi Santoso","QA Analyst","budi@ecoshop.id","Test Documentation, Test Cases","active");
-iAsg.run(C,"Citra Lestari","Senior QA","citra@ecoshop.id","Automation, Performance, Security","active");
-iAsg.run(C,"Eko Wijaya","QA Engineer","eko@ecoshop.id","Backend Testing, DB Validation","active");
-console.log("✓ Assignees (6)");
-
-// ── TASKS (22) ────────────────────────────────────────────────
-const iTask = db.prepare(`INSERT INTO "Task" ("company","sprintId","title","project","relatedFeature","category","status","priority","dueDate","description","notes","assignee") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
-const tasks = [
-  [C,3,"Verify checkout flow end-to-end","EcoShop Web","Checkout","testing","todo","P1","2026-03-05","Test the complete checkout funnel from cart to order confirmation.","Include edge cases for empty cart and session timeout.","Andi Pratama"],
-  [C,3,"Test payment gateway integration","EcoShop Web","Payment","testing","doing","P1","2026-03-06","Validate Midtrans and DANA payment methods in staging.","Use sandbox credentials from .env.staging.","Wahyu Simbolon"],
-  [C,3,"Regression test after cart hotfix","EcoShop Web","Cart","testing","done","P1","2026-03-04","Run full regression on cart module after BUG-003 fix.","All 18 test cases passed.","Dewi Kusuma"],
-  [C,3,"Review test cases for promo code","EcoShop Web","Promo","documentation","todo","P2","2026-03-07","Audit and update TC library for discount code scenarios.","","Budi Santoso"],
-  [C,3,"Exploratory test - mobile checkout","EcoShop Web","Checkout","testing","doing","P2","2026-03-06","Explore checkout flow on iOS Safari and Android Chrome.","Found scroll issue on address step - BUG-004 raised.","Citra Lestari"],
-  [C,3,"Write test cases for COD payment","EcoShop Web","Payment","documentation","todo","P2","2026-03-08","Create positive and negative test cases for Cash on Delivery.","","Budi Santoso"],
-  [C,3,"Validate order confirmation email","EcoShop Web","Notifications","testing","todo","P2","2026-03-07","Check email template, links, and data accuracy post-order.","","Eko Wijaya"],
-  [C,3,"API test - /orders/create endpoint","EcoShop Web","Orders API","testing","doing","P1","2026-03-05","Test request/response structure, validation, and error codes.","Using Postman collection v3.","Andi Pratama"],
-  [C,3,"Performance test checkout page","EcoShop Web","Performance","investigation","todo","P3","2026-03-10","Measure LCP and FID on checkout under 100 concurrent users.","","Citra Lestari"],
-  [C,3,"Update test plan Sprint 3","EcoShop Web","Test Planning","documentation","done","P1","2026-03-01","Finalize scope, assign suites, and set milestones.","Approved by PM.","Wahyu Simbolon"],
-  [C,2,"Regression test product search","EcoShop Web","Search","testing","done","P1","2026-01-25","Full regression after search algorithm update.","","Andi Pratama"],
-  [C,2,"Test product filter combinations","EcoShop Web","Filter","testing","done","P2","2026-01-24","Verify filter by category, price range, and rating combinations.","","Dewi Kusuma"],
-  [C,2,"Write TC for product detail page","EcoShop Web","Product Detail","documentation","done","P2","2026-01-20","Create test cases covering images, stock status, and add-to-cart.","","Budi Santoso"],
-  [C,2,"Investigate slow product load","EcoShop Web","Performance","investigation","done","P2","2026-01-22","Root cause analysis for >3s load on product list page.","Identified N+1 query, reported to dev.","Eko Wijaya"],
-  [C,1,"Test user registration flow","EcoShop Web","Auth","testing","done","P1","2026-01-10","E2E test for email registration and OTP verification.","","Dewi Kusuma"],
-  [C,1,"Test login with Google OAuth","EcoShop Web","Auth","testing","done","P1","2026-01-08","Verify Google sign-in integration and session handling.","","Andi Pratama"],
-  [C,1,"Write test cases for forgot password","EcoShop Web","Auth","documentation","done","P2","2026-01-07","Cover happy path, expired token, and invalid email.","","Budi Santoso"],
-  [C,3,"Follow up BUG-017 retest","EcoShop Web","Cart","follow-up","todo","P1","2026-03-06","Retest after dev confirms fix for quantity update bug.","Waiting for build 3.4.2.","Andi Pratama"],
-  [C,3,"Meeting action: align QA & dev on API contract","EcoShop Web","Orders API","meeting-action","todo","P2","2026-03-08","Follow up from sprint planning - document agreed API error codes.","","Wahyu Simbolon"],
-  [C,3,"Accessibility audit - checkout form","EcoShop Web","Accessibility","testing","todo","P3","2026-03-12","Run axe-core scan and manual keyboard navigation test.","","Citra Lestari"],
-  [C,3,"Smoke test after deployment v3.4","EcoShop Web","Smoke Test","testing","todo","P1","2026-03-09","Run smoke suite on staging after v3.4 deployment.","","Wahyu Simbolon"],
-  [C,4,"Plan Sprint 4 test scope","EcoShop Web","Test Planning","documentation","todo","P1","2026-03-15","Define test scope for order management features.","","Wahyu Simbolon"],
-];
-tasks.forEach(t => iTask.run(...t));
-console.log("✓ Tasks (22)");
-
-// ── BUGS (22) ─────────────────────────────────────────────────
-const iBug = db.prepare(`INSERT INTO "Bug" ("company","sprintId","project","module","bugType","title","preconditions","stepsToReproduce","expectedResult","actualResult","severity","priority","status","evidence","suggestedDev") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-const bugs = [
-  [C,3,"EcoShop Web","Checkout","Functional","Page crashes with 500 error on checkout submit","User is logged in with items in cart","1. Add item to cart\n2. Proceed to checkout\n3. Fill all fields\n4. Click Submit Order","Order is placed and confirmation page shown","Server returns 500 Internal Server Error","critical","P1","open","","Backend Team"],
-  [C,3,"EcoShop Web","Payment","API","Payment gateway returns 422 for valid card","Sandbox mode active, valid test card used","1. Go to checkout\n2. Enter valid test card 4111111111111111\n3. Click Pay","Payment processed successfully","422 Unprocessable Entity from Midtrans","critical","P1","in_progress","","Payment Team"],
-  [C,3,"EcoShop Web","Cart","Functional","Cart quantity does not update when changed","User has 1 item in cart","1. Open cart\n2. Change quantity to 3\n3. Click Update","Quantity updates to 3, total recalculates","Quantity stays at 1, total unchanged","high","P1","closed","","Frontend Team"],
-  [C,3,"EcoShop Web","Checkout","UI/UX","Address form layout broken on mobile","Open on iOS Safari 16","1. Navigate to checkout\n2. Tap on address form","Form fields display properly stacked","Fields overlap and some are hidden below fold","high","P2","open","","Frontend Team"],
-  [C,3,"EcoShop Web","Payment","Functional","COD option missing for certain zip codes","User selects COD payment","1. Enter zip code 12345\n2. Select payment method","COD option available","COD not shown in payment list","medium","P2","open","","Backend Team"],
-  [C,3,"EcoShop Web","Notifications","Functional","Order confirmation email not sent after purchase","Order placed successfully","1. Complete checkout\n2. Check registered email inbox","Email received within 5 minutes","No email received after 30 minutes","high","P1","open","","Backend Team"],
-  [C,2,"EcoShop Web","Search","Functional","Search returns no results for valid product name","Products exist in catalog","1. Type Kemeja Putih in search bar\n2. Press Enter","Matching products displayed","Empty results page shown","high","P1","closed","","Search Team"],
-  [C,2,"EcoShop Web","Product Detail","UI/UX","Product images not loading on detail page","Stable internet connection","1. Click on any product\n2. View product detail page","Product images load correctly","Broken image icons shown","medium","P2","closed","","Frontend Team"],
-  [C,2,"EcoShop Web","Filter","Functional","Price range filter returns incorrect results","Products loaded in catalog","1. Set price filter to 50k-100k\n2. Apply filter","Only products within range shown","Products outside range included in results","medium","P2","closed","","Backend Team"],
-  [C,2,"EcoShop Web","Performance","Performance","Product list page loads in over 5s on low-end device","Testing on mid-range Android","1. Open product listing page","Page loads within 2 seconds","Page takes 5-8 seconds to load","medium","P2","closed","","Frontend Team"],
-  [C,1,"EcoShop Web","Authentication","Functional","OTP not delivered for Gmail accounts","User registered with Gmail","1. Register with gmail.com email\n2. Wait for OTP","OTP delivered within 1 minute","OTP never arrives for Gmail domains","critical","P1","closed","","Backend Team"],
-  [C,1,"EcoShop Web","Authentication","Functional","Login fails after password reset","User has reset password","1. Reset password via email link\n2. Login with new password","User logged in successfully","Login fails with invalid credentials","critical","P1","closed","","Backend Team"],
-  [C,1,"EcoShop Web","Authentication","Security","Session not invalidated after logout","User logged in","1. Log in\n2. Log out\n3. Press back button","Session expired, redirected to login","Previous page accessible, session still active","high","P1","closed","","Backend Team"],
-  [C,3,"EcoShop Web","Checkout","Validation","Promo code field accepts expired codes","Expired promo code TEST50OFF","1. Enter expired code TEST50OFF\n2. Apply","Error: Promo code expired","Discount applied successfully","medium","P2","open","","Backend Team"],
-  [C,3,"EcoShop Web","Orders","Functional","Order status not updating in real-time","Order placed and confirmed","1. Place an order\n2. Check order status page\n3. Wait for status update from seller","Status updates within 30 seconds","Status stuck at Processing for over 10 min","medium","P2","open","","Backend Team"],
-  [C,3,"EcoShop Web","Checkout","UI/UX","Delivery address not pre-filled from profile","User has saved address in profile","1. Log in\n2. Go to checkout","Saved address auto-filled in form","Empty address form shown","low","P3","open","","Frontend Team"],
-  [C,2,"EcoShop Web","Product Detail","Functional","Add to cart button unresponsive for out-of-stock items","Out-of-stock product page","1. Open out-of-stock product\n2. Click Add to Cart","Button disabled or shows Out of Stock message","Button clickable, no response, no error shown","medium","P2","closed","","Frontend Team"],
-  [C,3,"EcoShop Web","Cart","Functional","Cart badge count not updating after item removal","2 items in cart","1. Open cart\n2. Remove one item","Badge shows updated count immediately","Badge still shows old count until page refresh","low","P3","open","","Frontend Team"],
-  [C,3,"EcoShop Web","Payment","API","Duplicate order created on payment timeout","Slow network simulated","1. Submit payment\n2. Simulate timeout by cutting network","Single order created or retry prompt shown","Two identical orders created","critical","P1","in_progress","","Backend Team"],
-  [C,2,"EcoShop Web","Search","UI/UX","Search suggestions overlap with keyboard on mobile","Mobile device with soft keyboard","1. Tap search bar\n2. Type 2 characters","Suggestions appear above keyboard","Suggestions hidden behind keyboard","low","P3","closed","","Frontend Team"],
-  [C,3,"EcoShop Web","Checkout","Functional","Total price miscalculates when applying multiple promos","Two valid promo codes","1. Add item totaling 100k\n2. Apply DISC10 (10%)\n3. Apply DISC20 (20%)","Promos stack correctly, highest applies","Total shows negative value","critical","P1","open","","Backend Team"],
-  [C,3,"EcoShop Web","Notifications","Functional","Push notification not triggered for order shipped status","FCM configured, order placed","1. Place order\n2. Seller marks as shipped","Push notification received on device","No notification sent","medium","P2","open","","Backend Team"],
-];
-bugs.forEach(b => iBug.run(...b));
-console.log("✓ Bugs (22)");
-
-// ── TEST PLANS (4) ────────────────────────────────────────────
-const iPlan = db.prepare(`INSERT INTO "TestPlan" ("company","publicToken","title","project","sprint","scope","status","startDate","endDate","assignee","notes") VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
-const pt = [tok(), tok(), tok(), tok()];
-iPlan.run(C,pt[0],"Test Plan - Sprint 1: Auth & Onboarding","EcoShop Web","Sprint 1","Registration, Login, OAuth, Password Reset, Session Management","closed","2026-01-01","2026-01-14","Wahyu Simbolon","All critical auth flows must pass before sprint close.");
-iPlan.run(C,pt[1],"Test Plan - Sprint 2: Product Catalog","EcoShop Web","Sprint 2","Product Listing, Search, Filter, Product Detail, Reviews","closed","2026-01-15","2026-01-28","Wahyu Simbolon","Focus on search accuracy and filter correctness.");
-iPlan.run(C,pt[2],"Test Plan - Sprint 3: Checkout & Payment","EcoShop Web","Sprint 3","Cart, Checkout, Payment Gateway, Promo Code, Order Confirmation","active","2026-03-01","2026-03-14","Wahyu Simbolon","Payment integration is highest priority. Block release on P1 bugs.");
-iPlan.run(C,pt[3],"Test Plan - Sprint 4: Order Management","EcoShop Web","Sprint 4","Order History, Status Tracking, Notifications, Returns","draft","2026-03-15","2026-03-28","Wahyu Simbolon","Draft - pending sprint kickoff.");
-console.log("✓ Test Plans (4)");
-
-// ── TEST SUITES (12) ──────────────────────────────────────────
-const iSuite = db.prepare(`INSERT INTO "TestSuite" ("company","publicToken","testPlanId","title","assignee","status","notes") VALUES (?,?,?,?,?,?,?)`);
-const st = Array.from({length:12}, () => tok());
-iSuite.run(C,st[0],"1","TS-001: User Registration","Dewi Kusuma","active","Covers email signup, OTP verification, and profile setup.");
-iSuite.run(C,st[1],"1","TS-002: Login & Logout","Andi Pratama","active","All login methods including Google OAuth and credential login.");
-iSuite.run(C,st[2],"1","TS-003: Password Management","Budi Santoso","active","Forgot password, reset via email, change password in profile.");
-iSuite.run(C,st[3],"2","TS-004: Product Search","Andi Pratama","active","Keyword search, autocomplete suggestions, no-results handling.");
-iSuite.run(C,st[4],"2","TS-005: Product Filter & Sort","Dewi Kusuma","active","Category, price, rating filters and sort by relevance or price.");
-iSuite.run(C,st[5],"2","TS-006: Product Detail Page","Budi Santoso","active","Image gallery, stock indicator, reviews, add to cart button.");
-iSuite.run(C,st[6],"3","TS-007: Shopping Cart","Andi Pratama","active","Add, remove, update quantity, cart persistence, badge count.");
-iSuite.run(C,st[7],"3","TS-008: Checkout Flow","Wahyu Simbolon","active","Address selection, delivery options, order summary, submit.");
-iSuite.run(C,st[8],"3","TS-009: Payment - Credit Card","Citra Lestari","active","Visa/Mastercard via Midtrans, 3DS auth, decline scenarios.");
-iSuite.run(C,st[9],"3","TS-010: Payment - E-Wallet & COD","Eko Wijaya","active","DANA, GoPay, OVO, and Cash on Delivery payment flows.");
-iSuite.run(C,st[10],"3","TS-011: Promo & Discount Codes","Budi Santoso","draft","Valid codes, expired codes, stacking rules, max discount cap.");
-iSuite.run(C,st[11],"4","TS-012: Order History & Status","Dewi Kusuma","draft","Order list, status timeline, receipt download, reorder.");
-console.log("✓ Test Suites (12)");
-
-// ── TEST CASES (50) ───────────────────────────────────────────
-const iTC = db.prepare(`INSERT INTO "TestCase" ("company","publicToken","testSuiteId","tcId","typeCase","preCondition","caseName","testStep","expectedResult","actualResult","status","priority") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
-const tc = [
-  ["1","TC-001","Positive","App open, user not logged in","Register with valid email and password","1. Open register page\n2. Enter valid email\n3. Enter strong password\n4. Click Register","Account created, OTP sent to email","","Passed","High"],
-  ["1","TC-002","Negative","App open","Register with already-used email","1. Enter existing email\n2. Enter password\n3. Click Register","Error: Email already registered","","Passed","High"],
-  ["1","TC-003","Negative","App open","Register with invalid email format","1. Enter notanemail\n2. Enter password\n3. Click Register","Validation error shown inline","","Passed","Medium"],
-  ["1","TC-004","Positive","Registration form submitted","Verify OTP from email","1. Open email\n2. Copy 6-digit OTP\n3. Enter OTP in app","Account verified, redirected to profile setup","","Passed","High"],
-  ["1","TC-005","Negative","OTP input shown","Enter expired OTP","1. Wait 10 minutes\n2. Enter OTP","Error: OTP expired, resend option shown","","Passed","Medium"],
-  ["2","TC-006","Positive","User registered, on login page","Login with valid credentials","1. Enter email\n2. Enter password\n3. Click Login","User logged in, redirected to home","","Passed","High"],
-  ["2","TC-007","Negative","On login page","Login with wrong password","1. Enter correct email\n2. Enter wrong password\n3. Click Login","Error: Invalid credentials","","Passed","High"],
-  ["2","TC-008","Positive","On login page","Login with Google OAuth","1. Click Continue with Google\n2. Select account\n3. Authorize","User logged in with Google account","","Passed","High"],
-  ["2","TC-009","Positive","User logged in","Logout from account","1. Click profile icon\n2. Click Logout","Session ended, redirected to login","","Passed","Medium"],
-  ["2","TC-010","Negative","Account locked after 5 failed logins","Attempt login after account lock","1. Enter correct credentials","Error: Account locked, check email to unlock","","Passed","High"],
-  ["3","TC-011","Positive","On login page","Request password reset","1. Click Forgot Password\n2. Enter registered email\n3. Submit","Reset link sent to email","","Passed","High"],
-  ["3","TC-012","Positive","Reset email received","Reset password via link","1. Click link in email\n2. Enter new password\n3. Confirm","Password updated, can login with new password","","Passed","High"],
-  ["3","TC-013","Negative","On reset page","Use expired reset link","1. Wait 24 hours\n2. Click old reset link","Error: Link expired","","Passed","Medium"],
-  ["3","TC-014","Negative","Logged in, profile page","Change to same password as current","1. Enter current password\n2. Enter same as new\n3. Submit","Error: New password must be different","Accepted without error","Failed","Medium"],
-  ["4","TC-015","Positive","On home page, products exist","Search with exact product name","1. Type Kemeja Putih in search\n2. Press Enter","Matching products appear in results","","Passed","High"],
-  ["4","TC-016","Positive","On home page","Search with partial keyword","1. Type kem in search bar","Autocomplete suggestions appear","","Passed","Medium"],
-  ["4","TC-017","Negative","On home page","Search with no matching keyword","1. Type xyzproductnotexist\n2. Press Enter","Empty state with No products found","","Passed","Medium"],
-  ["4","TC-018","Positive","On search results page","Pagination works on search results","1. Search baju\n2. Scroll to bottom\n3. Click Next Page","Next page of results loads","","Passed","Low"],
-  ["4","TC-019","Negative","On search page","Search with special characters","1. Type script tags\n2. Search","Safe empty results or sanitized query shown","","Passed","High"],
-  ["5","TC-020","Positive","Products loaded in catalog","Filter by price range 50k-100k","1. Open filter panel\n2. Set min 50000 max 100000\n3. Apply","Only products in range shown","","Passed","High"],
-  ["5","TC-021","Positive","Products loaded","Filter by category Pakaian Pria","1. Select category\n2. Apply","Only men clothing shown","","Passed","Medium"],
-  ["5","TC-022","Positive","Products loaded","Sort by price low to high","1. Click Sort\n2. Select Price Low to High","Products re-ordered by ascending price","","Passed","Medium"],
-  ["5","TC-023","Negative","Filter applied","Apply filter with no matching products","1. Set price 1-100\n2. Apply","Empty state shown with clear filter option","","Passed","Low"],
-  ["6","TC-024","Positive","On product listing","Open product detail page","1. Click on any product card","Product detail page loads with all info","","Passed","High"],
-  ["6","TC-025","Positive","On product detail","View product image gallery","1. Click thumbnail images\n2. Swipe main image","Images change accordingly","","Passed","Medium"],
-  ["6","TC-026","Positive","In-stock product","Add to cart from detail page","1. Select size or variant\n2. Click Add to Cart","Item added, cart badge increments","","Passed","High"],
-  ["6","TC-027","Negative","Out-of-stock product","Attempt to add OOS product to cart","1. Open OOS product\n2. Click Add to Cart","Button disabled, Out of Stock message shown","Button clickable but nothing happens","Failed","High"],
-  ["7","TC-028","Positive","Item in cart","Update item quantity in cart","1. Open cart\n2. Change qty from 1 to 3\n3. Click Update","Quantity updates, total recalculates","Quantity unchanged after click","Failed","High"],
-  ["7","TC-029","Positive","Item in cart","Remove item from cart","1. Open cart\n2. Click delete on item","Item removed, cart updates correctly","","Passed","High"],
-  ["7","TC-030","Negative","Empty cart","Proceed to checkout with empty cart","1. Open empty cart\n2. Click Checkout","Error shown or checkout button disabled","","Passed","Medium"],
-  ["7","TC-031","Positive","User logged in with cart items","Cart persists after logout and re-login","1. Add item to cart\n2. Logout\n3. Login again","Cart items still present","","Passed","Medium"],
-  ["7","TC-032","Negative","2 items in cart","Remove item and verify badge updates","1. Remove 1 item\n2. Check nav badge","Badge count decrements immediately","Badge still shows old count","Failed","Low"],
-  ["8","TC-033","Positive","Cart has items, user logged in","Complete checkout with saved address","1. Go to cart\n2. Click Checkout\n3. Select saved address\n4. Choose shipping\n5. Submit","Order confirmation page shown","","Pending","High"],
-  ["8","TC-034","Negative","On checkout page","Submit checkout without selecting shipping","1. Fill address\n2. Skip shipping selection\n3. Submit","Validation error: shipping required","","Pending","High"],
-  ["8","TC-035","Positive","On checkout page","Apply valid promo code DISC10","1. Enter DISC10\n2. Click Apply","10% discount applied to total","","Pending","Medium"],
-  ["8","TC-036","Negative","On checkout page","Apply expired promo code TEST50OFF","1. Enter TEST50OFF\n2. Click Apply","Error: Promo code expired","Discount applied erroneously","Failed","Medium"],
-  ["8","TC-037","Positive","Checkout complete","Check order confirmation page","1. Complete checkout\n2. View confirmation","Order ID shown, summary correct, email sent","","Pending","High"],
-  ["9","TC-038","Positive","On payment step","Pay with valid Visa test card","1. Enter 4111111111111111\n2. Enter expiry and CVV\n3. Submit","Payment processed, order confirmed","","Pending","High"],
-  ["9","TC-039","Negative","On payment step","Pay with declined test card","1. Enter decline test card 4000000000000002\n2. Submit","Error: Card declined, retry option shown","","Pending","High"],
-  ["9","TC-040","Negative","On payment step","Submit with expired card","1. Enter card with past expiry\n2. Submit","Validation error: Card expired","","Pending","Medium"],
-  ["9","TC-041","Positive","Payment submitted","3DS authentication flow","1. Complete payment form\n2. Handle 3DS popup\n3. Authenticate","Payment processed after 3DS auth","","Pending","High"],
-  ["10","TC-042","Positive","DANA linked on payment step","Pay with DANA e-wallet","1. Select DANA\n2. Authorize in DANA app","Payment deducted from DANA balance","","Pending","High"],
-  ["10","TC-043","Positive","On payment step","Pay with Cash on Delivery","1. Select COD\n2. Submit order","Order placed, COD instructions shown","","Pending","High"],
-  ["10","TC-044","Negative","On payment step","Attempt COD for unavailable zip code","1. Select COD\n2. Enter zip 99999 where no COD available","Error: COD not available for this area","COD option shown and selectable","Failed","Medium"],
-  ["10","TC-045","Negative","On payment step","Pay with insufficient GoPay balance","1. Select GoPay\n2. Authorize","Error: Insufficient balance in GoPay","","Pending","Medium"],
-  ["11","TC-046","Positive","On checkout page","Apply valid percentage promo code DISC20","1. Enter DISC20\n2. Click Apply","20% discount shown in order summary","","Pending","High"],
-  ["11","TC-047","Negative","On checkout page","Apply already-used promo code","1. Enter used code NEWUSER50\n2. Apply","Error: Promo code already used","","Pending","Medium"],
-  ["11","TC-048","Negative","Cart total 40k, minimum order required","Apply promo with minimum order requirement","1. Enter MIN100K promo min 100k\n2. Apply","Error: Minimum order not met","","Pending","Medium"],
-  ["11","TC-049","Negative","Two promos already applied","Apply third promo code","1. Apply two valid promos\n2. Try applying third","Error: Maximum 2 promos per order","","Pending","Low"],
-  ["11","TC-050","Negative","On checkout page","Multiple promos causing negative total","1. Apply DISC10\n2. Apply DISC20\n3. Check total","Total cannot go below 0, minimum 1000","Negative total displayed","Failed","High"],
-];
-tc.forEach(([suiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status, priority]) => {
-  iTC.run(C, tok(), suiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status, priority);
-});
-console.log("✓ Test Cases (50)");
-
-// ── TEST SESSIONS (10) ────────────────────────────────────────
-const iSess = db.prepare(`INSERT INTO "TestSession" ("company","date","project","sprint","tester","scope","totalCases","passed","failed","blocked","result","notes") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
-iSess.run(C,"2026-01-10","EcoShop Web","Sprint 1","Dewi Kusuma","TS-001: User Registration","5","5","0","0","pass","All registration TCs passed cleanly.");
-iSess.run(C,"2026-01-11","EcoShop Web","Sprint 1","Andi Pratama","TS-002: Login & Logout","5","4","1","0","fail","TC-010 failed - account lock mechanism missing.");
-iSess.run(C,"2026-01-12","EcoShop Web","Sprint 1","Budi Santoso","TS-003: Password Management","4","3","1","0","fail","TC-014 failed - same-password validation missing.");
-iSess.run(C,"2026-01-20","EcoShop Web","Sprint 2","Andi Pratama","TS-004: Product Search","5","5","0","0","pass","Search working correctly after hotfix.");
-iSess.run(C,"2026-01-21","EcoShop Web","Sprint 2","Dewi Kusuma","TS-005: Product Filter & Sort","4","4","0","0","pass","All filter combinations passed.");
-iSess.run(C,"2026-01-22","EcoShop Web","Sprint 2","Budi Santoso","TS-006: Product Detail Page","4","3","1","0","fail","TC-027 - OOS add-to-cart not disabled.");
-iSess.run(C,"2026-03-03","EcoShop Web","Sprint 3","Wahyu Simbolon","TS-007: Shopping Cart","5","2","3","0","fail","BUG-003 and BUG-018 raised from this session.");
-iSess.run(C,"2026-03-04","EcoShop Web","Sprint 3","Andi Pratama","TS-007: Cart Regression (post-hotfix)","5","5","0","0","pass","BUG-003 confirmed fixed. All cart TCs pass.");
-iSess.run(C,"2026-03-05","EcoShop Web","Sprint 3","Citra Lestari","TS-009: Payment Credit Card","4","0","2","2","fail","BUG-002 open - payment gateway not stable in sandbox.");
-iSess.run(C,"2026-03-06","EcoShop Web","Sprint 3","Eko Wijaya","TS-010: E-Wallet & COD","4","1","2","1","fail","TC-044 failed, TC-045 blocked pending sandbox fix.");
-console.log("✓ Test Sessions (10)");
-
-// ── MEETING NOTES (10) ────────────────────────────────────────
-const iMtg = db.prepare(`INSERT INTO "MeetingNote" ("company","publicToken","date","project","title","attendees","content","actionItems") VALUES (?,?,?,?,?,?,?,?)`);
-iMtg.run(C,tok(),"2026-01-02","EcoShop Web","Sprint 1 Kickoff Meeting","Wahyu Simbolon, Andi Pratama, Dewi Kusuma, Budi Santoso, Dev Team","Discussed scope for Sprint 1. QA will focus on auth flows. Dev team to provide staging env by Jan 3.","1. Wahyu: Finalize test plan by Jan 3\n2. Dev: Deploy staging by Jan 3\n3. All: Review acceptance criteria");
-iMtg.run(C,tok(),"2026-01-14","EcoShop Web","Sprint 1 Retrospective","QA Team, Product Manager","Sprint 1 completed with 2 P1 bugs found and fixed. OTP delivery for Gmail was major blocker.","1. Wahyu: Document learnings\n2. Dev: Monitor OTP delivery rate in production");
-iMtg.run(C,tok(),"2026-01-15","EcoShop Web","Sprint 2 Kickoff Meeting","Full QA Team, Dev Team, Product","Scope for Sprint 2 covers product catalog. Priority is search accuracy and filter performance.","1. Budi: Write TC for product detail by Jan 17\n2. Citra: Set up performance test baseline");
-iMtg.run(C,tok(),"2026-01-28","EcoShop Web","Sprint 2 Retrospective","QA Team, Scrum Master","3 bugs found, 2 closed. Product detail OOS issue deferred to Sprint 3 backlog.","1. Wahyu: Add OOS bug to Sprint 3 criteria\n2. All: Update TCs for revised filter logic");
-iMtg.run(C,tok(),"2026-02-28","EcoShop Web","Sprint 3 Kickoff & Test Planning","Full QA Team, Dev Team, PO","Payment integration is highest risk. QA to start sandbox testing Day 1. COD scope limited to Jabodetabek.","1. Wahyu: Create test plan by Mar 1\n2. Citra: Configure Midtrans sandbox\n3. Eko: Document COD zip code list");
-iMtg.run(C,tok(),"2026-03-03","EcoShop Web","Bug Triage Meeting - Sprint 3","QA Engineer, Developer, Product","Reviewed 5 open bugs. BUG-001 and BUG-019 classified as release blockers. BUG-016 deferred.","1. Dev: Fix BUG-001 by Mar 5\n2. Dev: Fix BUG-019 by Mar 6\n3. Wahyu: Update test plan risk section");
-iMtg.run(C,tok(),"2026-03-05","EcoShop Web","API Contract Alignment","QA Team, Backend Team","Aligned on /orders/create error response codes. QA to update API test collection accordingly.","1. Andi: Update Postman collection\n2. Backend: Share swagger for orders API");
-iMtg.run(C,tok(),"2026-03-06","EcoShop Web","Daily Standup - March 6","QA Team","BUG-003 confirmed fixed. BUG-002 still open. Citra found mobile layout issue BUG-004.","1. Dewi: Retest BUG-004 on multiple devices\n2. Andi: Continue API test suite");
-iMtg.run(C,tok(),"2026-03-08","EcoShop Web","Mid-Sprint Check-in","QA Team, Product Manager","7 of 22 planned TCs executed. On track. 3 critical bugs still open.","1. Wahyu: Daily bug status report to PM\n2. All: Prioritize checkout suite this week");
-iMtg.run(C,tok(),"2026-03-15","EcoShop Web","Sprint 4 Planning","Full Team","Scope: order history, notifications, returns. QA to draft test plan.","1. Wahyu: Draft test plan Sprint 4 by Mar 16\n2. Budi: Write TC for order history");
-console.log("✓ Meeting Notes (10)");
-
-// ── ACTIVITY LOG (20) ─────────────────────────────────────────
-const iAct = db.prepare(`INSERT INTO "ActivityLog" ("company","entityType","entityId","action","summary") VALUES (?,?,?,?,?)`);
-const acts = [
-  [C,"Bug","1","created","BUG-001 created: Page crashes with 500 error on checkout submit [critical]"],
-  [C,"Bug","2","created","BUG-002 created: Payment gateway returns 422 for valid card [critical]"],
-  [C,"Bug","3","status_update","BUG-003 status updated: open → in_progress"],
-  [C,"Task","1","created","TASK-001 created: Verify checkout flow end-to-end [P1]"],
-  [C,"Task","3","status_update","TASK-003 completed: Regression test after cart hotfix - all cases passed"],
-  [C,"TestCase","28","status_update","TC-028 status: Pending → Failed - cart quantity update not working"],
-  [C,"TestCase","27","status_update","TC-027 status: Pending → Failed - OOS add-to-cart button not disabled"],
-  [C,"TestSession","7","created","Session created: Shopping Cart Suite - 5 cases, 2 passed, 3 failed"],
-  [C,"TestSession","8","created","Session created: Cart Regression - 5 cases, all passed"],
-  [C,"Bug","7","status_update","BUG-007 status: open → closed - search hotfix verified by Andi"],
-  [C,"Bug","11","status_update","BUG-011 status: open → closed - OTP Gmail issue resolved"],
-  [C,"Bug","12","status_update","BUG-012 status: open → closed - login after reset fixed"],
-  [C,"Task","10","status_update","TASK-010 completed: Test plan Sprint 3 finalized and approved"],
-  [C,"Bug","19","created","BUG-019 created: Duplicate order on payment timeout [critical] - release blocker"],
-  [C,"MeetingNote","6","created","Meeting note created: Bug Triage Meeting Sprint 3"],
-  [C,"Bug","21","created","BUG-021 created: Total miscalculates with multiple promos [critical]"],
-  [C,"TestCase","36","status_update","TC-036 status: Pending → Failed - expired promo accepted"],
-  [C,"Task","18","created","TASK-018 created: Follow up BUG-017 retest after build 3.4.2"],
-  [C,"Bug","3","status_update","BUG-003 status: in_progress → closed - cart quantity fix confirmed"],
-  [C,"TestPlan","3","created","Test Plan Sprint 3 created: Checkout & Payment scope defined"],
-];
-acts.forEach(a => iAct.run(...a));
-console.log("✓ Activity Logs (20)");
-
-// ── USER ───────────────────────────────────────────────────────
-const ADMIN = {
-  name: process.env.SEED_ADMIN_NAME?.trim() || "",
-  email: process.env.SEED_ADMIN_EMAIL?.trim() || "",
-  password: process.env.SEED_ADMIN_PASSWORD || "",
-};
-if (!ADMIN.name || !ADMIN.email || !ADMIN.password) {
-  throw new Error("Missing SEED_ADMIN_NAME, SEED_ADMIN_EMAIL, or SEED_ADMIN_PASSWORD in .env");
-}
-const pwHash = await hashPassword(ADMIN.password);
-db.prepare(`INSERT INTO "User" ("company","name","email","password","role") VALUES (?,?,?,?,?)`).run(
-  C,
-  ADMIN.name,
-  ADMIN.email,
-  pwHash,
-  "admin"
 );
-console.log(`✓ Admin user seeded: ${ADMIN.email}`);
+CREATE TABLE IF NOT EXISTS "ExecutionRun" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "testSuiteId" INTEGER NOT NULL,
+  "testPlanId" TEXT NOT NULL DEFAULT '',
+  "runNumber" INTEGER NOT NULL DEFAULT 1,
+  "status" TEXT NOT NULL DEFAULT 'in-progress',
+  "tester" TEXT NOT NULL DEFAULT '',
+  "totalCases" INTEGER NOT NULL DEFAULT 0,
+  "passed" INTEGER NOT NULL DEFAULT 0,
+  "failed" INTEGER NOT NULL DEFAULT 0,
+  "blocked" INTEGER NOT NULL DEFAULT 0,
+  "notes" TEXT DEFAULT '',
+  "startedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "completedAt" TEXT,
+  "deletedAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "CaseVerdict" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "executionRunId" INTEGER NOT NULL,
+  "testCaseId" INTEGER NOT NULL,
+  "verdict" TEXT NOT NULL DEFAULT 'Pending',
+  "actualResult" TEXT DEFAULT '',
+  "evidence" TEXT DEFAULT '',
+  "duration" INTEGER NOT NULL DEFAULT 0,
+  "executedAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "DashboardComment" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "entityType" TEXT NOT NULL,
+  "entityId" INTEGER NOT NULL,
+  "authorId" INTEGER NOT NULL,
+  "authorName" TEXT NOT NULL DEFAULT '',
+  "content" TEXT NOT NULL,
+  "deletedAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "PresenceHeartbeat" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "userId" INTEGER NOT NULL,
+  "userName" TEXT NOT NULL DEFAULT '',
+  "lastSeen" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "DashboardFilter" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "userId" INTEGER NOT NULL,
+  "userName" TEXT NOT NULL DEFAULT '',
+  "name" TEXT NOT NULL,
+  "project" TEXT NOT NULL DEFAULT '',
+  "activityScope" TEXT NOT NULL DEFAULT 'team',
+  "density" TEXT NOT NULL DEFAULT 'comfortable',
+  "shared" INTEGER NOT NULL DEFAULT 0,
+  "deletedAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "WorkLog" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL DEFAULT '',
+  "date" TEXT NOT NULL,
+  "startTime" TEXT NOT NULL,
+  "endTime" TEXT NOT NULL,
+  "category" TEXT NOT NULL,
+  "project" TEXT NOT NULL,
+  "description" TEXT NOT NULL,
+  "output" TEXT DEFAULT '',
+  "notes" TEXT DEFAULT '',
+  "assignee" TEXT DEFAULT '',
+  "sortOrder" INTEGER NOT NULL DEFAULT 0,
+  "deletedAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "_migrations" (
+  "version" INTEGER NOT NULL,
+  "appliedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "Company" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL UNIQUE,
+  "plan" TEXT NOT NULL DEFAULT 'free',
+  "planExpiry" TEXT,
+  "maxUsers" INTEGER NOT NULL DEFAULT 10,
+  "status" TEXT NOT NULL DEFAULT 'active',
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "AdminAuditLog" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "actor" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "target" TEXT NOT NULL DEFAULT '',
+  "detail" TEXT NOT NULL DEFAULT '',
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "Announcement" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "title" TEXT NOT NULL,
+  "message" TEXT NOT NULL,
+  "type" TEXT NOT NULL DEFAULT 'info',
+  "targetCompany" TEXT NOT NULL DEFAULT '',
+  "active" INTEGER NOT NULL DEFAULT 1,
+  "createdBy" TEXT NOT NULL DEFAULT '',
+  "expiresAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "SupportTicket" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "company" TEXT NOT NULL,
+  "subject" TEXT NOT NULL,
+  "message" TEXT NOT NULL,
+  "category" TEXT NOT NULL DEFAULT 'general',
+  "status" TEXT NOT NULL DEFAULT 'open',
+  "priority" TEXT NOT NULL DEFAULT 'normal',
+  "createdBy" TEXT NOT NULL DEFAULT '',
+  "adminReply" TEXT NOT NULL DEFAULT '',
+  "repliedAt" TEXT,
+  "closedAt" TEXT,
+  "createdAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`);
+console.log("✓ Tables created");
 
-// ── NON-ADMIN USERS ───────────────────────────────────────────
-const defaultPwHash = await hashPassword("Password123!");
-const iUser = db.prepare(`INSERT INTO "User" ("company","name","email","password","role") VALUES (?,?,?,?,?)`);
+
+// ─── Seed Data ───────────────────────────────────────────────────────────────
+const COMPANY = "Akusara Project";
+const COMPANY2 = "Nusantara Tech";
+const PROJECT = "QA Daily Hub";
+const PROJECT2 = "Mobile Banking App";
+
+// ─── Companies ───────────────────────────────────────────────────────────────
+const companies = [
+  { name: COMPANY, plan: "pro", planExpiry: isoDate(60), maxUsers: 25, status: "active" },
+  { name: COMPANY2, plan: "free", planExpiry: isoDate(5), maxUsers: 5, status: "active" },
+];
+
+for (const c of companies) {
+  db.prepare('INSERT INTO "Company" ("name","plan","planExpiry","maxUsers","status") VALUES (?,?,?,?,?)').run(c.name, c.plan, c.planExpiry, c.maxUsers, c.status);
+}
+console.log(`✓ ${companies.length} companies created`);
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+const adminPassword = hashPassword(process.env.SEED_ADMIN_PASSWORD || "Lotus1919!");
+const userPassword = hashPassword("Password123!");
+const superadminPassword = hashPassword(process.env.SEED_SUPERADMIN_PASSWORD || "SuperAdmin123!");
+
 const users = [
-  [C, "Andi Pratama",  "andi@ecoshop.id",  defaultPwHash, "qa"],
-  [C, "Dewi Kusuma",   "dewi@ecoshop.id",  defaultPwHash, "fe"],
-  [C, "Budi Santoso",  "budi@ecoshop.id",  defaultPwHash, "be"],
-  [C, "Citra Lestari", "citra@ecoshop.id", defaultPwHash, "fullstack"],
-  [C, "Eko Wijaya",    "eko@ecoshop.id",   defaultPwHash, "pm"],
-  [C, "Rina Sari",     "rina@ecoshop.id",  defaultPwHash, "ai"],
+  { name: "Super Admin", email: process.env.SEED_SUPERADMIN_EMAIL || "superadmin@qa-daily.local", password: superadminPassword, role: "superadmin", company: "" },
+  { name: process.env.SEED_ADMIN_NAME || "Admin", email: process.env.SEED_ADMIN_EMAIL || "admin@qa-daily.local", password: adminPassword, role: "admin", company: COMPANY },
+  { name: "Budi Santoso", email: "budi@akusara.dev", password: userPassword, role: "qa", company: COMPANY },
+  { name: "Siti Rahayu", email: "siti@akusara.dev", password: userPassword, role: "qa", company: COMPANY },
+  { name: "Andi Pratama", email: "andi@akusara.dev", password: userPassword, role: "fe", company: COMPANY },
+  { name: "Dewi Lestari", email: "dewi@akusara.dev", password: userPassword, role: "be", company: COMPANY },
+  { name: "Rizky Firmansyah", email: "rizky@akusara.dev", password: userPassword, role: "fullstack", company: COMPANY },
+  { name: "Maya Putri", email: "maya@akusara.dev", password: userPassword, role: "pm", company: COMPANY },
+  { name: "Fajar Nugroho", email: "fajar@akusara.dev", password: userPassword, role: "be", company: COMPANY },
+  { name: "Nadia Kusuma", email: "nadia@akusara.dev", password: userPassword, role: "qa", company: COMPANY },
+  { name: "Hendra Wijaya", email: "hendra@akusara.dev", password: userPassword, role: "fe", company: COMPANY },
 ];
-users.forEach(u => iUser.run(...u));
-console.log(`✓ Users (${users.length + 1} total, password for non-admin: Password123!)`);
 
-// ── INVITES ────────────────────────────────────────────────────
-const iInvite = db.prepare(`INSERT INTO "Invite" ("token","company","role","status","createdBy","expiresAt","acceptedAt") VALUES (?,?,?,?,?,?,?)`);
-const invites = [
-  [tok(), C, "qa", "pending", ADMIN.email, "2026-06-30T00:00:00.000Z", null],
-  [tok(), C, "fullstack", "accepted", ADMIN.email, "2026-06-30T00:00:00.000Z", "2026-05-07T00:00:00.000Z"],
-  [tok(), C, "pm", "expired", ADMIN.email, "2026-03-01T00:00:00.000Z", null],
+for (const u of users) {
+  db.prepare('INSERT INTO "User" ("name","email","password","role","company") VALUES (?,?,?,?,?)').run(u.name, u.email, u.password, u.role, u.company);
+}
+console.log(`✓ ${users.length} users created`);
+
+// ─── Users for Company 2 (Nusantara Tech) ────────────────────────────────────
+const users2 = [
+  { name: "Arif Hidayat", email: "arif@nusantara.dev", password: userPassword, role: "admin", company: COMPANY2 },
+  { name: "Putri Wulandari", email: "putri@nusantara.dev", password: userPassword, role: "qa", company: COMPANY2 },
+  { name: "Dimas Prasetyo", email: "dimas@nusantara.dev", password: userPassword, role: "fe", company: COMPANY2 },
+  { name: "Lina Marlina", email: "lina@nusantara.dev", password: userPassword, role: "be", company: COMPANY2 },
+  { name: "Reza Gunawan", email: "reza@nusantara.dev", password: userPassword, role: "pm", company: COMPANY2 },
 ];
-invites.forEach((invite) => iInvite.run(...invite));
-console.log("✓ Invites (3)");
 
-// ── DEPLOYMENTS ────────────────────────────────────────────────
-const iDeployment = db.prepare(`INSERT INTO "Deployment" ("company","date","version","project","environment","developer","changelog","status","notes") VALUES (?,?,?,?,?,?,?,?,?)`);
+for (const u of users2) {
+  db.prepare('INSERT INTO "User" ("name","email","password","role","company") VALUES (?,?,?,?,?)').run(u.name, u.email, u.password, u.role, u.company);
+}
+console.log(`✓ ${users2.length} users (Nusantara Tech) created`);
+
+// ─── Assignees (synced from users) ──────────────────────────────────────────
+const assignees = [
+  { userId: 1, name: users[0].name, role: "Admin", email: users[0].email, skills: "Project Management, QA Strategy", status: "active" },
+  { userId: 2, name: users[1].name, role: "QA Engineer", email: users[1].email, skills: "Manual Testing, API Testing, Selenium", status: "active" },
+  { userId: 3, name: users[2].name, role: "QA Engineer", email: users[2].email, skills: "Mobile Testing, Performance Testing", status: "active" },
+  { userId: 4, name: users[3].name, role: "Frontend Developer", email: users[3].email, skills: "React, Next.js, TypeScript", status: "active" },
+  { userId: 5, name: users[4].name, role: "Backend Developer", email: users[4].email, skills: "Node.js, PostgreSQL, Redis", status: "active" },
+  { userId: 6, name: users[5].name, role: "Fullstack Developer", email: users[5].email, skills: "React, Node.js, Docker", status: "active" },
+  { userId: 7, name: users[6].name, role: "Project Manager", email: users[6].email, skills: "Agile, Scrum, Jira", status: "active" },
+  { userId: 8, name: users[7].name, role: "Backend Developer", email: users[7].email, skills: "Go, Microservices, AWS", status: "active" },
+  { userId: 9, name: users[8].name, role: "QA Engineer", email: users[8].email, skills: "Automation, Playwright, Cypress", status: "active" },
+  { userId: 10, name: users[9].name, role: "Frontend Developer", email: users[9].email, skills: "Vue.js, Tailwind, Figma", status: "active" },
+];
+
+for (const a of assignees) {
+  db.prepare('INSERT INTO "Assignee" ("company","userId","name","role","email","skills","status") VALUES (?,?,?,?,?,?,?)').run(COMPANY, a.userId, a.name, a.role, a.email, a.skills, a.status);
+}
+console.log(`✓ ${assignees.length} assignees created`);
+
+// ─── Sprints ─────────────────────────────────────────────────────────────────
+const sprints = [
+  { name: "Sprint 1", startDate: isoDate(-60), endDate: isoDate(-46), status: "completed", goal: "Setup project foundation and authentication module" },
+  { name: "Sprint 2", startDate: isoDate(-45), endDate: isoDate(-31), status: "completed", goal: "Implement core dashboard and reporting features" },
+  { name: "Sprint 3", startDate: isoDate(-30), endDate: isoDate(-16), status: "completed", goal: "Test management module and bug tracking" },
+  { name: "Sprint 4", startDate: isoDate(-15), endDate: isoDate(-1), status: "active", goal: "Performance optimization and mobile responsiveness" },
+  { name: "Sprint 5", startDate: isoDate(0), endDate: isoDate(14), status: "active", goal: "Deployment pipeline and CI/CD integration" },
+  { name: "Sprint 6", startDate: isoDate(15), endDate: isoDate(29), status: "planning", goal: "User analytics and notification system" },
+  { name: "Sprint 7", startDate: isoDate(30), endDate: isoDate(44), status: "planning", goal: "API documentation and third-party integrations" },
+  { name: "Sprint 8", startDate: isoDate(-90), endDate: isoDate(-76), status: "completed", goal: "Initial prototype and wireframes" },
+  { name: "Sprint 9", startDate: isoDate(45), endDate: isoDate(59), status: "planning", goal: "Security audit and penetration testing" },
+  { name: "Sprint 10", startDate: isoDate(60), endDate: isoDate(74), status: "planning", goal: "Final UAT and production release" },
+];
+
+for (let i = 0; i < sprints.length; i++) {
+  const s = sprints[i];
+  db.prepare('INSERT INTO "Sprint" ("company","name","startDate","endDate","status","goal","sortOrder") VALUES (?,?,?,?,?,?,?)').run(COMPANY, s.name, s.startDate, s.endDate, s.status, s.goal, i + 1);
+}
+console.log(`✓ ${sprints.length} sprints created`);
+
+// ─── Test Plans ──────────────────────────────────────────────────────────────
+const testPlans = [
+  { title: "Sprint 4 Regression Test", project: PROJECT, sprint: "Sprint 4", scope: "Full regression on dashboard, auth, and reports", status: "active", startDate: isoDate(-15), endDate: isoDate(-1) },
+  { title: "Sprint 5 Integration Test", project: PROJECT, sprint: "Sprint 5", scope: "CI/CD pipeline validation and deployment checks", status: "active", startDate: isoDate(0), endDate: isoDate(14) },
+  { title: "Mobile App Smoke Test", project: PROJECT2, sprint: "Sprint 4", scope: "Core flows: login, transfer, balance check", status: "active", startDate: isoDate(-10), endDate: isoDate(4) },
+  { title: "API Endpoint Validation", project: PROJECT, sprint: "Sprint 3", scope: "All REST endpoints response validation", status: "closed", startDate: isoDate(-30), endDate: isoDate(-16) },
+  { title: "Performance Benchmark", project: PROJECT2, sprint: "Sprint 5", scope: "Load testing with 1000 concurrent users", status: "draft", startDate: isoDate(5), endDate: isoDate(14) },
+  { title: "Security Penetration Test", project: PROJECT, sprint: "Sprint 6", scope: "OWASP Top 10 vulnerability assessment", status: "draft", startDate: isoDate(15), endDate: isoDate(29) },
+  { title: "Sprint 3 UAT", project: PROJECT, sprint: "Sprint 3", scope: "User acceptance testing for test management module", status: "closed", startDate: isoDate(-28), endDate: isoDate(-18) },
+  { title: "Cross-Browser Compatibility", project: PROJECT, sprint: "Sprint 4", scope: "Chrome, Firefox, Safari, Edge testing", status: "active", startDate: isoDate(-12), endDate: isoDate(-2) },
+  { title: "Mobile Responsive Test", project: PROJECT2, sprint: "Sprint 4", scope: "Responsive layout on iOS and Android devices", status: "active", startDate: isoDate(-8), endDate: isoDate(2) },
+  { title: "Data Migration Validation", project: PROJECT, sprint: "Sprint 2", scope: "Verify data integrity after SQLite to Postgres migration", status: "closed", startDate: isoDate(-45), endDate: isoDate(-35) },
+];
+
+for (let i = 0; i < testPlans.length; i++) {
+  const tp = testPlans[i];
+  db.prepare('INSERT INTO "TestPlan" ("company","publicToken","title","project","sprint","scope","status","startDate","endDate","assignee","notes") VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, tok(), tp.title, tp.project, tp.sprint, tp.scope, tp.status, tp.startDate, tp.endDate, assignees[i % assignees.length].name, ""
+  );
+}
+console.log(`✓ ${testPlans.length} test plans created`);
+
+// ─── Test Suites ─────────────────────────────────────────────────────────────
+const testSuites = [
+  { testPlanId: "1", title: "Login & Authentication Suite", assignee: "Budi Santoso", status: "active", notes: "Cover all auth flows including SSO" },
+  { testPlanId: "1", title: "Dashboard Widgets Suite", assignee: "Siti Rahayu", status: "active", notes: "Verify all dashboard charts and metrics" },
+  { testPlanId: "2", title: "CI/CD Pipeline Suite", assignee: "Nadia Kusuma", status: "draft", notes: "Validate build, test, deploy stages" },
+  { testPlanId: "3", title: "Mobile Transfer Flow", assignee: "Siti Rahayu", status: "active", notes: "End-to-end transfer scenarios" },
+  { testPlanId: "3", title: "Mobile Balance Check", assignee: "Budi Santoso", status: "active", notes: "Balance display and refresh" },
+  { testPlanId: "4", title: "REST API CRUD Suite", assignee: "Nadia Kusuma", status: "archived", notes: "All CRUD operations on main endpoints" },
+  { testPlanId: "5", title: "Load Test Scenarios", assignee: "Budi Santoso", status: "draft", notes: "K6 scripts for load testing" },
+  { testPlanId: "8", title: "Cross-Browser Forms", assignee: "Siti Rahayu", status: "active", notes: "Form validation across browsers" },
+  { testPlanId: "9", title: "Responsive Layout Suite", assignee: "Nadia Kusuma", status: "active", notes: "Breakpoint testing for all pages" },
+  { testPlanId: "6", title: "OWASP Security Checks", assignee: "Budi Santoso", status: "draft", notes: "Automated security scanning" },
+];
+
+for (let i = 0; i < testSuites.length; i++) {
+  const ts = testSuites[i];
+  db.prepare('INSERT INTO "TestSuite" ("company","publicToken","testPlanId","title","assignee","status","notes") VALUES (?,?,?,?,?,?,?)').run(
+    COMPANY, tok(), ts.testPlanId, ts.title, ts.assignee, ts.status, ts.notes
+  );
+}
+console.log(`✓ ${testSuites.length} test suites created`);
+
+// ─── Test Cases ──────────────────────────────────────────────────────────────
+const testCases = [
+  { testSuiteId: "1", tcId: "TC-001", caseName: "Valid Login with Email", typeCase: "Positive", preCondition: "User has valid credentials", testStep: "1. Open login page\n2. Enter valid email\n3. Enter valid password\n4. Click Login", expectedResult: "User redirected to dashboard", status: "Passed", priority: "Critical" },
+  { testSuiteId: "1", tcId: "TC-002", caseName: "Login with Invalid Password", typeCase: "Negative", preCondition: "User exists in system", testStep: "1. Open login page\n2. Enter valid email\n3. Enter wrong password\n4. Click Login", expectedResult: "Error message: Invalid credentials", status: "Passed", priority: "High" },
+  { testSuiteId: "1", tcId: "TC-003", caseName: "Login with Empty Fields", typeCase: "Negative", preCondition: "None", testStep: "1. Open login page\n2. Leave fields empty\n3. Click Login", expectedResult: "Validation errors shown for both fields", status: "Passed", priority: "Medium" },
+  { testSuiteId: "2", tcId: "TC-004", caseName: "Dashboard Load Time", typeCase: "Positive", preCondition: "User is authenticated", testStep: "1. Navigate to dashboard\n2. Measure load time", expectedResult: "Dashboard loads within 2 seconds", status: "Failed", priority: "High" },
+  { testSuiteId: "2", tcId: "TC-005", caseName: "Chart Data Accuracy", typeCase: "Positive", preCondition: "Test data exists in DB", testStep: "1. Open dashboard\n2. Compare chart values with DB query results", expectedResult: "Chart values match database records", status: "Passed", priority: "Critical" },
+  { testSuiteId: "4", tcId: "TC-006", caseName: "Transfer to Valid Account", typeCase: "Positive", preCondition: "Sender has sufficient balance", testStep: "1. Open transfer page\n2. Enter valid recipient\n3. Enter amount\n4. Confirm transfer", expectedResult: "Transfer successful, balance updated", status: "Passed", priority: "Critical" },
+  { testSuiteId: "4", tcId: "TC-007", caseName: "Transfer Exceeds Balance", typeCase: "Negative", preCondition: "Sender balance is 100", testStep: "1. Open transfer page\n2. Enter amount 500\n3. Confirm transfer", expectedResult: "Error: Insufficient balance", status: "Passed", priority: "High" },
+  { testSuiteId: "5", tcId: "TC-008", caseName: "Balance Display After Login", typeCase: "Positive", preCondition: "User has active account", testStep: "1. Login to app\n2. Check balance widget", expectedResult: "Current balance displayed correctly", status: "Pending", priority: "Medium" },
+  { testSuiteId: "8", tcId: "TC-009", caseName: "Form Submit on Firefox", typeCase: "Positive", preCondition: "Firefox browser installed", testStep: "1. Open form in Firefox\n2. Fill all fields\n3. Submit", expectedResult: "Form submits successfully without errors", status: "Blocked", priority: "Medium" },
+  { testSuiteId: "9", tcId: "TC-010", caseName: "Mobile Menu Toggle", typeCase: "Positive", preCondition: "Screen width < 768px", testStep: "1. Open app on mobile viewport\n2. Tap hamburger menu\n3. Verify menu opens", expectedResult: "Navigation menu slides in from left", status: "Passed", priority: "High" },
+];
+
+for (let i = 0; i < testCases.length; i++) {
+  const tc = testCases[i];
+  db.prepare('INSERT INTO "TestCase" ("company","publicToken","testSuiteId","tcId","caseName","typeCase","preCondition","testStep","expectedResult","actualResult","status","priority","assignee","sortOrder") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, tok(), tc.testSuiteId, tc.tcId, tc.caseName, tc.typeCase, tc.preCondition, tc.testStep, tc.expectedResult, "", tc.status, tc.priority, assignees[(i + 1) % assignees.length].name, i + 1
+  );
+}
+console.log(`✓ ${testCases.length} test cases created`);
+
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+const tasks = [
+  { title: "Implement dark mode toggle", project: PROJECT, relatedFeature: "UI Theme", category: "feature", status: "done", priority: "P1", description: "Add dark/light mode toggle in settings", acceptanceCriteria: "User can switch themes and preference persists", assignee: "Andi Pratama" },
+  { title: "Fix pagination on test cases list", project: PROJECT, relatedFeature: "Test Cases", category: "bugfix", status: "doing", priority: "P0", description: "Pagination breaks when filtering by suite", acceptanceCriteria: "Pagination works correctly with all filters applied", assignee: "Rizky Firmansyah" },
+  { title: "Add export to PDF for reports", project: PROJECT, relatedFeature: "Reports", category: "feature", status: "todo", priority: "P2", description: "Allow users to export dashboard reports as PDF", acceptanceCriteria: "PDF contains all visible charts and tables", assignee: "Hendra Wijaya" },
+  { title: "Optimize dashboard query performance", project: PROJECT, relatedFeature: "Dashboard", category: "tech-debt", status: "review", priority: "P1", description: "Dashboard queries taking >3s on large datasets", acceptanceCriteria: "All dashboard queries complete within 500ms", assignee: "Dewi Lestari" },
+  { title: "Research E2E testing framework", project: PROJECT, relatedFeature: "Testing", category: "research", status: "done", priority: "P2", description: "Evaluate Playwright vs Cypress for E2E tests", acceptanceCriteria: "Decision document with pros/cons comparison", assignee: "Nadia Kusuma" },
+  { title: "Add real-time notifications", project: PROJECT, relatedFeature: "Notifications", category: "feature", status: "todo", priority: "P1", description: "Push notifications for bug assignments and status changes", acceptanceCriteria: "Users receive instant notifications on assignment", assignee: "Fajar Nugroho" },
+  { title: "Refactor auth middleware", project: PROJECT, relatedFeature: "Authentication", category: "refactor", status: "doing", priority: "P1", description: "Current auth middleware is monolithic, split into composable functions", acceptanceCriteria: "Auth logic is modular and unit-testable", assignee: "Dewi Lestari" },
+  { title: "Mobile app biometric login", project: PROJECT2, relatedFeature: "Login", category: "feature", status: "blocked", priority: "P0", description: "Implement fingerprint and face ID login for mobile app", acceptanceCriteria: "Biometric auth works on iOS 15+ and Android 12+", assignee: "Andi Pratama" },
+  { title: "Setup staging environment", project: PROJECT2, relatedFeature: "Infrastructure", category: "support", status: "done", priority: "P1", description: "Configure staging server with production-like data", acceptanceCriteria: "Staging mirrors production config with sanitized data", assignee: "Rizky Firmansyah" },
+  { title: "Write API documentation", project: PROJECT, relatedFeature: "Documentation", category: "enhancement", status: "doing", priority: "P2", description: "Document all public API endpoints with examples", acceptanceCriteria: "OpenAPI spec covers all endpoints with request/response examples", assignee: "Maya Putri" },
+];
+
+for (let i = 0; i < tasks.length; i++) {
+  const t = tasks[i];
+  db.prepare('INSERT INTO "Task" ("company","sprintId","title","project","relatedFeature","category","status","priority","startDate","endDate","description","acceptanceCriteria","assignee","sortOrder") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, (i % 5) + 1, t.title, t.project, t.relatedFeature, t.category, t.status, t.priority, isoDate(-20 + i * 2), isoDate(-10 + i * 2), t.description, t.acceptanceCriteria, t.assignee, i + 1
+  );
+}
+console.log(`✓ ${tasks.length} tasks created`);
+
+// ─── Bugs ────────────────────────────────────────────────────────────────────
+const bugs = [
+  { project: PROJECT, module: "Authentication", bugType: "Functional", title: "Session expires without warning", preconditions: "User is logged in for 6+ hours", stepsToReproduce: "1. Login\n2. Wait 6 hours\n3. Try to navigate", expectedResult: "Warning before session expires", actualResult: "Abrupt redirect to login page", severity: "high", priority: "P0", status: "open" },
+  { project: PROJECT, module: "Dashboard", bugType: "UI/UX", title: "Chart tooltip overlaps sidebar", preconditions: "Dashboard with charts loaded", stepsToReproduce: "1. Hover over leftmost chart bar\n2. Observe tooltip position", expectedResult: "Tooltip stays within viewport", actualResult: "Tooltip hidden behind sidebar", severity: "medium", priority: "P2", status: "in_progress" },
+  { project: PROJECT, module: "Test Cases", bugType: "Functional", title: "Duplicate test case IDs on import", preconditions: "CSV file with 50+ test cases", stepsToReproduce: "1. Import CSV with test cases\n2. Check generated IDs", expectedResult: "All IDs are unique", actualResult: "Some IDs are duplicated causing conflicts", severity: "critical", priority: "P0", status: "open" },
+  { project: PROJECT2, module: "Transfer", bugType: "Validation", title: "Negative amount accepted in transfer", preconditions: "User on transfer page", stepsToReproduce: "1. Enter -100 as amount\n2. Submit transfer", expectedResult: "Validation error for negative amount", actualResult: "Transfer processes with negative value", severity: "critical", priority: "P0", status: "in_progress" },
+  { project: PROJECT, module: "Reports", bugType: "Performance", title: "Report generation takes 30+ seconds", preconditions: "Database has 10k+ records", stepsToReproduce: "1. Navigate to Reports\n2. Select date range of 6 months\n3. Click Generate", expectedResult: "Report generates within 5 seconds", actualResult: "Loading spinner for 30+ seconds, sometimes timeout", severity: "high", priority: "P1", status: "open" },
+  { project: PROJECT2, module: "Login", bugType: "Security", title: "Rate limiting not enforced on login", preconditions: "Login endpoint accessible", stepsToReproduce: "1. Send 100 login requests in 10 seconds\n2. Check if any are blocked", expectedResult: "Requests blocked after 5 failed attempts", actualResult: "All 100 requests processed without blocking", severity: "critical", priority: "P0", status: "ready_to_retest" },
+  { project: PROJECT, module: "Notifications", bugType: "Functional", title: "Email notifications sent twice", preconditions: "User has email notifications enabled", stepsToReproduce: "1. Assign a bug to user\n2. Check user email inbox", expectedResult: "One notification email received", actualResult: "Two identical emails received", severity: "medium", priority: "P2", status: "closed" },
+  { project: PROJECT, module: "Sprint Board", bugType: "UI/UX", title: "Drag and drop breaks on mobile", preconditions: "Mobile viewport (< 768px)", stepsToReproduce: "1. Open sprint board on mobile\n2. Try to drag a card", expectedResult: "Card moves smoothly to new column", actualResult: "Card snaps back to original position", severity: "medium", priority: "P1", status: "open" },
+  { project: PROJECT2, module: "Balance", bugType: "API", title: "Balance API returns stale data", preconditions: "User just completed a transfer", stepsToReproduce: "1. Complete transfer\n2. Immediately call balance API", expectedResult: "Updated balance returned", actualResult: "Previous balance returned for ~5 seconds", severity: "high", priority: "P1", status: "in_progress" },
+  { project: PROJECT, module: "Settings", bugType: "Compatibility", title: "Settings page broken on Safari 16", preconditions: "Safari 16 on macOS", stepsToReproduce: "1. Open Settings page in Safari 16\n2. Try to change any setting", expectedResult: "Settings save correctly", actualResult: "Save button unresponsive, console shows CSS grid error", severity: "low", priority: "P3", status: "open" },
+];
+
+for (let i = 0; i < bugs.length; i++) {
+  const b = bugs[i];
+  db.prepare('INSERT INTO "Bug" ("company","sprintId","project","module","bugType","title","preconditions","stepsToReproduce","expectedResult","actualResult","severity","priority","status","suggestedDev","sortOrder") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, (i % 5) + 1, b.project, b.module, b.bugType, b.title, b.preconditions, b.stepsToReproduce, b.expectedResult, b.actualResult, b.severity, b.priority, b.status, assignees[(i + 3) % assignees.length].name, i + 1
+  );
+}
+console.log(`✓ ${bugs.length} bugs created`);
+
+// ─── Test Sessions ───────────────────────────────────────────────────────────
+const testSessions = [
+  { date: isoDate(-14), project: PROJECT, sprint: "Sprint 4", tester: "Budi Santoso", scope: "Login, Dashboard, Settings", totalCases: "25", passed: "22", failed: "2", blocked: "1", result: "fail" },
+  { date: isoDate(-13), project: PROJECT, sprint: "Sprint 4", tester: "Siti Rahayu", scope: "Reports, Export, Charts", totalCases: "18", passed: "16", failed: "1", blocked: "1", result: "fail" },
+  { date: isoDate(-12), project: PROJECT2, sprint: "Sprint 4", tester: "Nadia Kusuma", scope: "Transfer, Balance, History", totalCases: "30", passed: "28", failed: "2", blocked: "0", result: "fail" },
+  { date: isoDate(-10), project: PROJECT, sprint: "Sprint 4", tester: "Budi Santoso", scope: "Test Case CRUD, Import/Export", totalCases: "20", passed: "20", failed: "0", blocked: "0", result: "pass" },
+  { date: isoDate(-8), project: PROJECT, sprint: "Sprint 4", tester: "Siti Rahayu", scope: "Sprint Board, Kanban, Drag-Drop", totalCases: "15", passed: "12", failed: "2", blocked: "1", result: "fail" },
+  { date: isoDate(-6), project: PROJECT2, sprint: "Sprint 4", tester: "Nadia Kusuma", scope: "Login, Biometric, Session", totalCases: "22", passed: "20", failed: "1", blocked: "1", result: "fail" },
+  { date: isoDate(-4), project: PROJECT, sprint: "Sprint 5", tester: "Budi Santoso", scope: "CI/CD Pipeline, Build Validation", totalCases: "12", passed: "12", failed: "0", blocked: "0", result: "pass" },
+  { date: isoDate(-2), project: PROJECT, sprint: "Sprint 5", tester: "Siti Rahayu", scope: "Deployment Logs, Rollback", totalCases: "10", passed: "9", failed: "0", blocked: "1", result: "blocked" },
+  { date: isoDate(-1), project: PROJECT2, sprint: "Sprint 5", tester: "Nadia Kusuma", scope: "Performance Load Test", totalCases: "8", passed: "5", failed: "3", blocked: "0", result: "fail" },
+  { date: isoDate(0), project: PROJECT, sprint: "Sprint 5", tester: "Budi Santoso", scope: "Full Regression - All Modules", totalCases: "50", passed: "45", failed: "3", blocked: "2", result: "in_progress" },
+];
+
+for (const ts of testSessions) {
+  db.prepare('INSERT INTO "TestSession" ("company","date","project","sprint","tester","scope","totalCases","passed","failed","blocked","result","notes") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, ts.date, ts.project, ts.sprint, ts.tester, ts.scope, ts.totalCases, ts.passed, ts.failed, ts.blocked, ts.result, ""
+  );
+}
+console.log(`✓ ${testSessions.length} test sessions created`);
+
+// ─── Meeting Notes ───────────────────────────────────────────────────────────
+const meetingNotes = [
+  { date: isoDate(-14), project: PROJECT, title: "Sprint 4 Planning", attendees: "Admin, Budi, Siti, Maya", content: "Discussed sprint goals and task allocation. Focus on performance and mobile responsiveness.", actionItems: "Budi: setup performance benchmarks\nSiti: prepare mobile test devices" },
+  { date: isoDate(-12), project: PROJECT, title: "Daily Standup", attendees: "Budi, Siti, Andi, Dewi", content: "Progress update on dashboard optimization. Dewi found N+1 query issue.", actionItems: "Dewi: fix N+1 queries by EOD\nAndi: review dark mode PR" },
+  { date: isoDate(-10), project: PROJECT2, title: "Mobile App Review", attendees: "Admin, Siti, Nadia, Hendra", content: "Reviewed mobile transfer flow test results. 2 critical bugs found in validation.", actionItems: "Nadia: log bugs in tracker\nHendra: fix validation on frontend" },
+  { date: isoDate(-8), project: PROJECT, title: "Bug Triage Meeting", attendees: "Admin, Maya, Budi, Dewi, Fajar", content: "Triaged 15 open bugs. Prioritized session expiry and duplicate ID issues as P0.", actionItems: "Fajar: fix session handling\nDewi: investigate duplicate IDs" },
+  { date: isoDate(-6), project: PROJECT, title: "Sprint 4 Retrospective", attendees: "All team", content: "Good: improved test coverage. Bad: too many P0 bugs found late. Action: earlier smoke tests.", actionItems: "Maya: add smoke test checkpoint to sprint process\nBudi: automate critical path tests" },
+  { date: isoDate(-4), project: PROJECT, title: "Sprint 5 Kickoff", attendees: "Admin, Maya, Rizky, Nadia", content: "Sprint 5 focus: CI/CD pipeline and deployment automation. Rizky leads infrastructure.", actionItems: "Rizky: setup GitHub Actions workflow\nNadia: prepare deployment test suite" },
+  { date: isoDate(-3), project: PROJECT2, title: "Security Review", attendees: "Admin, Dewi, Fajar, Budi", content: "Reviewed rate limiting implementation. Found gaps in login and transfer endpoints.", actionItems: "Fajar: implement rate limiter middleware\nBudi: retest after fix" },
+  { date: isoDate(-2), project: PROJECT, title: "Daily Standup", attendees: "Budi, Siti, Rizky, Nadia", content: "CI/CD pipeline working. Deployment logs feature in review. One blocker on rollback.", actionItems: "Rizky: fix rollback mechanism\nSiti: test deployment flow" },
+  { date: isoDate(-1), project: PROJECT, title: "Demo Preparation", attendees: "Admin, Maya, Andi, Hendra", content: "Preparing demo for stakeholders. Dark mode and new dashboard ready. Need to fix chart tooltip.", actionItems: "Andi: fix tooltip overlap\nHendra: prepare demo script" },
+  { date: isoDate(0), project: PROJECT, title: "Stakeholder Demo", attendees: "All team + Stakeholders", content: "Demonstrated Sprint 4-5 deliverables. Positive feedback on dashboard redesign. Request for PDF export.", actionItems: "Maya: add PDF export to Sprint 6 backlog\nAdmin: send meeting summary to stakeholders" },
+];
+
+for (const mn of meetingNotes) {
+  db.prepare('INSERT INTO "MeetingNote" ("company","publicToken","date","project","title","attendees","content","actionItems","relatedItems") VALUES (?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, tok(), mn.date, mn.project, mn.title, mn.attendees, mn.content, mn.actionItems, ""
+  );
+}
+console.log(`✓ ${meetingNotes.length} meeting notes created`);
+
+// ─── Deployments ─────────────────────────────────────────────────────────────
 const deployments = [
-  [C, "2026-03-10", "v3.4.0", "EcoShop Web", "staging", "Andi Pratama", "Checkout fixes, promo validation, payment retry handling.", "success", ""],
-  [C, "2026-03-12", "v3.4.1", "EcoShop Web", "production", "Citra Lestari", "Regression patch for cart quantity and mobile layout.", "success", ""],
-  [C, "2026-03-13", "v3.4.2", "EcoShop Web", "staging", "Eko Wijaya", "Hotfix for payment gateway timeout and request logging.", "rollback", "Rollback after payment API alerts spiked."],
+  { date: isoDate(-30), version: "v1.0.0", project: PROJECT, environment: "production", developer: "Rizky Firmansyah", changelog: "Initial release: auth, dashboard, basic CRUD", status: "success" },
+  { date: isoDate(-25), version: "v1.1.0", project: PROJECT, environment: "staging", developer: "Dewi Lestari", changelog: "Added test plan management and sprint board", status: "success" },
+  { date: isoDate(-20), version: "v1.1.0", project: PROJECT, environment: "production", developer: "Rizky Firmansyah", changelog: "Promoted staging v1.1.0 to production", status: "success" },
+  { date: isoDate(-15), version: "v1.2.0-beta", project: PROJECT, environment: "staging", developer: "Andi Pratama", changelog: "Dark mode, responsive improvements, chart updates", status: "success" },
+  { date: isoDate(-10), version: "v0.5.0", project: PROJECT2, environment: "development", developer: "Hendra Wijaya", changelog: "Mobile app: transfer flow, balance check", status: "success" },
+  { date: isoDate(-8), version: "v1.2.0-beta.2", project: PROJECT, environment: "staging", developer: "Dewi Lestari", changelog: "Performance fixes: query optimization, caching", status: "failed" },
+  { date: isoDate(-6), version: "v1.2.0-beta.3", project: PROJECT, environment: "staging", developer: "Dewi Lestari", changelog: "Fixed failed deployment: corrected migration script", status: "success" },
+  { date: isoDate(-3), version: "v0.5.1", project: PROJECT2, environment: "staging", developer: "Fajar Nugroho", changelog: "Security: rate limiting, input validation fixes", status: "success" },
+  { date: isoDate(-1), version: "v1.2.0", project: PROJECT, environment: "uat", developer: "Rizky Firmansyah", changelog: "UAT release: all Sprint 4 features included", status: "success" },
+  { date: isoDate(0), version: "v1.2.0", project: PROJECT, environment: "production", developer: "Rizky Firmansyah", changelog: "Production release: dark mode, performance, responsive", status: "in_progress" },
 ];
-deployments.forEach((deployment) => iDeployment.run(...deployment));
-console.log("✓ Deployments (3)");
 
+for (const d of deployments) {
+  db.prepare('INSERT INTO "Deployment" ("company","date","version","project","environment","developer","changelog","status","notes") VALUES (?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, d.date, d.version, d.project, d.environment, d.developer, d.changelog, d.status, ""
+  );
+}
+console.log(`✓ ${deployments.length} deployments created`);
+
+// ─── Work Logs ───────────────────────────────────────────────────────────────
+const workLogs = [
+  { date: isoDate(-5), startTime: "08:00", endTime: "12:00", category: "testing", project: PROJECT, description: "Executed regression test suite for Sprint 4", output: "25 test cases executed, 2 failures logged", assignee: "Budi Santoso" },
+  { date: isoDate(-5), startTime: "13:00", endTime: "17:00", category: "bugfix", project: PROJECT, description: "Fixed N+1 query issue in dashboard API", output: "Query time reduced from 3s to 200ms", assignee: "Dewi Lestari" },
+  { date: isoDate(-4), startTime: "09:00", endTime: "11:30", category: "code-review", project: PROJECT, description: "Reviewed dark mode PR and responsive layout changes", output: "Approved with minor comments on CSS variables", assignee: "Rizky Firmansyah" },
+  { date: isoDate(-4), startTime: "13:00", endTime: "16:00", category: "development", project: PROJECT2, description: "Implemented rate limiting middleware for login endpoint", output: "Rate limiter active: 5 attempts per 15 minutes", assignee: "Fajar Nugroho" },
+  { date: isoDate(-3), startTime: "08:30", endTime: "12:00", category: "testing", project: PROJECT2, description: "Security testing on transfer and login endpoints", output: "Rate limiting verified, 1 bypass found and reported", assignee: "Nadia Kusuma" },
+  { date: isoDate(-3), startTime: "14:00", endTime: "17:30", category: "meeting", project: PROJECT, description: "Sprint 5 planning and task estimation session", output: "All Sprint 5 tasks estimated and assigned", assignee: "Maya Putri" },
+  { date: isoDate(-2), startTime: "08:00", endTime: "12:00", category: "development", project: PROJECT, description: "Setup GitHub Actions CI/CD pipeline", output: "Pipeline runs: lint, test, build, deploy to staging", assignee: "Rizky Firmansyah" },
+  { date: isoDate(-2), startTime: "13:00", endTime: "15:00", category: "documentation", project: PROJECT, description: "Wrote API documentation for auth endpoints", output: "OpenAPI spec for /auth/* endpoints completed", assignee: "Maya Putri" },
+  { date: isoDate(-1), startTime: "09:00", endTime: "12:00", category: "testing", project: PROJECT, description: "Deployment validation testing on staging", output: "All smoke tests passed, ready for UAT", assignee: "Siti Rahayu" },
+  { date: isoDate(0), startTime: "08:00", endTime: "10:00", category: "deployment", project: PROJECT, description: "Production deployment v1.2.0 with monitoring", output: "Deployment in progress, monitoring dashboards active", assignee: "Rizky Firmansyah" },
+];
+
+for (let i = 0; i < workLogs.length; i++) {
+  const wl = workLogs[i];
+  db.prepare('INSERT INTO "WorkLog" ("company","date","startTime","endTime","category","project","description","output","notes","assignee","sortOrder") VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(
+    COMPANY, wl.date, wl.startTime, wl.endTime, wl.category, wl.project, wl.description, wl.output, "", wl.assignee, i + 1
+  );
+}
+console.log(`✓ ${workLogs.length} work logs created`);
+
+// ─── Activity Log ────────────────────────────────────────────────────────────
+const activities = [
+  { entityType: "tasks", entityId: "1", action: "created", summary: "Created task: Implement dark mode toggle", actor: "Admin" },
+  { entityType: "tasks", entityId: "2", action: "created", summary: "Created task: Fix pagination on test cases list", actor: "Admin" },
+  { entityType: "bugs", entityId: "1", action: "created", summary: "Reported bug: Session expires without warning", actor: "Budi Santoso" },
+  { entityType: "bugs", entityId: "3", action: "created", summary: "Reported bug: Duplicate test case IDs on import", actor: "Nadia Kusuma" },
+  { entityType: "test-plans", entityId: "1", action: "created", summary: "Created test plan: Sprint 4 Regression Test", actor: "Admin" },
+  { entityType: "test-suites", entityId: "1", action: "created", summary: "Created suite: Login & Authentication Suite", actor: "Budi Santoso" },
+  { entityType: "test-cases", entityId: "1", action: "created", summary: "Created test case: TC-001 Valid Login with Email", actor: "Budi Santoso" },
+  { entityType: "deployments", entityId: "1", action: "created", summary: "Logged deployment: v1.0.0 to production", actor: "Rizky Firmansyah" },
+  { entityType: "bugs", entityId: "4", action: "updated", summary: "Updated bug status: Negative amount accepted → In Progress", actor: "Dewi Lestari" },
+  { entityType: "tasks", entityId: "1", action: "updated", summary: "Task completed: Implement dark mode toggle", actor: "Andi Pratama" },
+];
+
+for (const a of activities) {
+  db.prepare('INSERT INTO "ActivityLog" ("company","entityType","entityId","action","summary","actor") VALUES (?,?,?,?,?,?)').run(
+    COMPANY, a.entityType, a.entityId, a.action, a.summary, a.actor
+  );
+}
+console.log(`✓ ${activities.length} activity logs created`);
+
+// ─── Migration version ───────────────────────────────────────────────────────
+db.prepare('INSERT INTO "_migrations" ("version") VALUES (?)').run(3);
+
+console.log("\n✅ Seed complete! Database ready at:", DB_PATH);
+console.log(`   Company: "${COMPANY}"`);
+console.log(`   Admin login: ${users[0].email} / ${process.env.SEED_ADMIN_PASSWORD || "Lotus1919!"}`);
 db.close();
-console.log("\n✅ Seed selesai! → prisma/dev.db");
-console.log("   Jalankan: npm run dev");

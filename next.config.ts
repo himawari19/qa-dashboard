@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
       ],
     },
     {
+      // Static assets — aggressive caching
+      source: "/:path*.(svg|png|jpg|jpeg|webp|ico|woff2|woff|ttf)",
+      headers: [
+        { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+      ],
+    },
+    {
       source: "/(.*)",
       headers: [
         { key: "X-Content-Type-Options", value: "nosniff" },

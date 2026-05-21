@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser, isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
+import { checkCompanyUserLimit } from "@/lib/plan-limits";
 
 type InviteRow = {
   id: number;
@@ -51,6 +52,15 @@ export async function createInvite(input: InviteInput) {
   }
   if (!isInviteRole(role)) {
     return { error: "Role is not allowed." } as const;
+  }
+
+  // Check user limit for the company
+  const inviteCompany = company || String(user.company ?? "").trim();
+  if (inviteCompany) {
+    const limitCheck = await checkCompanyUserLimit(inviteCompany);
+    if (!limitCheck.allowed) {
+      return { error: "USER_LIMIT_REACHED", current: limitCheck.current, max: limitCheck.max, plan: limitCheck.plan } as const;
+    }
   }
 
   const token = makeToken();

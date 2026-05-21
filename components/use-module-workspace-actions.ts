@@ -49,6 +49,7 @@ type ActionArgs = {
   setOpenSelectField: Dispatch<SetStateAction<string | null>>;
   setPendingDeleteId: Dispatch<SetStateAction<string | number | null>>;
   setDeleteId: Dispatch<SetStateAction<string | number | null>>;
+  setKanbanRows: Dispatch<SetStateAction<Row[]>>;
 };
 
 export function useModuleWorkspaceActions(args: ActionArgs) {
@@ -83,6 +84,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     setPendingDeleteId,
   setDeleteId,
   setRows,
+  setKanbanRows,
   } = args;
 
   const duplicateCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -394,6 +396,8 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     }
     showApiSuccess(toast, data, "Data deleted successfully.");
     setRows((current) => current.filter((row) => String(row.id) !== String(id)));
+    setKanbanRows((current) => current.filter((row) => String(row.id) !== String(id)));
+    router.refresh();
   }
 
   function clearPendingDeleteTimer() {
@@ -447,7 +451,44 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
       return;
     }
     showApiSuccess(toast, data, "Status updated successfully.");
-    patchRow(id, { status, ...(typeof sortOrder === "number" ? { sortOrder } : {}) });
+    const patch = { status, ...(typeof sortOrder === "number" ? { sortOrder } : {}) };
+    patchRow(id, patch);
+    setKanbanRows((current) =>
+      current.map((row) => (String(row.id) === String(id) ? { ...row, ...patch } : row)),
+    );
+    router.refresh();
+  }
+
+  async function onBatchReorder(items: { id: number | string; sortOrder: number; status?: string }[]) {
+    // Optimistic update both table and kanban rows immediately
+    const patchRows = (current: Row[]) =>
+      current.map((row) => {
+        const match = items.find((item) => String(item.id) === String(row.id));
+        if (match) {
+          return {
+            ...row,
+            sortOrder: match.sortOrder,
+            ...(match.status ? { status: match.status } : {}),
+          };
+        }
+        return row;
+      });
+    setRows(patchRows);
+    setKanbanRows(patchRows);
+
+    try {
+      const res = await fetch(`/api/items/${module}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reorder: items }),
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch {
+      // Revert on failure by refreshing from server
+      router.refresh();
+    }
   }
 
   return {
@@ -457,6 +498,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     handleFormSubmit,
     onImport,
     onUpdateStatus,
+    onBatchReorder,
     performSingleDelete,
     checkDuplicates,
     checkSprintDuplicate,

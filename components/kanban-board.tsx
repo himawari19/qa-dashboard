@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, useCallback, useId } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, useId } from "react";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import {
   DndContext,
@@ -55,11 +55,12 @@ function buildStatusAliases(statusOptions: { label: string; value: string }[]) {
     aliases.set(normalizeStatus(raw), raw);
     aliases.set(normalizeStatus(status.label), raw);
   }
-  aliases.set(normalizeStatus("idea"), "todo");
-  aliases.set(normalizeStatus("triage"), "todo");
-  aliases.set(normalizeStatus("ready"), "doing");
-  aliases.set(normalizeStatus("in progress"), "doing");
-  aliases.set(normalizeStatus("in_progress"), "doing");
+  // Only add fallback aliases if not already defined by statusOptions
+  if (!aliases.has(normalizeStatus("idea"))) aliases.set(normalizeStatus("idea"), "todo");
+  if (!aliases.has(normalizeStatus("triage"))) aliases.set(normalizeStatus("triage"), "todo");
+  if (!aliases.has(normalizeStatus("ready"))) aliases.set(normalizeStatus("ready"), "doing");
+  if (!aliases.has(normalizeStatus("in progress"))) aliases.set(normalizeStatus("in progress"), "doing");
+  if (!aliases.has(normalizeStatus("in_progress"))) aliases.set(normalizeStatus("in_progress"), "doing");
   return aliases;
 }
 
@@ -238,17 +239,18 @@ export function KanbanBoard({
   rows,
   statusOptions,
   onUpdateStatus,
+  onBatchReorder,
   onViewRow,
   wipLimits = {},
 }: {
   rows: Row[];
   statusOptions: { label: string; value: string }[];
   onUpdateStatus: (id: number, newStatus: string, sortOrder?: number) => Promise<void>;
+  onBatchReorder?: (items: { id: number | string; sortOrder: number; status?: string }[]) => Promise<void>;
   onViewRow: (row: Row) => void;
   wipLimits?: Record<string, number>;
 }) {
   const dndId = useId();
-  const [, startTransition] = useTransition();
   const [localRows, setLocalRows] = useState(rows);
   const [activeCard, setActiveCard] = useState<Row | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
@@ -353,54 +355,94 @@ export function KanbanBoard({
       return;
     }
 
-    // Compute new order
-    let movedOrder = 0;
-    setLocalRows((prev) => {
-      const draggedRow = prev.find((row) => Number(row.id) === activeId);
-      if (!draggedRow) return prev;
+    // Compute new column order using current localRows snapshot
+    const currentRows = localRows;
+    const draggedRow = currentRows.find((row) => Number(row.id) === activeId);
+    if (!draggedRow) return;
 
-      // Get cards in target column (sorted)
-      const targetColumnCards = prev
-        .filter((row) => {
-          const s = statusAliases.get(normalizeStatus(getRowStatus(row)));
-          return s === targetStatus && Number(row.id) !== activeId;
-        })
-        .sort((a, b) => getRowOrder(a) - getRowOrder(b));
-
-      // Determine insert position
-      let insertIndex = targetColumnCards.length; // default: end
-      if (targetCardId !== null && targetCardId !== activeId) {
-        const idx = targetColumnCards.findIndex((r) => Number(r.id) === targetCardId);
-        if (idx >= 0) insertIndex = idx;
-      }
-
-      // Build new column order
-      const moved = { ...draggedRow, status: targetStatus };
-      const newColumnCards = [
-        ...targetColumnCards.slice(0, insertIndex),
-        moved,
-        ...targetColumnCards.slice(insertIndex),
-      ];
-
-      // Rebuild all rows with updated sortOrder
-      const otherRows = prev.filter((row) => {
+    // Get cards in target column (sorted), excluding the dragged card
+    const targetColumnCards = currentRows
+      .filter((row) => {
         const s = statusAliases.get(normalizeStatus(getRowStatus(row)));
-        return s !== targetStatus && Number(row.id) !== activeId;
-      });
+        return s === targetStatus && Number(row.id) !== activeId;
+      })
+      .sort((a, b) => getRowOrder(a) - getRowOrder(b));
 
-      const allRows: Row[] = [
-        ...otherRows,
-        ...newColumnCards.map((row, i) => ({ ...row, sortOrder: i + 1 }) as Row),
-      ];
+    // Determine insert position
+    let insertIndex = targetColumnCards.length; // default: end
+    if (targetCardId !== null && targetCardId !== activeId) {
+      const idx = targetColumnCards.findIndex((r) => Number(r.id) === targetCardId);
+      if (idx >= 0) {
+        // If same column and dragging downward, insert AFTER the target card
+        const isSameColumn = activeStatus === targetStatus;
+        if (isSameColumn) {
+          const originalCards = currentRows
+            .filter((row) => {
+              const s = statusAliases.get(normalizeStatus(getRowStatus(row)));
+              return s === targetStatus;
+            })
+            .sort((a, b) => getRowOrder(a) - getRowOrder(b));
+          const dragOrigIdx = originalCards.findIndex((r) => Number(r.id) === activeId);
+          const targetOrigIdx = originalCards.findIndex((r) => Number(r.id) === targetCardId);
+          if (dragOrigIdx < targetOrigIdx) {
+            // Dragging downward: insert after target
+            insertIndex = idx + 1;
+          } else {
+            // Dragging upward: insert before target
+            insertIndex = idx;
+          }
+        } else {
+          insertIndex = idx;
+        }
+      }
+    }
 
+    // Build new column order
+    const moved = { ...draggedRow, status: targetStatus };
+    const newColumnCards = [
+      ...targetColumnCards.slice(0, insertIndex),
+      moved,
+      ...targetColumnCards.slice(insertIndex),
+    ];
+
+    // Rebuild all rows with updated sortOrder
+    const otherRows = currentRows.filter((row) => {
+      const s = statusAliases.get(normalizeStatus(getRowStatus(row)));
+      return s !== targetStatus && Number(row.id) !== activeId;
+    });
+
+    const updatedColumnCards = newColumnCards.map((row, i) => ({ ...row, sortOrder: i + 1 }) as Row);
+
+    const allRows: Row[] = [
+      ...otherRows,
+      ...updatedColumnCards,
+    ];
+
+    // Build batch reorder payload for all cards in target column
+    const reorderBatch = updatedColumnCards.map((row) => ({
+      id: row.id,
+      sortOrder: Number(row.sortOrder),
+    }));
+
+    // Optimistic update
+    setLocalRows(allRows);
+
+    // Persist to server
+    const statusChanged = activeStatus !== targetStatus;
+    if (onBatchReorder && reorderBatch.length > 0) {
+      const batchWithStatus = statusChanged
+        ? reorderBatch.map((item) =>
+            Number(item.id) === activeId
+              ? { ...item, status: targetStatus }
+              : item
+          )
+        : reorderBatch;
+      void onBatchReorder(batchWithStatus);
+    } else {
       const dragged = allRows.find((row) => Number(row.id) === activeId);
-      movedOrder = Number(dragged?.sortOrder ?? 0);
-      return allRows;
-    });
-
-    startTransition(() => {
+      const movedOrder = Number(dragged?.sortOrder ?? 0);
       void onUpdateStatus(activeId, targetStatus, movedOrder);
-    });
+    }
   }
 
   function scrollByAmount(delta: number) {

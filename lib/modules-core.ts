@@ -12,7 +12,8 @@ export type ModuleKey =
   | "assignees"
   | "sprints"
   | "users"
-  | "deployments";
+  | "deployments"
+  | "work-logs";
 
 export type Option = {
   label: string;
@@ -275,6 +276,30 @@ export const assigneeSchema = z.object({
   email: z.string().trim().email("Invalid email format").optional().or(z.literal("")),
   skills: optionalText,
   status: z.enum(["active", "inactive"]),
+});
+
+export const workLogCategoryOptions: Option[] = [
+  ["Development", "development"],
+  ["Testing", "testing"],
+  ["Bug Fix", "bugfix"],
+  ["Code Review", "code-review"],
+  ["Meeting", "meeting"],
+  ["Documentation", "documentation"],
+  ["Research", "research"],
+  ["Deployment", "deployment"],
+  ["Support", "support"],
+  ["Other", "other"],
+].map(([label, value]) => ({ label, value }));
+
+export const workLogSchema = z.object({
+  date: z.string().min(1, "Date is required"),
+  startTime: requiredText("Start Time"),
+  endTime: requiredText("End Time"),
+  category: requiredText("Category"),
+  project: requiredText("Project"),
+  description: requiredText("Description"),
+  output: optionalText,
+  notes: optionalText,
 });
 
 export function normalizeEntry(entry: Record<string, string>) {

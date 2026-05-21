@@ -23,6 +23,7 @@ import {
   RocketLaunch,
   Users,
   ClockCounterClockwise,
+  Headset,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
@@ -51,6 +52,7 @@ const groups: SidebarGroup[] = [
       { href: "/tasks", label: "Tasks", icon: Kanban },
       { href: "/bugs", label: "Bugs", icon: Bug },
       { href: "/sprints", label: "Sprints", icon: Kanban },
+      { href: "/work-logs", label: "Work Log", icon: ClockCountdown },
     ],
   },
   {
@@ -73,6 +75,7 @@ const groups: SidebarGroup[] = [
     title: "System Settings",
     items: [
       { href: "/settings", label: "Settings", icon: Gear },
+      { href: "/settings/support", label: "Support", icon: Headset },
     ],
   },
 ];
@@ -84,19 +87,21 @@ type SidebarItem = { href: string; label: string; icon: SidebarIcon };
 type SidebarGroup = { title: string; items: SidebarItem[] };
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings"],
-  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt"],
-  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt"],
-  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt"],
-  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt"],
-  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt"],
-  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt"],
+  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings", "/settings/support", "/work-logs"],
+  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
+  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
+  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
+  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
+  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
+  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
 };
 
 function canSeeHref(role: string, href: string) {
+  if (role === "superadmin") return true;
   const allowed = ROLE_MENU[role] || ROLE_MENU.qa;
   if (allowed.includes(href)) return true;
   if (href === "/settings") return role === "admin";
+  if (href === "/settings/support") return role === "admin";
   return false;
 }
 

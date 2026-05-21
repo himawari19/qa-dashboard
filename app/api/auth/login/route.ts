@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     clearRateLimit(key);
 
     const token = await createSessionToken(email, user);
-    const response = NextResponse.json({ ok: true });
+    const response = NextResponse.json({ ok: true, role: user.role, company: user.company });
     response.cookies.set(sessionCookieName(), token, {
       httpOnly: true,
       sameSite: "lax",

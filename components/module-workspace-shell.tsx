@@ -111,6 +111,7 @@ type Props = {
  onReorder?: (rowId: string | number, newIndex: number) => void;
  reorderable?: boolean;
  onUpdateStatus: (id: string | number, status: string, sortOrder?: number) => Promise<void>;
+ onBatchReorder?: (items: { id: number | string; sortOrder: number; status?: string }[]) => Promise<void>;
  onDeleteConfirm: () => void;
  onDeleteCancel: () => void;
  onReopenReasonChange: (value: string) => void;
@@ -200,6 +201,7 @@ export function ModuleWorkspaceShell({
  onReorder,
  reorderable,
  onUpdateStatus,
+ onBatchReorder,
  onDeleteConfirm,
  onDeleteCancel,
  onReopenReasonChange,
@@ -307,7 +309,7 @@ export function ModuleWorkspaceShell({
  </>
  ) : (
  <div className="overflow-hidden bg-transparent border-t border-gray-200 p-4">
-			<KanbanBoard rows={kanbanRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onViewRow={onViewRow} />
+			<KanbanBoard rows={kanbanRows} statusOptions={statusOptions} onUpdateStatus={onUpdateStatus} onBatchReorder={onBatchReorder} onViewRow={onViewRow} />
 			</div>
 		)}
  </section>

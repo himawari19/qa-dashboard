@@ -213,7 +213,32 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { id, status, sortOrder, entry, ids } = body;
+    const { id, status, sortOrder, entry, ids, reorder } = body;
+
+    // Batch reorder: [{ id, sortOrder, status? }, ...]
+    if (Array.isArray(reorder) && reorder.length > 0) {
+      const validItems = reorder.filter(
+        (item: unknown) =>
+          item && typeof item === "object" &&
+          "id" in (item as Record<string, unknown>) &&
+          "sortOrder" in (item as Record<string, unknown>) &&
+          typeof (item as Record<string, unknown>).sortOrder === "number"
+      ) as { id: string | number; sortOrder: number; status?: string }[];
+
+      if (validItems.length === 0) {
+        return NextResponse.json({ error: "Invalid reorder payload." }, { status: 400 });
+      }
+
+      const { batchUpdateSortOrder } = await import("@/lib/data");
+      await batchUpdateSortOrder(moduleKey, validItems);
+
+      revalidatePath("/");
+      revalidatePath(`/${moduleKey}`);
+
+      return NextResponse.json({
+        message: `${validItems.length} items reordered successfully.`,
+      });
+    }
 
     if (Array.isArray(ids) && ids.length > 0 && status) {
       const { updateModuleStatus } = await import("@/lib/data");

@@ -10,6 +10,8 @@ import { Bell, CaretDown, CaretUp, Gear, List, SignOut, UserCircle } from "@phos
 import { ConfirmModal } from "./ui/confirm-modal";
 import { cn } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
+import { TrialBanner } from "./trial-banner";
+import { AnnouncementBanner } from "./announcement-banner";
 
 type AppWrapperProps = {
   children: React.ReactNode;
@@ -33,7 +35,9 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const companyName = String(user?.company || "").trim();
   const accountLabel = companyName || (user ? getRoleLabel(user?.role || "", user?.company || "") : "Workspace");
 
-  const isAuthScreen = pathname === "/login" || pathname === "/register" || pathname === "/";
+  const marketingPaths = ["/", "/login", "/register", "/features", "/pricing", "/demo", "/about", "/blog", "/contact", "/privacy", "/security"];
+  const isAuthScreen = marketingPaths.includes(pathname);
+  const isSuperadminScreen = pathname.startsWith("/admin/overview");
 
   const refreshUser = async () => {
     try {
@@ -130,7 +134,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
     (String(user?.name || user?.email || "U").charCodeAt(0) + String(user?.name || user?.email || "U").length) % avatarColors.length
   ];
 
-  if (isAuthScreen) {
+  if (isAuthScreen || isSuperadminScreen) {
     return <>{children}</>;
   }
 
@@ -190,9 +194,13 @@ export function AppWrapper({ children }: AppWrapperProps) {
                   onClick={() => setAccountOpen((v) => !v)}
                   className="flex h-8 items-center gap-2 border border-gray-200 bg-white px-2 text-left transition hover:bg-gray-50"
                 >
-                  <span className={cn("flex h-6 w-6 items-center justify-center text-[10px] font-bold text-white", avatarColor)}>
-                    {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
-                  </span>
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                  ) : (
+                    <span className={cn("flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white", avatarColor)}>
+                      {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
                   <span className="hidden max-w-28 flex-col leading-tight md:flex">
                     <span className="truncate text-xs font-semibold text-gray-800">
                       {user?.name || user?.email || "Account"}
@@ -206,22 +214,50 @@ export function AppWrapper({ children }: AppWrapperProps) {
 
                 {accountOpen && (
                   <div className="absolute right-0 top-full z-50 mt-1 w-72 border border-gray-200 bg-white p-4 shadow-lg">
-                    <div className="flex items-start gap-3">
-                      <div className={cn("flex h-10 w-10 items-center justify-center text-sm font-bold text-white", avatarColor)}>
-                        {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-gray-900">{user?.name || user?.email || "Account"}</p>
-                        <p className="truncate text-xs text-gray-500">{user?.email || "-"}</p>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          <span className="bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600">
-                            {accountLabel}
-                          </span>
-                          <span className="bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
-                            Workspace
-                          </span>
+                    <div className="flex flex-col items-center gap-2">
+                      <label className="group relative cursor-pointer" title="Change avatar">
+                        {user?.avatar ? (
+                          <img src={user.avatar} alt="Avatar" className="h-14 w-14 rounded-full object-cover ring-2 ring-gray-200" />
+                        ) : (
+                          <div className={cn("flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white", avatarColor)}>
+                            {String(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
+                          <UserCircle size={20} weight="bold" className="text-white" />
                         </div>
-                      </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            // Compress to tiny avatar (64x64, quality 0.6)
+                            const canvas = document.createElement("canvas");
+                            const ctx = canvas.getContext("2d");
+                            const img = new Image();
+                            img.onload = async () => {
+                              canvas.width = 64;
+                              canvas.height = 64;
+                              ctx?.drawImage(img, 0, 0, 64, 64);
+                              const dataUrl = canvas.toDataURL("image/webp", 0.6);
+                              try {
+                                const res = await fetch("/api/auth/avatar", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ avatar: dataUrl }),
+                                });
+                                if (res.ok) {
+                                  await refreshUser();
+                                }
+                              } catch {}
+                            };
+                            img.src = URL.createObjectURL(file);
+                          }}
+                        />
+                      </label>
+                      <p className="text-sm font-bold text-gray-900">{user?.name || user?.email || "Account"}</p>
                     </div>
 
                     <div className="mt-3 border border-gray-100 bg-gray-50 p-3 text-xs">
@@ -233,10 +269,12 @@ export function AppWrapper({ children }: AppWrapperProps) {
                         <span className="text-gray-500">Role</span>
                         <span className="font-semibold text-gray-800">{getRoleLabel(user?.role || "", user?.company || "")}</span>
                       </div>
-                      <div className="flex items-center justify-between py-1">
-                        <span className="text-gray-500">Workspace</span>
-                        <span className="max-w-36 truncate font-semibold text-gray-800">{companyName || "Private Workspace"}</span>
-                      </div>
+                      {companyName && (
+                        <div className="flex items-center justify-between py-1">
+                          <span className="text-gray-500">Workspace</span>
+                          <span className="max-w-36 truncate font-semibold text-gray-800">{companyName}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-3">
@@ -265,6 +303,8 @@ export function AppWrapper({ children }: AppWrapperProps) {
             </div>
           </header>
           <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
+            <TrialBanner />
+            <AnnouncementBanner />
             <div key={pathname} className="mx-auto max-w-7xl animate-in fade-in duration-150">
               {children}
             </div>

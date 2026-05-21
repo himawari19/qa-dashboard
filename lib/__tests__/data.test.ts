@@ -88,6 +88,7 @@ describe("data helpers", () => {
       sprints: "Sprint",
       users: "User",
       deployments: "Deployment",
+      "work-logs": "WorkLog",
     } as const;
 
     for (const key of moduleOrder) {

@@ -17,6 +17,14 @@ const publicPaths = [
   "/test-plans/",
   "/test-suites/",
   "/test-cases/detail/",
+  "/features",
+  "/pricing",
+  "/demo",
+  "/about",
+  "/blog",
+  "/contact",
+  "/privacy",
+  "/security",
 ];
 
 // Rate limiting for API routes (in-memory, per-instance)

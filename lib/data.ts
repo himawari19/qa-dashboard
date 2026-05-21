@@ -314,6 +314,21 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       }
       return res;
     }
+    case "work-logs": {
+      const assignee = data.assignee || actor;
+      const res = await runInsert(
+        `INSERT INTO "WorkLog" ("company", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, data.date, data.startTime, data.endTime, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee]
+      );
+      await logActivity(company, "WorkLog", String(data.date), "Created", `Work log: ${data.startTime}-${data.endTime} ${data.category} (${data.project})`, actor);
+      invalidateDashboardCache(company);
+      const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "WorkLog" WHERE "company" = ? AND "date" = ? AND "startTime" = ? AND "assignee" = ? ORDER BY "id" DESC LIMIT 1`, [company, data.date, data.startTime, assignee]);
+      if (created?.id !== undefined) {
+        await syncSearchIndex("work-logs", company, Number(created.id), data);
+      }
+      return res;
+    }
     default:
       return null;
   }
@@ -532,6 +547,18 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       }
       return res;
     }
+    case "work-logs": {
+      const assignee = data.assignee || actor;
+      const res = await db.run(
+        `UPDATE "WorkLog"
+         SET "date" = ?, "startTime" = ?, "endTime" = ?, "category" = ?, "project" = ?, "description" = ?, "output" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+        [data.date, data.startTime, data.endTime, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee, id, ...companyParam]
+      );
+      await logActivity(company, "WorkLog", String(data.date), "Updated", `Work log updated: ${data.startTime}-${data.endTime} ${data.category}`, actor);
+      invalidateDashboardCache(company);
+      return res;
+    }
     default:
       return null;
   }
@@ -654,6 +681,30 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
   }
   invalidateDashboardCache(company);
   return res;
+}
+
+export async function batchUpdateSortOrder(module: ModuleKey, items: { id: string | number; sortOrder: number; status?: string }[]) {
+  const currentUser = await getCurrentUser();
+  const { company, andWhere, params: qParams } = getAccessScope(currentUser);
+
+  const table = getTableName(module);
+  if (!table) return null;
+
+  for (const item of items) {
+    if (item.status) {
+      await db.run(
+        `UPDATE "${table}" SET "sortOrder" = ?, "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+        [item.sortOrder, item.status, item.id, ...qParams]
+      );
+    } else {
+      await db.run(
+        `UPDATE "${table}" SET "sortOrder" = ? WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+        [item.sortOrder, item.id, ...qParams]
+      );
+    }
+  }
+  invalidateDashboardCache(company);
+  return { updated: items.length };
 }
 
 export async function clearModuleRecords(module: ModuleKey) {

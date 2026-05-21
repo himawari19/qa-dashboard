@@ -283,7 +283,7 @@ export default async function ModulePage({
       });
     }
 
-    if (["meeting-notes", "tasks", "bugs", "deployments"].includes(moduleKey)) {
+    if (["meeting-notes", "tasks", "bugs", "deployments", "work-logs"].includes(moduleKey)) {
       relatedOptions.project = await getProjectOptions();
     }
 
@@ -315,6 +315,7 @@ export default async function ModulePage({
       "test-sessions": "tester",
       "test-suites": "assignee",
       deployments: "developer",
+      "work-logs": "assignee",
     };
 
     const config = moduleConfigs[moduleKey as ModuleKey];
@@ -357,6 +358,7 @@ export default async function ModulePage({
 
   return (
     <ModuleWorkspace
+      key={moduleKey}
       module={moduleKey as ModuleKey}
       rows={plainRows}
       kanbanRows={JSON.parse(JSON.stringify(kanbanRows))}

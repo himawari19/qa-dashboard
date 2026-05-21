@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getInviteByToken, markInviteAccepted } from "@/lib/invites";
 import { authEnabled, registerUser } from "@/lib/auth";
 import { isInviteRole, normalizeRole } from "@/lib/roles";
+import { checkCompanyUserLimit } from "@/lib/plan-limits";
 
 export async function POST(request: NextRequest) {
   if (!authEnabled()) {
@@ -39,6 +40,19 @@ export async function POST(request: NextRequest) {
     }
     if (!isInviteRole(invite.role)) {
       return NextResponse.json({ error: "Invite role is not allowed." }, { status: 400 });
+    }
+    // Check user limit before allowing registration
+    const inviteCompany = String(invite.company ?? "").trim();
+    if (inviteCompany) {
+      const limitCheck = await checkCompanyUserLimit(inviteCompany);
+      if (!limitCheck.allowed) {
+        return NextResponse.json({
+          error: "USER_LIMIT_REACHED",
+          current: limitCheck.current,
+          max: limitCheck.max,
+          plan: limitCheck.plan,
+        }, { status: 403 });
+      }
     }
     const result = await registerUser(email, password, name, normalizeRole(invite.role), String(invite.company ?? ""));
     if (result.error) {

@@ -89,12 +89,11 @@ export async function GET(request: Request) {
       const resolutionRateValue: number | null = (data as any).resolutionRate?.current ?? null;
 
       // Compute inverse critical ratio from bug severity counts
+      // When totalOpen is 0 (no bugs at all), treat as null (no data) instead of 100
       let inverseCriticalRatio: number | null = null;
       if (bugSeverityCounts) {
         const totalOpen = bugSeverityCounts.critical + bugSeverityCounts.high + bugSeverityCounts.medium + bugSeverityCounts.low;
-        if (totalOpen === 0) {
-          inverseCriticalRatio = 100;
-        } else {
+        if (totalOpen > 0) {
           inverseCriticalRatio = (1 - bugSeverityCounts.critical / totalOpen) * 100;
         }
       }
@@ -102,17 +101,21 @@ export async function GET(request: Request) {
       // Get test pass rate
       const testPassRate = await getTestPassRate(company, isAdmin);
 
-      // Compute composite score
-      const score = computeQualityHealthScore(resolutionRateValue, inverseCriticalRatio, testPassRate);
+      // Only compute and include health score when at least one component has data
+      const hasAnyData = resolutionRateValue !== null || inverseCriticalRatio !== null || testPassRate !== null;
 
-      (data as any).qualityHealthScore = {
-        score,
-        components: {
-          resolutionRate: resolutionRateValue,
-          inverseCriticalRatio: inverseCriticalRatio,
-          testPassRate: testPassRate,
-        },
-      };
+      if (hasAnyData) {
+        const score = computeQualityHealthScore(resolutionRateValue, inverseCriticalRatio, testPassRate);
+
+        (data as any).qualityHealthScore = {
+          score,
+          components: {
+            resolutionRate: resolutionRateValue,
+            inverseCriticalRatio: inverseCriticalRatio,
+            testPassRate: testPassRate,
+          },
+        };
+      }
     } catch {
       // Omit qualityHealthScore from response without error
     }

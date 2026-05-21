@@ -30,7 +30,7 @@ const ROLE_ALIASES: Record<string, string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   superadmin: "Super Admin",
-  admin: "Workspace Admin",
+  admin: "Admin",
   fe: "Front-end Engineer",
   be: "Back-end Engineer",
   fullstack: "Fullstack Engineer",
@@ -76,7 +76,7 @@ export function isInviteRole(role: string | null | undefined) {
 export function getRoleLabel(role: string | null | undefined, company: string | null | undefined = "") {
   const normalized = normalizeRole(role);
   if (normalized === "superadmin") return "Super Admin";
-  if (normalized === "admin" && String(company ?? "").trim()) return "Workspace Admin";
+  if (normalized === "admin" && String(company ?? "").trim()) return "Admin";
   return ROLE_LABELS[normalized] || (normalized ? normalized.toUpperCase() : "-");
 }
 
@@ -96,7 +96,7 @@ export function getInviteRoleOptions() {
 
 export function getUserRoleOptions(company?: string | null) {
   const scopedCompany = String(company ?? "").trim();
-  const adminLabel = scopedCompany ? "Workspace Admin" : "Super Admin";
+  const adminLabel = scopedCompany ? "Admin" : "Super Admin";
   return [
     { label: adminLabel, value: scopedCompany ? "admin" : "superadmin" },
     ...getInviteRoleOptions(),
