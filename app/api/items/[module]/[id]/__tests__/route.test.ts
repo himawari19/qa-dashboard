@@ -157,7 +157,7 @@ describe("GET /api/items/[module]/[id]", () => {
       expect(body.error).toBe("not_found");
     });
 
-    it("returns 404 when item is soft-deleted", async () => {
+    it("returns 404 when item is soft-deleted (not found by query)", async () => {
       mocks.getCurrentUser.mockResolvedValueOnce({
         id: 1,
         role: "qa",
@@ -171,12 +171,10 @@ describe("GET /api/items/[module]/[id]", () => {
         params: ["acme"],
       });
       mocks.getTableName.mockReturnValueOnce("Task");
-      mocks.dbGet.mockResolvedValueOnce({
-        id: 5,
-        title: "Deleted task",
-        company: "acme",
-        deletedAt: "2024-01-01T00:00:00",
-      });
+      // Query includes AND "deletedAt" IS NULL, so soft-deleted items won't be found
+      mocks.dbGet.mockResolvedValueOnce(undefined);
+      // Second query: item doesn't exist anywhere either (also filtered by deletedAt)
+      mocks.dbGet.mockResolvedValueOnce(undefined);
 
       const response = await GET(
         new Request("http://localhost/api/items/tasks/5"),
@@ -273,44 +271,47 @@ describe("GET /api/items/[module]/[id]", () => {
     });
   });
 
-  describe("400 response for invalid ID", () => {
-    it("returns 400 for non-numeric ID", async () => {
+  describe("token-based lookup", () => {
+    it("looks up by publicToken for non-numeric ID", async () => {
+      mocks.getCurrentUser.mockResolvedValueOnce({
+        id: 1,
+        role: "qa",
+        company: "acme",
+      });
+      mocks.getAccessScope.mockReturnValueOnce({
+        company: "acme",
+        isAdmin: false,
+        where: ' WHERE "company" = ?',
+        andWhere: ' AND "company" = ?',
+        params: ["acme"],
+      });
+      mocks.getTableName.mockReturnValueOnce("Task");
+      mocks.dbGet.mockResolvedValueOnce({
+        id: 42,
+        publicToken: "iEIj9K0xOOIGtrTii79FiA",
+        title: "Fix login bug",
+        company: "acme",
+        deletedAt: null,
+      });
+
       const response = await GET(
-        new Request("http://localhost/api/items/tasks/abc"),
-        makeParams("tasks", "abc"),
+        new Request("http://localhost/api/items/tasks/iEIj9K0xOOIGtrTii79FiA"),
+        makeParams("tasks", "iEIj9K0xOOIGtrTii79FiA"),
       );
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
       const body = await response.json();
-      expect(body.error).toBe("invalid_id");
-    });
-
-    it("returns 400 for negative ID", async () => {
-      const response = await GET(
-        new Request("http://localhost/api/items/tasks/-1"),
-        makeParams("tasks", "-1"),
+      expect(body.item.publicToken).toBe("iEIj9K0xOOIGtrTii79FiA");
+      expect(mocks.dbGet).toHaveBeenCalledWith(
+        expect.stringContaining('"publicToken"'),
+        ["iEIj9K0xOOIGtrTii79FiA", "acme"],
       );
-
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.error).toBe("invalid_id");
     });
 
-    it("returns 400 for zero ID", async () => {
+    it("returns 400 for empty token", async () => {
       const response = await GET(
-        new Request("http://localhost/api/items/tasks/0"),
-        makeParams("tasks", "0"),
-      );
-
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.error).toBe("invalid_id");
-    });
-
-    it("returns 400 for floating-point ID", async () => {
-      const response = await GET(
-        new Request("http://localhost/api/items/tasks/1.5"),
-        makeParams("tasks", "1.5"),
+        new Request("http://localhost/api/items/tasks/ "),
+        makeParams("tasks", " "),
       );
 
       expect(response.status).toBe(400);

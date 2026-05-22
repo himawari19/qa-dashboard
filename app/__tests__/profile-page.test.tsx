@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/components/page-shell", () => ({
+vi.mock("@/components/layout/page-shell", () => ({
   PageShell: mocks.pageShell,
 }));
 
@@ -59,4 +59,5 @@ describe("profile page", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/login");
   });
 });
+
 

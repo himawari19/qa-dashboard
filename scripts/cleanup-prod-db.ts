@@ -12,7 +12,7 @@ async function cleanup() {
       console.log(`\u{1F5D1}\u{FE0F}  Dropping lowercase table: ${lowerName}`);
       try {
         await db.run(`DROP TABLE IF EXISTS ${lowerName} CASCADE`);
-      } catch (e) {
+      } catch {
         // console.log(`   (Skip) ${lowerName}`);
       }
     }
@@ -21,7 +21,7 @@ async function cleanup() {
     console.log(`\u{267B}\u{FE0F}  Resetting camelCase table: "${t.name}"`);
     try {
       await db.run(`DROP TABLE IF EXISTS "${t.name}" CASCADE`);
-    } catch (e) {
+    } catch {
       console.log(`   (Skip) "${t.name}" error`);
     }
   }
@@ -31,7 +31,7 @@ async function cleanup() {
   for (const extra of extras) {
     try {
       await db.run(`DROP TABLE IF EXISTS ${extra} CASCADE`);
-    } catch (e) {}
+    } catch {}
   }
 
   console.log("\u{2705} Cleanup complete. The schema will be recreated correctly on the next page load.");

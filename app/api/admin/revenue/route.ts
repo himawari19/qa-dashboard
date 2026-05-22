@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { isSuperAdmin } from "@/lib/roles";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -53,42 +53,28 @@ export async function GET() {
       : 0;
 
     // Expiring soon (next 30 days) — potential churn risk
-    let expiringCount = 0;
-    if (isPostgres) {
-      const row = await db.get<{ count: number }>(
-        `SELECT COUNT(*) as "count" FROM "Company"
-        WHERE "status" = 'active' AND "planExpiry" IS NOT NULL
-        AND "planExpiry"::date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'`
-      );
-      expiringCount = Number(row?.count || 0);
-    } else {
-      const row = await db.get<{ count: number }>(
-        `SELECT COUNT(*) as "count" FROM "Company"
-        WHERE "status" = 'active' AND "planExpiry" IS NOT NULL
-        AND "planExpiry" BETWEEN DATE('now') AND DATE('now', '+30 days')`
-      );
-      expiringCount = Number(row?.count || 0);
-    }
+    const expiringRow = await db.get<{ count: number }>(
+      `SELECT COUNT(*) as "count" FROM "Company"
+      WHERE "status" = 'active' AND "planExpiry" IS NOT NULL
+      AND "planExpiry"::date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'`
+    );
+    const expiringCount = Number(expiringRow?.count || 0);
 
-    // Monthly revenue trend (last 6 months based on company creation + plan)
-    // Simplified: count active paid companies created before each month
-    let revenueHistory: { month: string; revenue: number }[] = [];
+    // Monthly revenue trend (last 6 months) - single query instead of N+1
+    const allCompanies = await db.query<{ plan: string; createdAt: string }>(
+      `SELECT "plan", "createdAt" FROM "Company" WHERE "status" != 'suspended'`
+    );
+
+    const revenueHistory: { month: string; revenue: number }[] = [];
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStr = d.toISOString().slice(0, 7);
-      const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10) + "T23:59:59";
 
-      const monthCompanies = await db.query<{ plan: string; count: number }>(
-        `SELECT "plan", COUNT(*) as "count" FROM "Company"
-        WHERE "status" != 'suspended' AND "createdAt" <= ?
-        GROUP BY "plan"`,
-        [endOfMonth + "T23:59:59"]
-      );
-
-      const monthRevenue = monthCompanies.reduce(
-        (sum, p) => sum + (PLAN_PRICES[p.plan] || 0) * Number(p.count), 0
-      );
+      const monthRevenue = allCompanies
+        .filter((c) => c.createdAt <= endOfMonth)
+        .reduce((sum, c) => sum + (PLAN_PRICES[c.plan] || 0), 0);
       revenueHistory.push({ month: monthStr, revenue: monthRevenue });
     }
 

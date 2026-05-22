@@ -6,7 +6,6 @@ import {
   CalendarBlank,
   Bug,
   TrendUp,
-  Checks,
   CheckCircle,
   Monitor,
 } from "@phosphor-icons/react/dist/ssr";

@@ -90,7 +90,7 @@ export function friendlyErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     const msg = error.message;
     // Expose Zod/validation messages
-    if (msg && !msg.includes("SQLITE") && !msg.includes("syntax") && msg.length < 200) {
+    if (msg && !msg.includes("syntax") && msg.length < 200) {
       return msg;
     }
   }

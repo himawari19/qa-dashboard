@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { 
   CheckCircle, 
   XCircle, 
@@ -12,12 +12,8 @@ import {
   Timer,
   ArrowsIn,
   ArrowsOut,
-  Keyboard,
-  Note
 } from "@phosphor-icons/react";
-import { cn, formatDisplayText } from "@/lib/utils";
-import { toast } from "@/components/ui/toast";
-import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 type TestCase = {
   id: string | number;
@@ -43,7 +39,7 @@ export function PlayModeView({
   const [index, setIndex] = useState(0);
   const [fullScreen, setFullScreen] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
-  const [startTime] = useState(Date.now());
+  const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
   const currentCase = items[index];
 

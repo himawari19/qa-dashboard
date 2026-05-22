@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Warning, X, Check } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -25,16 +25,19 @@ export function ConfirmModal({
   cancelText = "Cancel",
   type = "warning"
 }: ConfirmModalProps) {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(isOpen);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  if (isOpen && !show) {
+    setShow(true);
+  }
 
   useEffect(() => {
-    if (isOpen) {
-      setShow(true);
-    } else {
-      const timer = setTimeout(() => setShow(false), 150);
-      return () => clearTimeout(timer);
+    if (!isOpen && show) {
+      timerRef.current = setTimeout(() => setShow(false), 150);
+      return () => { if (timerRef.current) clearTimeout(timerRef.current); };
     }
-  }, [isOpen]);
+  }, [isOpen, show]);
 
   if (!isOpen && !show) return null;
 

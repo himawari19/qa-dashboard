@@ -1,6 +1,6 @@
 import { MarketingHeader } from "@/components/landing/marketing-header";
 import { MarketingFooter } from "@/components/landing/marketing-footer";
-import { ScrollToTop } from "@/components/scroll-to-top";
+import { ScrollToTop } from "@/components/layout/scroll-to-top";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,3 +14,4 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+

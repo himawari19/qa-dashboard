@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/security" },
 };
 
+export const revalidate = 3600;
+
 export default function SecurityPage() {
   return (
     <>

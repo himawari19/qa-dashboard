@@ -25,7 +25,7 @@ type CaseItem = {
 
 export function RunPlayMode({
   items: initialItems,
-  runId,
+  runId: _runId,
   suiteTitle,
   elapsedSeconds = 0,
   onClose,
@@ -33,8 +33,7 @@ export function RunPlayMode({
 }: {
   items: CaseItem[];
   runId: number;
-  suiteTitle: string;
-  elapsedSeconds?: number;
+  suiteTitle: string;  elapsedSeconds?: number;
   onClose: (updated: CaseItem[]) => void;
   onSaveVerdict: (item: CaseItem) => Promise<void>;
 }) {
@@ -43,7 +42,7 @@ export function RunPlayMode({
     const firstPending = initialItems.findIndex(i => i.verdict === "Pending");
     return firstPending >= 0 ? firstPending : 0;
   });
-  const [caseStart, setCaseStart] = useState(Date.now());
+  const [caseStart, setCaseStart] = useState(() => Date.now());
   const currentCase = items[index];
 
   const formatTime = (s: number) => {

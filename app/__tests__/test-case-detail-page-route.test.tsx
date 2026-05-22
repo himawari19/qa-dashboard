@@ -22,7 +22,7 @@ vi.mock("@/lib/data", () => ({
   getTestCasesByScenario: mocks.getTestCasesByScenario,
 }));
 
-vi.mock("@/components/test-case-detail-page", () => ({
+vi.mock("@/components/test-management/test-case-detail-page", () => ({
   TestCaseDetailPage: mocks.page,
 }));
 
@@ -97,3 +97,4 @@ describe("test case detail route", () => {
     ).rejects.toThrow("NEXT_NOT_FOUND");
   });
 });
+

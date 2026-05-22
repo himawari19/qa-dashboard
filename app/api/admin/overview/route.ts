@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { isSuperAdmin } from "@/lib/roles";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -48,10 +48,10 @@ export async function GET() {
         COALESCE(tc.cnt, 0) as "totalTestCases",
         COALESCE(s.cnt, 0) as "totalSprints"
       FROM "User" u
-      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Bug" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") b ON b."company" = u."company"
-      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Task" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") t ON t."company" = u."company"
-      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "TestCase" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") tc ON tc."company" = u."company"
-      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Sprint" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") s ON s."company" = u."company"
+      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Bug" WHERE "deletedAt" IS NULL GROUP BY "company") b ON b."company" = u."company"
+      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Task" WHERE "deletedAt" IS NULL GROUP BY "company") t ON t."company" = u."company"
+      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "TestCase" WHERE "deletedAt" IS NULL GROUP BY "company") tc ON tc."company" = u."company"
+      LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Sprint" WHERE "deletedAt" IS NULL GROUP BY "company") s ON s."company" = u."company"
       WHERE COALESCE(u."company", '') != '' AND COALESCE(u."deletedAt", '') = ''
       GROUP BY u."company"
       ORDER BY "totalUsers" DESC`
@@ -89,31 +89,20 @@ export async function GET() {
     }>(
       `SELECT
         (SELECT COUNT(*) FROM "Company") as "totalCompanies",
-        (SELECT COUNT(*) FROM "User" WHERE COALESCE("deletedAt", '') = '') as "totalUsers",
-        (SELECT COUNT(*) FROM "Bug" WHERE COALESCE("deletedAt", '') = '') as "totalBugs",
-        (SELECT COUNT(*) FROM "Task" WHERE COALESCE("deletedAt", '') = '') as "totalTasks",
-        (SELECT COUNT(*) FROM "TestCase" WHERE COALESCE("deletedAt", '') = '') as "totalTestCases"`
+        (SELECT COUNT(*) FROM "User" WHERE "deletedAt" IS NULL) as "totalUsers",
+        (SELECT COUNT(*) FROM "Bug" WHERE "deletedAt" IS NULL) as "totalBugs",
+        (SELECT COUNT(*) FROM "Task" WHERE "deletedAt" IS NULL) as "totalTasks",
+        (SELECT COUNT(*) FROM "TestCase" WHERE "deletedAt" IS NULL) as "totalTestCases"`
     );
 
     // 6. Growth: new companies per month (last 6 months)
-    let growthData: { month: string; count: number }[] = [];
-    if (isPostgres) {
-      growthData = await db.query<{ month: string; count: number }>(
-        `SELECT TO_CHAR("createdAt", 'YYYY-MM') as "month", COUNT(*) as "count"
-        FROM "Company"
-        WHERE "createdAt" >= NOW() - INTERVAL '6 months'
-        GROUP BY TO_CHAR("createdAt", 'YYYY-MM')
-        ORDER BY "month" ASC`
-      );
-    } else {
-      growthData = await db.query<{ month: string; count: number }>(
-        `SELECT SUBSTR("createdAt", 1, 7) as "month", COUNT(*) as "count"
-        FROM "Company"
-        WHERE "createdAt" >= DATE('now', '-6 months')
-        GROUP BY SUBSTR("createdAt", 1, 7)
-        ORDER BY "month" ASC`
-      );
-    }
+    const growthData = await db.query<{ month: string; count: number }>(
+      `SELECT TO_CHAR("createdAt", 'YYYY-MM') as "month", COUNT(*) as "count"
+      FROM "Company"
+      WHERE "createdAt" >= NOW() - INTERVAL '6 months'
+      GROUP BY TO_CHAR("createdAt", 'YYYY-MM')
+      ORDER BY "month" ASC`
+    );
 
     // 7. Role distribution across all companies
     const roleDistribution = await db.query<{
@@ -122,7 +111,7 @@ export async function GET() {
     }>(
       `SELECT "role", COUNT(*) as "count"
       FROM "User"
-      WHERE COALESCE("deletedAt", '') = '' AND COALESCE("company", '') != ''
+      WHERE "deletedAt" IS NULL AND COALESCE("company", '') != ''
       GROUP BY "role"
       ORDER BY "count" DESC`
     );

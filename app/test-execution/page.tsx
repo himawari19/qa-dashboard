@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
-import { PageShell } from "@/components/page-shell";
+import { PageShell } from "@/components/layout/page-shell";
 import { Play } from "@phosphor-icons/react/dist/ssr/Play";
 import { ExecutionSuiteCards } from "./execution-suite-cards";
-import { SuitesHeaderActions } from "@/components/suites-header-actions";
+import { SuitesHeaderActions } from "@/components/test-management/suites-header-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -115,3 +115,5 @@ export default async function TestExecutionPage({
     </PageShell>
   );
 }
+
+

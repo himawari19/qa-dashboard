@@ -8,11 +8,17 @@ import {
 } from "@/lib/shareable-url";
 
 describe("parseViewId", () => {
-  it("returns parsed number for valid positive integer strings", () => {
-    expect(parseViewId("1")).toBe(1);
-    expect(parseViewId("42")).toBe(42);
-    expect(parseViewId("999")).toBe(999);
-    expect(parseViewId("100000")).toBe(100000);
+  it("returns trimmed string for valid values", () => {
+    expect(parseViewId("1")).toBe("1");
+    expect(parseViewId("42")).toBe("42");
+    expect(parseViewId("999")).toBe("999");
+    expect(parseViewId("100000")).toBe("100000");
+  });
+
+  it("returns token strings as-is", () => {
+    expect(parseViewId("iEIj9K0xOOIGtrTii79FiA")).toBe("iEIj9K0xOOIGtrTii79FiA");
+    expect(parseViewId("abc123")).toBe("abc123");
+    expect(parseViewId("my-token_value")).toBe("my-token_value");
   });
 
   it("returns null for empty strings", () => {
@@ -24,31 +30,10 @@ describe("parseViewId", () => {
     expect(parseViewId(null)).toBeNull();
   });
 
-  it("returns null for non-numeric strings", () => {
-    expect(parseViewId("abc")).toBeNull();
-    expect(parseViewId("12abc")).toBeNull();
-    expect(parseViewId("abc12")).toBeNull();
-    expect(parseViewId("!@#")).toBeNull();
-  });
-
-  it("returns null for negative numbers", () => {
-    expect(parseViewId("-1")).toBeNull();
-    expect(parseViewId("-42")).toBeNull();
-  });
-
-  it("returns null for floating-point numbers", () => {
-    expect(parseViewId("3.14")).toBeNull();
-    expect(parseViewId("1.0")).toBeNull();
-    expect(parseViewId("0.5")).toBeNull();
-  });
-
-  it("returns null for zero", () => {
-    expect(parseViewId("0")).toBeNull();
-  });
-
   it("handles strings with whitespace by trimming", () => {
-    expect(parseViewId("  42  ")).toBe(42);
-    expect(parseViewId("\t7\n")).toBe(7);
+    expect(parseViewId("  42  ")).toBe("42");
+    expect(parseViewId("\t7\n")).toBe("7");
+    expect(parseViewId("  token  ")).toBe("token");
   });
 
   it("returns null for whitespace-only strings", () => {

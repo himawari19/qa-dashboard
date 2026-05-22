@@ -37,11 +37,11 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/components/page-shell", () => ({
+vi.mock("@/components/layout/page-shell", () => ({
   PageShell: mocks.pageShell,
 }));
 
-vi.mock("@/components/test-case-detail-editor", () => ({
+vi.mock("@/components/test-management/test-case-detail-editor", () => ({
   TestCaseDetailEditor: ({ suiteTitle }: { suiteTitle: string }) => (
     <div data-testid="fullstack">{suiteTitle}</div>
   ),
@@ -51,7 +51,7 @@ vi.mock("@/components/ui/toast", () => ({
   toast: vi.fn(),
 }));
 
-import { TestCaseDetailPage } from "@/components/test-case-detail-page";
+import { TestCaseDetailPage } from "@/components/test-management/test-case-detail-page";
 
 describe("TestCaseDetailPage", () => {
   it("renders the execution page shell", () => {
@@ -82,4 +82,6 @@ describe("TestCaseDetailPage", () => {
     ]);
   });
 });
+
+
 

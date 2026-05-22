@@ -220,31 +220,14 @@ describe("Property 3: URL Round-Trip (Open/Close)", () => {
 });
 
 /**
- * Property 4: Invalid View Parameter Rejection
+ * Property 4: View Parameter Validation
  *
- * For any non-positive-integer string, `parseViewId` returns null.
+ * `parseViewId` returns null only for empty/whitespace/null/undefined values.
+ * Any non-empty trimmed string is a valid token.
  *
  * **Validates: Requirements 1.5, 5.4**
  */
-describe("Property 4: Invalid View Parameter Rejection", () => {
-  // Strings that contain non-digit characters
-  const nonNumericArb = fc
-    .string({ minLength: 1, maxLength: 100 })
-    .filter((s) => !/^\s*\d+\s*$/.test(s));
-
-  // Negative integers as strings
-  const negativeIntArb = fc
-    .integer({ min: -999999, max: -1 })
-    .map(String);
-
-  // Floating point numbers as strings
-  const floatArb = fc
-    .tuple(fc.integer({ min: 0, max: 999 }), fc.integer({ min: 1, max: 999 }))
-    .map(([whole, frac]) => `${whole}.${frac}`);
-
-  // Zero
-  const zeroArb = fc.constant("0");
-
+describe("Property 4: View Parameter Validation", () => {
   // Whitespace-only strings
   const whitespaceArb = fc
     .array(fc.constantFrom(" ", "\t", "\n", "\r"), { minLength: 1, maxLength: 10 })
@@ -253,37 +236,16 @@ describe("Property 4: Invalid View Parameter Rejection", () => {
   // Empty string
   const emptyArb = fc.constant("");
 
-  it("rejects non-numeric strings", () => {
-    fc.assert(
-      fc.property(nonNumericArb, (value) => {
-        expect(parseViewId(value)).toBeNull();
-      }),
-      { numRuns: NUM_RUNS },
-    );
-  });
+  // Any non-empty string (valid tokens)
+  const validTokenArb = fc
+    .string({ minLength: 1, maxLength: 100 })
+    .filter((s) => s.trim().length > 0);
 
-  it("rejects negative integer strings", () => {
+  it("accepts any non-empty trimmed string as valid token", () => {
     fc.assert(
-      fc.property(negativeIntArb, (value) => {
-        expect(parseViewId(value)).toBeNull();
-      }),
-      { numRuns: NUM_RUNS },
-    );
-  });
-
-  it("rejects floating-point number strings", () => {
-    fc.assert(
-      fc.property(floatArb, (value) => {
-        expect(parseViewId(value)).toBeNull();
-      }),
-      { numRuns: NUM_RUNS },
-    );
-  });
-
-  it("rejects zero", () => {
-    fc.assert(
-      fc.property(zeroArb, (value) => {
-        expect(parseViewId(value)).toBeNull();
+      fc.property(validTokenArb, (value) => {
+        const result = parseViewId(value);
+        expect(result).toBe(value.trim());
       }),
       { numRuns: NUM_RUNS },
     );

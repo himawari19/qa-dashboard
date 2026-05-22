@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
 import { createInvite, listInvites } from "@/lib/invites";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

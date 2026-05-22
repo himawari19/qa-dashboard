@@ -55,7 +55,7 @@ vi.mock("next/navigation", () => ({
   notFound: mocks.notFound,
 }));
 
-vi.mock("@/components/module-workspace", () => ({
+vi.mock("@/components/module/module-workspace", () => ({
   ModuleWorkspace: mocks.moduleWorkspace,
 }));
 
@@ -307,4 +307,5 @@ describe("module route", () => {
     ).rejects.toThrow("NEXT_NOT_FOUND");
   });
 });
+
 

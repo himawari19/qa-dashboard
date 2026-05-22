@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildWorkspaceUrl, withUpdatedWorkspaceParams } from "@/components/module-workspace-url";
+import { buildWorkspaceUrl, withUpdatedWorkspaceParams } from "@/components/module/module-workspace-url";
 
 describe("module-workspace-url", () => {
   it("builds URL without query when params are empty", () => {
@@ -28,3 +28,4 @@ describe("module-workspace-url", () => {
     expect(params.toString()).toBe("page=2");
   });
 });
+

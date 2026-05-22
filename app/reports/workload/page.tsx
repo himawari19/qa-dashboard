@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from"react";
-import { PageShell } from"@/components/page-shell";
-import { Badge } from"@/components/badge";
+import { PageShell } from"@/components/layout/page-shell";
+import { Badge } from"@/components/shared/badge";
 import { 
  Users, 
  Briefcase, 
@@ -45,9 +45,9 @@ export default function WorkloadPage() {
  setDetail({ member: item, items: [] });
  const res = await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(item.name)}`).then(r => r.json()).catch(() => ({}));
  const items: DetailItem[] = [
- ...(res.tasks || []).map((t: any) => ({ label: t.title, sub:"Task", badge: t.status, badge2: t.priority, href:`/tasks?view=${t.id}` })),
- ...(res.bugs || []).map((b: any) => ({ label: b.title, sub:"Bug", badge: b.status, badge2: b.severity, href:`/bugs?view=${b.id}` })),
- ...(res.suites || []).map((s: any) => ({ label: s.title, sub:"Test Suites", badge: s.status, href:`/test-suites?view=${s.id}` })),
+ ...(res.tasks || []).map((t: any) => ({ label: t.title, sub:"Task", badge: t.status, badge2: t.priority, href:`/tasks?view=${t.publicToken || t.id}` })),
+ ...(res.bugs || []).map((b: any) => ({ label: b.title, sub:"Bug", badge: b.status, badge2: b.severity, href:`/bugs?view=${b.publicToken || b.id}` })),
+ ...(res.suites || []).map((s: any) => ({ label: s.title, sub:"Test Suites", badge: s.status, href:`/test-suites?view=${s.publicToken || s.id}` })),
  ];
  setDetail({ member: item, items });
  setDetailLoading(false);
@@ -392,3 +392,4 @@ export default function WorkloadPage() {
  </PageShell>
  );
 }
+

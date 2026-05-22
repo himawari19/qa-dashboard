@@ -30,7 +30,7 @@ vi.mock("react", async () => {
   };
 });
 
-vi.mock("@/components/page-shell", () => ({
+vi.mock("@/components/layout/page-shell", () => ({
   PageShell: mocks.pageShell,
 }));
 
@@ -111,3 +111,4 @@ describe("weekly report page", () => {
     );
   });
 });
+

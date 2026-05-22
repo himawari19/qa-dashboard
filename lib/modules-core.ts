@@ -131,13 +131,15 @@ export const sprintStatusOptions: Option[] = [
 ].map(([label, value]) => ({ label, value }));
 
 export const taskCategoryOptions: Option[] = [
-  ["Feature", "feature"],
-  ["Enhancement", "enhancement"],
-  ["Bugfix", "bugfix"],
-  ["Tech Debt", "tech-debt"],
-  ["Research", "research"],
-  ["Support", "support"],
-  ["Refactor", "refactor"],
+  ["Feature", "Feature"],
+  ["Enhancement", "Enhancement"],
+  ["Bug Fix", "Bug Fix"],
+  ["Tech Debt", "Tech Debt"],
+  ["Research", "Research"],
+  ["Support", "Support"],
+  ["Refactor", "Refactor"],
+  ["Documentation", "Documentation"],
+  ["Improvement", "Improvement"],
 ].map(([label, value]) => ({ label, value }));
 
 export const severityOptions: Option[] = [
@@ -161,7 +163,7 @@ export const taskSchema = z.object({
   title: requiredText("Title"),
   project: requiredText("Project"),
   relatedFeature: requiredText("Feature"),
-  category: z.enum(["feature", "enhancement", "bugfix", "tech-debt", "research", "support", "refactor"]),
+  category: z.enum(["Feature", "Enhancement", "Bug Fix", "Tech Debt", "Research", "Support", "Refactor", "Documentation", "Improvement"]),
   status: z.enum(["todo", "doing", "review", "done", "blocked"]),
   priority: z.enum(["P0", "P1", "P2", "P3"]),
   startDate: z.string().optional().default(""),
@@ -194,18 +196,19 @@ export const testCaseSchema = z.object({
   tcId: requiredText("Test Case ID"),
   caseName: requiredText("Test Case Name"),
   assignee: optionalText,
-  typeCase: z.enum(["Positive", "Negative"]),
+  typeCase: z.preprocess((v) => (v === "" || v === undefined ? undefined : v), z.enum(["Positive", "Negative"]).default("Positive")),
   preCondition: requiredText("Pre-condition"),
   testStep: requiredText("Test Step"),
   expectedResult: requiredText("Expected Result"),
   actualResult: optionalText,
-  status: z.enum(["Pending", "Passed", "Failed", "Blocked"]),
-  priority: z.enum(["Critical", "High", "Medium", "Low"]).default("Medium"),
+  status: z.preprocess((v) => (v === "" || v === undefined ? undefined : v), z.enum(["Pending", "Passed", "Failed", "Blocked"]).default("Pending")),
+  priority: z.preprocess((v) => (v === "" || v === undefined ? undefined : v), z.enum(["Critical", "High", "Medium", "Low"]).default("Medium")),
 });
 
 export const testPlanStatusOptions: Option[] = [
   ["Draft", "draft"],
   ["Active", "active"],
+  ["Completed", "completed"],
   ["Closed", "closed"],
 ].map(([label, value]) => ({ label, value }));
 
@@ -217,7 +220,7 @@ export const testPlanSchema = z.object({
   scope: optionalText,
   startDate: z.string().optional().default(""),
   endDate: z.string().optional().default(""),
-  status: z.enum(["draft", "active", "closed"]),
+  status: z.enum(["draft", "active", "completed", "closed"]),
   assignee: optionalText,
   notes: optionalText,
 });
@@ -257,7 +260,13 @@ export const suiteSchema = z.object({
   testPlanId: optionalText,
   assignee: optionalText,
   notes: optionalText,
-  status: z.enum(["draft", "active", "archived"]),
+  status: z.preprocess(
+    (val) => {
+      const s = String(val ?? "").trim().toLowerCase();
+      return s || "draft";
+    },
+    z.enum(["draft", "active", "archived"]),
+  ),
 });
 
 export const meetingNoteSchema = z.object({

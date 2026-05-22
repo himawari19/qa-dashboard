@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
-import { normalizeTestPlanRow, normalizeTestSuiteRow, normalizeTestCaseRow, toSqliteDatetime } from "@/lib/data-helpers";
+import { normalizeTestPlanRow, normalizeTestSuiteRow, normalizeTestCaseRow, toDatetime } from "@/lib/data-helpers";
 
 async function selectAll(sqlStr: string, params: unknown[] = []): Promise<Array<Record<string, string | number | null>>> {
   return db.query<Record<string, string | number | null>>(sqlStr, params);
@@ -147,7 +147,7 @@ export async function getQualityTrend() {
     d.setDate(d.getDate() - i * 7);
     const start = new Date(d);
     start.setDate(start.getDate() - 7);
-    weeks.push({ label: `Week -${i}`, start: toSqliteDatetime(start), end: toSqliteDatetime(d) });
+    weeks.push({ label: `Week -${i}`, start: toDatetime(start), end: toDatetime(d) });
   }
 
   return Promise.all(

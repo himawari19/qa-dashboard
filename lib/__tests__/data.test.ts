@@ -223,7 +223,8 @@ describe("module data access", () => {
       category: "Testing",
       status: "todo",
       priority: "P1",
-      dueDate: "2026-05-01",
+      startDate: "2026-05-01",
+      endDate: "2026-05-01",
       description: "desc",
       notes: "notes",
       evidence: "",
@@ -244,7 +245,8 @@ describe("module data access", () => {
       category: "Testing",
       status: "done",
       priority: "P1",
-      dueDate: "2026-05-01",
+      startDate: "2026-05-01",
+      endDate: "2026-05-01",
       description: "desc",
       notes: "notes",
       evidence: "",
@@ -737,7 +739,7 @@ describe("module row queries", () => {
     mocks.db.query
       .mockResolvedValueOnce([{ id: 1, title: "Plan A", project: "QA Hub", sprint: "Sprint 1", assignee: "Rina", status: "active", startDate: "2026-04-01", endDate: "2026-04-30", notes: "", scope: "Regression", publicToken: "plan-1" }])
       .mockResolvedValueOnce([{ id: 2, project: "QA Hub", module: "Login", bugType: "UI", title: "Button shift", preconditions: "", stepsToReproduce: "", expectedResult: "", actualResult: "", severity: "low", priority: "P2", status: "open", evidence: "", relatedItems: "" }])
-      .mockResolvedValueOnce([{ id: 3, title: "Task 1", project: "QA Hub", relatedFeature: "Login", category: "Testing", status: "todo", priority: "P1", dueDate: "2026-05-01", description: "desc", notes: "", evidence: "", relatedItems: "", assignee: "Rina" }])
+      .mockResolvedValueOnce([{ id: 3, title: "Task 1", project: "QA Hub", relatedFeature: "Login", category: "Testing", status: "todo", priority: "P1", startDate: "2026-05-01", endDate: "2026-05-01", description: "desc", notes: "", evidence: "", relatedItems: "", assignee: "Rina" }])
       .mockResolvedValueOnce([{ id: 4, date: "2026-04-30", project: "QA Hub", sprint: "Sprint 1", tester: "Rina", scope: "Smoke", totalCases: 2, passed: 1, failed: 1, blocked: 0, result: "failed", notes: "" }])
       .mockResolvedValueOnce([{ id: 5, date: "2026-04-30", project: "QA Hub", title: "Daily", attendees: "", content: "", actionItems: "" }])
       .mockResolvedValueOnce([{ id: 6, testPlanId: 1, title: "Suite A", assignee: "Rina", status: "active", notes: "", publicToken: "suite-1" }])

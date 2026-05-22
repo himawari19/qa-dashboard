@@ -1,46 +1,44 @@
 /**
  * Utility functions for constructing and parsing shareable detail view URLs.
  *
- * URL format: /{module}?view={id}
- * With tab:   /{module}?view={id}&tab={tabName}
+ * URL format: /{module}?view={token}
+ * With tab:   /{module}?view={token}&tab={tabName}
  */
 
 /**
- * Validates that the value is a positive integer string.
- * Returns the parsed number or null if invalid.
+ * Validates that the value is a non-empty string (token or numeric ID).
+ * Returns the trimmed string or null if invalid.
  */
-export function parseViewId(value: string | undefined | null): number | null {
+export function parseViewId(value: string | undefined | null): string | null {
   if (!value) return null;
   const trimmed = value.trim();
-  if (!/^\d+$/.test(trimmed)) return null;
-  const num = parseInt(trimmed, 10);
-  if (num <= 0 || !Number.isFinite(num)) return null;
-  return num;
+  if (!trimmed) return null;
+  return trimmed;
 }
 
 /**
- * Constructs the full shareable URL in format: origin + "/" + module + "?view=" + id
+ * Constructs the full shareable URL in format: origin + "/" + module + "?view=" + token
  */
 export function buildShareableUrl(
   origin: string,
   module: string,
-  id: string | number,
+  token: string | number,
 ): string {
-  return `${origin}/${module}?view=${id}`;
+  return `${origin}/${module}?view=${token}`;
 }
 
 /**
  * Constructs a shareable URL with an optional tab parameter.
- * Format: origin + "/" + module + "?view=" + id + "&tab=" + tabName (when tab is provided and non-empty)
+ * Format: origin + "/" + module + "?view=" + token + "&tab=" + tabName (when tab is provided and non-empty)
  * Falls back to the same output as buildShareableUrl when tab is not provided.
  */
 export function buildShareableUrlWithTab(
   origin: string,
   module: string,
-  id: string | number,
+  token: string | number,
   tab?: string,
 ): string {
-  const base = `${origin}/${module}?view=${id}`;
+  const base = `${origin}/${module}?view=${token}`;
   if (tab && tab.trim()) {
     return `${base}&tab=${tab.trim()}`;
   }

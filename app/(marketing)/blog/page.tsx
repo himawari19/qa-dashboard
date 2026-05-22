@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/blog" },
 };
 
+export const revalidate = 3600;
+
 const posts = [
   {
     slug: "why-spreadsheets-fail-qa-teams",

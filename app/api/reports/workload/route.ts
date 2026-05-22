@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
 import { normalizeRole } from "@/lib/roles";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

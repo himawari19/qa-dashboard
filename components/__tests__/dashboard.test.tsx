@@ -11,7 +11,7 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("@/components/breadcrumb", () => ({
+vi.mock("@/components/layout/breadcrumb", () => ({
   Breadcrumb: mocks.breadcrumb,
 }));
 
@@ -39,7 +39,7 @@ vi.mock("recharts", () => ({
   CartesianGrid: () => null,
 }));
 
-import { Dashboard } from "@/components/dashboard";
+import { Dashboard } from "@/components/dashboard/dashboard";
 
 describe("ResolutionRateMetric in Dashboard", () => {
   const baseProps = {
@@ -177,3 +177,5 @@ describe("Dashboard", () => {
     expect(mocks.breadcrumb.mock.calls[0][0].crumbs).toEqual([{ label: "Dashboard" }]);
   });
 });
+
+

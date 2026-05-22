@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
+export const revalidate = 3600;
+
 export default function PrivacyPage() {
   return (
     <>

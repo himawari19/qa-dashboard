@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 import { logActivity } from "@/lib/data-helpers";
 

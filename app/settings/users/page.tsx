@@ -1,5 +1,5 @@
-import { InviteManager } from "@/components/invite-manager";
-import { ModuleWorkspace } from "@/components/module-workspace";
+import { InviteManager } from "@/components/shared/invite-manager";
+import { ModuleWorkspace } from "@/components/module/module-workspace";
 import { getModuleRows } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { isManagementAdmin } from "@/lib/roles";
@@ -26,3 +26,4 @@ export default async function UserManagementPage() {
     />
   );
 }
+

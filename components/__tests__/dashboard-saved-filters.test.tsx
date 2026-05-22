@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DashboardSavedFilters, normalizeSavedFilter } from "@/components/dashboard-saved-filters";
+import { DashboardSavedFilters, normalizeSavedFilter } from "@/components/dashboard/dashboard-saved-filters";
 
 describe("dashboard-saved-filters", () => {
   it("normalizes raw filter rows into component shape", () => {
@@ -48,3 +48,4 @@ describe("dashboard-saved-filters", () => {
     expect(activeHtml).toContain("data-testid=\"save-filter-btn\"");
   });
 });
+

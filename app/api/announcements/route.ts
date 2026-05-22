@@ -28,7 +28,7 @@ export async function GET() {
     FROM "Announcement"
     WHERE "active" = 1
       AND (COALESCE("targetCompany", '') = '' OR "targetCompany" = ?)
-      AND (COALESCE("expiresAt", '') = '' OR "expiresAt" >= CURRENT_TIMESTAMP)
+      AND ("expiresAt" IS NULL OR "expiresAt" >= CURRENT_TIMESTAMP)
     ORDER BY "createdAt" DESC
     LIMIT 5`,
     [company]

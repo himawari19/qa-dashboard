@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { KanbanBoard } from "@/components/kanban-board";
+import { KanbanBoard } from "@/components/module/kanban-board";
 
 describe("KanbanBoard", () => {
   it("groups rows by Status fallback key", () => {
@@ -17,3 +17,4 @@ describe("KanbanBoard", () => {
     expect(html).toContain("Todo");
   });
 });
+

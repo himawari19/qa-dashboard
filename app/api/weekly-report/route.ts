@@ -120,58 +120,58 @@ export async function GET(request: NextRequest) {
     db.query<BugRow>(
       `SELECT id, title, severity, priority, project, status
        FROM "Bug"
-       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
+       WHERE date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}
        ORDER BY "createdAt" DESC`,
       [...dp, ...cp],
     ),
     db.query<ClosedBugRow>(
       `SELECT id, title, severity
        FROM "Bug"
-       WHERE status IN ('closed','fixed') AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}`,
+       WHERE status IN ('closed','fixed') AND date("updatedAt") >= ? AND date("updatedAt") <= ?${andCompany}`,
       [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "Bug"
-       WHERE status = 'open' AND DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}`,
+       WHERE status = 'open' AND date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}`,
       [...dp, ...cp],
     ),
     db.query<TaskRow>(
       `SELECT id, title, priority, status, project
        FROM "Task"
-       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
+       WHERE date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}
        ORDER BY "createdAt" DESC`,
       [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "Task"
-       WHERE status = 'done' AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}`,
+       WHERE status = 'done' AND date("updatedAt") >= ? AND date("updatedAt") <= ?${andCompany}`,
       [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "Task"
-       WHERE status != 'done' AND DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}`,
+       WHERE status != 'done' AND date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}`,
       [...dp, ...cp],
     ),
     db.query<SessionRow>(
       `SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result
        FROM "TestSession"
-       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
+       WHERE date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}
        ORDER BY date DESC`,
       [...dp, ...cp],
     ),
     db.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM "TestCase"
-       WHERE DATE("updatedAt") >= ? AND DATE("updatedAt") <= ? AND status != 'Pending'${andCompany}`,
+       WHERE date("updatedAt") >= ? AND date("updatedAt") <= ? AND status != 'Pending'${andCompany}`,
       [...dp, ...cp],
     ),
     db.query<SeverityRow>(
       `SELECT COALESCE(NULLIF(severity, ''), 'unknown') as name, COUNT(*) as count
        FROM "Bug"
-       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
+       WHERE date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}
        GROUP BY COALESCE(NULLIF(severity, ''), 'unknown')
        ORDER BY count DESC`,
       [...dp, ...cp],
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
     db.query<ProjectRow>(
       `SELECT project as name, COUNT(*) as count
        FROM "Bug"
-       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
+       WHERE date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}
        GROUP BY project
        ORDER BY count DESC
        LIMIT 5`,
@@ -191,12 +191,12 @@ export async function GET(request: NextRequest) {
       FROM (
         SELECT assignee as name, COUNT(*) as taskCount
         FROM "Task"
-        WHERE assignee != '' AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}
+        WHERE assignee != '' AND date("updatedAt") >= ? AND date("updatedAt") <= ?${andCompany}
         GROUP BY assignee
         UNION ALL
         SELECT "suggestedDev" as name, COUNT(*) as taskCount
         FROM "Bug"
-        WHERE "suggestedDev" != '' AND DATE("updatedAt") >= ? AND DATE("updatedAt") <= ?${andCompany}
+        WHERE "suggestedDev" != '' AND date("updatedAt") >= ? AND date("updatedAt") <= ?${andCompany}
         GROUP BY "suggestedDev"
       ) as combined
       GROUP BY name
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
     db.query<ActivityRow>(
       `SELECT "entityType", action, summary, "createdAt"
        FROM "ActivityLog"
-       WHERE DATE("createdAt") >= ? AND DATE("createdAt") <= ?${andCompany}
+       WHERE date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}
        ORDER BY "createdAt" DESC
        LIMIT 20`,
       [...dp, ...cp],
@@ -296,3 +296,5 @@ export async function GET(request: NextRequest) {
     })),
   });
 }
+
+

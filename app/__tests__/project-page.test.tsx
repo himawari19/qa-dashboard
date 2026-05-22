@@ -11,11 +11,11 @@ const mocks = vi.hoisted(() => ({
   formatDate: vi.fn((value: string) => value),
 }));
 
-vi.mock("@/components/page-shell", () => ({
+vi.mock("@/components/layout/page-shell", () => ({
   PageShell: mocks.pageShell,
 }));
 
-vi.mock("@/components/breadcrumb", () => ({
+vi.mock("@/components/layout/breadcrumb", () => ({
   Breadcrumb: mocks.breadcrumb,
 }));
 
@@ -91,3 +91,4 @@ describe("project detail page", () => {
     ]);
   });
 });
+

@@ -25,7 +25,7 @@ vi.mock("@/lib/utils", () => ({
   cn: (...classes: Array<string | undefined | false>) => classes.filter(Boolean).join(" "),
 }));
 
-import { TestCaseDetailEditor, TestCaseGridRow } from "@/components/test-case-detail-editor";
+import { TestCaseDetailEditor, TestCaseGridRow } from "@/components/test-management/test-case-detail-editor";
 
 describe("TestCaseDetailEditor", () => {
   it("renders existing rows and detail controls", () => {
@@ -166,4 +166,5 @@ describe("TestCaseDetailEditor", () => {
     expect(html).toContain("bg-orange-100 text-orange-700");
   });
 });
+
 

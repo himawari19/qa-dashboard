@@ -33,7 +33,7 @@ export async function checkCompanyUserLimit(company: string): Promise<
 
   // Count active users in this company
   const row = await db.get<{ count: number }>(
-    `SELECT COUNT(*) as "count" FROM "User" WHERE "company" = ? AND COALESCE("deletedAt", '') = ''`,
+    `SELECT COUNT(*) as "count" FROM "User" WHERE "company" = ? AND "deletedAt" IS NULL`,
     [company]
   );
   const currentUsers = Number(row?.count || 0);

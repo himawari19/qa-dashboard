@@ -312,13 +312,13 @@ describe("Shareable Detail Links - Integration", () => {
     });
   });
 
-  describe("Invalid (non-numeric) view param shows toast notification", () => {
-    it("does not open modal or fetch when view param is non-numeric", () => {
+  describe("Token-based view param triggers fetch when not found locally", () => {
+    it("fetches from API when view param is a token not found in localRows", () => {
       setTestUrl("/tasks", "?view=abc");
 
       const onOpenRow = vi.fn();
       const onNotFound = vi.fn();
-      const fetchMock = vi.fn();
+      const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve({}) });
       vi.stubGlobal("fetch", fetchMock);
 
       renderHook(() =>
@@ -334,16 +334,16 @@ describe("Shareable Detail Links - Integration", () => {
         }),
       );
 
-      // parseViewId("abc") returns null, so nothing should happen
+      // parseViewId("abc") returns "abc", so it tries to find in localRows then fetches
       expect(onOpenRow).not.toHaveBeenCalled();
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledWith("/api/items/tasks/abc");
     });
 
-    it("does not open modal when view param is negative", () => {
+    it("fetches from API when view param is negative (treated as token)", () => {
       setTestUrl("/tasks", "?view=-5");
 
       const onOpenRow = vi.fn();
-      const fetchMock = vi.fn();
+      const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve({}) });
       vi.stubGlobal("fetch", fetchMock);
 
       renderHook(() =>
@@ -360,14 +360,14 @@ describe("Shareable Detail Links - Integration", () => {
       );
 
       expect(onOpenRow).not.toHaveBeenCalled();
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledWith("/api/items/tasks/-5");
     });
 
-    it("does not open modal when view param is a float", () => {
+    it("fetches from API when view param is a float (treated as token)", () => {
       setTestUrl("/tasks", "?view=3.14");
 
       const onOpenRow = vi.fn();
-      const fetchMock = vi.fn();
+      const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve({}) });
       vi.stubGlobal("fetch", fetchMock);
 
       renderHook(() =>
@@ -384,7 +384,7 @@ describe("Shareable Detail Links - Integration", () => {
       );
 
       expect(onOpenRow).not.toHaveBeenCalled();
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledWith("/api/items/tasks/3.14");
     });
 
     it("does not open modal when view param is empty string", () => {
@@ -443,7 +443,7 @@ describe("Shareable Detail Links - Integration", () => {
 
         // Verify parseViewId can extract the ID back
         const parsedId = parseViewId(urlObj.searchParams.get("view"));
-        expect(parsedId).toBe(id);
+        expect(parsedId).toBe(String(id));
       },
     );
 

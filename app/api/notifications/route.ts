@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
 
@@ -23,17 +23,17 @@ export async function GET() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const plus3Iso = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
   const plus2Iso = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
-  const overdueExpr = isPostgres ? `"createdAt" <= NOW() - INTERVAL '7 days'` : `"createdAt" <= datetime('now', '-7 days')`;
+  const overdueExpr = `"createdAt" <= NOW() - INTERVAL '7 days'`;
 
   const notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] = [];
 
   const [overdueBugs, deadlineSprints, deadlinePlans] = await Promise.all([
     db.query(
-      `SELECT id, title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${overdueExpr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
+      `SELECT id, "publicToken", title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${overdueExpr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
       [...cp]
     ) as Promise<any[]>,
     db.query(
-      `SELECT id, name, "endDate" FROM "Sprint"
+      `SELECT id, "publicToken", name, "endDate" FROM "Sprint"
        WHERE status != 'completed'
          AND status != 'closed'
          AND COALESCE("endDate", '') != ''
@@ -44,7 +44,7 @@ export async function GET() {
       [todayIso, plus3Iso, ...cp]
     ) as Promise<any[]>,
     db.query(
-      `SELECT id, title, "endDate" FROM "TestPlan"
+      `SELECT id, "publicToken", title, "endDate" FROM "TestPlan"
        WHERE status != 'closed'
          AND status != 'completed'
          AND "deletedAt" IS NULL
@@ -64,7 +64,7 @@ export async function GET() {
       type: "overdue",
       title: b.title,
       detail: `Bug open for ${days} days · ${b.severity}`,
-      href: `/bugs?view=${b.id}`,
+      href: `/bugs?view=${b.publicToken || b.id}`,
     });
   }
 
@@ -75,7 +75,7 @@ export async function GET() {
       type: "deadline",
       title: s.name,
       detail: daysLeft === 0 ? "Sprint ends today!" : `Ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
-      href: `/sprints?view=${s.id}`,
+      href: `/sprints?view=${s.publicToken || s.id}`,
     });
   }
 
@@ -86,7 +86,7 @@ export async function GET() {
       type: "deadline",
       title: p.title,
       detail: daysLeft === 0 ? "Test plan ends today!" : `Ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
-      href: `/test-plans?view=${p.id}`,
+      href: `/test-plans?view=${p.publicToken || p.id}`,
     });
   }
 

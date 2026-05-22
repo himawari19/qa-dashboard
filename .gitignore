@@ -84,5 +84,12 @@ eslint.json
 /.claude/
 /.claude/settings.local.json
 
+# generated artifacts
+vitest-results.json
+missing-tests.txt
+
 # reference assets
 logres.gif
+
+# Database backups
+/backups

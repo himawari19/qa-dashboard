@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { DashboardHome } from "@/components/dashboard-home";
-import { DashboardSkeleton } from "@/components/skeleton";
+import { DashboardHome } from "@/components/dashboard/dashboard-home";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { getDashboardData, getDashboardProjects } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -26,3 +26,4 @@ export default function DashboardPage() {
     </Suspense>
   );
 }
+

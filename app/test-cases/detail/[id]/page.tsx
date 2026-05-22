@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTestCasesByScenario, getTestSuiteByToken, getTestSuite, getTestPlanById } from "@/lib/data";
-import { TestCaseDetailPage } from "@/components/test-case-detail-page";
+import { TestCaseDetailPage } from "@/components/test-management/test-case-detail-page";
 
 export const dynamic = "force-dynamic";
 
@@ -33,3 +33,4 @@ export default async function TestCaseDetailPageRoute({ params }: { params: Prom
     />
   );
 }
+

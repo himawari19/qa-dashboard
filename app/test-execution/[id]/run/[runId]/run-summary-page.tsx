@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Play, Lightning } from "@phosphor-icons/react";
-import { Breadcrumb } from "@/components/breadcrumb";
+import { ArrowLeft, Lightning } from "@phosphor-icons/react";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RunSummary } from "./run-summary";
 
 type RunData = {
@@ -66,3 +66,4 @@ export function RunSummaryPage({ run, suite }: { run: RunData; suite: SuiteData 
     </div>
   );
 }
+

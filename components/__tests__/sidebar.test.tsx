@@ -11,7 +11,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar } from "@/components/layout/sidebar";
 
 describe("Sidebar", () => {
   it("marks test execution active for execution detail routes", () => {
@@ -28,3 +28,4 @@ describe("Sidebar", () => {
     expect(html).not.toMatch(/href="\/test-suites"[^>]*bg-sky-500\/10/);
   });
 });
+

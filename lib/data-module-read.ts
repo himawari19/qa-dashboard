@@ -34,13 +34,13 @@ export async function getModuleRows(module: ModuleKey) {
         };
       });
     case "test-sessions":
-      return await selectAll(`SELECT "id", "company", "project", "date", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "createdAt", "updatedAt", "deletedAt" FROM "TestSession" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT "id", "company", "publicToken", "project", "date", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "createdAt", "updatedAt", "deletedAt" FROM "TestSession" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
     case "test-cases":
       return (await selectAll(`SELECT "id", "company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams)).map((item) => normalizeTestCaseRow(item));
     case "bugs":
-      return await selectAll(`SELECT "id", "company", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT "id", "company", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
     case "tasks":
-      return await selectAll(`SELECT "id", "company", "title", "project", "relatedFeature", "category", "status", "priority", "dueDate" AS "startDate", "dueDate" AS "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
     case "test-suites": {
       const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
       return (await selectAll(
@@ -115,13 +115,13 @@ export async function getModuleRows(module: ModuleKey) {
       });
     }
     case "deployments":
-      return (await selectAll(`SELECT "id", "company", "project", "date", "version", "environment", "developer", "changelog", "status", "notes", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams)).map(hydrateDeploymentNotes);
+      return (await selectAll(`SELECT "id", "company", "publicToken", "project", "date", "version", "environment", "developer", "changelog", "status", "notes", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" ${where} ORDER BY "date" DESC, "createdAt" DESC`, qParams)).map(hydrateDeploymentNotes);
     case "work-logs": {
       const isWsAdmin = isWorkspaceAdmin(currentUser?.role);
       // Admin sees all company data, regular user sees only their own
       const userFilter = isAdmin || isWsAdmin ? "" : ' AND "assignee" = ?';
       const userParams = isAdmin || isWsAdmin ? [] : [String(currentUser?.name ?? "").trim()];
-      return await selectAll(`SELECT "id", "company", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter} ORDER BY "date" DESC, "startTime" DESC`, [...qParams, ...userParams]);
+      return await selectAll(`SELECT "id", "company", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter} ORDER BY "date" DESC, "startTime" DESC`, [...qParams, ...userParams]);
     }
     default:
       return [];
@@ -197,7 +197,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "test-sessions": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSession" WHERE 1=1${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = await selectAll(`SELECT "id", "company", "project", "date", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "createdAt", "updatedAt", "deletedAt" FROM "TestSession" WHERE 1=1${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
+      const rows = await selectAll(`SELECT "id", "company", "publicToken", "project", "date", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "createdAt", "updatedAt", "deletedAt" FROM "TestSession" WHERE 1=1${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "test-cases": {
@@ -209,13 +209,13 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "bugs": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Bug" WHERE "deletedAt" IS NULL${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = await selectAll(`SELECT "id", "company", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
+      const rows = await selectAll(`SELECT "id", "company", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "tasks": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Task" WHERE "deletedAt" IS NULL${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = await selectAll(`SELECT "id", "company", "title", "project", "relatedFeature", "category", "status", "priority", "dueDate" AS "startDate", "dueDate" AS "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
+      const rows = await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "test-suites": {
@@ -302,7 +302,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "deployments": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Deployment" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = (await selectAll(`SELECT "id", "company", "project", "date", "version", "environment", "developer", "changelog", "status", "notes", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map(hydrateDeploymentNotes);
+      const rows = (await selectAll(`SELECT "id", "company", "publicToken", "project", "date", "version", "environment", "developer", "changelog", "status", "notes", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map(hydrateDeploymentNotes);
       return { rows, total };
     }
     case "work-logs": {
@@ -312,7 +312,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       const userParams = isAdmin || isWsAdmin ? [] : [String(currentUser?.name ?? "").trim()];
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "WorkLog" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${userFilter}${searchClause}`, [...(isAdmin ? [] : [company]), ...userParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = await selectAll(`SELECT "id", "company", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter}${searchClause}${orderClause}${limitClause}`, [...qParams, ...userParams, ...searchParams]);
+      const rows = await selectAll(`SELECT "id", "company", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter}${searchClause}${orderClause}${limitClause}`, [...qParams, ...userParams, ...searchParams]);
       return { rows, total };
     }
     default:

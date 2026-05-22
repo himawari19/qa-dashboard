@@ -12,7 +12,7 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("@/components/breadcrumb", () => ({
+vi.mock("@/components/layout/breadcrumb", () => ({
   Breadcrumb: mocks.breadcrumb,
 }));
 
@@ -78,3 +78,4 @@ describe("TestPlanDetail", () => {
     expect(mocks.breadcrumb).toHaveBeenCalled();
   });
 });
+

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from"react";
 import Link from"next/link";
 import { cn, formatDisplayText } from"@/lib/utils";
-import { Badge } from"@/components/badge";
+import { Badge } from"@/components/shared/badge";
 import {
  CheckCircle,
  XCircle,
@@ -192,7 +192,7 @@ function compareSuiteGroups(a: SuiteGroup, b: SuiteGroup) {
 }
 
 const ALL ="All";
-const STATUS_FILTERS = [ALL,"Passed","Failed","Blocked","Pending"] as const;
+const _STATUS_FILTERS = [ALL,"Passed","Failed","Blocked","Pending"] as const;
 
 /* ─── Sortable Test Case Table ─── */
 function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase[]; suiteAssignee: string | null }) {
@@ -281,9 +281,9 @@ function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase
 }
 
 export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[]; initialSearch?: string }) {
- const [search, setSearch] = useState(initialSearch);
- const [filterStatus, setFilterStatus] = useState(ALL);
- const [filterAssignee, setFilterAssignee] = useState(ALL);
+ const [search, _setSearch] = useState(initialSearch);
+ const [filterStatus, _setFilterStatus] = useState(ALL);
+ const [filterAssignee, _setFilterAssignee] = useState(ALL);
  const [selectedKey, setSelectedKey] = useState<string | null>(null);
  const [isMenuOpen, setIsMenuOpen] = useState(false);
  const menuRef = useRef<HTMLDivElement | null>(null);
@@ -349,7 +349,7 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  });
  }, [groups, filterStatus, filterAssignee, search]);
 
- const assigneeOptions = useMemo(() => {
+ const _assigneeOptions = useMemo(() => {
  const values = new Set<string>();
  cases.forEach((c) => {
  const suiteAssignee = String(c.suiteAssignee ??"").trim();

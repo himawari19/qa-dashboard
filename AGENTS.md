@@ -1,56 +1,85 @@
 # QA Hub - Agent Rules
 
 ## Stack
-Next.js 16.2 (App Router, Turbopack) · Tailwind v4 · `@phosphor-icons/react` (bold) · SQLite (dev) / Neon Postgres (prod) via `lib/db.ts` · Roles: superadmin admin fe be fullstack qa pm ai
+Next.js 16.2 (App Router, Turbopack) · Tailwind v4 · `@phosphor-icons/react` (bold) · PostgreSQL (Docker lokal + Neon prod) via `lib/db.ts` · Driver: `pg` (lokal) / `@neondatabase/serverless` (Neon) · Roles: superadmin admin fe be fullstack qa pm ai
 
-## Key Files
-- `lib/db.ts` - DB connection, schema, `isPostgres` flag
-- `lib/auth.ts` / `lib/auth-core.ts` - Session, login, role checks
-- `lib/roles.ts` - Role helpers, labels, options
-- `lib/data.ts` - CRUD + activity logging
-- `lib/data-helpers.ts` - `getAccessScope`, `logActivity`
-- `lib/modules.ts` - Module configs & Zod schemas (check first when adding fields)
-- `components/module-workspace.tsx` - Main CRUD UI
-- `components/responsive-container.tsx` - Safe Recharts wrapper
-- `app/[module]/page.tsx` - Dynamic module entry
+## Folder Structure
+
+```
+components/
+├── module/          → workspace table, kanban, forms, view-modal, actions hooks
+├── dashboard/       → dashboard widgets, stats, filters, standup
+├── test-management/ → test-case editor, detail page, suites
+├── activity/        → activity log, timeline, feed filter
+├── layout/          → sidebar, page-shell, breadcrumb, banners, onboarding
+├── shared/          → reusable UI (badge, date-picker, form-drawer, etc.)
+│   └── search/      → global search, command palette
+├── landing/         → marketing pages components
+├── ui/              → primitives (toast, skeleton, modal, alert)
+└── [new-feature]/   → create new folder for new features
+
+hooks/               → global hooks (use-fetch, use-keyboard-shortcuts, etc.)
+lib/                 → business logic, DB, auth, data queries, utils
+app/api/             → API routes
+app/[page]/          → page + co-located sub-components (gantt/, weekly-report/, etc.)
+```
+
+## File Placement
+
+| Type | Location |
+|------|----------|
+| Feature component | `components/[domain]/` — create new folder if needed |
+| Global hook | `hooks/` |
+| Module-specific hook | `components/module/` (prefix `use-`) |
+| Business logic | `lib/` |
+| Page sub-component | co-locate in `app/[page]/` |
+| **NEVER** put files flat in `components/` root | |
+
+## Agent File Lookup
+
+| Task | Check |
+|------|-------|
+| Module field | `lib/module-config-definitions.ts` → `lib/db-schema.ts` → form component |
+| CRUD | `lib/data.ts` → `lib/data-helpers.ts` → `app/api/items/` |
+| Dashboard | `lib/data-dashboard.ts` → `components/dashboard/` |
+| Auth | `lib/auth.ts` → `lib/auth-core.ts` → `app/api/auth/` |
+| Test management | `lib/test-management-data.ts` → `components/test-management/` |
+| Search | `lib/search-index.ts` → `components/shared/search/` |
+| Schema migration | `lib/db-schema.ts` → `lib/db-bootstrap.ts` |
 
 ## SQL (CRITICAL)
-- **Always double-quote camelCase columns** - Postgres lowercases unquoted identifiers.
-- Must-quote: `createdAt` `updatedAt` `deletedAt` `startDate` `endDate` `sprintId` `testPlanId` `testSuiteId` `publicToken` `suggestedDev` `totalCases` `bugType` `relatedItems` `relatedFeature` `lastRunAt` `automationResult` `typeCase` `preCondition` `caseName` `testStep` `expectedResult` `actualResult` `actionItems` `entityType` `entityId`
-- Branch date logic with `isPostgres` (no `julianday` on Postgres).
-- Guard empty text dates with `COALESCE(col, '') != ''`.
-- `IN (...)` - return early on empty arrays.
-- `toPostgresQuery()` converts `?`→`$n` but does NOT quote columns.
-- UNION params: count `?` per branch, duplicate params accordingly.
+- Postgres only — no SQLite, no branching.
+- Double-quote camelCase columns: `"createdAt"` `"updatedAt"` `"deletedAt"` `"startDate"` `"endDate"` `"sprintId"` `"testPlanId"` `"testSuiteId"` `"publicToken"` `"suggestedDev"` `"totalCases"` `"bugType"` `"relatedItems"` `"relatedFeature"` `"lastRunAt"` `"automationResult"` `"typeCase"` `"preCondition"` `"caseName"` `"testStep"` `"expectedResult"` `"actualResult"` `"actionItems"` `"entityType"` `"entityId"`
+- Parameterized queries only. `toPostgresQuery()` converts `?`→`$n`.
+- Guard empty dates: `COALESCE(col, '') != ''`. Return early on empty `IN (...)`.
 - Schema changes: create tables → add columns → create indexes.
 
 ## Rules
-1. All queries MUST filter by `company` (unless superadmin with empty company).
-2. All CRUD MUST call `logActivity(company, type, id, action, summary)`.
-3. DB results → client: `JSON.parse(JSON.stringify(data))`.
+1. Filter by `company` (unless superadmin). Log all CRUD via `logActivity()`.
+2. Validate session on mutating routes. Zod validation from `lib/modules.ts`.
+3. API: `{ data }` on success, `{ error: string }` + status on failure.
 4. Navigation: `router.refresh()`, never `window.location.reload()`.
-5. Charts: use `responsive-container.tsx` wrapper.
-6. UI: Tailwind only, no hardcoded hex. Modern/premium look.
-7. Icons: `@phosphor-icons/react` weight `"bold"`.
-8. Breadcrumbs: `PageShell` with parents - Documentation (Sprints, Meetings), System Settings (Users, Team), Test Management (Plans, Suites).
-9. All mutating API routes MUST validate session before processing.
-10. Input validation: use Zod schemas from `lib/modules.ts`.
-11. SQL: parameterized queries only - no string interpolation.
-12. Dates: store ISO 8601, display with `date-fns`, server = UTC.
-13. API success: `{ data }` - API error: `{ error: string }` + proper status code.
-14. Code & comments in English.
-15. Bump `package.json` version before deploy/push.
+5. UI: Tailwind only, `@phosphor-icons/react` bold. Charts: `responsive-container.tsx`.
+6. Dates: ISO 8601 stored, `date-fns` display, server UTC.
+7. DB → client: `JSON.parse(JSON.stringify(data))`.
+8. Max 400 lines/component, 600 lines/lib — split if larger.
+9. New components MUST go in a domain folder. Create new folder for new features.
+10. Code & comments in English.
 
 ## Do NOT
 - Add packages without checking `package.json`.
-- Change schema without SQLite/Postgres compat.
-- Use `/test-case-management` - it's `/test-cases`.
+- Add SQLite or `isPostgres` branching.
+- Use `/test-case-management` — it's `/test-cases`.
 - Commit/push unless asked.
-- Generate `.md` spec files - implement directly.
-- Run tests or modify test files unless asked.
+- Generate `.md` spec files — implement directly.
+- Run tests unless asked.
+- Put files flat in `components/` root.
+- Duplicate logic from `lib/data-helpers.ts` or `lib/utils.ts`.
 
 ## Checks
 ```
 npx tsc --noEmit
 pnpm precheck
 ```
+
+**After completing a task: DO NOT list what was done, DO NOT explain fixes, DO NOT give summary. Just give 5 ideas for next development.**

@@ -28,7 +28,7 @@ vi.mock("@/components/badge", () => ({
   Badge: ({ displayValue, value }: { value: string; displayValue?: string }) => <span>{displayValue ?? value}</span>,
 }));
 
-vi.mock("@/components/kanban-board", () => ({
+vi.mock("@/components/module/kanban-board", () => ({
   KanbanBoard: () => <div data-testid="kanban-board" />,
 }));
 
@@ -44,7 +44,7 @@ vi.mock("@/components/ui/confirm-modal", () => ({
   ConfirmModal: () => null,
 }));
 
-vi.mock("@/components/breadcrumb", () => ({
+vi.mock("@/components/layout/breadcrumb", () => ({
   Breadcrumb: ({ crumbs }: { crumbs: Array<{ label: string }> }) => (
     <nav>{crumbs.map((crumb) => crumb.label).join(" / ")}</nav>
   ),
@@ -58,7 +58,7 @@ vi.mock("@/components/attachment-uploader", () => ({
   AttachmentUploader: () => <div data-testid="attachment-uploader" />,
 }));
 
-vi.mock("@/components/module-workspace-utils", () => ({
+vi.mock("@/components/module/module-workspace-utils", () => ({
   PAGE_SIZE: 10,
   getFieldIcons: () => ({}),
   getModuleWorkspaceIcon: () => null,
@@ -86,7 +86,7 @@ vi.mock("@/components/module-workspace-utils", () => ({
   parseFieldError: () => ({}),
 }));
 
-vi.mock("@/components/module-view-modal", () => ({
+vi.mock("@/components/module/module-view-modal", () => ({
   ViewModal: () => null,
 }));
 
@@ -94,7 +94,7 @@ vi.mock("@/components/ui/toast", () => ({
   toast: vi.fn(),
 }));
 
-import { ModuleWorkspace } from "@/components/module-workspace";
+import { ModuleWorkspace } from "@/components/module/module-workspace";
 
 function renderWorkspace(module: ModuleKey, userRole: string) {
   return renderToStaticMarkup(
@@ -157,4 +157,6 @@ describe("ModuleWorkspace smoke", () => {
     expect(html).not.toContain(">Qa<");
   });
 });
+
+
 

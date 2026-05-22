@@ -10,6 +10,18 @@ function isValidModule(value: string): value is ModuleKey {
   return moduleOrder.includes(value as ModuleKey);
 }
 
+/**
+ * Determines if the id param is a numeric ID or a publicToken.
+ * Numeric IDs are positive integers; tokens are base64url strings.
+ */
+function parseIdOrToken(rawId: string): { type: "id"; value: number } | { type: "token"; value: string } {
+  const num = parseInt(rawId, 10);
+  if (Number.isFinite(num) && num > 0 && String(num) === rawId) {
+    return { type: "id", value: num };
+  }
+  return { type: "token", value: rawId };
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ module: string; id: string }> },
@@ -25,9 +37,9 @@ export async function GET(
       );
     }
 
-    // Validate ID is a positive integer
-    const id = parseInt(rawId, 10);
-    if (!Number.isFinite(id) || id <= 0 || String(id) !== rawId) {
+    // Parse ID or token
+    const parsed = parseIdOrToken(rawId);
+    if (parsed.type === "token" && !parsed.value.trim()) {
       return NextResponse.json(
         { error: "invalid_id", message: "Invalid item ID." },
         { status: 400 },
@@ -53,22 +65,39 @@ export async function GET(
       );
     }
 
-    // Fetch item by ID with company filter
+    // Fetch item by ID or publicToken with company filter
     const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-    const queryParams: unknown[] = isAdmin ? [id] : [id, company];
+    let item: Record<string, unknown> | undefined;
 
-    const item = await db.get<Record<string, unknown>>(
-      `SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-      queryParams,
-    );
+    if (parsed.type === "id") {
+      const queryParams: unknown[] = isAdmin ? [parsed.value] : [parsed.value, company];
+      item = await db.get<Record<string, unknown>>(
+        `SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}`,
+        queryParams,
+      );
+    } else {
+      const queryParams: unknown[] = isAdmin ? [parsed.value] : [parsed.value, company];
+      item = await db.get<Record<string, unknown>>(
+        `SELECT * FROM "${table}" WHERE "publicToken" = ? AND "deletedAt" IS NULL${companyFilter}`,
+        queryParams,
+      );
+    }
 
     if (!item) {
       // Check if item exists but belongs to another company (cross-company access)
       if (!isAdmin) {
-        const existsElsewhere = await db.get<{ id: number }>(
-          `SELECT "id" FROM "${table}" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL`,
-          [id],
-        );
+        let existsElsewhere: { id: number } | undefined;
+        if (parsed.type === "id") {
+          existsElsewhere = await db.get<{ id: number }>(
+            `SELECT "id" FROM "${table}" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL`,
+            [parsed.value],
+          );
+        } else {
+          existsElsewhere = await db.get<{ id: number }>(
+            `SELECT "id" FROM "${table}" WHERE "publicToken" = ? AND "deletedAt" IS NULL`,
+            [parsed.value],
+          );
+        }
         if (existsElsewhere) {
           return NextResponse.json(
             { error: "access_denied", message: "You don't have permission to view this item." },
@@ -77,14 +106,6 @@ export async function GET(
         }
       }
 
-      return NextResponse.json(
-        { error: "not_found", message: "The requested item was not found." },
-        { status: 404 },
-      );
-    }
-
-    // Check if item is soft-deleted
-    if (item.deletedAt) {
       return NextResponse.json(
         { error: "not_found", message: "The requested item was not found." },
         { status: 404 },

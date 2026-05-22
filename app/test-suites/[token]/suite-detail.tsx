@@ -3,8 +3,8 @@
 import { useState, useMemo } from"react";
 import Link from"next/link";
 import { cn, formatDate, formatDisplayText } from"@/lib/utils";
-import { Badge } from"@/components/badge";
-import { Breadcrumb } from"@/components/breadcrumb";
+import { Badge } from"@/components/shared/badge";
+import { Breadcrumb } from"@/components/layout/breadcrumb";
 import {
  Play,
  CheckCircle,
@@ -469,3 +469,4 @@ export function SuiteDetail({
  </div>
  );
 }
+

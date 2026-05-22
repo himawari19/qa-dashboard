@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from"react";
 import Link from"next/link";
-import { Badge } from"@/components/badge";
+import { Badge } from"@/components/shared/badge";
 import {
  Play,
  CheckCircle,

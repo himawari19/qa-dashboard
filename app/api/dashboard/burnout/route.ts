@@ -19,12 +19,12 @@ export async function GET() {
   const cp = isAdmin ? [] : [company];
   try {
     const [bugs, tasks] = await Promise.all([
-      db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
-        `SELECT "suggestedDev" as assignee, severity, project, NULL as dueDate FROM "Bug" WHERE status NOT IN ('fixed', 'closed', 'rejected') AND "suggestedDev" IS NOT NULL AND "suggestedDev" != ''${andCompany}`,
+      db.query<{ assignee: string; severity: string; project: string; endDate: string }>(
+        `SELECT "suggestedDev" as assignee, severity, project, NULL as "endDate" FROM "Bug" WHERE status NOT IN ('fixed', 'closed', 'rejected') AND "suggestedDev" IS NOT NULL AND "suggestedDev" != ''${andCompany}`,
         cp
       ),
-      db.query<{ assignee: string; severity: string; project: string; dueDate: string }>(
-        `SELECT assignee, priority as severity, project, dueDate FROM "Task" WHERE status NOT IN ('completed', 'done') AND assignee IS NOT NULL AND assignee != ''${andCompany}`,
+      db.query<{ assignee: string; severity: string; project: string; endDate: string }>(
+        `SELECT assignee, priority as severity, project, "endDate" FROM "Task" WHERE status NOT IN ('completed', 'done') AND assignee IS NOT NULL AND assignee != ''${andCompany}`,
         cp
       ),
     ]);
@@ -54,8 +54,8 @@ export async function GET() {
 
       // Multiplier
       let multiplier = 1.0;
-      if (item.dueDate) {
-        const due = new Date(item.dueDate).getTime();
+      if (item.endDate) {
+        const due = new Date(item.endDate).getTime();
         if (!isNaN(due)) {
           if (due <= today) multiplier = 2.0;
           else if (due <= tomorrow) multiplier = 1.5;

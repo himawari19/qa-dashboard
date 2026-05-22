@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
-import { FormFieldError } from "@/components/form-field-error";
+import { FormFieldError } from "@/components/shared/form-field-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { getPublicRoleOptions } from "@/lib/roles";
 

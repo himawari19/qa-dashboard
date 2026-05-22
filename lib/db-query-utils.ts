@@ -12,14 +12,6 @@ export type PostgresPool = {
   connect: () => Promise<PostgresClient>;
 };
 
-export type SqliteDatabase = {
-  exec: (queryText: string) => void;
-  prepare: (queryText: string) => {
-    all: (...params: unknown[]) => unknown[];
-    run: (...params: unknown[]) => unknown;
-  };
-};
-
 function normalizePostgresQuery(queryStr: string) {
   return queryStr;
 }
@@ -39,6 +31,14 @@ export function toPostgresQuery(queryStr: string) {
 }
 
 export function parseInsertStatement(queryStr: string) {
+  // Skip bulk inserts with multiple VALUES groups
+  const valuesIdx = queryStr.toUpperCase().indexOf("VALUES");
+  if (valuesIdx >= 0) {
+    const afterValues = queryStr.slice(valuesIdx + 6);
+    const openParens = afterValues.split("(").length - 1;
+    if (openParens > 1) return null;
+  }
+
   const match = queryStr.match(/^\s*INSERT(?:\s+OR\s+\w+)?\s+INTO\s+"([^"]+)"\s*\(([\s\S]*?)\)\s*VALUES\s*\(([\s\S]*?)\)([\s\S]*)$/i);
   if (!match) return null;
 

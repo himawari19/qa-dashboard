@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createModuleRecord, deleteModuleRecord, deleteModuleRecords, makePublicToken } from "@/lib/data";
+import { createModuleRecord, deleteModuleRecord, deleteModuleRecords } from "@/lib/data";
 import { db } from "@/lib/db";
 import {
   formDataToEntry,
@@ -103,22 +103,10 @@ export async function POST(
     }
 
     const data = moduleConfigs[moduleKey].coerce(parsed.data as Record<string, string>);
-    const createdData = moduleKey === "test-cases" ? { ...data, publicToken: makePublicToken() } : data;
 
-    await createModuleRecord(moduleKey, createdData);
+    await createModuleRecord(moduleKey, data);
     revalidatePath("/");
     revalidatePath(`/${moduleKey}`);
-
-    if (moduleKey === "test-cases") {
-      const item = await db.get<Record<string, unknown>>(
-        `SELECT * FROM "TestCase" WHERE "publicToken" = ? ORDER BY "id" DESC LIMIT 1`,
-        [String((createdData as Record<string, unknown>).publicToken ?? "")],
-      );
-      return NextResponse.json({
-        message: `${moduleConfigs[moduleKey].shortTitle} added successfully.`,
-        item,
-      });
-    }
 
     return NextResponse.json({
       message: `${moduleConfigs[moduleKey].shortTitle} added successfully.`,

@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
 import { getOnlineMembers } from "@/lib/data";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -221,4 +221,4 @@ export async function GET(request: Request) {
 }
 
 // Keep ESM happy when this runtime is used elsewhere
-export const _isPostgres = isPostgres;
+export const _placeholder = true;

@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about" },
 };
 
+export const revalidate = 3600;
+
 export default function AboutPage() {
   return (
     <>

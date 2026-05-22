@@ -1,5 +1,5 @@
-import { PageShell } from"@/components/page-shell";
-import { Users, Gear, CaretRight, UserPlus, Info, Lock } from"@phosphor-icons/react/dist/ssr";
+import { PageShell } from"@/components/layout/page-shell";
+import { Users, Gear, CaretRight, Info, Lock, Bell } from"@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
@@ -23,6 +23,15 @@ export default async function SettingsPage() {
  icon: Gear,
  color:"text-indigo-600",
  bg:"bg-indigo-50",
+ disabled: false,
+ },
+ {
+ title:"Notifications",
+ description:"Choose what alerts you receive and how often.",
+ href:"/settings/notifications",
+ icon: Bell,
+ color:"text-amber-600",
+ bg:"bg-amber-50",
  disabled: false,
  },
  ],
@@ -140,3 +149,4 @@ export default async function SettingsPage() {
  </PageShell>
  );
 }
+

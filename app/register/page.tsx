@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle, Eye, EyeSlash, UserPlus } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
-import { BrandMark } from "@/components/brand-mark";
-import { FormFieldError } from "@/components/form-field-error";
+import { BrandMark } from "@/components/shared/brand-mark";
+import { FormFieldError } from "@/components/shared/form-field-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
 
 export default function RegisterPage() {

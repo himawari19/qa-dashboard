@@ -19,7 +19,7 @@ vi.mock("@phosphor-icons/react", () => ({
   ),
 }));
 
-import { CopyLinkButton } from "@/components/copy-link-button";
+import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import { toast } from "@/components/ui/toast";
 
 describe("CopyLinkButton", () => {

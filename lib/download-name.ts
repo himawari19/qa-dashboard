@@ -1,7 +1,3 @@
-function pad(value: number) {
-  return String(value).padStart(2, "0");
-}
-
 export function formatIndonesiaTimestamp(date = new Date()) {
   const parts = new Intl.DateTimeFormat("id-ID", {
     timeZone: "Asia/Jakarta",

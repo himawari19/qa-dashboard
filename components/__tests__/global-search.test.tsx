@@ -20,7 +20,7 @@ vi.mock("@/components/ui/toast", () => ({
   toast: vi.fn(),
 }));
 
-import { GlobalSearch } from "@/components/global-search";
+import { GlobalSearch } from "@/components/shared/search/global-search";
 
 describe("GlobalSearch", () => {
   it("renders the search trigger", () => {
@@ -30,3 +30,4 @@ describe("GlobalSearch", () => {
     expect(html).toContain("Ctrl+K");
   });
 });
+

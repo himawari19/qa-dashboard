@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AppWrapper } from "@/components/app-wrapper";
+import { AppWrapper } from "@/components/layout/app-wrapper";
 import { Toaster } from "@/components/ui/toast";
+import { ServiceWorkerRegister } from "@/components/layout/service-worker-register";
+import { WebVitals } from "@/components/layout/web-vitals";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -84,7 +86,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#2563eb" />
         <script
           type="application/ld+json"
@@ -140,7 +142,10 @@ export default function RootLayout({
           {children}
         </AppWrapper>
         <Toaster />
+        <ServiceWorkerRegister />
+        <WebVitals />
       </body>
     </html>
   );
 }
+

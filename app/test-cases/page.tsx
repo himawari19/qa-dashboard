@@ -1,7 +1,7 @@
 import { getAllTestCasesWithSuite } from "@/lib/data";
-import { PageShell } from "@/components/page-shell";
+import { PageShell } from "@/components/layout/page-shell";
 import { TestCaseLibrary } from "./test-case-library";
-import { SuitesHeaderActions } from "@/components/suites-header-actions";
+import { SuitesHeaderActions } from "@/components/test-management/suites-header-actions";
 import { Checks } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -28,3 +28,5 @@ export default async function TestCasesPage({
     </PageShell>
   );
 }
+
+

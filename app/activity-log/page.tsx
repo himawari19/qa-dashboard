@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { ActivityLogPage } from "@/components/activity-log-page";
+import { ActivityLogPage } from "@/components/activity/activity-log-page";
 
 export const dynamic = "force-dynamic";
 

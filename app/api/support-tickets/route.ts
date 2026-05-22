@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { isWorkspaceAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
+import { createAdminNotification } from "@/lib/admin-notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,15 @@ export async function POST(request: NextRequest) {
     VALUES (?, ?, ?, ?, 'open', ?, ?)`,
     [company, subject, message, validCategories.includes(category) ? category : "general", validPriorities.includes(priority) ? priority : "normal", user.name || user.email]
   );
+
+  // Notify superadmin
+  await createAdminNotification({
+    type: "new_ticket",
+    title: `New ticket: ${subject}`,
+    message: `From ${company} (${user.name || user.email}) — ${priority} priority`,
+    companyName: company,
+    meta: { category, priority },
+  });
 
   return NextResponse.json({ ok: true });
 }

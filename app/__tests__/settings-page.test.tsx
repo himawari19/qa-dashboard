@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   pageShell: vi.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>),
 }));
 
-vi.mock("@/components/page-shell", () => ({
+vi.mock("@/components/layout/page-shell", () => ({
   PageShell: mocks.pageShell,
 }));
 
@@ -31,3 +31,4 @@ describe("settings page", () => {
     }));
   });
 });
+

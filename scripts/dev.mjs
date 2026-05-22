@@ -1,5 +1,30 @@
 import { spawn } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 import net from "node:net";
+
+// Load .env and validate DATABASE_URL
+const envPath = resolve(".", ".env");
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, "utf-8");
+  for (const line of envContent.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx < 0) continue;
+    const key = trimmed.slice(0, eqIdx);
+    const value = trimmed.slice(eqIdx + 1);
+    if (!process.env[key]) process.env[key] = value;
+  }
+}
+
+const dbUrl = process.env.DATABASE_URL || "";
+if (!dbUrl.startsWith("postgres")) {
+  console.error("\x1b[31m✗ DATABASE_URL is missing or invalid in .env\x1b[0m");
+  console.error("  Expected: postgresql://user:password@host:port/database");
+  console.error("  Run Docker: docker start qa-daily-db");
+  process.exit(1);
+}
 
 const basePort = Number(process.env.PORT || 3000);
 const maxPort = basePort + 20;

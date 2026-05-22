@@ -27,7 +27,7 @@ export const moduleLabels = Object.fromEntries(
 
 function findSelectOption(field: Extract<Field, { kind: "select" }>, value: string) {
   const lowered = value.toLowerCase();
-  return field.options.find((option) => option.value === value || option.label.toLowerCase() === lowered);
+  return field.options.find((option) => option.value === value || option.label.toLowerCase() === lowered || option.value.toLowerCase() === lowered);
 }
 
 export function formatModuleFieldValue(field: Field, value: unknown) {

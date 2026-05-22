@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ModuleWorkspace } from "@/components/module-workspace";
+import { ModuleWorkspace } from "@/components/module/module-workspace";
 import { getAssigneeOptions, getModuleRows, getModuleRowsPage, getProjectOptions, getTestCaseStatsBySuiteIds, getTestPlanReferenceRows, getTestSuitesByPlanIds } from "@/lib/data";
 import { moduleOrder, moduleConfigs, type ModuleKey } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
@@ -50,37 +50,45 @@ export async function generateMetadata({
 
   if (viewId) {
     try {
-      const parsedId = parseInt(viewId, 10);
-      if (Number.isFinite(parsedId) && parsedId > 0) {
-        const user = await getCurrentUser();
-        const { company, isAdmin } = getAccessScope(user);
-        const table = getTableName(moduleKey);
+      const user = await getCurrentUser();
+      const { company, isAdmin } = getAccessScope(user);
+      const table = getTableName(moduleKey);
 
-        if (table) {
-          const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-          const queryParams: unknown[] = isAdmin ? [parsedId] : [parsedId, company];
+      if (table) {
+        const companyFilter = isAdmin ? "" : ' AND "company" = ?';
 
-          const item = await db.get<Record<string, unknown>>(
+        // Try lookup by publicToken first, then by numeric ID for backward compat
+        let item: Record<string, unknown> | undefined;
+        const parsedNum = parseInt(viewId, 10);
+        if (Number.isFinite(parsedNum) && parsedNum > 0 && String(parsedNum) === viewId) {
+          const queryParams: unknown[] = isAdmin ? [parsedNum] : [parsedNum, company];
+          item = await db.get<Record<string, unknown>>(
             `SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}`,
             queryParams,
           );
+        } else {
+          const queryParams: unknown[] = isAdmin ? [viewId] : [viewId, company];
+          item = await db.get<Record<string, unknown>>(
+            `SELECT * FROM "${table}" WHERE "publicToken" = ? AND "deletedAt" IS NULL${companyFilter}`,
+            queryParams,
+          );
+        }
 
-          if (item) {
-            const itemTitle = getItemTitleField(moduleKey, item);
-            const ogTitle = `[${moduleLabel}] ${itemTitle}`;
-            const ogDescription = buildOgDescription(moduleKey, item);
+        if (item) {
+          const itemTitle = getItemTitleField(moduleKey, item);
+          const ogTitle = `[${moduleLabel}] ${itemTitle}`;
+          const ogDescription = buildOgDescription(moduleKey, item);
 
-            return {
+          return {
+            title: ogTitle,
+            openGraph: {
               title: ogTitle,
-              openGraph: {
-                title: ogTitle,
-                description: ogDescription,
-                url: `/${moduleKey}?view=${viewId}`,
-                type: "article",
-                siteName: "QA Hub",
-              },
-            };
-          }
+              description: ogDescription,
+              url: `/${moduleKey}?view=${viewId}`,
+              type: "article",
+              siteName: "QA Hub",
+            },
+          };
         }
       }
     } catch {
@@ -374,3 +382,4 @@ export default async function ModulePage({
     />
   );
 }
+

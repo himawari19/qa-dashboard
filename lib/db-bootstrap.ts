@@ -1,21 +1,13 @@
-import { randomBytes } from "crypto";
-import { databaseUrl, schemaIndexSql, schemaTableSql, tables, useSqlite, expandSchemaType } from "@/lib/db-schema";
-import { toPostgresQuery, type PostgresPool, type SqliteDatabase } from "@/lib/db-query-utils";
+import { databaseUrl, schemaIndexSql, schemaTableSql, tables, expandSchemaType } from "@/lib/db-schema";
+import { toPostgresQuery, type PostgresPool } from "@/lib/db-query-utils";
 
 export type DbBootstrapDeps = {
-  getSqlite: () => Promise<SqliteDatabase>;
   getPostgresPool: () => Promise<PostgresPool>;
   getSchemaInitPromise: () => Promise<void> | undefined;
   setSchemaInitPromise: (value: Promise<void> | undefined) => void;
 };
 
 async function execSchemaSql(queryStr: string, deps: DbBootstrapDeps) {
-  if (useSqlite) {
-    const sqlite = await deps.getSqlite();
-    sqlite.exec(queryStr);
-    return;
-  }
-
   const pool = await deps.getPostgresPool();
   const statements = queryStr.split(";").filter((s) => s.trim());
   await Promise.all(
@@ -45,28 +37,6 @@ async function applyMissingColumns(deps: DbBootstrapDeps) {
       .map((def) => ({ table: table.name, def })),
   );
 
-  if (useSqlite) {
-    const sqlite = await deps.getSqlite();
-    for (const { table, def } of columnQueries) {
-      if (def.startsWith("PRIMARY") || def.startsWith("FOREIGN") || def.startsWith("id ")) continue;
-      const firstSpace = def.indexOf(" ");
-      if (firstSpace <= 0) continue;
-      const rawColumn = def.slice(0, firstSpace).trim();
-      const rawType = def.slice(firstSpace + 1).trim().split(/\s+/)[0] || "TEXT";
-      const columnName = rawColumn.replace(/"/g, "");
-      const columnType = rawType
-        .replace(/SERIAL_OR_PK|DATE_TYPE|FK_INT_SPRINT/g, (match) => expandSchemaType(match, !useSqlite));
-      try {
-        const exists = sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all(columnName) as any[];
-        if (exists.length === 0) {
-          sqlite.prepare(`ALTER TABLE "${table}" ADD COLUMN "${columnName}" ${columnType}`).run();
-        }
-      } catch {
-      }
-    }
-    return;
-  }
-
   const pool = await deps.getPostgresPool();
   const tableNames = [...new Set(tables.map((table) => table.name))];
   const placeholders = tableNames.map((_, i) => `$${i + 1}`).join(", ");
@@ -90,7 +60,7 @@ async function applyMissingColumns(deps: DbBootstrapDeps) {
     const columnName = rawColumn.replace(/"/g, "");
     if (existingCols.has(`${table}.${columnName}`)) continue;
     try {
-      await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${columnName}" ${expandSchemaType(rawType, true)}`));
+      await pool.query(toPostgresQuery(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${columnName}" ${expandSchemaType(rawType)}`));
     } catch {
     }
   }
@@ -102,18 +72,14 @@ async function backfillPublicTokens(deps: DbBootstrapDeps) {
     { table: "TestSuite", column: "publicToken" },
     { table: "TestCase", column: "publicToken" },
     { table: "MeetingNote", column: "publicToken" },
+    { table: "Task", column: "publicToken" },
+    { table: "Bug", column: "publicToken" },
+    { table: "TestSession", column: "publicToken" },
+    { table: "Sprint", column: "publicToken" },
+    { table: "Deployment", column: "publicToken" },
+    { table: "WorkLog", column: "publicToken" },
+    { table: "ModuleView", column: "publicToken" },
   ];
-  if (useSqlite) {
-    const sqlite = await deps.getSqlite();
-    for (const { table, column } of tablesToFill) {
-      const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE COALESCE("${column}", '') = '' LIMIT 100`).all() as Array<{ id: string | number }>;
-      if (rows.length === 0) continue;
-      for (const row of rows) {
-        sqlite.prepare(`UPDATE "${table}" SET "${column}" = ? WHERE id = ?`).run(randomBytes(16).toString("base64url"), row.id);
-      }
-    }
-    return;
-  }
 
   const pool = await deps.getPostgresPool();
   await Promise.all(
@@ -124,14 +90,6 @@ async function backfillPublicTokens(deps: DbBootstrapDeps) {
 }
 
 async function backfillSearchTokenEntityIdInt(deps: DbBootstrapDeps) {
-  if (useSqlite) {
-    const sqlite = await deps.getSqlite();
-    sqlite.prepare(
-      `UPDATE "SearchToken" SET "entityIdInt" = CAST("entityId" AS INTEGER) WHERE COALESCE("entityIdInt", 0) = 0`,
-    ).run();
-    return;
-  }
-
   const pool = await deps.getPostgresPool();
   await pool.query(
     `UPDATE "SearchToken" SET "entityIdInt" = CAST("entityId" AS INTEGER) WHERE COALESCE("entityIdInt", 0) = 0`,
@@ -140,24 +98,6 @@ async function backfillSearchTokenEntityIdInt(deps: DbBootstrapDeps) {
 
 async function backfillSortOrder(deps: DbBootstrapDeps) {
   const tablesToFill = ["Task", "Bug", "TestCase", "Sprint", "TestPlan", "TestSession", "TestSuite", "MeetingNote", "Deployment", "Assignee", "User"];
-  if (useSqlite) {
-    const sqlite = await deps.getSqlite();
-    for (const table of tablesToFill) {
-      const hasSortOrder = (sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all("sortOrder") as any[]).length > 0;
-      if (!hasSortOrder) continue;
-      // Only backfill rows that still have default sortOrder=0
-      const needsBackfill = (sqlite.prepare(`SELECT 1 FROM "${table}" WHERE "sortOrder" = 0 LIMIT 1`).all() as any[]).length > 0;
-      if (!needsBackfill) continue;
-      const rows = sqlite.prepare(`SELECT id FROM "${table}" WHERE "sortOrder" = 0 ORDER BY COALESCE("updatedAt", "createdAt") ASC, id ASC`).all() as Array<{ id: string | number }>;
-      // Start from max existing sortOrder
-      const maxRow = sqlite.prepare(`SELECT MAX("sortOrder") as m FROM "${table}"`).all() as Array<{ m: number | null }>;
-      let nextOrder = Number(maxRow[0]?.m ?? 0) + 1;
-      for (const row of rows) {
-        sqlite.prepare(`UPDATE "${table}" SET "sortOrder" = ? WHERE id = ?`).run(nextOrder++, row.id);
-      }
-    }
-    return;
-  }
 
   const pool = await deps.getPostgresPool();
   const existing = await Promise.all(
@@ -167,7 +107,6 @@ async function backfillSortOrder(deps: DbBootstrapDeps) {
         [table],
       );
       if (rows.length === 0) return null;
-      // Check if any rows need backfill
       const { rows: needRows } = await pool.query(`SELECT 1 FROM "${table}" WHERE "sortOrder" = 0 LIMIT 1`);
       return needRows.length > 0 ? table : null;
     }),
@@ -185,18 +124,6 @@ async function backfillSortOrder(deps: DbBootstrapDeps) {
 
 async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
   const tablesToFix = ["Task", "Bug", "TestCase", "Sprint", "TestPlan", "TestSession", "TestSuite", "MeetingNote", "Deployment", "Assignee", "User"];
-  if (useSqlite) {
-    const sqlite = await deps.getSqlite();
-    for (const table of tablesToFix) {
-      const exists = (sqlite.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).all("sortOrder") as any[]).length > 0;
-      if (exists) continue;
-      try {
-        sqlite.prepare(`ALTER TABLE "${table}" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0`).run();
-      } catch {
-      }
-    }
-    return;
-  }
 
   const pool = await deps.getPostgresPool();
   for (const table of tablesToFix) {
@@ -214,19 +141,10 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
 
 const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean; __schemaVersion?: number };
 
-const CURRENT_MIGRATION_VERSION = 3;
+const CURRENT_MIGRATION_VERSION = 6;
 
 async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
   try {
-    if (useSqlite) {
-      const sqlite = await deps.getSqlite();
-      try {
-        const rows = sqlite.prepare('SELECT "version" FROM "_migrations" ORDER BY "version" DESC LIMIT 1').all() as Array<{ version: number }>;
-        return rows[0]?.version ?? 0;
-      } catch {
-        return 0;
-      }
-    }
     const pool = await deps.getPostgresPool();
     const { rows } = await pool.query('SELECT "version" FROM "_migrations" ORDER BY "version" DESC LIMIT 1');
     return (rows[0] as { version: number })?.version ?? 0;
@@ -236,22 +154,29 @@ async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
 }
 
 async function setMigrationVersion(deps: DbBootstrapDeps, version: number): Promise<void> {
-  const createSql = `CREATE TABLE IF NOT EXISTS "_migrations" ("version" INTEGER NOT NULL, "appliedAt" ${useSqlite ? "TEXT" : "TIMESTAMP"} NOT NULL DEFAULT CURRENT_TIMESTAMP)`;
-  const insertSql = `INSERT INTO "_migrations" ("version") VALUES (?)`;
-  if (useSqlite) {
-    const sqlite = await deps.getSqlite();
-    sqlite.exec(createSql);
-    sqlite.prepare(insertSql).run(version);
-    return;
-  }
+  const createSql = `CREATE TABLE IF NOT EXISTS "_migrations" ("version" INTEGER NOT NULL, "appliedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)`;
+  const insertSql = `INSERT INTO "_migrations" ("version") VALUES ($1)`;
   const pool = await deps.getPostgresPool();
-  await pool.query(toPostgresQuery(createSql));
-  await pool.query(toPostgresQuery(insertSql), [version]);
+  await pool.query(createSql);
+  await pool.query(insertSql, [version]);
+}
+
+async function migrateTaskDueDateToStartEnd(deps: DbBootstrapDeps) {
+  const pool = await deps.getPostgresPool();
+  // Add startDate/endDate columns if they don't exist
+  try {
+    await pool.query(`ALTER TABLE "Task" ADD COLUMN IF NOT EXISTS "startDate" TEXT`);
+    await pool.query(`ALTER TABLE "Task" ADD COLUMN IF NOT EXISTS "endDate" TEXT`);
+  } catch { /* columns may already exist */ }
+  // Copy dueDate data to startDate/endDate where they are empty
+  try {
+    await pool.query(`UPDATE "Task" SET "startDate" = "dueDate" WHERE COALESCE("startDate", '') = '' AND COALESCE("dueDate", '') != ''`);
+    await pool.query(`UPDATE "Task" SET "endDate" = "dueDate" WHERE COALESCE("endDate", '') = '' AND COALESCE("dueDate", '') != ''`);
+  } catch { /* ignore if dueDate column doesn't exist */ }
 }
 
 export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
   if (typeof window !== "undefined") return;
-  // Reset if migration version changed (new tables added)
   if (globalBootstrap.__schemaVersion !== CURRENT_MIGRATION_VERSION) {
     globalBootstrap.__schemaBootstrapDone = false;
     deps.setSchemaInitPromise(undefined);
@@ -260,18 +185,10 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
   if (!deps.getSchemaInitPromise()) {
     deps.setSchemaInitPromise((async () => {
       try {
-        if (useSqlite) {
-          const sqlite = await deps.getSqlite();
-          // Always re-run CREATE TABLE IF NOT EXISTS for new tables
-          sqlite.exec(schemaTableSql);
-        } else {
-          await execSchemaSql(schemaTableSql, deps);
-        }
-
+        await execSchemaSql(schemaTableSql, deps);
         await applyMissingColumns(deps);
         await ensureKanbanSortOrderColumns(deps);
 
-        // Only run expensive backfills if migration version is behind
         if (!globalBootstrap.__schemaBootstrapDone) {
           const currentVersion = await getMigrationVersion(deps);
           if (currentVersion < CURRENT_MIGRATION_VERSION) {
@@ -279,13 +196,14 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
             await execSchemaSql(schemaIndexSql, deps);
             await backfillPublicTokens(deps);
             await backfillSortOrder(deps);
+            await migrateTaskDueDateToStartEnd(deps);
             await setMigrationVersion(deps, CURRENT_MIGRATION_VERSION);
           }
           globalBootstrap.__schemaBootstrapDone = true;
         }
       } catch (err) {
         deps.setSchemaInitPromise(undefined);
-        if (databaseUrl || useSqlite) {
+        if (databaseUrl) {
           console.error("Schema init error:", err);
         }
       }

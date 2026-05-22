@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 
 const MAX_PER_SECTION = 10;
 const TIMEOUT_MS = 5_000;
@@ -98,10 +98,7 @@ async function loadDigest(company: string, userName: string): Promise<DigestPayl
   );
 
   // 4. Upcoming sprint deadlines within 2 days (company-scoped)
-  // Sprint.endDate is text ISO; compare via date casting where possible.
-  const twoDaysExpr = isPostgres
-    ? `"endDate"::date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '2 days')`
-    : `DATE("endDate") BETWEEN DATE('now') AND DATE('now', '+2 days')`;
+  const twoDaysExpr = `"endDate"::date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '2 days')`;
 
   const upcomingRows = await db.query<{ id: number | string; name: string; endDate: string }>(
     `SELECT "id", "name", "endDate"

@@ -25,7 +25,7 @@ export async function GET(
 
   try {
     const entries = await db.query(
-      `SELECT "id", "action", "summary", "createdAt"
+      `SELECT "id", "action", "summary", "actor", "publicToken", "createdAt"
        FROM "ActivityLog"
        WHERE "entityType" = ? AND "entityId" = ?${andCompany}
        ORDER BY "createdAt" DESC

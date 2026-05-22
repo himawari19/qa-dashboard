@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   getAllTestCasesWithSuite: vi.fn(),
 }));
 
-vi.mock("@/components/page-shell", () => ({
+vi.mock("@/components/layout/page-shell", () => ({
   PageShell: mocks.pageShell,
 }));
 
@@ -65,3 +65,4 @@ describe("test cases page", () => {
     );
   });
 });
+

@@ -13,21 +13,23 @@ import { useEffect, useRef, useState } from "react";
 export function useValueChangeAnimation(value: number | string | null | undefined): string {
   const prevValue = useRef(value);
   const [animating, setAnimating] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
-    // Skip animation on initial mount (prevValue starts as the initial value)
-    if (prevValue.current !== value && prevValue.current !== undefined) {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevValue.current = value;
+      return;
+    }
+    if (prevValue.current !== value) {
       setAnimating(true);
-      const timer = setTimeout(() => setAnimating(false), 300);
-      return () => clearTimeout(timer);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setAnimating(false), 300);
     }
     prevValue.current = value;
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [value]);
-
-  // Update ref after comparison
-  useEffect(() => {
-    prevValue.current = value;
-  });
 
   return animating ? "animate-stat-pop" : "";
 }

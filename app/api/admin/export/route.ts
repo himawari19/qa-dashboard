@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       );
 
       const userCounts = await db.query<{ company: string; count: number }>(
-        `SELECT "company", COUNT(*) as "count" FROM "User" WHERE COALESCE("deletedAt", '') = '' AND COALESCE("company", '') != '' GROUP BY "company"`
+        `SELECT "company", COUNT(*) as "count" FROM "User" WHERE "deletedAt" IS NULL AND COALESCE("company", '') != '' GROUP BY "company"`
       );
       const userMap = new Map(userCounts.map((u) => [u.company, Number(u.count)]));
 
@@ -73,11 +73,11 @@ export async function GET(request: NextRequest) {
           COALESCE(t.cnt, 0) as "totalTasks",
           COALESCE(tc.cnt, 0) as "totalTestCases",
           COALESCE(s.cnt, 0) as "totalSprints"
-        FROM (SELECT DISTINCT "company" FROM "User" WHERE COALESCE("company", '') != '' AND COALESCE("deletedAt", '') = '') u
-        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Bug" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") b ON b."company" = u."company"
-        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Task" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") t ON t."company" = u."company"
-        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "TestCase" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") tc ON tc."company" = u."company"
-        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Sprint" WHERE COALESCE("deletedAt", '') = '' GROUP BY "company") s ON s."company" = u."company"
+        FROM (SELECT DISTINCT "company" FROM "User" WHERE COALESCE("company", '') != '' AND "deletedAt" IS NULL) u
+        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Bug" WHERE "deletedAt" IS NULL GROUP BY "company") b ON b."company" = u."company"
+        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Task" WHERE "deletedAt" IS NULL GROUP BY "company") t ON t."company" = u."company"
+        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "TestCase" WHERE "deletedAt" IS NULL GROUP BY "company") tc ON tc."company" = u."company"
+        LEFT JOIN (SELECT "company", COUNT(*) as cnt FROM "Sprint" WHERE "deletedAt" IS NULL GROUP BY "company") s ON s."company" = u."company"
         ORDER BY u."company"`
       );
 
@@ -96,10 +96,10 @@ export async function GET(request: NextRequest) {
       }>(
         `SELECT
           (SELECT COUNT(*) FROM "Company") as "totalCompanies",
-          (SELECT COUNT(*) FROM "User" WHERE COALESCE("deletedAt", '') = '') as "totalUsers",
-          (SELECT COUNT(*) FROM "Bug" WHERE COALESCE("deletedAt", '') = '') as "totalBugs",
-          (SELECT COUNT(*) FROM "Task" WHERE COALESCE("deletedAt", '') = '') as "totalTasks",
-          (SELECT COUNT(*) FROM "TestCase" WHERE COALESCE("deletedAt", '') = '') as "totalTestCases"`
+          (SELECT COUNT(*) FROM "User" WHERE "deletedAt" IS NULL) as "totalUsers",
+          (SELECT COUNT(*) FROM "Bug" WHERE "deletedAt" IS NULL) as "totalBugs",
+          (SELECT COUNT(*) FROM "Task" WHERE "deletedAt" IS NULL) as "totalTasks",
+          (SELECT COUNT(*) FROM "TestCase" WHERE "deletedAt" IS NULL) as "totalTestCases"`
       );
 
       const t = systemTotals || { totalCompanies: 0, totalUsers: 0, totalBugs: 0, totalTasks: 0, totalTestCases: 0 };

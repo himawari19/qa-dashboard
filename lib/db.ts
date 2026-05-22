@@ -1,11 +1,7 @@
 import {
   databaseUrl,
-  isPostgres,
-  schemaIndexSql,
-  schemaSql,
   schemaTableSql,
   tables,
-  useSqlite,
 } from "@/lib/db-schema";
 import {
   buildSequentialInsert,
@@ -13,51 +9,47 @@ import {
   parseInsertStatement,
   toPostgresQuery,
   type PostgresPool,
-  type SqliteDatabase,
 } from "@/lib/db-query-utils";
 import { ensureSchemaBootstrap } from "@/lib/db-bootstrap";
 
-export { databaseUrl, isPostgres, schemaIndexSql, schemaSql, schemaTableSql, tables, useSqlite } from "@/lib/db-schema";
+export { databaseUrl, schemaIndexSql, schemaSql, schemaTableSql, tables } from "@/lib/db-schema";
 
 const globalForDb = globalThis as unknown as {
-  sqliteDb?: unknown;
-  neonSql?: unknown;
+  pgPool?: unknown;
   schemaInitPromise?: Promise<void>;
   schemaReady?: boolean;
 };
 
 async function getPostgresPool() {
-  const { Pool, neonConfig } = await import("@neondatabase/serverless");
-  neonConfig.fetchConnectionCache = true;
-  if (!globalForDb.neonSql) {
-    globalForDb.neonSql = new Pool({ connectionString: databaseUrl });
-  }
-  return globalForDb.neonSql as PostgresPool;
-}
-
-async function getSqlite() {
-  if (!globalForDb.sqliteDb) {
-    const { DatabaseSync } = await (eval('import("node:sqlite")') as Promise<any>);
-    const path = await (eval('import("node:path")') as Promise<any>);
-    const fs = await (eval('import("node:fs")') as Promise<any>);
-    const databasePath = path.join(process.cwd(), "prisma", "dev.db");
-
-    if (!fs.existsSync(path.dirname(databasePath))) {
-      fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+  if (!globalForDb.pgPool) {
+    const isNeon = databaseUrl.includes("neon.tech") || databaseUrl.includes("neon-");
+    const poolConfig = {
+      connectionString: databaseUrl,
+      max: isNeon ? 10 : 20,
+      min: isNeon ? 0 : 2,
+      idleTimeoutMillis: isNeon ? 10000 : 30000,
+      connectionTimeoutMillis: isNeon ? 10000 : 5000,
+      allowExitOnIdle: isNeon,
+    };
+    let pool;
+    if (isNeon) {
+      const { Pool } = await import("@neondatabase/serverless");
+      pool = new Pool(poolConfig);
+    } else {
+      const { Pool } = await import("pg");
+      pool = new Pool(poolConfig);
     }
-
-    const sqliteDb = new DatabaseSync(databasePath);
-    sqliteDb.exec(schemaTableSql);
-    globalForDb.sqliteDb = sqliteDb;
+    pool.on("error", (err: Error) => {
+      console.error("[DB Pool] Unexpected error on idle client:", err.message);
+    });
+    globalForDb.pgPool = pool;
   }
-  return globalForDb.sqliteDb as SqliteDatabase;
+  return globalForDb.pgPool as PostgresPool;
 }
 
 async function ensureSchema() {
-  // Fast path: skip bootstrap overhead once schema is confirmed ready
   if (globalForDb.schemaReady) return;
   await ensureSchemaBootstrap({
-    getSqlite,
     getPostgresPool,
     getSchemaInitPromise: () => globalForDb.schemaInitPromise,
     setSchemaInitPromise: (value) => {
@@ -68,31 +60,6 @@ async function ensureSchema() {
 }
 
 async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
-  if (useSqlite) {
-    const sqlite = await getSqlite();
-    try {
-      return sqlite.prepare(queryStr).all(...params) as T[];
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (
-        message.includes('no such table') ||
-        message.includes('no such column: deletedAt') ||
-        message.includes('no such column: "deletedAt"') ||
-        message.includes('no such column: acceptanceCriteria') ||
-        message.includes('no such column: "acceptanceCriteria"') ||
-        message.includes('no such column: relatedItems') ||
-        message.includes('no such column: "relatedItems"') ||
-        message.includes('no such column: sortOrder') ||
-        message.includes('no such column: "sortOrder"')
-      ) {
-        globalForDb.schemaReady = false;
-        await ensureSchema();
-        return sqlite.prepare(queryStr).all(...params) as T[];
-      }
-      throw error;
-    }
-  }
-
   const pool = await getPostgresPool();
   const pgQuery = toPostgresQuery(queryStr);
   const { rows } = await pool.query(pgQuery, params);
@@ -100,35 +67,12 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
 }
 
 async function runRaw(queryStr: string, params: unknown[] = []): Promise<void> {
-  if (useSqlite) {
-    const sqlite = await getSqlite();
-    try {
-      sqlite.prepare(queryStr).run(...params);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('no such table')) {
-        globalForDb.schemaReady = false;
-        await ensureSchema();
-        sqlite.prepare(queryStr).run(...params);
-        return;
-      }
-      throw error;
-    }
-    return;
-  }
-
   const pool = await getPostgresPool();
   const pgQuery = toPostgresQuery(queryStr);
   await pool.query(pgQuery, params);
 }
 
 async function execRaw(queryStr: string): Promise<void> {
-  if (useSqlite) {
-    const sqlite = await getSqlite();
-    sqlite.exec(queryStr);
-    return;
-  }
-
   const pool = await getPostgresPool();
   const statements = queryStr.split(";").filter((s) => s.trim());
   for (const s of statements) {
@@ -171,28 +115,24 @@ export const db = {
 
   async run(queryStr: string, params: unknown[] = []): Promise<void> {
     await ensureSchema();
-    if (!useSqlite) {
-      const parsedInsert = parseInsertStatement(queryStr);
-      if (parsedInsert) {
-        for (let attempt = 0; attempt < MAX_INSERT_RETRIES; attempt++) {
-          const nextId = await getNextSequentialId(parsedInsert.table);
-          const rewritten = buildSequentialInsert(queryStr, params, nextId);
-          try {
-            await runRaw(rewritten.queryStr, rewritten.params);
-            return;
-          } catch (err) {
-            if (!isSequentialIdConflict(err, parsedInsert.table)) {
-              throw err;
-            }
-            // Retry on conflict
+    const parsedInsert = parseInsertStatement(queryStr);
+    if (parsedInsert) {
+      for (let attempt = 0; attempt < MAX_INSERT_RETRIES; attempt++) {
+        const nextId = await getNextSequentialId(parsedInsert.table);
+        const rewritten = buildSequentialInsert(queryStr, params, nextId);
+        try {
+          await runRaw(rewritten.queryStr, rewritten.params);
+          return;
+        } catch (err) {
+          if (!isSequentialIdConflict(err, parsedInsert.table)) {
+            throw err;
           }
         }
-        // Final attempt - let it throw if it fails
-        const finalId = await getNextSequentialId(parsedInsert.table);
-        const finalInsert = buildSequentialInsert(queryStr, params, finalId);
-        await runRaw(finalInsert.queryStr, finalInsert.params);
-        return;
       }
+      const finalId = await getNextSequentialId(parsedInsert.table);
+      const finalInsert = buildSequentialInsert(queryStr, params, finalId);
+      await runRaw(finalInsert.queryStr, finalInsert.params);
+      return;
     }
 
     await runRaw(queryStr, params);
@@ -204,21 +144,6 @@ export const db = {
 
   async transaction<T>(fn: (client?: unknown) => Promise<T>): Promise<T> {
     await ensureSchema();
-    if (useSqlite) {
-      const sqlite = await getSqlite();
-      sqlite.exec("BEGIN");
-      try {
-        const result = await fn();
-        sqlite.exec("COMMIT");
-        return result;
-      } catch (err) {
-        sqlite.exec("ROLLBACK");
-        throw err;
-      }
-    }
-
-    // For Neon serverless, acquire a dedicated client from the pool
-    // to guarantee all queries within the transaction use the same connection.
     const pool = await getPostgresPool();
     const client = await pool.connect();
     try {
@@ -237,15 +162,6 @@ export const db = {
 
 export async function resetTables() {
   const tableNames = tables.map((table) => `"${table.name}"`);
-  if (useSqlite) {
-    await db.exec("PRAGMA foreign_keys = OFF");
-    for (const name of tableNames) {
-      await db.run(`DELETE FROM ${name}`);
-      await db.run(`DELETE FROM sqlite_sequence WHERE name = ${name.replace(/"/g, "'")}`);
-    }
-    await db.exec("PRAGMA foreign_keys = ON");
-    return;
-  }
-
   await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY CASCADE;`);
 }
+

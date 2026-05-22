@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth-core";
 import { getTestSuiteByToken } from "@/lib/data";
 import { notFound } from "next/navigation";
-import { PageShell } from "@/components/page-shell";
+import { PageShell } from "@/components/layout/page-shell";
 import { Play } from "@phosphor-icons/react/dist/ssr";
 import { SuiteRunHistory } from "./suite-run-history";
 
@@ -73,3 +73,4 @@ export default async function SuiteExecutionPage({ params }: { params: Promise<{
     </PageShell>
   );
 }
+

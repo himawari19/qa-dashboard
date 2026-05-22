@@ -48,7 +48,7 @@ vi.mock("react", async () => {
   };
 });
 
-vi.mock("@/components/dashboard", () => ({
+vi.mock("@/components/dashboard/dashboard", () => ({
   Dashboard: mocks.dashboard,
 }));
 
@@ -172,4 +172,5 @@ describe("home page", () => {
     expect(markup).toContain("dashboard");
   });
 });
+
 

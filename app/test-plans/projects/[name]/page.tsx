@@ -1,7 +1,6 @@
-import { notFound } from"next/navigation";
 import { getProjectData } from"@/lib/data";
-import { PageShell } from"@/components/page-shell";
-import { Badge } from"@/components/badge";
+import { PageShell } from"@/components/layout/page-shell";
+import { Badge } from"@/components/shared/badge";
 import Link from"next/link";
 import {
  FolderSimple,
@@ -317,6 +316,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
  </div>
  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
  {bugs.slice(0, 6).map((bug) => {
+ // eslint-disable-next-line react-hooks/purity
  const daysSince = bug.createdAt ? Math.floor((Date.now() - new Date(bug.createdAt).getTime()) / 86400000) : null;
  return (
  <div
@@ -405,3 +405,4 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
  </PageShell>
  );
 }
+

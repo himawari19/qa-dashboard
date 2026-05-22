@@ -43,8 +43,8 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       const clean = normalizeEntry(entry);
       return {
         ...clean,
-        startDate: clean.startDate ? new Date(clean.startDate) : null,
-        endDate: clean.endDate ? new Date(clean.endDate) : null,
+        startDate: clean.startDate || "",
+        endDate: clean.endDate || "",
       };
     },
     toRow: (item) => ({

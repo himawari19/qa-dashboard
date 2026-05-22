@@ -6,9 +6,9 @@ import Link from "next/link";
 import { Play, CheckCircle, XCircle, Warning, Clock, User, ArrowRight, Lightning, ChartLineUp } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
-import { Badge } from "@/components/badge";
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer as RechartsResponsiveContainer } from "recharts";
-import { ResponsiveContainer } from "@/components/responsive-container";
+import { Badge } from "@/components/shared/badge";
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer } from "@/components/shared/responsive-container";
 
 type Run = {
   id: number;
@@ -36,7 +36,7 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [trend, setTrend] = useState<{ runNumber: number; passRate: number }[]>([]);
-  const [trendLoading, setTrendLoading] = useState(true);
+  const [_trendLoading, setTrendLoading] = useState(true);
 
   useEffect(() => {
     fetch(`/api/execution-runs/trends?suiteId=${suite.id}`)

@@ -38,7 +38,7 @@ export async function getTaskResults(query: string, companyClause: string, compa
       if (exactItem) return [exactItem];
     }
   }
-  const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"assignee"', dateColumn: '"dueDate"' });
+  const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"assignee"', dateColumn: '"endDate"' });
   const tokenClause = buildSearchTokenClause("tasks", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
     `SELECT id, title, project, relatedFeature, category, status, priority, description, updatedAt

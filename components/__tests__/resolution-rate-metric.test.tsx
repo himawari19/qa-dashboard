@@ -5,7 +5,7 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("@/components/breadcrumb", () => ({
+vi.mock("@/components/layout/breadcrumb", () => ({
   Breadcrumb: () => <nav />,
 }));
 
@@ -36,15 +36,15 @@ vi.mock("@/components/ui/skeleton", () => ({
   ChartSkeleton: () => <div />,
 }));
 
-vi.mock("@/components/dashboard-drawer", () => ({
+vi.mock("@/components/dashboard/dashboard-drawer", () => ({
   DashboardDrawer: () => <div />,
 }));
 
-vi.mock("@/components/dashboard-standup-modal", () => ({
+vi.mock("@/components/dashboard/dashboard-standup-modal", () => ({
   DashboardStandupModal: () => <div />,
 }));
 
-import { Dashboard } from "@/components/dashboard";
+import { Dashboard } from "@/components/dashboard/dashboard";
 
 const baseProps = {
   metrics: [
@@ -157,3 +157,5 @@ describe("ResolutionRateMetric", () => {
     expect(html).not.toContain("Resolution Rate");
   });
 });
+
+

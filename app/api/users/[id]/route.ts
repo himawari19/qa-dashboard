@@ -51,7 +51,7 @@ export async function PATCH(
       role: normalizedRole,
     });
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to update user." }, { status: 500 });
   }
 }
@@ -83,7 +83,7 @@ export async function DELETE(
     await deleteAssigneeForUser(Number(id));
     await db.run('DELETE FROM "User" WHERE "id" = CAST(? AS INTEGER)', [id]);
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete user." }, { status: 500 });
   }
 }

@@ -23,7 +23,7 @@ vi.mock("@/components/copy-link-button", () => ({
   CopyLinkButton: () => <button data-testid="copy-link-btn">Copy</button>,
 }));
 
-import { ViewModal } from "@/components/module-view-modal";
+import { ViewModal } from "@/components/module/module-view-modal";
 
 const baseProps = {
   row: { id: 1, title: "Test Bug", status: "open" },
@@ -87,3 +87,4 @@ describe("ViewModal - initialTab prop", () => {
     expect(screen.getByText("Edit")).toBeDefined();
   });
 });
+

@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   CheckCircle, XCircle, Warning, Bug, ArrowUp, ArrowDown,
-  Clock, User, Timer, FileText, ArrowRight, Printer
+  Timer, ArrowRight, Printer
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/toast";
 
 type SummaryCase = {
   testCaseId: number;
@@ -47,7 +46,7 @@ type SummaryData = {
   hasPreviousRun: boolean;
 };
 
-export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: string }) {
+export function RunSummary({ runId, suiteToken: _suiteToken }: { runId: number; suiteToken: string }) {
   const [data, setData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"overview" | "failed" | "comparison">("overview");

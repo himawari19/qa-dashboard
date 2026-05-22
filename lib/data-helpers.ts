@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 import { isAdminUser } from "@/lib/auth-core";
 import { getCurrentUser } from "@/lib/auth";
 import { buildSearchTokenClause, syncSearchTokens } from "@/lib/search-index";
@@ -91,7 +91,7 @@ export function getTableName(module: import("@/lib/modules").ModuleKey) {
   }
 }
 
-export function toSqliteDatetime(d: Date): string {
+export function toDatetime(d: Date): string {
   return d.toISOString().replace("T", " ").slice(0, 19);
 }
 
@@ -104,12 +104,12 @@ export function deriveSprintStatus(startDate?: string, endDate?: string): string
   return "active";
 }
 
-export async function logActivity(company: string, type: string, id: string, action: string, summary: string, actor?: string) {
+export async function logActivity(company: string, type: string, id: string, action: string, summary: string, actor?: string, publicToken?: string) {
   try {
     await db.run(
-      `INSERT INTO "ActivityLog" ("company", "entityType", "entityId", "action", "summary", "actor")
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [company, type, id, action, summary, actor || ""],
+      `INSERT INTO "ActivityLog" ("company", "entityType", "entityId", "action", "summary", "actor", "publicToken")
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [company, type, id, action, summary, actor || "", publicToken || ""],
     );
     const created = await db.query<{ id?: number | string }>(
       `SELECT "id" FROM "ActivityLog" WHERE "company" = ? AND "entityType" = ? AND "entityId" = ? AND "action" = ? AND "summary" = ? ORDER BY "id" DESC LIMIT 1`,
@@ -158,9 +158,7 @@ export function buildSearchClause(module: string, search: string, company = ""):
   }
   const columns = getSearchableColumns(module);
   const conditions = columns.map((col) =>
-    isPostgres
-      ? `POSITION(? IN LOWER(COALESCE("${col}", ''))) > 0`
-      : `INSTR(LOWER(COALESCE("${col}", '')), ?) > 0`
+    `POSITION(? IN LOWER(COALESCE("${col}", ''))) > 0`
   );
   const param = q.toLowerCase();
   return {

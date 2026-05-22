@@ -8,7 +8,7 @@ import {
 } from "@/lib/shareable-url";
 import type { ModuleKey } from "@/lib/modules";
 
-type Row = Record<string, string | number> & { id: string | number };
+type Row = Record<string, string | number> & { id: string | number; publicToken?: string };
 
 export interface UseDetailViewUrlOptions {
   module: ModuleKey;
@@ -24,10 +24,18 @@ export interface UseDetailViewUrlOptions {
 }
 
 /**
+ * Returns the publicToken for a row, falling back to id if token is empty.
+ */
+function getRowToken(row: Row): string {
+  const token = String(row.publicToken ?? "").trim();
+  return token || String(row.id);
+}
+
+/**
  * Custom hook that synchronizes the detail view modal state with the browser URL.
  *
  * - On mount with `initialViewId`: finds the row in `localRows` or fetches from API
- * - On `viewingRow` change: pushState/replaceState to update URL with `?view={id}`
+ * - On `viewingRow` change: pushState/replaceState to update URL with `?view={token}`
  * - On close: pushState to remove `?view` param while preserving other params
  * - Listens to `popstate` to sync modal open/close with URL state
  * - Uses `replaceState` for direct URL navigation so back button goes to referrer
@@ -60,8 +68,8 @@ export function useDetailViewUrl({
     if (initialLoadHandledRef.current) return;
     initialLoadHandledRef.current = true;
 
-    const parsedId = parseViewId(initialViewId);
-    if (parsedId === null) return;
+    const parsedToken = parseViewId(initialViewId);
+    if (parsedToken === null) return;
 
     // Check for initial tab param from URL
     const initialTabParam =
@@ -71,28 +79,87 @@ export function useDetailViewUrl({
           )
         : null;
 
-    // Try to find the row in localRows
-    const found = localRows.find((row) => Number(row.id) === parsedId);
+    // If the view param is a numeric ID (legacy URL), resolve to token and redirect
+    const isNumericId = /^\d+$/.test(parsedToken) && parseInt(parsedToken, 10) > 0;
+    if (isNumericId) {
+      // Try to find by numeric id in localRows first
+      const foundById = localRows.find((row) => String(row.id) === parsedToken);
+      if (foundById) {
+        // Redirect URL to use token
+        const token = String(foundById.publicToken ?? "").trim() || parsedToken;
+        const params = new URLSearchParams(window.location.search);
+        params.set("view", token);
+        window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+        openedFromUrlRef.current = true;
+        onOpenRow(foundById);
+        if (initialTabParam && onTabChange) {
+          onTabChange(initialTabParam);
+        }
+        return;
+      }
+
+      // Not found locally, resolve via API
+      async function resolveAndOpen() {
+        try {
+          const resolveRes = await fetch(`/api/resolve-view?module=${module}&id=${parsedToken}`);
+          if (resolveRes.ok) {
+            const { publicToken } = await resolveRes.json();
+            if (publicToken) {
+              // Redirect URL
+              const params = new URLSearchParams(window.location.search);
+              params.set("view", publicToken);
+              window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+              // Now fetch the item by token
+              const itemRes = await fetch(`/api/items/${module}/${publicToken}`);
+              if (itemRes.ok) {
+                const data = await itemRes.json();
+                if (data.item) {
+                  openedFromUrlRef.current = true;
+                  onOpenRow(data.item as Row);
+                  if (initialTabParam && onTabChange) {
+                    onTabChange(initialTabParam);
+                  }
+                  return;
+                }
+              }
+            }
+          }
+          onNotFound();
+        } catch {
+          onNotFound();
+        }
+      }
+      resolveAndOpen();
+      return;
+    }
+
+    // Try to find the row in localRows by publicToken or by id
+    const found = localRows.find((row) => {
+      const rowToken = String(row.publicToken ?? "").trim();
+      if (rowToken && rowToken === parsedToken) return true;
+      // Fallback: match by numeric id for backward compatibility
+      if (String(row.id) === parsedToken) return true;
+      return false;
+    });
+
     if (found) {
       openedFromUrlRef.current = true;
       onOpenRow(found);
-      // Pass initial tab to modal if present
       if (initialTabParam && onTabChange) {
         onTabChange(initialTabParam);
       }
       return;
     }
 
-    // Not found locally - fetch from API
+    // Not found locally - fetch from API using token
     async function fetchItem() {
       try {
-        const res = await fetch(`/api/items/${module}/${parsedId}`);
+        const res = await fetch(`/api/items/${module}/${parsedToken}`);
         if (res.ok) {
           const data = await res.json();
           if (data.item) {
             openedFromUrlRef.current = true;
             onOpenRow(data.item as Row);
-            // Pass initial tab to modal if present
             if (initialTabParam && onTabChange) {
               onTabChange(initialTabParam);
             }
@@ -123,8 +190,9 @@ export function useDetailViewUrl({
     const currentParams = new URLSearchParams(window.location.search);
 
     if (viewingRow && !prev) {
-      // Modal just opened
-      const newParams = preserveQueryParams(currentParams, viewingRow.id);
+      // Modal just opened - use publicToken in URL
+      const token = getRowToken(viewingRow);
+      const newParams = preserveQueryParams(currentParams, token);
       const newUrl = `${window.location.pathname}?${newParams.toString()}`;
 
       if (openedFromUrlRef.current) {
@@ -203,12 +271,18 @@ export function useDetailViewUrl({
 
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get("view");
-      const parsedId = parseViewId(viewParam);
+      const parsedToken = parseViewId(viewParam);
 
-      if (parsedId !== null) {
-        // URL has ?view - open the modal if not already open for this ID
-        if (!viewingRow || Number(viewingRow.id) !== parsedId) {
-          const found = localRows.find((row) => Number(row.id) === parsedId);
+      if (parsedToken !== null) {
+        // URL has ?view - open the modal if not already open for this token
+        const currentToken = viewingRow ? getRowToken(viewingRow) : null;
+        if (!viewingRow || currentToken !== parsedToken) {
+          const found = localRows.find((row) => {
+            const rowToken = String(row.publicToken ?? "").trim();
+            if (rowToken && rowToken === parsedToken) return true;
+            if (String(row.id) === parsedToken) return true;
+            return false;
+          });
           if (found) {
             openedFromUrlRef.current = true;
             onOpenRow(found);

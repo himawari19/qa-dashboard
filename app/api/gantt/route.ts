@@ -44,10 +44,10 @@ export async function GET(request: Request) {
     : `AND SUBSTR("startDate", 1, 4) = ?`;
   const planDateParams = useDateRange ? [rangeEnd, rangeStart] : [yearText];
 
-  // Task date filter (uses dueDate)
+  // Task date filter (uses startDate/endDate)
   const taskDateClause = useDateRange
-    ? `AND "dueDate" >= ? AND "dueDate" <= ?`
-    : `AND SUBSTR("dueDate", 1, 4) = ?`;
+    ? `AND "startDate" >= ? AND "endDate" <= ?`
+    : `AND SUBSTR("startDate", 1, 4) = ?`;
   const taskDateParams = useDateRange ? [rangeStart, rangeEnd] : [yearText];
 
   // Assignee filter clauses
@@ -80,9 +80,9 @@ export async function GET(request: Request) {
       [...planDateParams, ...planAssigneeParams, ...cp]
     ) as Promise<Array<Record<string, unknown>>>,
     db.query(
-      `SELECT id, title, project, "dueDate" AS "startDate", "dueDate" AS "endDate", status, priority, assignee
+      `SELECT id, title, project, "startDate", "endDate", status, priority, assignee
        FROM "Task"
-       WHERE COALESCE("dueDate", '') != ''
+       WHERE COALESCE("startDate", '') != ''
          AND "deletedAt" IS NULL
          ${taskDateClause}
          ${taskAssigneeClause}
@@ -145,7 +145,6 @@ export async function PATCH(request: Request) {
     } else {
       await updateModuleRecord("tasks", id, {
         ...row,
-        dueDate: startDate,
         startDate,
         endDate,
       });

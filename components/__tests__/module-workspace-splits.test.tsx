@@ -5,16 +5,16 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("@/components/module-row-actions", () => ({
+vi.mock("@/components/module/module-row-actions", () => ({
   ModuleRowActions: () => <div data-testid="row-actions" />,
 }));
 
-vi.mock("@/components/module-workspace-utils", () => ({
+vi.mock("@/components/module/module-workspace-utils", () => ({
   PAGE_SIZE: 10,
 }));
 
-import { ModuleWorkspaceTable } from "@/components/module-workspace-table";
-import { ModuleWorkspaceModals } from "@/components/module-workspace-modals";
+import { ModuleWorkspaceTable } from "@/components/module/module-workspace-table";
+import { ModuleWorkspaceModals } from "@/components/module/module-workspace-modals";
 
 describe("ModuleWorkspace splits", () => {
   it("renders table empty state safely", () => {
@@ -64,3 +64,4 @@ describe("ModuleWorkspace splits", () => {
     expect(html).toContain("Needs more details");
   });
 });
+

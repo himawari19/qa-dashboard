@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle, WarningCircle, X, Info } from "@phosphor-icons/react";
 
 type ToastType = "success" | "error" | "info";
@@ -11,6 +11,7 @@ interface Toast {
   message: string;
   type: ToastType;
   expiresAt?: number;
+  remaining?: number;
   actionLabel?: string;
   onAction?: () => void;
 }
@@ -47,8 +48,8 @@ export function toast(message: string, type: ToastType = "success", options?: To
 
 export function Toaster() {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [, forceTick] = useState(0);
   const defaultDuration = 2000;
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const handler: ToastHandler = (message, type, options) => {
@@ -62,6 +63,7 @@ export function Toaster() {
         message,
         type,
         expiresAt: options?.countdown ? Date.now() + duration : undefined,
+        remaining: options?.countdown ? Math.ceil(duration / 1000) : undefined,
         actionLabel: options?.actionLabel,
         onAction: options?.onAction,
       }]);
@@ -79,9 +81,26 @@ export function Toaster() {
     };
   }, []);
 
+  // Update countdown remaining seconds via interval (avoids impure Date.now() in render)
   useEffect(() => {
-    const timer = setInterval(() => forceTick((v) => v + 1), 250);
-    return () => clearInterval(timer);
+    tickRef.current = setInterval(() => {
+      setToasts((prev) => {
+        const hasCountdown = prev.some((t) => t.expiresAt != null);
+        if (!hasCountdown) return prev;
+        const now = Date.now();
+        return prev.map((t) =>
+          t.expiresAt != null
+            ? { ...t, remaining: Math.max(1, Math.ceil((t.expiresAt - now) / 1000)) }
+            : t
+        );
+      });
+    }, 250);
+    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+  }, []);
+
+  const removeToast = useCallback((id: string, signature: string) => {
+    activeToastSignatures.delete(signature);
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   return (
@@ -97,13 +116,13 @@ export function Toaster() {
 
           <p className="flex-1 text-xs font-medium text-gray-800">
             {t.message}
-            {t.expiresAt ? ` ${Math.max(1, Math.ceil((t.expiresAt - Date.now()) / 1000))}s` : ""}
+            {t.remaining != null ? ` ${t.remaining}s` : ""}
           </p>
           {t.onAction && (
             <button
               onClick={() => {
                 t.onAction?.();
-                setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
+                removeToast(t.id, t.signature);
               }}
               className="border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-50"
             >
@@ -112,10 +131,7 @@ export function Toaster() {
           )}
 
           <button
-            onClick={() => {
-              activeToastSignatures.delete(t.signature);
-              setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
-            }}
+            onClick={() => removeToast(t.id, t.signature)}
             className="text-gray-400 hover:text-gray-600"
           >
             <X size={14} />

@@ -1,9 +1,10 @@
-import { PageShell } from"@/components/page-shell";
+import { PageShell } from"@/components/layout/page-shell";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
 import { User, ShieldCheck } from"@phosphor-icons/react/dist/ssr";
 import { redirect } from"next/navigation";
 import { ProfileForm } from"./profile-form";
+import { RestartTourButton } from"@/components/layout/restart-tour-button";
 
 export const dynamic ="force-dynamic";
 
@@ -64,9 +65,13 @@ export default async function ProfilePage() {
  </div>
  </div>
  </div>
+
+ <RestartTourButton />
  </div>
  </div>
  </div>
  </PageShell>
  );
 }
+
+

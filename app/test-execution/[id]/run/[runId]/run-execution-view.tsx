@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   CheckCircle, XCircle, Warning, CaretLeft, CaretRight, Play, ArrowLeft,
-  Keyboard, Lightning, Timer, Bug, ArrowSquareOut
+  Keyboard, Lightning, Timer
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/badge";
-import { Breadcrumb } from "@/components/breadcrumb";
+import { Badge } from "@/components/shared/badge";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RunPlayMode } from "./run-play-mode";
 
 type CaseItem = {
@@ -61,7 +61,7 @@ export function RunExecutionView({
   const router = useRouter();
   const [items, setItems] = useState<CaseItem[]>(initialCases);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [saving, setSaving] = useState(false);
+  const [_saving, _setSaving] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -501,3 +501,4 @@ export function RunExecutionView({
     </div>
   );
 }
+

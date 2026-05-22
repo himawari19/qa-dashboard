@@ -11,6 +11,7 @@ export interface ActivityEntry {
   action: string;
   summary: string;
   actor?: string;
+  publicToken?: string;
   createdAt: string;
 }
 
@@ -111,7 +112,7 @@ export async function GET(request: Request) {
   const limitParam = parseInt(searchParams.get("limit") || "50", 10);
   const limit = Math.min(Math.max(1, isNaN(limitParam) ? 50 : limitParam), 200);
 
-  const { company, isAdmin, params: companyParams } = getAccessScope(user);
+  const { company, isAdmin, params: _companyParams } = getAccessScope(user);
 
   try {
     let entries: ActivityEntry[];
@@ -136,7 +137,7 @@ export async function GET(request: Request) {
 
       if (likeConditions.length > 0) {
         const matched = await db.query<ActivityEntry>(
-          `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "createdAt"
+          `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
            FROM "ActivityLog"
            WHERE (${likeConditions.join(" OR ")})${andCompany}
            ORDER BY "createdAt" DESC
@@ -145,7 +146,7 @@ export async function GET(request: Request) {
         );
 
         entries = matched.length > 0 ? matched : await db.query<ActivityEntry>(
-          `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "createdAt"
+          `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
            FROM "ActivityLog"
            ${isAdmin ? "" : 'WHERE "company" = ?'}
            ORDER BY "createdAt" DESC
@@ -154,7 +155,7 @@ export async function GET(request: Request) {
         );
       } else {
         entries = await db.query<ActivityEntry>(
-          `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "createdAt"
+          `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
            FROM "ActivityLog"
            ${isAdmin ? "" : 'WHERE "company" = ?'}
            ORDER BY "createdAt" DESC
@@ -168,7 +169,7 @@ export async function GET(request: Request) {
       const cp = isAdmin ? [] : [company];
 
       entries = await db.query<ActivityEntry>(
-        `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "createdAt"
+        `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
          FROM "ActivityLog"${andCompany}
          ORDER BY "createdAt" DESC
          LIMIT ?`,

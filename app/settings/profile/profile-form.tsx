@@ -4,7 +4,7 @@ import React, { useEffect, useState } from"react";
 import { EnvelopeSimple, Briefcase, User, CheckCircle, Warning } from"@phosphor-icons/react";
 import { useRouter } from"next/navigation";
 import { toast } from"@/components/ui/toast";
-import { FormFieldError } from"@/components/form-field-error";
+import { FormFieldError } from"@/components/shared/form-field-error";
 import { getRoleLabel } from"@/lib/roles";
 
 interface UserProfile {
@@ -78,7 +78,7 @@ export function ProfileForm({ user }: { user: UserProfile }) {
  } else {
  toast(data.error ||"Failed to update profile","error");
  }
- } catch (err) {
+ } catch {
  toast("An error occurred. Please try again.","error");
  } finally {
  setLoading(false);

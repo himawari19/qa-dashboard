@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/components/module-workspace", () => ({
+vi.mock("@/components/module/module-workspace", () => ({
   ModuleWorkspace: mocks.moduleWorkspace,
 }));
 
@@ -71,4 +71,5 @@ describe("users page", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/");
   });
 });
+
 

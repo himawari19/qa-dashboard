@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, isPostgres } from "@/lib/db";
+import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
 import { codeFromId } from "@/lib/utils";
@@ -29,9 +29,7 @@ export async function GET() {
       ${staleStatuses.map((status) => `WHEN '${status}' THEN ${THRESHOLDS[status]}`).join(" ")}
       ELSE 0 END`;
 
-    const dayExpr = isPostgres
-      ? `(CURRENT_DATE - "updatedAt"::date)`
-      : `CAST(julianday('now') - julianday("updatedAt") AS INTEGER)`;
+    const dayExpr = `(CURRENT_DATE - "updatedAt"::date)`;
 
     const [bugRows, taskRows] = await Promise.all([
       db.query<{

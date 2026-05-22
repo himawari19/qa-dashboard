@@ -9,7 +9,7 @@ import {
   PaperPlaneTilt,
   ChatCircleDots,
 } from "@phosphor-icons/react";
-import { PageShell } from "@/components/page-shell";
+import { PageShell } from "@/components/layout/page-shell";
 import { toast } from "@/components/ui/toast";
 
 type Ticket = {
@@ -168,7 +168,7 @@ export default function SupportPage() {
           <div className="py-10 text-center">
             <ChatCircleDots size={32} weight="bold" className="mx-auto mb-3 text-gray-300" />
             <p className="text-sm font-semibold text-gray-600">No tickets yet</p>
-            <p className="mt-1 text-xs text-gray-400">Click "New Ticket" to submit a request.</p>
+            <p className="mt-1 text-xs text-gray-400">Click &quot;New Ticket&quot; to submit a request.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -212,3 +212,4 @@ function formatDate(d: string) {
   try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
   catch { return d; }
 }
+
