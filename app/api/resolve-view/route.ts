@@ -12,10 +12,10 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const module = request.nextUrl.searchParams.get("module") || "";
+  const moduleKey = request.nextUrl.searchParams.get("module") || "";
   const id = request.nextUrl.searchParams.get("id") || "";
 
-  if (!module || !moduleOrder.includes(module as ModuleKey)) {
+  if (!moduleKey || !moduleOrder.includes(moduleKey as ModuleKey)) {
     return NextResponse.json({ error: "Invalid module" }, { status: 400 });
   }
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { company, isAdmin } = getAccessScope(user);
-  const table = getTableName(module as ModuleKey);
+  const table = getTableName(moduleKey as ModuleKey);
   if (!table) return NextResponse.json({ error: "Invalid module" }, { status: 400 });
 
   const companyFilter = isAdmin ? "" : ' AND "company" = ?';

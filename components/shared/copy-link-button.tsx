@@ -40,7 +40,7 @@ export function CopyLinkButton({ module, itemId, publicToken, activeTab }: CopyL
     } catch {
       toast("Could not copy link. Try copying the URL from the address bar.", "error", { duration: 5000 });
     }
-  }, [module, itemId, activeTab]);
+  }, [module, itemId, publicToken, activeTab]);
 
   return (
     <button

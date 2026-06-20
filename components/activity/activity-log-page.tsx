@@ -294,16 +294,16 @@ function ActivityEntryRow({ entry, compact = false }: { entry: ActivityEntry; co
           </span>
           {actor && (
             <>
-              <span className="text-[10px] text-gray-300">·</span>
+              <span className="text-[10px] text-gray-300">-</span>
               <span className={cn("text-gray-500 flex items-center gap-0.5", compact ? "text-[10px]" : "text-[11px]")}>
                 <User size={9} weight="bold" /> {actor}
               </span>
             </>
           )}
-          <span className="text-[10px] text-gray-300">·</span>
-          <span className={cn("text-gray-400", compact ? "text-[10px]" : "text-[11px]")}>
+          <span className="text-[10px] text-gray-300">-</span>
+          <time className={cn("text-gray-400", compact ? "text-[10px]" : "text-[11px]")} dateTime={toDateTimeAttribute(entry.createdAt)} title={entry.createdAt}>
             {formatDateTime(entry.createdAt)}
-          </span>
+          </time>
         </div>
       </div>
       <ActionBadge action={entry.action} />
@@ -391,8 +391,13 @@ function normalizeTime(iso: string): number {
 function formatTimeRange(startTime: string, endTime: string): string {
   const start = formatDateTime(startTime);
   const end = formatDateTime(endTime);
-  if (start && end && start !== end) return `${start} – ${end}`;
+  if (start && end && start !== end) return `${start} - ${end}`;
   return start || "";
+}
+
+function toDateTimeAttribute(iso: string): string | undefined {
+  const time = normalizeTime(iso);
+  return time ? new Date(time).toISOString() : undefined;
 }
 
 function formatDateTime(iso: string): string {
@@ -400,17 +405,13 @@ function formatDateTime(iso: string): string {
   const normalized = iso.includes("T") || iso.includes("Z") ? iso : `${iso.replace(" ", "T")}Z`;
   const date = new Date(normalized);
   if (isNaN(date.getTime())) return "";
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 
